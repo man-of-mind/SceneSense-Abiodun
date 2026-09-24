@@ -1,0 +1,99 @@
+{
+  "schema": "scenesense.ue_mcs_backlog_calibration.v1",
+  "contract_id": "ue_mcs_backlog_calibration_v1",
+  "status": "UE_MCS_BACKLOG_CALIBRATION_FAILED",
+  "utc": "2026-09-24T19:50:58.780565Z",
+  "config_sha256": "f39e2f4f64bb427388d123709d8357607bfd17c4d72c979ad86e847507d66fb9",
+  "source_hashes": {
+    "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "rl_agent/configs/splitfusion_phase14b_corrected_four_profile_replay_v1.json": "0dafbe9150859111956618f9573b94c48ad83b9edd43d7b06bad9da04f577f69",
+    "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+    "rl_agent/ue_n3_structured_udp_receiver.py": "3e92ba8f756d2c028dcfe51c2a35f18d4f268a041516ea1e054f349f1b916446"
+  },
+  "failure": "RunFailure: UE did not attach and reach the edge host before timeout",
+  "notes": [],
+  "calibration": {},
+  "plan_audit": {
+    "cells": 12,
+    "expected_cells": 12,
+    "tier_block_counts": {
+      "high": 12,
+      "medium": 12,
+      "low": 12
+    },
+    "position_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "transition_counts_per_channel": {
+      "FAVORABLE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "high->low": 2,
+        "low->medium": 2,
+        "medium->high": 2
+      },
+      "ADVERSE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "low->medium": 2,
+        "medium->high": 2,
+        "high->low": 2
+      }
+    },
+    "all_six_transitions_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "repetition_1_reverses_repetition_0": true,
+    "load_is_within_cell": true
+  },
+  "cells": [],
+  "final_cold_state": {
+    "utc": "2026-09-24T19:50:58.779918Z",
+    "loadavg": "2.48 1.32 0.66 2/2532 96359",
+    "orphan_processes": {},
+    "residual_ue_tunnels": [],
+    "carla_running": false,
+    "cold": true
+  },
+  "files": [
+    {
+      "relative_path": "calibration/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "calibration/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/calibration/logs/gnb.log",
+      "size_bytes": 157082,
+      "sha256": "0cdf729b5b0e2b2319ebdcd649c2edfe6df8298fda438cb30e387b31ca3942e3"
+    },
+    {
+      "relative_path": "cells/calibration/logs/ue.log",
+      "size_bytes": 53447,
+      "sha256": "cc0e1a4aa3697c7316e5cd9b02781841dc2053aa0c8809e340ae9ee423316e96"
+    },
+    {
+      "relative_path": "final_cold_state.json",
+      "size_bytes": 184,
+      "sha256": "f838e22064759ecc6d325989e5886b246fed4873d68e660bad93b79a25d20f0f"
+    },
+    {
+      "relative_path": "plan.json",
+      "size_bytes": 18285,
+      "sha256": "1f3290fe1826d31e068cb74fe02d09b94ece7d10d2c4bb7f7826fd39ea10dc21"
+    },
+    {
+      "relative_path": "preflight.json",
+      "size_bytes": 379,
+      "sha256": "1aa5894db8731e261973faf7a710b6345f58412bb86f2a3055b34d1c776394fa"
+    }
+  ]
+}

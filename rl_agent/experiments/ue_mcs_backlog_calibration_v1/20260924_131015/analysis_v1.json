@@ -1,0 +1,4788 @@
+{
+  "decisions": 5400,
+  "design": {
+    "block_orders": [
+      [
+        "low",
+        "medium",
+        "high"
+      ],
+      [
+        "medium",
+        "high",
+        "low"
+      ],
+      [
+        "high",
+        "low",
+        "medium"
+      ]
+    ],
+    "channels": [
+      "FAVORABLE_STABLE",
+      "ADVERSE_STABLE"
+    ],
+    "frames_per_block": 150,
+    "repetitions": 2,
+    "steady_state_decisions": 80,
+    "transient_decisions": 30
+  },
+  "figures": [
+    "fig01_mcs_by_channel_and_load.png",
+    "fig01_mcs_by_channel_and_load.pdf",
+    "fig02_backlog_by_channel_and_load.png",
+    "fig02_backlog_by_channel_and_load.pdf",
+    "fig03_transient_backlog_after_transition.png",
+    "fig03_transient_backlog_after_transition.pdf",
+    "fig04_mcs_age_and_coverage_by_cell.png",
+    "fig04_mcs_age_and_coverage_by_cell.pdf",
+    "fig05_features_vs_next_frame_latency.png",
+    "fig05_features_vs_next_frame_latency.pdf",
+    "fig06_prediction_comparison_abc.png",
+    "fig06_prediction_comparison_abc.pdf"
+  ],
+  "gates": [
+    {
+      "detail": "12/12 cells captured with profile read-back verified",
+      "gate": "CELL_IDENTITY_AND_PROFILE_READ_BACK",
+      "passed": true
+    },
+    {
+      "detail": "5400 decisions; per-cell chunk and terminal sums balance",
+      "gate": "EXACT_SENT_TO_TERMINAL_ACCOUNTING",
+      "passed": true
+    },
+    {
+      "detail": "no negative uplink latency and no negative observation age in any cell",
+      "gate": "NO_NEGATIVE_INTERVAL",
+      "passed": true
+    },
+    {
+      "detail": "the RAN is rebuilt from cold before every cell, so an RLC queue cannot survive into the next cell",
+      "gate": "NO_CROSS_CELL_QUEUE_CONTAMINATION",
+      "passed": true
+    },
+    {
+      "detail": "backlog and MCS are taken from the last sample strictly before the decision",
+      "gate": "EVERY_OBSERVATION_PRECEDES_ITS_DECISION",
+      "passed": true
+    },
+    {
+      "detail": "only HARQ round 0 grants enter the policy feature",
+      "gate": "RETRANSMISSIONS_EXCLUDED",
+      "passed": true
+    },
+    {
+      "detail": "missing MCS stays missing; 0 is preserved only as a real observation",
+      "gate": "MISSING_MCS_NEVER_ZERO",
+      "passed": true
+    },
+    {
+      "detail": "raw byte counts retained, max 49984583.0; no log1p_scale=1 saturation applied",
+      "gate": "RAW_BACKLOG_RETAINED",
+      "passed": true
+    },
+    {
+      "detail": "observed MCS table(s): [0]",
+      "gate": "MCS_TABLE_CONSTANT_ACROSS_CELLS",
+      "passed": true
+    },
+    {
+      "detail": "12/12 cells restored noise_power_dB=-50 with read-back",
+      "gate": "RF_RESTORED_AND_READ_BACK",
+      "passed": true
+    },
+    {
+      "detail": "orphans={} tunnels=[]",
+      "gate": "NO_ORPHAN_PROCESS",
+      "passed": true
+    },
+    {
+      "detail": "no CARLA process at any point; no perception model or CUDA context created",
+      "gate": "CARLA_AND_CUDA_UNTOUCHED",
+      "passed": true
+    }
+  ],
+  "interpretation": {
+    "checks": [
+      {
+        "check": "BACKLOG_RESPONDS_TO_LOAD",
+        "detail": "FAVORABLE_STABLE: high-vs-low Cliff's delta 0.9896006944444444 (LARGE); ADVERSE_STABLE: high-vs-low Cliff's delta 1.0 (LARGE)",
+        "passed": true
+      },
+      {
+        "check": "MCS_STABLE_ACROSS_LOAD_AT_FIXED_CHANNEL",
+        "detail": "max |median MCS| gap across the three tiers: {'FAVORABLE_STABLE': 0.0, 'ADVERSE_STABLE': 0.0} (index units)",
+        "passed": true
+      },
+      {
+        "check": "MCS_SEPARATES_CHANNELS_AT_FIXED_LOAD",
+        "detail": "low: 0.9975651041666667 (LARGE); medium: 0.9923003472222223 (LARGE); high: 0.9915668402777778 (LARGE)",
+        "passed": true
+      },
+      {
+        "check": "FEATURES_AVAILABLE_AT_DECISION_RATE",
+        "detail": "worst per-cell MCS coverage 1.0, worst backlog coverage 1.0",
+        "passed": true
+      },
+      {
+        "check": "REPEATABLE_ACROSS_REPETITIONS",
+        "detail": "cells whose two repetitions disagree at LARGE effect: ['FAVORABLE_STABLE/medium', 'ADVERSE_STABLE/medium']",
+        "passed": false
+      },
+      {
+        "check": "PAIR_IMPROVES_ON_EACH_SINGLE_FEATURE",
+        "detail": "y_complete: C-A +0.4209, C-B -0.0177; y_in_budget: C-A +0.4274, C-B -0.0130",
+        "passed": false
+      },
+      {
+        "check": "ALL_STRUCTURAL_GATES_PASS",
+        "detail": "12/12 structural gates",
+        "passed": true
+      }
+    ],
+    "passed": 5,
+    "statements": [
+      "UL MCS is a delayed, quantized scheduler decision derived from gNB-measured uplink SNR in this custom build.",
+      "It reaches the UE through standard DCI without an added controller.",
+      "Backlog represents demand/queue pressure, not physical channel.",
+      "This is a bounded engineering qualification, not repeated publication-level evidence."
+    ],
+    "total": 7,
+    "verdict": "INCONCLUSIVE"
+  },
+  "missingness": {
+    "backlog_coverage_min": 1.0,
+    "mcs_coverage_max": 1.0,
+    "mcs_coverage_min": 1.0,
+    "note": "age is reported as validity evidence only and is never a policy feature",
+    "per_cell": {
+      "adverse_stable__order0__rep0": {
+        "backlog_age_ms": {
+          "max": 22.611486,
+          "mean": 2.3968421555555555,
+          "min": 0.000294,
+          "n": 450,
+          "p50": 1.085111,
+          "p95": 16.755564,
+          "sd": 4.632037554917337
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 76.876598,
+          "mean": 7.637373266666667,
+          "min": 0.000684,
+          "n": 450,
+          "p50": 2.172657,
+          "p95": 22.615642,
+          "sd": 13.480280480650586
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "adverse_stable__order0__rep1": {
+        "backlog_age_ms": {
+          "max": 10.973202,
+          "mean": 1.3606452355555554,
+          "min": 0.010947,
+          "n": 450,
+          "p50": 1.237529,
+          "p95": 2.889467,
+          "sd": 1.2931019549965552
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 23.443184,
+          "mean": 1.6320874577777778,
+          "min": 0.003155,
+          "n": 450,
+          "p50": 1.192038,
+          "p95": 5.869906,
+          "sd": 2.1502983916673246
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "adverse_stable__order1__rep0": {
+        "backlog_age_ms": {
+          "max": 3.051614,
+          "mean": 1.0740972688888888,
+          "min": 0.000292,
+          "n": 450,
+          "p50": 0.945576,
+          "p95": 2.638249,
+          "sd": 0.8721012439644563
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 30.707514,
+          "mean": 1.4547017133333333,
+          "min": 0.00461,
+          "n": 450,
+          "p50": 1.065333,
+          "p95": 2.748721,
+          "sd": 2.1339185209951688
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "adverse_stable__order1__rep1": {
+        "backlog_age_ms": {
+          "max": 6.014928,
+          "mean": 1.136569188888889,
+          "min": 0.006271,
+          "n": 450,
+          "p50": 1.042267,
+          "p95": 2.588183,
+          "sd": 0.9018137811397785
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 80.06254,
+          "mean": 5.339253633333334,
+          "min": 0.001982,
+          "n": 450,
+          "p50": 1.796419,
+          "p95": 13.254338,
+          "sd": 11.280957448167134
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "adverse_stable__order2__rep0": {
+        "backlog_age_ms": {
+          "max": 2.793262,
+          "mean": 1.1234119133333333,
+          "min": 0.000363,
+          "n": 450,
+          "p50": 1.046012,
+          "p95": 2.557904,
+          "sd": 0.8544713539509022
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 49.294328,
+          "mean": 1.5011874688888889,
+          "min": 0.003526,
+          "n": 450,
+          "p50": 1.103167,
+          "p95": 2.621136,
+          "sd": 2.940065911766384
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "adverse_stable__order2__rep1": {
+        "backlog_age_ms": {
+          "max": 2.926632,
+          "mean": 1.16869274,
+          "min": 0.006833,
+          "n": 450,
+          "p50": 1.150724,
+          "p95": 2.586651,
+          "sd": 0.8709899930964975
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 68.860409,
+          "mean": 3.7754771844444446,
+          "min": 0.001946,
+          "n": 450,
+          "p50": 1.347464,
+          "p95": 11.020907,
+          "sd": 8.718391161764
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "favorable_stable__order0__rep0": {
+        "backlog_age_ms": {
+          "max": 2.918498,
+          "mean": 1.1341852311111111,
+          "min": 0.003529,
+          "n": 450,
+          "p50": 1.046756,
+          "p95": 2.623568,
+          "sd": 0.8686311786486649
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 88.002976,
+          "mean": 9.845714119999998,
+          "min": 0.000183,
+          "n": 450,
+          "p50": 2.549692,
+          "p95": 34.790143,
+          "sd": 15.932918124581413
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "favorable_stable__order0__rep1": {
+        "backlog_age_ms": {
+          "max": 2.896109,
+          "mean": 1.1974769733333335,
+          "min": 0.001857,
+          "n": 450,
+          "p50": 1.137201,
+          "p95": 2.69026,
+          "sd": 0.9240555521793478
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 79.907478,
+          "mean": 4.455310306666667,
+          "min": 0.001129,
+          "n": 450,
+          "p50": 1.22271,
+          "p95": 11.332738,
+          "sd": 11.979216945577505
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "favorable_stable__order1__rep0": {
+        "backlog_age_ms": {
+          "max": 23.758293,
+          "mean": 1.4154564377777776,
+          "min": 0.007242,
+          "n": 450,
+          "p50": 1.094656,
+          "p95": 2.690089,
+          "sd": 2.2542863309030765
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 78.983808,
+          "mean": 11.366231993333333,
+          "min": 0.001885,
+          "n": 450,
+          "p50": 2.052024,
+          "p95": 36.675352,
+          "sd": 15.470956226530834
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "favorable_stable__order1__rep1": {
+        "backlog_age_ms": {
+          "max": 3.987473,
+          "mean": 1.1994936533333334,
+          "min": 0.004804,
+          "n": 450,
+          "p50": 1.056592,
+          "p95": 2.689992,
+          "sd": 0.9318075947559941
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 81.487987,
+          "mean": 7.118489208888889,
+          "min": 0.010883,
+          "n": 450,
+          "p50": 1.818104,
+          "p95": 22.309464,
+          "sd": 15.183286909200302
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "favorable_stable__order2__rep0": {
+        "backlog_age_ms": {
+          "max": 3.329241,
+          "mean": 1.1899692466666667,
+          "min": 0.00091,
+          "n": 450,
+          "p50": 1.057881,
+          "p95": 2.739352,
+          "sd": 0.9241443418106281
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 76.804801,
+          "mean": 10.105767024444445,
+          "min": 0.000662,
+          "n": 450,
+          "p50": 1.807365,
+          "p95": 34.269026,
+          "sd": 14.092835782952031
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      },
+      "favorable_stable__order2__rep1": {
+        "backlog_age_ms": {
+          "max": 3.085472,
+          "mean": 1.2611379733333332,
+          "min": 0.007459,
+          "n": 450,
+          "p50": 1.24191,
+          "p95": 2.669048,
+          "sd": 0.8625872551465229
+        },
+        "backlog_coverage": 1.0,
+        "backlog_observed": 450,
+        "decisions": 450,
+        "mcs_age_ms": {
+          "max": 75.365362,
+          "mean": 14.206269084444443,
+          "min": 0.004152,
+          "n": 450,
+          "p50": 8.374753,
+          "p95": 35.494538,
+          "sd": 15.414600470698849
+        },
+        "mcs_coverage": 1.0,
+        "mcs_missing_no_prior": 0,
+        "mcs_missing_stale": 0,
+        "mcs_observed": 450
+      }
+    }
+  },
+  "normalization_bounds": {
+    "pre_enqueue_backlog_bytes": {
+      "max": 49984583.0,
+      "min": 0.0,
+      "p50": 20931256.0,
+      "p95": 49925882.0,
+      "p99": 49943990.0,
+      "recommended_transform": "log1p(bytes) / log1p(p99)",
+      "warning": "the deployed log1p_scale=1.0 maps every backlog above 1 byte to 1.0 and must not be reused"
+    },
+    "previous_ul_mcs": {
+      "max": 28.0,
+      "min": 8.0,
+      "missing_policy": "missing must be signalled explicitly, never encoded as 0, which is a real modulation index",
+      "p50": 16.0,
+      "recommended_transform": "mcs / 28 (MCS table 0 upper index)"
+    }
+  },
+  "prediction": {
+    "y_complete": {
+      "A_mcs_only": {
+        "auc_max": 0.7930805484147386,
+        "auc_mean": 0.5256910544123381,
+        "auc_min": 0.4518687707641196,
+        "auc_sd": 0.09612944012459758,
+        "brier_mean": 0.18669344866965346,
+        "folds_scored": 12,
+        "per_fold_auc": [
+          0.4518687707641196,
+          0.6160379221805253,
+          0.5873677009135176,
+          0.5462134764460346,
+          0.5009190224707466,
+          0.46635867149298277,
+          0.4582712369597616,
+          0.7930805484147386,
+          0.462696108922524,
+          0.4549818461108784,
+          0.5030963691890058,
+          0.4674009790832221
+        ]
+      },
+      "B_backlog_only": {
+        "auc_max": 1.0,
+        "auc_mean": 0.9642860365209317,
+        "auc_min": 0.8399499637895845,
+        "auc_sd": 0.04560423239653293,
+        "brier_mean": 0.08869207342189285,
+        "folds_scored": 12,
+        "per_fold_auc": [
+          1.0,
+          0.8399499637895845,
+          0.9550283713630328,
+          0.9952693301530511,
+          0.904965310137724,
+          1.0,
+          0.9927613370236321,
+          0.9802056555269922,
+          0.9833955352823277,
+          0.9948331238653819,
+          0.9599592806243638,
+          0.9650645304850912
+        ]
+      },
+      "C_mcs_and_backlog": {
+        "auc_max": 0.997174064901251,
+        "auc_mean": 0.9465745005398783,
+        "auc_min": 0.8548620712357627,
+        "auc_sd": 0.04842548005684847,
+        "brier_mean": 0.08415261197418154,
+        "folds_scored": 12,
+        "per_fold_auc": [
+          0.9962901439645626,
+          0.8548620712357627,
+          0.9523320857982213,
+          0.992178493341284,
+          0.8933416174795485,
+          0.997174064901251,
+          0.9935064935064936,
+          0.9455869751499572,
+          0.9587393738337134,
+          0.9642158916352465,
+          0.8624024431625382,
+          0.94826435246996
+        ]
+      },
+      "comparison": {
+        "best_feature_set": "B_backlog_only",
+        "c_minus_a_auc": 0.42088344612754025,
+        "c_minus_b_auc": -0.01771153598105335,
+        "dropped_incomplete_case_rows": 0,
+        "split": "LEAVE_ONE_CELL_OUT_BLOCKED",
+        "target": "y_complete",
+        "usable_rows": 5388
+      }
+    },
+    "y_in_budget": {
+      "A_mcs_only": {
+        "auc_max": 0.7331984517945109,
+        "auc_mean": 0.5542150207815167,
+        "auc_min": 0.3362241061937725,
+        "auc_sd": 0.13672778830011903,
+        "brier_mean": 0.22407635198771728,
+        "folds_scored": 9,
+        "per_fold_auc": [
+          0.6119420702754036,
+          0.4505796217205613,
+          0.34957026713124273,
+          0.6722049075984373,
+          0.5342208127443027,
+          0.7331984517945109,
+          0.6439491979414331,
+          0.6560457516339869,
+          0.3362241061937725
+        ]
+      },
+      "B_backlog_only": {
+        "auc_max": 0.9982299579615016,
+        "auc_mean": 0.9946877515083344,
+        "auc_min": 0.9917813901635945,
+        "auc_sd": 0.0019250014621760639,
+        "brier_mean": 0.07696546242929489,
+        "folds_scored": 9,
+        "per_fold_auc": [
+          0.99335232668566,
+          0.9924242424242424,
+          0.9943786295005808,
+          0.9945129713357622,
+          0.9982299579615016,
+          0.9967745718977246,
+          0.9955156950672646,
+          0.9952199785386792,
+          0.9917813901635945
+        ]
+      },
+      "C_mcs_and_backlog": {
+        "auc_max": 0.999051975802811,
+        "auc_mean": 0.9816414483310035,
+        "auc_min": 0.9374618669920683,
+        "auc_sd": 0.01795650562074667,
+        "brier_mean": 0.07207576300101523,
+        "folds_scored": 9,
+        "per_fold_auc": [
+          0.9721374304707638,
+          0.9374618669920683,
+          0.981602787456446,
+          0.9920547824941838,
+          0.9915554244413305,
+          0.9976688951442646,
+          0.999051975802811,
+          0.9884401521802751,
+          0.9747997199968889
+        ]
+      },
+      "comparison": {
+        "best_feature_set": "B_backlog_only",
+        "c_minus_a_auc": 0.4274264275494868,
+        "c_minus_b_auc": -0.013046303177330909,
+        "dropped_incomplete_case_rows": 1445,
+        "split": "LEAVE_ONE_CELL_OUT_BLOCKED",
+        "target": "y_in_budget",
+        "usable_rows": 3943
+      }
+    }
+  },
+  "repeatability": {
+    "ADVERSE_STABLE": {
+      "high": {
+        "backlog_effect_rep0_vs_rep1": {
+          "delta": 0.008680555555555556,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "backlog_p50_rep0": 49915807.0,
+        "backlog_p50_rep1": 49917665.0,
+        "mcs_effect_rep0_vs_rep1": {
+          "delta": 0.0037847222222222223,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "mcs_p50_rep0": 9.0,
+        "mcs_p50_rep1": 9.0
+      },
+      "low": {
+        "backlog_effect_rep0_vs_rep1": {
+          "delta": 0.3545833333333333,
+          "interpretation": "MEDIUM",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "backlog_p50_rep0": 27874302.0,
+        "backlog_p50_rep1": 0.0,
+        "mcs_effect_rep0_vs_rep1": {
+          "delta": 0.03298611111111111,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "mcs_p50_rep0": 9.0,
+        "mcs_p50_rep1": 9.0
+      },
+      "medium": {
+        "backlog_effect_rep0_vs_rep1": {
+          "delta": -0.5042013888888889,
+          "interpretation": "LARGE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "backlog_p50_rep0": 12186796.0,
+        "backlog_p50_rep1": 49898919.0,
+        "mcs_effect_rep0_vs_rep1": {
+          "delta": 0.0028125,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "mcs_p50_rep0": 9.0,
+        "mcs_p50_rep1": 9.0
+      }
+    },
+    "FAVORABLE_STABLE": {
+      "high": {
+        "backlog_effect_rep0_vs_rep1": {
+          "delta": -0.006319444444444444,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "backlog_p50_rep0": 49203111.0,
+        "backlog_p50_rep1": 48772068.0,
+        "mcs_effect_rep0_vs_rep1": {
+          "delta": 0.006267361111111111,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "mcs_p50_rep0": 25.0,
+        "mcs_p50_rep1": 25.0
+      },
+      "low": {
+        "backlog_effect_rep0_vs_rep1": {
+          "delta": 0.4125,
+          "interpretation": "MEDIUM",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "backlog_p50_rep0": 0.0,
+        "backlog_p50_rep1": 0.0,
+        "mcs_effect_rep0_vs_rep1": {
+          "delta": 0.05328125,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "mcs_p50_rep0": 25.0,
+        "mcs_p50_rep1": 25.0
+      },
+      "medium": {
+        "backlog_effect_rep0_vs_rep1": {
+          "delta": -0.6742708333333334,
+          "interpretation": "LARGE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "backlog_p50_rep0": 0.0,
+        "backlog_p50_rep1": 22577087.0,
+        "mcs_effect_rep0_vs_rep1": {
+          "delta": 0.010625,
+          "interpretation": "NEGLIGIBLE",
+          "n_a": 240,
+          "n_b": 240
+        },
+        "mcs_p50_rep0": 25.0,
+        "mcs_p50_rep1": 25.0
+      }
+    }
+  },
+  "run_dir": "rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015",
+  "saturation": {
+    "by_block_position": {
+      "0": {
+        "at_ceiling_fraction": 0.12222222222222222,
+        "distinct_values": 925,
+        "n": 1800,
+        "p50": 67432.0
+      },
+      "1": {
+        "at_ceiling_fraction": 0.335,
+        "distinct_values": 1509,
+        "n": 1800,
+        "p50": 32653289.0
+      },
+      "2": {
+        "at_ceiling_fraction": 0.24166666666666667,
+        "distinct_values": 1524,
+        "n": 1800,
+        "p50": 31660807.0
+      }
+    },
+    "by_tier": {
+      "high": {
+        "at_ceiling_fraction": 0.4438888888888889,
+        "distinct_values": 1788,
+        "n": 1800,
+        "p50": 42826269.0
+      },
+      "low": {
+        "at_ceiling_fraction": 0.03333333333333333,
+        "distinct_values": 830,
+        "n": 1800,
+        "p50": 0.0
+      },
+      "medium": {
+        "at_ceiling_fraction": 0.22166666666666668,
+        "distinct_values": 1337,
+        "n": 1800,
+        "p50": 8348748.0
+      }
+    },
+    "first_block_clean_transient_by_tier": {
+      "high": {
+        "at_ceiling_fraction": 0.0,
+        "distinct_values": 117,
+        "n": 120,
+        "p50": 6851329.0
+      },
+      "low": {
+        "at_ceiling_fraction": 0.0,
+        "distinct_values": 1,
+        "n": 120,
+        "p50": 0.0
+      },
+      "medium": {
+        "at_ceiling_fraction": 0.0,
+        "distinct_values": 59,
+        "n": 120,
+        "p50": 0.0
+      }
+    },
+    "interpretation": "medium and high are far beyond the uplink's capacity, so the queue reaches its ceiling within seconds and stays there. Only the first block of each cell begins from an empty queue, which is why the position-balanced design matters: every tier occupies position 0 equally often, giving a clean from-empty transient for each",
+    "near_ceiling_threshold_bytes": 47485353.85,
+    "observed_ceiling_bytes": 49984583.0,
+    "offered_mbps_by_tier": {
+      "high": 70.44536,
+      "low": 0.49832,
+      "medium": 21.08056
+    },
+    "overall_at_ceiling_fraction": 0.23296296296296296
+  },
+  "steady_state": {
+    "by_channel": {
+      "ADVERSE_STABLE": {
+        "high": {
+          "backlog_bytes": {
+            "max": 49976947.0,
+            "mean": 49904454.49375,
+            "min": 48634317.0,
+            "n": 480,
+            "p50": 49916953.0,
+            "p95": 49945131.0,
+            "sd": 79385.24426331253
+          },
+          "complete_rate": 0.0,
+          "latency_ms": {
+            "max": null,
+            "mean": null,
+            "min": null,
+            "n": 0,
+            "p50": null,
+            "p95": null,
+            "sd": null
+          },
+          "previous_ul_mcs": {
+            "max": 19.0,
+            "mean": 9.985416666666667,
+            "min": 9.0,
+            "n": 480,
+            "p50": 9.0,
+            "p95": 16.0,
+            "sd": 2.078109074709239
+          }
+        },
+        "low": {
+          "backlog_bytes": {
+            "max": 37542342.0,
+            "mean": 15312428.575,
+            "min": 0.0,
+            "n": 480,
+            "p50": 912456.0,
+            "p95": 35300805.0,
+            "sd": 15493714.615958165
+          },
+          "complete_rate": 0.6666666666666666,
+          "latency_ms": {
+            "max": 21873.489029,
+            "mean": 4546.35117205625,
+            "min": 14.02452,
+            "n": 320,
+            "p50": 25.959226,
+            "p95": 20338.629784,
+            "sd": 7891.328346419631
+          },
+          "previous_ul_mcs": {
+            "max": 19.0,
+            "mean": 9.85,
+            "min": 9.0,
+            "n": 480,
+            "p50": 9.0,
+            "p95": 16.0,
+            "sd": 1.8625699092025154
+          }
+        },
+        "medium": {
+          "backlog_bytes": {
+            "max": 49969313.0,
+            "mean": 27150729.139583334,
+            "min": 5931023.0,
+            "n": 480,
+            "p50": 15099772.0,
+            "p95": 49936595.0,
+            "sd": 18353504.41036761
+          },
+          "complete_rate": 0.5979166666666667,
+          "latency_ms": {
+            "max": 23248.758899,
+            "mean": 8346.554051020907,
+            "min": 2922.549461,
+            "n": 287,
+            "p50": 6068.375071,
+            "p95": 22168.720405,
+            "sd": 5971.172643055386
+          },
+          "previous_ul_mcs": {
+            "max": 19.0,
+            "mean": 10.0,
+            "min": 9.0,
+            "n": 480,
+            "p50": 9.0,
+            "p95": 16.0,
+            "sd": 2.071633815776009
+          }
+        },
+        "q1_mcs_stability_across_load": {
+          "low_vs_high_effect": {
+            "delta": -0.035837673611111114,
+            "interpretation": "NEGLIGIBLE",
+            "n_a": 480,
+            "n_b": 480
+          },
+          "max_abs_p50_gap": 0.0,
+          "p50_by_tier": {
+            "high": 9.0,
+            "low": 9.0,
+            "medium": 9.0
+          }
+        },
+        "q3_backlog_responds_to_load": {
+          "low_vs_high_effect": {
+            "delta": 1.0,
+            "interpretation": "LARGE",
+            "n_a": 480,
+            "n_b": 480
+          },
+          "p50_by_tier": {
+            "high": 49916953.0,
+            "low": 912456.0,
+            "medium": 15099772.0
+          }
+        }
+      },
+      "FAVORABLE_STABLE": {
+        "high": {
+          "backlog_bytes": {
+            "max": 49816304.0,
+            "mean": 43651040.66875,
+            "min": 23592108.0,
+            "n": 480,
+            "p50": 49005015.0,
+            "p95": 49745852.0,
+            "sd": 7639503.469357342
+          },
+          "complete_rate": 0.49583333333333335,
+          "latency_ms": {
+            "max": 14368.056038,
+            "mean": 8958.94282305042,
+            "min": 5238.882804,
+            "n": 238,
+            "p50": 8430.974151,
+            "p95": 13856.277777,
+            "sd": 2734.5177286490575
+          },
+          "previous_ul_mcs": {
+            "max": 27.0,
+            "mean": 24.04375,
+            "min": 16.0,
+            "n": 480,
+            "p50": 25.0,
+            "p95": 27.0,
+            "sd": 3.339810763725993
+          }
+        },
+        "low": {
+          "backlog_bytes": {
+            "max": 34639344.0,
+            "mean": 3259269.0166666666,
+            "min": 0.0,
+            "n": 480,
+            "p50": 0.0,
+            "p95": 25650560.0,
+            "sd": 8011998.771739902
+          },
+          "complete_rate": 1.0,
+          "latency_ms": {
+            "max": 7087.661563,
+            "mean": 628.7268640416667,
+            "min": 10.922892,
+            "n": 480,
+            "p50": 22.963043,
+            "p95": 4688.954497,
+            "sd": 1509.5944435626877
+          },
+          "previous_ul_mcs": {
+            "max": 27.0,
+            "mean": 23.983333333333334,
+            "min": 16.0,
+            "n": 480,
+            "p50": 25.0,
+            "p95": 27.0,
+            "sd": 2.9346587914478612
+          }
+        },
+        "medium": {
+          "backlog_bytes": {
+            "max": 49069545.0,
+            "mean": 10714826.145833334,
+            "min": 0.0,
+            "n": 480,
+            "p50": 0.0,
+            "p95": 45608672.0,
+            "sd": 16182739.921759637
+          },
+          "complete_rate": 1.0,
+          "latency_ms": {
+            "max": 9615.006243,
+            "mean": 2081.099461335417,
+            "min": 59.030631,
+            "n": 480,
+            "p50": 91.767806,
+            "p95": 8360.192692,
+            "sd": 2991.857343477969
+          },
+          "previous_ul_mcs": {
+            "max": 27.0,
+            "mean": 24.10625,
+            "min": 16.0,
+            "n": 480,
+            "p50": 25.0,
+            "p95": 27.0,
+            "sd": 3.2792215952621033
+          }
+        },
+        "q1_mcs_stability_across_load": {
+          "low_vs_high_effect": {
+            "delta": -0.07798611111111112,
+            "interpretation": "NEGLIGIBLE",
+            "n_a": 480,
+            "n_b": 480
+          },
+          "max_abs_p50_gap": 0.0,
+          "p50_by_tier": {
+            "high": 25.0,
+            "low": 25.0,
+            "medium": 25.0
+          }
+        },
+        "q3_backlog_responds_to_load": {
+          "low_vs_high_effect": {
+            "delta": 0.9896006944444444,
+            "interpretation": "LARGE",
+            "n_a": 480,
+            "n_b": 480
+          },
+          "p50_by_tier": {
+            "high": 49005015.0,
+            "low": 0.0,
+            "medium": 0.0
+          }
+        }
+      }
+    },
+    "q2_mcs_separates_channels_at_fixed_load": {
+      "high": {
+        "adverse": {
+          "max": 19.0,
+          "mean": 9.985416666666667,
+          "min": 9.0,
+          "n": 480,
+          "p50": 9.0,
+          "p95": 16.0,
+          "sd": 2.078109074709239
+        },
+        "effect": {
+          "delta": 0.9915668402777778,
+          "interpretation": "LARGE",
+          "n_a": 480,
+          "n_b": 480
+        },
+        "favorable": {
+          "max": 27.0,
+          "mean": 24.04375,
+          "min": 16.0,
+          "n": 480,
+          "p50": 25.0,
+          "p95": 27.0,
+          "sd": 3.339810763725993
+        }
+      },
+      "low": {
+        "adverse": {
+          "max": 19.0,
+          "mean": 9.85,
+          "min": 9.0,
+          "n": 480,
+          "p50": 9.0,
+          "p95": 16.0,
+          "sd": 1.8625699092025154
+        },
+        "effect": {
+          "delta": 0.9975651041666667,
+          "interpretation": "LARGE",
+          "n_a": 480,
+          "n_b": 480
+        },
+        "favorable": {
+          "max": 27.0,
+          "mean": 23.983333333333334,
+          "min": 16.0,
+          "n": 480,
+          "p50": 25.0,
+          "p95": 27.0,
+          "sd": 2.9346587914478612
+        }
+      },
+      "medium": {
+        "adverse": {
+          "max": 19.0,
+          "mean": 10.0,
+          "min": 9.0,
+          "n": 480,
+          "p50": 9.0,
+          "p95": 16.0,
+          "sd": 2.071633815776009
+        },
+        "effect": {
+          "delta": 0.9923003472222223,
+          "interpretation": "LARGE",
+          "n_a": 480,
+          "n_b": 480
+        },
+        "favorable": {
+          "max": 27.0,
+          "mean": 24.10625,
+          "min": 16.0,
+          "n": 480,
+          "p50": 25.0,
+          "p95": 27.0,
+          "sd": 3.2792215952621033
+        }
+      }
+    },
+    "steady_decisions": 2880,
+    "window": {
+      "steady_state_decisions": 80,
+      "transient_decisions": 30
+    }
+  },
+  "terminal_accounting": {
+    "all_cells_balance": true,
+    "decisions": 5400,
+    "per_cell": {
+      "adverse_stable__order0__rep0": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 1566,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 345,
+          "INCOMPLETE_REASSEMBLY": 1,
+          "NO_ARRIVAL_WITHIN_OBSERVATION_WINDOW": 104
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 1584
+      },
+      "adverse_stable__order0__rep1": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 1816,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 84,
+          "INCOMPLETE_REASSEMBLY": 90,
+          "NO_ARRIVAL_WITHIN_OBSERVATION_WINDOW": 276
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 1334
+      },
+      "adverse_stable__order1__rep0": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 1478,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 199,
+          "INCOMPLETE_REASSEMBLY": 83,
+          "NO_ARRIVAL_WITHIN_OBSERVATION_WINDOW": 168
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 1672
+      },
+      "adverse_stable__order1__rep1": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 1798,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 216,
+          "INCOMPLETE_REASSEMBLY": 82,
+          "NO_ARRIVAL_WITHIN_OBSERVATION_WINDOW": 152
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 1352
+      },
+      "adverse_stable__order2__rep0": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 1181,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 334,
+          "INCOMPLETE_REASSEMBLY": 84,
+          "NO_ARRIVAL_WITHIN_OBSERVATION_WINDOW": 32
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 1969
+      },
+      "adverse_stable__order2__rep1": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 1295,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 363,
+          "INCOMPLETE_REASSEMBLY": 1,
+          "NO_ARRIVAL_WITHIN_OBSERVATION_WINDOW": 86
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 1855
+      },
+      "favorable_stable__order0__rep0": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 145,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 428,
+          "INCOMPLETE_REASSEMBLY": 22
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 3005
+      },
+      "favorable_stable__order0__rep1": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 277,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 390,
+          "INCOMPLETE_REASSEMBLY": 60
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 2873
+      },
+      "favorable_stable__order1__rep0": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 502,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 372,
+          "INCOMPLETE_REASSEMBLY": 78
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 2648
+      },
+      "favorable_stable__order1__rep1": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 533,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 373,
+          "INCOMPLETE_REASSEMBLY": 77
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 2617
+      },
+      "favorable_stable__order2__rep0": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 185,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 422,
+          "INCOMPLETE_REASSEMBLY": 28
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 2965
+      },
+      "favorable_stable__order2__rep1": {
+        "chunks_dropped_at_socket": 0,
+        "chunks_expected": 3150,
+        "chunks_lost_in_network": 120,
+        "chunks_sent": 3150,
+        "decisions": 450,
+        "sent_plus_dropped_equals_expected": true,
+        "terminal": {
+          "COMPLETE_REASSEMBLY": 429,
+          "INCOMPLETE_REASSEMBLY": 21
+        },
+        "terminal_sum_equals_decisions": true,
+        "unique_chunks_received": 3030
+      }
+    }
+  },
+  "transient": {
+    "ADVERSE_STABLE": {
+      "high->high": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": null,
+        "backlog_last_transient_decision_mean": 27787525.75,
+        "cells_contributing": 4,
+        "mcs_first_decision_mean": null,
+        "mcs_last_transient_decision_mean": 14.25,
+        "samples": 116,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 0,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": 8051410.25,
+            "decisions_since_transition": 1,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 8801111.25,
+            "decisions_since_transition": 2,
+            "mcs_mean": 11.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 9482170.25,
+            "decisions_since_transition": 3,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 10154876.25,
+            "decisions_since_transition": 4,
+            "mcs_mean": 14.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 10821399.0,
+            "decisions_since_transition": 5,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 11486614.5,
+            "decisions_since_transition": 6,
+            "mcs_mean": 13.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 12174739.5,
+            "decisions_since_transition": 7,
+            "mcs_mean": 14.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 12853867.25,
+            "decisions_since_transition": 8,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 13526421.25,
+            "decisions_since_transition": 9,
+            "mcs_mean": 12.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 14201365.25,
+            "decisions_since_transition": 10,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 14875430.25,
+            "decisions_since_transition": 11,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 15550733.75,
+            "decisions_since_transition": 12,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 16227913.75,
+            "decisions_since_transition": 13,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 16862637.25,
+            "decisions_since_transition": 14,
+            "mcs_mean": 17.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 17534069.0,
+            "decisions_since_transition": 15,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 18191875.5,
+            "decisions_since_transition": 16,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 18883885.25,
+            "decisions_since_transition": 17,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 19631264.75,
+            "decisions_since_transition": 18,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 20374242.75,
+            "decisions_since_transition": 19,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 21121073.25,
+            "decisions_since_transition": 20,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 21864116.5,
+            "decisions_since_transition": 21,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 22627396.0,
+            "decisions_since_transition": 22,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23372995.75,
+            "decisions_since_transition": 23,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24122127.75,
+            "decisions_since_transition": 24,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24866393.0,
+            "decisions_since_transition": 25,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 25607702.75,
+            "decisions_since_transition": 26,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 26348313.25,
+            "decisions_since_transition": 27,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 27092023.75,
+            "decisions_since_transition": 28,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 27787525.75,
+            "decisions_since_transition": 29,
+            "mcs_mean": 14.25,
+            "n": 4
+          }
+        ]
+      },
+      "high->low": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 49893583.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 10.0,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 49893583.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 10.0,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "high->medium": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 49916948.5,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 10.0,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 49916948.5,
+            "decisions_since_transition": 0,
+            "mcs_mean": 10.0,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "low->high": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 0.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 9.5,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 0.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 9.5,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "low->low": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": null,
+        "backlog_last_transient_decision_mean": 35326512.5,
+        "cells_contributing": 4,
+        "mcs_first_decision_mean": null,
+        "mcs_last_transient_decision_mean": 14.25,
+        "samples": 116,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 0,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": 40606118.25,
+            "decisions_since_transition": 1,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 40448000.75,
+            "decisions_since_transition": 2,
+            "mcs_mean": 11.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 40234925.5,
+            "decisions_since_transition": 3,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 40017650.0,
+            "decisions_since_transition": 4,
+            "mcs_mean": 13.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 39791616.0,
+            "decisions_since_transition": 5,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 39564635.5,
+            "decisions_since_transition": 6,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 39348802.25,
+            "decisions_since_transition": 7,
+            "mcs_mean": 13.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 39130728.75,
+            "decisions_since_transition": 8,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 38910755.0,
+            "decisions_since_transition": 9,
+            "mcs_mean": 12.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 38692994.5,
+            "decisions_since_transition": 10,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 38474675.5,
+            "decisions_since_transition": 11,
+            "mcs_mean": 13.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 38262427.0,
+            "decisions_since_transition": 12,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 38042225.75,
+            "decisions_since_transition": 13,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 37780912.25,
+            "decisions_since_transition": 14,
+            "mcs_mean": 16.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 37560485.25,
+            "decisions_since_transition": 15,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 37340065.0,
+            "decisions_since_transition": 16,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 37145596.25,
+            "decisions_since_transition": 17,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 36998062.5,
+            "decisions_since_transition": 18,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 36848217.5,
+            "decisions_since_transition": 19,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 36700971.5,
+            "decisions_since_transition": 20,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 36553699.5,
+            "decisions_since_transition": 21,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 36407954.0,
+            "decisions_since_transition": 22,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 36254805.25,
+            "decisions_since_transition": 23,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 36115652.25,
+            "decisions_since_transition": 24,
+            "mcs_mean": 9.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 35965541.5,
+            "decisions_since_transition": 25,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 35809491.0,
+            "decisions_since_transition": 26,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 35657962.0,
+            "decisions_since_transition": 27,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 35523915.5,
+            "decisions_since_transition": 28,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 35326512.5,
+            "decisions_since_transition": 29,
+            "mcs_mean": 14.25,
+            "n": 4
+          }
+        ]
+      },
+      "low->medium": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 12679393.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 9.5,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 12679393.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 9.5,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "medium->high": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 14593627.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 10.0,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 14593627.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 10.0,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "medium->low": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 31628474.5,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 10.0,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 31628474.5,
+            "decisions_since_transition": 0,
+            "mcs_mean": 10.0,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "medium->medium": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": null,
+        "backlog_last_transient_decision_mean": 32405708.5,
+        "cells_contributing": 4,
+        "mcs_first_decision_mean": null,
+        "mcs_last_transient_decision_mean": 14.25,
+        "samples": 116,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 0,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": 31355499.0,
+            "decisions_since_transition": 1,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31410691.25,
+            "decisions_since_transition": 2,
+            "mcs_mean": 10.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31410802.75,
+            "decisions_since_transition": 3,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31430414.0,
+            "decisions_since_transition": 4,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31432775.25,
+            "decisions_since_transition": 5,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31439863.25,
+            "decisions_since_transition": 6,
+            "mcs_mean": 13.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31464387.5,
+            "decisions_since_transition": 7,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31475610.5,
+            "decisions_since_transition": 8,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31487895.0,
+            "decisions_since_transition": 9,
+            "mcs_mean": 12.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31504846.75,
+            "decisions_since_transition": 10,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31517134.25,
+            "decisions_since_transition": 11,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31538747.5,
+            "decisions_since_transition": 12,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31566486.0,
+            "decisions_since_transition": 13,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31543657.25,
+            "decisions_since_transition": 14,
+            "mcs_mean": 16.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31578905.5,
+            "decisions_since_transition": 15,
+            "mcs_mean": 13.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31603165.0,
+            "decisions_since_transition": 16,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31638505.25,
+            "decisions_since_transition": 17,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31731648.25,
+            "decisions_since_transition": 18,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31816245.75,
+            "decisions_since_transition": 19,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31901495.25,
+            "decisions_since_transition": 20,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31983333.75,
+            "decisions_since_transition": 21,
+            "mcs_mean": 9.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32048397.75,
+            "decisions_since_transition": 22,
+            "mcs_mean": 9.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32108760.25,
+            "decisions_since_transition": 23,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32174676.0,
+            "decisions_since_transition": 24,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32219660.5,
+            "decisions_since_transition": 25,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32273789.0,
+            "decisions_since_transition": 26,
+            "mcs_mean": 10.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32343802.75,
+            "decisions_since_transition": 27,
+            "mcs_mean": 9.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32400814.0,
+            "decisions_since_transition": 28,
+            "mcs_mean": 9.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 32405708.5,
+            "decisions_since_transition": 29,
+            "mcs_mean": 14.25,
+            "n": 4
+          }
+        ]
+      }
+    },
+    "FAVORABLE_STABLE": {
+      "high->high": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": null,
+        "backlog_last_transient_decision_mean": 15213342.75,
+        "cells_contributing": 4,
+        "mcs_first_decision_mean": null,
+        "mcs_last_transient_decision_mean": 21.5,
+        "samples": 116,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 0,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": 605970.5,
+            "decisions_since_transition": 1,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 1218592.0,
+            "decisions_since_transition": 2,
+            "mcs_mean": 20.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 1905018.5,
+            "decisions_since_transition": 3,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 2579949.5,
+            "decisions_since_transition": 4,
+            "mcs_mean": 14.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 3128139.5,
+            "decisions_since_transition": 5,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 3606800.25,
+            "decisions_since_transition": 6,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 4093217.0,
+            "decisions_since_transition": 7,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 4645126.5,
+            "decisions_since_transition": 8,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 5195424.5,
+            "decisions_since_transition": 9,
+            "mcs_mean": 17.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 5734469.75,
+            "decisions_since_transition": 10,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 6283371.0,
+            "decisions_since_transition": 11,
+            "mcs_mean": 17.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 6841767.0,
+            "decisions_since_transition": 12,
+            "mcs_mean": 19.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 7379046.0,
+            "decisions_since_transition": 13,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 7908223.0,
+            "decisions_since_transition": 14,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 8437005.25,
+            "decisions_since_transition": 15,
+            "mcs_mean": 18.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 8960892.5,
+            "decisions_since_transition": 16,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 9486182.0,
+            "decisions_since_transition": 17,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 10034045.25,
+            "decisions_since_transition": 18,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 10551173.5,
+            "decisions_since_transition": 19,
+            "mcs_mean": 18.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 11014605.25,
+            "decisions_since_transition": 20,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 11462804.75,
+            "decisions_since_transition": 21,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 11904563.75,
+            "decisions_since_transition": 22,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 12369616.5,
+            "decisions_since_transition": 23,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 12817864.25,
+            "decisions_since_transition": 24,
+            "mcs_mean": 22.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 13299047.5,
+            "decisions_since_transition": 25,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 13859389.25,
+            "decisions_since_transition": 26,
+            "mcs_mean": 17.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 14325864.75,
+            "decisions_since_transition": 27,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 14768763.75,
+            "decisions_since_transition": 28,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 15213342.75,
+            "decisions_since_transition": 29,
+            "mcs_mean": 21.5,
+            "n": 4
+          }
+        ]
+      },
+      "high->low": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 49584913.5,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 21.5,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 49584913.5,
+            "decisions_since_transition": 0,
+            "mcs_mean": 21.5,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "high->medium": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 49626464.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 21.5,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 49626464.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 21.5,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "low->high": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 0.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 22.5,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 0.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 22.5,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "low->low": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": null,
+        "backlog_last_transient_decision_mean": 22550829.0,
+        "cells_contributing": 4,
+        "mcs_first_decision_mean": null,
+        "mcs_last_transient_decision_mean": 21.0,
+        "samples": 116,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 0,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": 31795544.25,
+            "decisions_since_transition": 1,
+            "mcs_mean": 20.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31567273.25,
+            "decisions_since_transition": 2,
+            "mcs_mean": 19.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31374409.0,
+            "decisions_since_transition": 3,
+            "mcs_mean": 14.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 31194224.5,
+            "decisions_since_transition": 4,
+            "mcs_mean": 15.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 30898969.75,
+            "decisions_since_transition": 5,
+            "mcs_mean": 20.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 30558731.25,
+            "decisions_since_transition": 6,
+            "mcs_mean": 20.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 30210759.75,
+            "decisions_since_transition": 7,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 29913334.75,
+            "decisions_since_transition": 8,
+            "mcs_mean": 19.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 29593917.5,
+            "decisions_since_transition": 9,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 29262659.25,
+            "decisions_since_transition": 10,
+            "mcs_mean": 17.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 28931025.5,
+            "decisions_since_transition": 11,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 28591558.25,
+            "decisions_since_transition": 12,
+            "mcs_mean": 18.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 28255629.25,
+            "decisions_since_transition": 13,
+            "mcs_mean": 17.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 27922653.25,
+            "decisions_since_transition": 14,
+            "mcs_mean": 18.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 27579918.5,
+            "decisions_since_transition": 15,
+            "mcs_mean": 18.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 27236122.25,
+            "decisions_since_transition": 16,
+            "mcs_mean": 18.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 26880236.0,
+            "decisions_since_transition": 17,
+            "mcs_mean": 17.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 26541498.25,
+            "decisions_since_transition": 18,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 26185077.25,
+            "decisions_since_transition": 19,
+            "mcs_mean": 18.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 25799925.75,
+            "decisions_since_transition": 20,
+            "mcs_mean": 19.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 25417356.25,
+            "decisions_since_transition": 21,
+            "mcs_mean": 20.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 25037069.75,
+            "decisions_since_transition": 22,
+            "mcs_mean": 20.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24707603.25,
+            "decisions_since_transition": 23,
+            "mcs_mean": 20.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24353893.0,
+            "decisions_since_transition": 24,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23983741.0,
+            "decisions_since_transition": 25,
+            "mcs_mean": 21.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23655685.25,
+            "decisions_since_transition": 26,
+            "mcs_mean": 19.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23269583.0,
+            "decisions_since_transition": 27,
+            "mcs_mean": 20.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 22920238.5,
+            "decisions_since_transition": 28,
+            "mcs_mean": 20.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 22550829.0,
+            "decisions_since_transition": 29,
+            "mcs_mean": 21.0,
+            "n": 4
+          }
+        ]
+      },
+      "low->medium": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 0.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 22.0,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 0.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 22.0,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "medium->high": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 0.0,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 21.5,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 0.0,
+            "decisions_since_transition": 0,
+            "mcs_mean": 21.5,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "medium->low": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": 14679716.5,
+        "backlog_last_transient_decision_mean": null,
+        "cells_contributing": 2,
+        "mcs_first_decision_mean": 21.5,
+        "mcs_last_transient_decision_mean": null,
+        "samples": 2,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": 14679716.5,
+            "decisions_since_transition": 0,
+            "mcs_mean": 21.5,
+            "n": 2
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 1,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 2,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 3,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 4,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 5,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 6,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 7,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 8,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 9,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 10,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 11,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 12,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 13,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 14,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 15,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 16,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 17,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 18,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 19,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 20,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 21,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 22,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 23,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 24,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 25,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 26,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 27,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 28,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 29,
+            "mcs_mean": null,
+            "n": 0
+          }
+        ]
+      },
+      "medium->medium": {
+        "backlog_change_bytes": null,
+        "backlog_first_decision_mean": null,
+        "backlog_last_transient_decision_mean": 23123956.0,
+        "cells_contributing": 4,
+        "mcs_first_decision_mean": null,
+        "mcs_last_transient_decision_mean": 21.5,
+        "samples": 116,
+        "trajectory": [
+          {
+            "backlog_mean_bytes": null,
+            "decisions_since_transition": 0,
+            "mcs_mean": null,
+            "n": 0
+          },
+          {
+            "backlog_mean_bytes": 24755141.5,
+            "decisions_since_transition": 1,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24742661.0,
+            "decisions_since_transition": 2,
+            "mcs_mean": 20.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24792861.0,
+            "decisions_since_transition": 3,
+            "mcs_mean": 13.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24836187.0,
+            "decisions_since_transition": 4,
+            "mcs_mean": 14.75,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24748372.75,
+            "decisions_since_transition": 5,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24667360.5,
+            "decisions_since_transition": 6,
+            "mcs_mean": 21.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24599054.25,
+            "decisions_since_transition": 7,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24575157.25,
+            "decisions_since_transition": 8,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24520651.25,
+            "decisions_since_transition": 9,
+            "mcs_mean": 17.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24458479.5,
+            "decisions_since_transition": 10,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24400783.75,
+            "decisions_since_transition": 11,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24324154.75,
+            "decisions_since_transition": 12,
+            "mcs_mean": 19.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24257777.25,
+            "decisions_since_transition": 13,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24189008.0,
+            "decisions_since_transition": 14,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24114793.25,
+            "decisions_since_transition": 15,
+            "mcs_mean": 18.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24055846.0,
+            "decisions_since_transition": 16,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 24003231.75,
+            "decisions_since_transition": 17,
+            "mcs_mean": 18.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23967807.0,
+            "decisions_since_transition": 18,
+            "mcs_mean": 17.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23903066.5,
+            "decisions_since_transition": 19,
+            "mcs_mean": 18.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23803015.5,
+            "decisions_since_transition": 20,
+            "mcs_mean": 21.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23711917.0,
+            "decisions_since_transition": 21,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23620901.25,
+            "decisions_since_transition": 22,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23531973.25,
+            "decisions_since_transition": 23,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23436499.75,
+            "decisions_since_transition": 24,
+            "mcs_mean": 22.0,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23371596.5,
+            "decisions_since_transition": 25,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23375337.25,
+            "decisions_since_transition": 26,
+            "mcs_mean": 17.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23280290.25,
+            "decisions_since_transition": 27,
+            "mcs_mean": 21.5,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23177719.0,
+            "decisions_since_transition": 28,
+            "mcs_mean": 21.25,
+            "n": 4
+          },
+          {
+            "backlog_mean_bytes": 23123956.0,
+            "decisions_since_transition": 29,
+            "mcs_mean": 21.5,
+            "n": 4
+          }
+        ]
+      }
+    }
+  }
+}

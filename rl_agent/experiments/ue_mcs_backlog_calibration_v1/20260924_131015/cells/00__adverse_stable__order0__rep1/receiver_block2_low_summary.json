@@ -1,0 +1,37 @@
+{
+  "bounds": {
+    "max_chunks_per_frame": 16,
+    "max_streams": 1,
+    "one_second_bins": 65,
+    "reorder_window_frames": 64
+  },
+  "claim_boundary": "TRANSPORT_SCREEN_EVIDENCE_ONLY_NOT_CONNECTION_PROOF_OR_OPERATIONAL_SNR_BOUND",
+  "clean_shutdown": true,
+  "created_at": "2026-09-24T13:12:35.328971-07:00",
+  "datagrams_total": 0,
+  "empty_one_second_bins_global": 65,
+  "malformed_datagrams": 0,
+  "max_consecutive_empty_one_second_bins_global": 65,
+  "measurement": {
+    "configured_duration_s": 65.0,
+    "expected_chunks_per_frame": 1,
+    "expected_first_frame": 0,
+    "expected_frames_per_stream": 150,
+    "observed_duration_s": 65.0
+  },
+  "no_valid_stream_observed": true,
+  "observed_one_second_bins": 65,
+  "schema": "scenesense.ue_n3_structured_udp_receiver_summary.v1",
+  "status": "CAPTURED",
+  "stop_reason": "DURATION_COMPLETE",
+  "stream_limit_exceeded_datagrams": 0,
+  "streams": [],
+  "valid_stream_count": 0,
+  "wire_bytes_total": 0,
+  "wire_contract": {
+    "header_bytes": 24,
+    "magic_ascii": "SSBURST",
+    "stream_identity": "SOURCE_IPV4_AND_UDP_PORT",
+    "struct_format": "!8sIIII"
+  }
+}

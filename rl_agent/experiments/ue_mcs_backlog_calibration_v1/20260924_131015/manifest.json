@@ -1,0 +1,4489 @@
+{
+  "schema": "scenesense.ue_mcs_backlog_calibration.v1",
+  "contract_id": "ue_mcs_backlog_calibration_v1",
+  "status": "UE_MCS_BACKLOG_CALIBRATION_CAPTURED",
+  "utc": "2026-09-24T20:29:35.263318Z",
+  "config_sha256": "bf9c165d2236ba182a19cb017428e4e7c4ad53d99aaaa9deed758e1590dbdd0d",
+  "source_hashes": {
+    "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "rl_agent/configs/splitfusion_phase14b_corrected_four_profile_replay_v1.json": "0dafbe9150859111956618f9573b94c48ad83b9edd43d7b06bad9da04f577f69",
+    "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+    "rl_agent/ue_n3_structured_udp_receiver.py": "3e92ba8f756d2c028dcfe51c2a35f18d4f268a041516ea1e054f349f1b916446"
+  },
+  "failure": null,
+  "notes": [],
+  "calibration": {
+    "commanded_noise_power_db": -12.5,
+    "pusch_sample_count": 412,
+    "achieved_median_pusch_snr_db": 25.0,
+    "resolved": true,
+    "snrx10_to_db": "gNB reports snrx10; dB = snrx10 / 10",
+    "mapping_upper_bound_db": 25.0,
+    "anchors_in_use": [
+      {
+        "noise_power_db": -2.25,
+        "achieved_median_pusch_snr_db": 5.5
+      },
+      {
+        "noise_power_db": -2.5,
+        "achieved_median_pusch_snr_db": 6.0
+      },
+      {
+        "noise_power_db": -3.0,
+        "achieved_median_pusch_snr_db": 6.5
+      },
+      {
+        "noise_power_db": -3.5,
+        "achieved_median_pusch_snr_db": 7.5
+      },
+      {
+        "noise_power_db": -4.0,
+        "achieved_median_pusch_snr_db": 8.5
+      },
+      {
+        "noise_power_db": -5.0,
+        "achieved_median_pusch_snr_db": 10.0
+      },
+      {
+        "noise_power_db": -8.0,
+        "achieved_median_pusch_snr_db": 16.0
+      },
+      {
+        "noise_power_db": -10.0,
+        "achieved_median_pusch_snr_db": 19.5
+      },
+      {
+        "noise_power_db": -12.5,
+        "achieved_median_pusch_snr_db": 25.0
+      }
+    ]
+  },
+  "plan_audit": {
+    "cells": 12,
+    "expected_cells": 12,
+    "tier_block_counts": {
+      "high": 12,
+      "medium": 12,
+      "low": 12
+    },
+    "position_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "transition_counts_per_channel": {
+      "FAVORABLE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "high->low": 2,
+        "low->medium": 2,
+        "medium->high": 2
+      },
+      "ADVERSE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "low->medium": 2,
+        "medium->high": 2,
+        "high->low": 2
+      }
+    },
+    "all_six_transitions_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "repetition_1_reverses_repetition_0": true,
+    "load_is_within_cell": true
+  },
+  "cells": [
+    {
+      "cell_tag": "00__adverse_stable__order0__rep1",
+      "cell_id": "adverse_stable__order0__rep1",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 0,
+      "repetition": 1,
+      "sequence": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "transitions": [
+        "high->medium",
+        "medium->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 0,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "started_utc": "2026-09-24T20:11:09.765093Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/00__adverse_stable__order0__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.12",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.12",
+        "route_lookup": "192.168.70.135 from 10.0.0.12 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:11:26.086685Z",
+        "clean_cell_monotonic_ns": 6918269397401256,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -4.25,
+      "profile_prime_read_back_db": -4.25,
+      "profile_read_back_ok": true,
+      "commands_sent": 397,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:12:44.620653Z"
+    },
+    {
+      "cell_tag": "01__favorable_stable__order0__rep1",
+      "cell_id": "favorable_stable__order0__rep1",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 0,
+      "repetition": 1,
+      "sequence": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "transitions": [
+        "high->medium",
+        "medium->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 1,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "started_utc": "2026-09-24T20:12:44.620901Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/01__favorable_stable__order0__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.12",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.12",
+        "route_lookup": "192.168.70.135 from 10.0.0.12 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:13:00.945500Z",
+        "clean_cell_monotonic_ns": 6918364256263870,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -11.0,
+      "profile_prime_read_back_db": -11.0,
+      "profile_read_back_ok": true,
+      "commands_sent": 391,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:14:15.259035Z"
+    },
+    {
+      "cell_tag": "02__favorable_stable__order2__rep1",
+      "cell_id": "favorable_stable__order2__rep1",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 2,
+      "repetition": 1,
+      "sequence": [
+        "medium",
+        "low",
+        "high"
+      ],
+      "transitions": [
+        "medium->low",
+        "low->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 2,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "started_utc": "2026-09-24T20:14:15.259278Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/02__favorable_stable__order2__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.13",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.13",
+        "route_lookup": "192.168.70.135 from 10.0.0.13 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:14:31.584680Z",
+        "clean_cell_monotonic_ns": 6918454895394964,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -11.0,
+      "profile_prime_read_back_db": -11.0,
+      "profile_read_back_ok": true,
+      "commands_sent": 391,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:15:50.016375Z"
+    },
+    {
+      "cell_tag": "03__favorable_stable__order2__rep0",
+      "cell_id": "favorable_stable__order2__rep0",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 2,
+      "repetition": 0,
+      "sequence": [
+        "high",
+        "low",
+        "medium"
+      ],
+      "transitions": [
+        "high->low",
+        "low->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 3,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "started_utc": "2026-09-24T20:15:50.016673Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/03__favorable_stable__order2__rep0/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.13",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.13",
+        "route_lookup": "192.168.70.135 from 10.0.0.13 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:16:06.340535Z",
+        "clean_cell_monotonic_ns": 6918549651249206,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -11.0,
+      "profile_prime_read_back_db": -11.0,
+      "profile_read_back_ok": true,
+      "commands_sent": 391,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:17:24.743042Z"
+    },
+    {
+      "cell_tag": "04__adverse_stable__order1__rep1",
+      "cell_id": "adverse_stable__order1__rep1",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 1,
+      "repetition": 1,
+      "sequence": [
+        "low",
+        "high",
+        "medium"
+      ],
+      "transitions": [
+        "low->high",
+        "high->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 4,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "started_utc": "2026-09-24T20:17:24.743400Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/04__adverse_stable__order1__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.13",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.13",
+        "route_lookup": "192.168.70.135 from 10.0.0.13 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:17:41.064590Z",
+        "clean_cell_monotonic_ns": 6918644375304313,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -4.25,
+      "profile_prime_read_back_db": -4.25,
+      "profile_read_back_ok": true,
+      "commands_sent": 397,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:18:55.524803Z"
+    },
+    {
+      "cell_tag": "05__favorable_stable__order1__rep1",
+      "cell_id": "favorable_stable__order1__rep1",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 1,
+      "repetition": 1,
+      "sequence": [
+        "low",
+        "high",
+        "medium"
+      ],
+      "transitions": [
+        "low->high",
+        "high->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 5,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "started_utc": "2026-09-24T20:18:55.525153Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/05__favorable_stable__order1__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.14",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.14",
+        "route_lookup": "192.168.70.135 from 10.0.0.14 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:19:11.841627Z",
+        "clean_cell_monotonic_ns": 6918735152342745,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -11.0,
+      "profile_prime_read_back_db": -11.0,
+      "profile_read_back_ok": true,
+      "commands_sent": 391,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:20:26.182448Z"
+    },
+    {
+      "cell_tag": "06__adverse_stable__order0__rep0",
+      "cell_id": "adverse_stable__order0__rep0",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 0,
+      "repetition": 0,
+      "sequence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "transitions": [
+        "low->medium",
+        "medium->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 6,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "started_utc": "2026-09-24T20:20:26.182719Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/06__adverse_stable__order0__rep0/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.15",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.15",
+        "route_lookup": "192.168.70.135 from 10.0.0.15 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:20:42.506525Z",
+        "clean_cell_monotonic_ns": 6918825817239322,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -4.25,
+      "profile_prime_read_back_db": -4.25,
+      "profile_read_back_ok": true,
+      "commands_sent": 397,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:22:01.055837Z"
+    },
+    {
+      "cell_tag": "07__adverse_stable__order2__rep1",
+      "cell_id": "adverse_stable__order2__rep1",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 2,
+      "repetition": 1,
+      "sequence": [
+        "medium",
+        "low",
+        "high"
+      ],
+      "transitions": [
+        "medium->low",
+        "low->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 7,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "started_utc": "2026-09-24T20:22:01.056089Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/07__adverse_stable__order2__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.15",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.15",
+        "route_lookup": "192.168.70.135 from 10.0.0.15 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:22:17.381596Z",
+        "clean_cell_monotonic_ns": 6918920692311650,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -4.25,
+      "profile_prime_read_back_db": -4.25,
+      "profile_read_back_ok": true,
+      "commands_sent": 397,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:23:31.880245Z"
+    },
+    {
+      "cell_tag": "08__favorable_stable__order1__rep0",
+      "cell_id": "favorable_stable__order1__rep0",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 1,
+      "repetition": 0,
+      "sequence": [
+        "medium",
+        "high",
+        "low"
+      ],
+      "transitions": [
+        "medium->high",
+        "high->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 8,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "started_utc": "2026-09-24T20:23:31.880621Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/08__favorable_stable__order1__rep0/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.16",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.16",
+        "route_lookup": "192.168.70.135 from 10.0.0.16 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:23:48.210556Z",
+        "clean_cell_monotonic_ns": 6919011521270904,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -11.0,
+      "profile_prime_read_back_db": -11.0,
+      "profile_read_back_ok": true,
+      "commands_sent": 391,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:25:02.584025Z"
+    },
+    {
+      "cell_tag": "09__adverse_stable__order1__rep0",
+      "cell_id": "adverse_stable__order1__rep0",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 1,
+      "repetition": 0,
+      "sequence": [
+        "medium",
+        "high",
+        "low"
+      ],
+      "transitions": [
+        "medium->high",
+        "high->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 9,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "started_utc": "2026-09-24T20:25:02.584409Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/09__adverse_stable__order1__rep0/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.17",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.17",
+        "route_lookup": "192.168.70.135 from 10.0.0.17 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:25:18.910550Z",
+        "clean_cell_monotonic_ns": 6919102221265943,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -4.25,
+      "profile_prime_read_back_db": -4.25,
+      "profile_read_back_ok": true,
+      "commands_sent": 397,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:26:33.416387Z"
+    },
+    {
+      "cell_tag": "10__adverse_stable__order2__rep0",
+      "cell_id": "adverse_stable__order2__rep0",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 2,
+      "repetition": 0,
+      "sequence": [
+        "high",
+        "low",
+        "medium"
+      ],
+      "transitions": [
+        "high->low",
+        "low->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 10,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "started_utc": "2026-09-24T20:26:33.416673Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/10__adverse_stable__order2__rep0/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.18",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.18",
+        "route_lookup": "192.168.70.135 from 10.0.0.18 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:26:49.740854Z",
+        "clean_cell_monotonic_ns": 6919193051568219,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -4.25,
+      "profile_prime_read_back_db": -4.25,
+      "profile_read_back_ok": true,
+      "commands_sent": 397,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:28:04.287611Z"
+    },
+    {
+      "cell_tag": "11__favorable_stable__order0__rep0",
+      "cell_id": "favorable_stable__order0__rep0",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 0,
+      "repetition": 0,
+      "sequence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "transitions": [
+        "low->medium",
+        "medium->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 11,
+      "frames_per_block": 150,
+      "frames_total": 450,
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "started_utc": "2026-09-24T20:28:04.287879Z",
+      "status": "CAPTURED",
+      "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/11__favorable_stable__order0__rep0/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+      "mcs_policy_env": "sinr",
+      "ue_ip": "10.0.0.19",
+      "radio_path_check": {
+        "edge_host": "192.168.70.135",
+        "ue_ip": "10.0.0.19",
+        "route_lookup": "192.168.70.135 from 10.0.0.19 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+        "routes_via_ue_tunnel": true,
+        "policy_rule_table": "9999",
+        "policy_table_routes_via_tunnel": true,
+        "policy_table_routes": [
+          "default dev oaitun_ue1 scope link"
+        ],
+        "edge_host_is_host_local": false,
+        "radio_path_verified": true
+      },
+      "clean_cell_marker": {
+        "clean_cell_marker_utc": "2026-09-24T20:28:20.624049Z",
+        "clean_cell_monotonic_ns": 6919283934764058,
+        "ran_rebuilt_from_cold": true,
+        "queue_empty_by_construction": true,
+        "initial_noise_read_back_db": -50.0
+      },
+      "profile_prime_command_db": -11.0,
+      "profile_prime_read_back_db": -11.0,
+      "profile_read_back_ok": true,
+      "commands_sent": 391,
+      "commands_skipped": 0,
+      "targets_clamped": 0,
+      "restored": true,
+      "teardown_notes": [],
+      "finished_utc": "2026-09-24T20:29:34.968840Z"
+    }
+  ],
+  "final_cold_state": {
+    "utc": "2026-09-24T20:29:35.032599Z",
+    "loadavg": "2.49 2.66 2.29 1/2525 256240",
+    "orphan_processes": {},
+    "residual_ue_tunnels": [],
+    "carla_running": false,
+    "cold": true
+  },
+  "files": [
+    {
+      "relative_path": "analysis_v1.json",
+      "size_bytes": 77202,
+      "sha256": "a9079bb24b701fe38fd3db4cbcd0ef6526d6da1b72b35ed5ad4cb152e79e7848"
+    },
+    {
+      "relative_path": "calibration/block_plan.json",
+      "size_bytes": 192,
+      "sha256": "edec7a12cddefdda1eea7e193d164bced632373f6ebc729ff0d62e2e19368164"
+    },
+    {
+      "relative_path": "calibration/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "calibration/command_log.json",
+      "size_bytes": 609,
+      "sha256": "1b1bd0f4212e18cf9547284ec456e26c14924ae46b33309b75e1b761df35ea92"
+    },
+    {
+      "relative_path": "calibration/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "d8180b048e7e266fdac2f67abe70f1f4e58b509ebdd44e93ef960f0eace87b01"
+    },
+    {
+      "relative_path": "calibration/receiver_block0_low_events.jsonl",
+      "size_bytes": 79173,
+      "sha256": "07400a0ed782a3b71b9f267a4ca492ef55e82efc8d4ec1109d5e8882afa19d9c"
+    },
+    {
+      "relative_path": "calibration/receiver_block0_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "6d503714e37fab3a3503131df88f91c578e358bd38821da94c611c9d650a9730"
+    },
+    {
+      "relative_path": "calibration/receiver_block0_low_summary.json",
+      "size_bytes": 2396,
+      "sha256": "335d6ac81f4a15d04d36a6fb7849e8a0725b7a35e44e36670dab633bda377c31"
+    },
+    {
+      "relative_path": "calibration/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "77f1666a87732d4cdd8c3242620c98e42bdbc4dbd5788e6ad3a458347501d81e"
+    },
+    {
+      "relative_path": "calibration/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "calibration/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "calibration/sender_decisions.csv",
+      "size_bytes": 28348,
+      "sha256": "7ba3c0f69bff56e4b8c69345e51674ed755e681375bc0539592627c7eed81f2b"
+    },
+    {
+      "relative_path": "calibration/sender_summary.json",
+      "size_bytes": 1058,
+      "sha256": "026618614bd8232bc48e7a064c47c117714ae00278acdb1e40e5d47ea778e49b"
+    },
+    {
+      "relative_path": "calibration/upper_anchor.json",
+      "size_bytes": 1019,
+      "sha256": "8a0b4693c9868e5e2d093753ba1927858fb89543a2ee92015d719684cce6dd4c"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "751b6761f5c064f99cba4fb4187e15d006774a834405a0494b71ae1724d93ea7"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/cell_record.json",
+      "size_bytes": 2782,
+      "sha256": "75787cb94ad30303b9ae87bd19aa2f44317433a1365300ae3d1a8c4f397585fd"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "8a58fa47222701155be28fa3cfaef2d4ff2a426d571103bf98cf17feba924744"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/command_log.json",
+      "size_bytes": 163175,
+      "sha256": "c0dfeccb809a887715d73b1453bf7e3bdda241f824163fe02c16987cefb37fea"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/attach_ping.log",
+      "size_bytes": 424,
+      "sha256": "a527404fcda24b397a21395fe1037964094edc02cc3e63bc9d19ad869a5129e7"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/gnb.log",
+      "size_bytes": 119113,
+      "sha256": "345f6413471b4cb28b9f49cd66562f94e7512ec5bec0af1ee58fd0a7a9164370"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/receiver_block0_high.log",
+      "size_bytes": 573,
+      "sha256": "c6f75f7095990755697d061a924fe70fc79e8055576e12461239557d576c2f06"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/receiver_block1_medium.log",
+      "size_bytes": 577,
+      "sha256": "f7acda6e1c4253738e383b362474fa865c8aec6c8e380639819e3e1d1772c934"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/receiver_block2_low.log",
+      "size_bytes": 571,
+      "sha256": "8da5133fda8cbeb2e10f9ffcf01636be446e51aea298a164ba6799cba50aca83"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/sender.log",
+      "size_bytes": 203,
+      "sha256": "bbcc744636fca6951f92ba70fd1fc99970957680980f1d6999d298284fbdb042"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/ue.log",
+      "size_bytes": 35478,
+      "sha256": "f70aef51d38559a190a36c0b658855337f25b1d0a146ea7ad86f544daf21a505"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "dc3dc6d64ea74835d2b250920521b8837e6599950b7261cbed0b8f6041cb25d0"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block0_high_events.jsonl",
+      "size_bytes": 558000,
+      "sha256": "f9243cb1910517b99b3f5cb8ab27c60e2e86de15edf371d6722fa143a9aecaab"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block0_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "70c166d777cd977481c1b7582767d1cf0ec3d9ce8e1521f5b31d602fe99748ce"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block0_high_summary.json",
+      "size_bytes": 2429,
+      "sha256": "7df650f5edb93d2e75d8fa5b23542d6401af99c5f8e3871c19689e58c54df8cb"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block1_medium_events.jsonl",
+      "size_bytes": 71713,
+      "sha256": "aaae5d29ea5d4759dddc8bb20b73af811ad3ca5e1000b496e726e2323186b9cb"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block1_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "e46facfbb69dc5cdbd3a95908b9c7055b28e4834b7de66e0f879a776774712ee"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block1_medium_summary.json",
+      "size_bytes": 2437,
+      "sha256": "196aa64465236ab5378eeaab41d598df4268f20953ab0f393954b5428b5b8bc6"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block2_low_events.jsonl",
+      "size_bytes": 13036,
+      "sha256": "c27537584b1d98b73f94ad102afae561eda08cdea703efbd584d17bcaba4edec"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block2_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "22f3e6fb32929d31028576ca37eb614450a09aff2a37a6261a95585dec6126c0"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/receiver_block2_low_summary.json",
+      "size_bytes": 1124,
+      "sha256": "4a58613b8bc4be283f2186cfe091239367905c20dc452c92d63cd1d11bd493f3"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "68c39a1d94022e72c3fc3c114cae7b4e83ddd49eb3f31d424a5ef566be58eec9"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/sender_decisions.csv",
+      "size_bytes": 96398,
+      "sha256": "99073ab7fb5efac947d07ba08398d420e6d723b0a96f032016456e27ac68b45d"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/sender_summary.json",
+      "size_bytes": 1849,
+      "sha256": "5f7a20dca0b496880f7b49bb69b51a5f98f67d78b1eaf1a5e446c663fbefa983"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 2711085,
+      "sha256": "20fd7a1bc1d6daa075084e8b20eae0524968eca3e0362dd3aa80566879f781c9"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 4908578,
+      "sha256": "d438fb918b81a511bbff0621a1419a461d829d76f9b83f0fdc0189117384cdb1"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/gnb.raw",
+      "size_bytes": 9755787,
+      "sha256": "c6f2b80449004a181a578cf7906e2c9885be774d4bce9eee02024adfd31cdd36"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 4420134,
+      "sha256": "f4fa9c167201e1726f52549a06695b644b67dab25b4ad1ae59d56ca84a955b0a"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9623497,
+      "sha256": "58df3b0a03c0208bde57ca7a830f6adb8d44977c7dfd164319fc605d71b1d54e"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5051310,
+      "sha256": "d982c731cbc58afb5d0d880d74720a2a1b6f0f3f5624c076dffdc4bc6b2fec79"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/ue.raw",
+      "size_bytes": 23791111,
+      "sha256": "c6e0a7c5ccc3e12936ec6b9752cd3e126b337614aef1641c8de9d845e1bc2f78"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/00__adverse_stable__order0__rep1/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "751b6761f5c064f99cba4fb4187e15d006774a834405a0494b71ae1724d93ea7"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/cell_record.json",
+      "size_bytes": 2792,
+      "sha256": "4b48a84bade65949c3d7ba1d23cd32c625a94a30e838f9cf4330f8073ae94f65"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "d6ec34a5f78ea8a747edfd73caca371886794e9143f4147fcfa60070a9496442"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/command_log.json",
+      "size_bytes": 162063,
+      "sha256": "b2ef0da457fca55ec09f89dafc05e5b9633bcf7c167ae654811eec5fe3c5b6b5"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/attach_ping.log",
+      "size_bytes": 424,
+      "sha256": "eed45dad834f8de3c18274ce5839f85712225154fd9a4c203729c6ee0d2d732d"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/gnb.log",
+      "size_bytes": 112779,
+      "sha256": "853b6d2ea8376e26396f59c92fc4f048acf931c47f9248bda20d6381b7e289e4"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/receiver_block0_high.log",
+      "size_bytes": 577,
+      "sha256": "e1efa1197af6ce5d5a021ac58c5092e4c9c40597d56081c474e3f38587a7d859"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/receiver_block1_medium.log",
+      "size_bytes": 581,
+      "sha256": "335ebcecbfb4faae4c407dd601a49e1314bea5cca6e94f06098cc16082ee6de2"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/receiver_block2_low.log",
+      "size_bytes": 575,
+      "sha256": "b213bb2e49081c973b6ddea27a9781b6f1238b4dc5e693de405cb5476e0c931b"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/sender.log",
+      "size_bytes": 205,
+      "sha256": "91da80c2d93d296bd92c674b5e626a1ae489f117938c9852d44c1afd7061d158"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/ue.log",
+      "size_bytes": 30359,
+      "sha256": "2ed85cfaec859eb5f282ee5c18cd0af0d0517a7f697c19a17b32e662e41fe182"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "dc3dc6d64ea74835d2b250920521b8837e6599950b7261cbed0b8f6041cb25d0"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block0_high_events.jsonl",
+      "size_bytes": 918677,
+      "sha256": "fb6494e4853ac29b5df311f791697d19d4b3399b1db10033400d9263be05d618"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block0_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "2a1fa4981aa45c7913dbe7846d941a9fd786ed0e6fb7de306e87380cb64db0b6"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block0_high_summary.json",
+      "size_bytes": 2426,
+      "sha256": "d878f68aa6aadcc8553eac68810d96b1ca32cd6b4b3378ebe54eef6644632154"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block1_medium_events.jsonl",
+      "size_bytes": 306553,
+      "sha256": "28f88898a55e3fd75fe222ae7a911635fe7969006e748fa5eddd5093b600449e"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block1_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "6717b763c7c2b20563c09eca434f5bcf684acf9346d89fd76a4513eddf7375b3"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block1_medium_summary.json",
+      "size_bytes": 2421,
+      "sha256": "082f9d557c5a49aa2228e91a4e30fcb02c750d4db4c9e697209fcaf3920e6254"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block2_low_events.jsonl",
+      "size_bytes": 92364,
+      "sha256": "037dad26b84cb8e080a65df52e7bbb62a8bdda9e2f628eb0890c390749e18675"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block2_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "d5f1cc12b3a58816df979f68ef5752d4fe0fee60d97ae9843ebbf40feca9f732"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/receiver_block2_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "3b2fc575fa0627617f6d7fd74b26b9c3bf2a5b0feaabeb17ff55438810c660c8"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "21f5997f87c53e39e1f2bb917db96498b43ec509ec3043f83d8764a85c6df0bc"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/sender_decisions.csv",
+      "size_bytes": 97321,
+      "sha256": "19dfb8875e2c54475011102acf1904a2224d096d28c39dd4a1cd4d5a4f57248c"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/sender_summary.json",
+      "size_bytes": 1851,
+      "sha256": "d0f4dd1c5dbd3eb213e551b28ac31efa90c894387100f8c2a55a725ca92aea53"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 1731777,
+      "sha256": "4d9ca4fe3a83448f126523aac134e01921d218b73665a6741276fc32a0a9940c"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 3128938,
+      "sha256": "8a5fcf53c014f296b179e1fa2ebde8d266bb93982879f911e98e557ce1b0e2de"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/gnb.raw",
+      "size_bytes": 5878691,
+      "sha256": "00f51356eb7ae0c1992daff2393d02eea7f0c48e30702aa6ecba1de73de7fae8"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 2839449,
+      "sha256": "2b94c57b76dd14c186ab4fe563fa0e392bab4bfe958c990ca7f2a729d3175c8f"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9632298,
+      "sha256": "07b68117a566eddf34bd5773f641d0bad0309c11dd1fa084eef2aad5519c4bd7"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5061391,
+      "sha256": "2ad573409b9da0827b33740075ddf86aa1142b03ba7969c058a44ea0bdbb1628"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/ue.raw",
+      "size_bytes": 21006571,
+      "sha256": "3492835b6faac51a6c9a17c99a6d0b128e8430c91b81eccfebd87ecc6f746a88"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/01__favorable_stable__order0__rep1/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "2ff44804af99c303990b9878be05a208d999074bc89bb21f01fb98106623ef09"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/cell_record.json",
+      "size_bytes": 2789,
+      "sha256": "b60d2c9ad42ffa6e1f5031aa9b37040bdd047e6136c6ad2a71404496f360ba0e"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "31ae00e514daf74905ee68990ff6e9d2417da7bf70d31deb20bf3e62d5ff1a63"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/command_log.json",
+      "size_bytes": 162049,
+      "sha256": "a54a85b061e3d9198f5e0db30973d6573564082eaa681ff5aca2fcbd2b1d330f"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/attach_ping.log",
+      "size_bytes": 424,
+      "sha256": "c55571116cb729925f457987cb2f0c0cb0c6c5551098323369035b167cba12da"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/gnb.log",
+      "size_bytes": 112934,
+      "sha256": "795d43dff714a02313f1505a756265076742e6b4bc82fa9945d0f6c34adda9ff"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/receiver_block0_medium.log",
+      "size_bytes": 581,
+      "sha256": "6454f68784eed3a2308f39302c9879da9f577d1e51476d44e85c8dcf1a344ea7"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/receiver_block1_low.log",
+      "size_bytes": 575,
+      "sha256": "1c7bf26dafb6762f1e3fd273423ef8d799ed920e3e701fd38951266691de2da1"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/receiver_block2_high.log",
+      "size_bytes": 577,
+      "sha256": "1255c67f150864ba6a3e89cdb755427a2ba3f5a372520de8052ff796094ed682"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/sender.log",
+      "size_bytes": 206,
+      "sha256": "a4f23f52a049fa7a90b3812b15e6dd1edd6135b11a020fd731245c64a8f2d04c"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/ue.log",
+      "size_bytes": 32440,
+      "sha256": "db7d4030b5a5e13fea4173e761890848a51ec613b5c05b9d1d7e40ccbffcca69"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "784142e2fe5cd9939a3e0068e392c824b7576aad7b1c5c585758e5488c02eb31"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block0_medium_events.jsonl",
+      "size_bytes": 349364,
+      "sha256": "c2693f70e0bffea7f55fd0b148235c22ba9e6033d8003f970acc27114399167e"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block0_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "ec50220577aa6c634e33ff429a5ad019432e481adf36fff9f98a47aaa9d960bf"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block0_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "08c1ed397c0c18212a43146135e52303885d8132acb6f43f68ba941206097bd7"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block1_low_events.jsonl",
+      "size_bytes": 92440,
+      "sha256": "ec0765dbc71909de39dcf2973975b47809d18604045c7594e7d3b4fa3bde9ad8"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block1_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "98e0beedb8f513cdbca51d02e9a71cfad09dca5a2a730a3514815dbcb4779c7f"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block1_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "07f0d044526369a3a89a6babe89575b688c3925d922098f5042d327a0bfae3d1"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block2_high_events.jsonl",
+      "size_bytes": 943567,
+      "sha256": "0354721985d7bf296a21699da894defb77a8fbe067f5f5fbc0ba73d8ed814647"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block2_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "9de8ddc6cdfec1d9d0e37910e6f8e08946ae4738ab2da5326099fd96894ced36"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/receiver_block2_high_summary.json",
+      "size_bytes": 2434,
+      "sha256": "1b9e19aa1cb0c59366dcefba93ad2603774a0840da8c2b5aaa09680bf1a51d64"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "e6f2c02ae4d8f95aed32579f0346b93e348a49d8bd6ff3538e6b09cc7ec8cb7b"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/sender_decisions.csv",
+      "size_bytes": 97291,
+      "sha256": "2844068df8a09353cc37aeefa568df86d6e77cf4522481d7bdf0bd37bcae3c58"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/sender_summary.json",
+      "size_bytes": 1852,
+      "sha256": "1720f66554b672d8ac370b3450f1c3ef25a5589f16df6fed6bd1390a627c21a6"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 1684442,
+      "sha256": "1221f13486bdc96307e0f13d911cda44947f7cc1152e0d16a3c6463fbc94ebe8"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 3047643,
+      "sha256": "0cff4e2bcee439c6660aaa131c7a64bd2274a9e877b427802ebb168f90d35dc4"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/gnb.raw",
+      "size_bytes": 5723383,
+      "sha256": "18e9ec1c473769c4b8349636150753d26949191a8bd496c993f7217fbbaaa050"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 2770869,
+      "sha256": "b646f6d8ae1e587ee58201d75fcda22a4b9c9188dea3e06a6b92c33d1ee477fc"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9623854,
+      "sha256": "e3452343aab748b54ae5eee47f9dd969a1d4f88049e797bf38fe37a0dafac6c2"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5058291,
+      "sha256": "e1e1ca93b9af8888451430947bc25912a5759923a14184d8b7b07863a6a2bae6"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/ue.raw",
+      "size_bytes": 20923655,
+      "sha256": "ecfc2ab2c46422bf30fea2eb1e15566a4c8215a86dd9a64b7243957c8d3980d4"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/02__favorable_stable__order2__rep1/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "bed5b7c315885f93b8d7ec6659f36ed9e24235e7f6e905c673d32268f2f2efb9"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/cell_record.json",
+      "size_bytes": 2789,
+      "sha256": "a8420e4bf38d131c0fa3eb505eedb670ea6a2fb6e93925d94a7ac7966f48a72c"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "fc95f4f5ccfe3a7eeb5181a03dda26bb18c3ec03ad15b4d55a5db2b4f2275858"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/command_log.json",
+      "size_bytes": 162064,
+      "sha256": "87a11fad68406912d3fd8841f3fe0af1bb4fbee2d43a0229e25ceb94a669d499"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "da6799d7fb12e12f005ad408a6170c4a2e557f0511a3207a1f010809b6857fa6"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/gnb.log",
+      "size_bytes": 113496,
+      "sha256": "eba8393cfd99e5cd105d27935831af9bef6566f4f24ea86a54b8190b30a7df6c"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/receiver_block0_high.log",
+      "size_bytes": 577,
+      "sha256": "8373d198f0d65aa4dba1a365a5fc853cb16012337916c57c0b5114dd23e32060"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/receiver_block1_low.log",
+      "size_bytes": 575,
+      "sha256": "dc19ae3bef09353ded6b10588862db70f1c036984f79f26400edf9992b7012d6"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/receiver_block2_medium.log",
+      "size_bytes": 581,
+      "sha256": "072b25047c331aa3ffab7257314e4608b91719d6f34fd0d2ed995634ff7dfb73"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/sender.log",
+      "size_bytes": 206,
+      "sha256": "6b20542ae1aa9de36b3897bb2513b8f85ffe2c52b66e04f90114404daf915127"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/ue.log",
+      "size_bytes": 32725,
+      "sha256": "b676caaa87e3aa561657e9de9c8ca68a9dba19c4f09587b5ab36e0061dda2cff"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "784142e2fe5cd9939a3e0068e392c824b7576aad7b1c5c585758e5488c02eb31"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block0_high_events.jsonl",
+      "size_bytes": 914776,
+      "sha256": "d157eacabe20abf43c490511e18fb3f860ce3cf09b2d1a1c58bd9247cd7e34d8"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block0_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "01e6610efa673b5baa2fbc6e0582c91092fb894b10c989baa438b8e01015525e"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block0_high_summary.json",
+      "size_bytes": 2440,
+      "sha256": "d23622628adb7e97936abd980eb70edcde8da539e00525b7078344d0ff77f87c"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block1_low_events.jsonl",
+      "size_bytes": 92279,
+      "sha256": "39455915f893ea7782f6e3e3f9849a23ef4f02b397f66029b0086d349216f69d"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block1_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "fedc27711b783e7de1e0a2b57ae709204ee47a9555765c8a4c85e252a85b03a7"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block1_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "7ded86d75edfc50f2a0056f7e7869963360a3fcbe0a96c0e33d16b800da75642"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block2_medium_events.jsonl",
+      "size_bytes": 349877,
+      "sha256": "ec79850e113802809d6e574b48d80185c37a82cf24c450610bf18922d44474f4"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block2_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "4a7869b5fd632dff24d2618a58d1a7ba1991b2f3143b0d0ff6b9b2ee937828e3"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/receiver_block2_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "f7b06edbb381eb06e548b47ace2ccaa9d213c3a221df5a976ce510fc74e100be"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "bf79b26d750bf688542e6f7936a5a7b63a7093d8c9179b7561d467bb73d27a37"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/sender_decisions.csv",
+      "size_bytes": 97292,
+      "sha256": "75eab854fe6197203e36731abc3e7bf79d570925576ea91f3bbf8ae0060b1ae4"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/sender_summary.json",
+      "size_bytes": 1852,
+      "sha256": "2f2a0c6a96214509abc01a51d8c7f4e50421bb7186c75ccd09e145783d78cc3d"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 1779629,
+      "sha256": "a446770ca48d4f1d2ee4bfd41e73c6645074c22b00d4230dc0781fe3cca38ecc"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 3214257,
+      "sha256": "4e7cc8eaa27855fcfb8c7fcf482c081081ea90ef962e7fc5bb01c59db5e0db1b"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/gnb.raw",
+      "size_bytes": 6036275,
+      "sha256": "6f2e510827ba1151b1f8f0a2051811c4c610626ddf6ece8b65d4db6f059939ad"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 2900325,
+      "sha256": "8f2a79a9e72b77ef86f955cd13c5e79c8d9fbc58905467083e4f23abc116e6e0"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9534849,
+      "sha256": "c0ac617fda097db12e77c596c12d1e418f584c776259bf4a00a4c37eeb46d1d8"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5055763,
+      "sha256": "fa5f331fce618e5715cbffefa94273e1cb942bfc3105346717ed78ff0978962a"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/ue.raw",
+      "size_bytes": 20988111,
+      "sha256": "3b6a162d8e686b2be2d64e6086f5ad374e77a47d0bf0666582c3b2c55c6147e7"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/03__favorable_stable__order2__rep0/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "af71323917c2113f7b7f3495400065a86740b0073063ee28e9dcc2353bdb2991"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/cell_record.json",
+      "size_bytes": 2780,
+      "sha256": "05da178fd6bb7f885c61b150f98f462b73add2b31c1cd39829b3177bd934279a"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "493e8a83c6c94e8b42c5d0ad7e383d401b28393055b80946bb0244e42ccc0bee"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/command_log.json",
+      "size_bytes": 163150,
+      "sha256": "b40d3bb1dcb2bc9109cb2ad973e3087915a61b3d156887c4306ee0ee9a1c3a6a"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "95267c70be39b0d9b0d530af94c20b5e5456daefbee105d1e11f606f90260cf1"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/gnb.log",
+      "size_bytes": 118907,
+      "sha256": "77ccced92f13fda0ad2aec898754515516c18d93e5e28a371efe5ef0c579e747"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/receiver_block0_low.log",
+      "size_bytes": 571,
+      "sha256": "ae7d2aa51476cc6cab87475ce3833f259c904887c4b712078153effb74b19631"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/receiver_block1_high.log",
+      "size_bytes": 573,
+      "sha256": "9ac95411b25a9ecfd410d96c22deeb310ed184eb7f8ad1dcf4df90b7d6e02ed3"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/receiver_block2_medium.log",
+      "size_bytes": 577,
+      "sha256": "2750a3e77dec19202ce8d8979cbafd3b8bae72958d64a50bad2c19be48f0ad74"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/sender.log",
+      "size_bytes": 204,
+      "sha256": "c3a5f3f1f107ddc19099a08f81027a044f2774a2a31c1349830ff4eb29185135"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/ue.log",
+      "size_bytes": 32689,
+      "sha256": "cfa09058796a33cc6b3dea1057b6ba92b7c8ef89f135bff6113be53333b0bb9c"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "784142e2fe5cd9939a3e0068e392c824b7576aad7b1c5c585758e5488c02eb31"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block0_low_events.jsonl",
+      "size_bytes": 92342,
+      "sha256": "8d96872932d56ed4a5442a7db1f9c862ea91cc6c6ec414489c097d53036c5b2c"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block0_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "fb78f2b93b9ac15bb0936da16be83316e179ee5831aef501c5414df69ec1f968"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block0_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "84b6aba674fa506acb8366ae51c4c8ba55a04dd4aab95cbb7f7ffacde61f4de3"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block1_high_events.jsonl",
+      "size_bytes": 545006,
+      "sha256": "55fc40b9971c61ec56579122297316fd343fcc4628900b4c934d84389f140537"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block1_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "aefb72e39e662d0ac2f6aed51f3823f6509dc655efd47adc626554128875c2ec"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block1_high_summary.json",
+      "size_bytes": 2428,
+      "sha256": "36c81eeb749baedc0ab4e0d934e7a94e1abaa6b6aa5d842cf4adb2e6456fd023"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block2_medium_events.jsonl",
+      "size_bytes": 13036,
+      "sha256": "c27537584b1d98b73f94ad102afae561eda08cdea703efbd584d17bcaba4edec"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block2_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "cd1d3c3e9d332673104c89787c3d428c690c64ebf88ac6c3abc030c797f80d70"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/receiver_block2_medium_summary.json",
+      "size_bytes": 1124,
+      "sha256": "c74b1c33da31cd88f0f5fe4e1b3d9d59bd1b35f48155d37dcbabe7640096c3c9"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "367a8761dde30fe3f5523e65060c068442cdc77a274223fe47ee769c1519fa71"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/sender_decisions.csv",
+      "size_bytes": 96397,
+      "sha256": "61031f272748d30f596c8142899b1a5dbcfe42de6fe9851b291532dc20f46048"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/sender_summary.json",
+      "size_bytes": 1850,
+      "sha256": "e523aab6ff105a51ca4a77299d3639fbf69d2120c3ec199aa9def279d0ccaa21"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 2426097,
+      "sha256": "dc1a934a053514b2e4ca8a62ebbcadaf7d0a716c0948b190b80950e4e6479fa9"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 4309336,
+      "sha256": "1ec745008cdb06307c3a531571a94db14ae00c338b6f639a73b255cbfa4d0b44"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/gnb.raw",
+      "size_bytes": 8450411,
+      "sha256": "ece2e7bd0b5bb0818d8123d250151db7d5185f15bade86505dc145fb249b5b2a"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 3917217,
+      "sha256": "b998b254f22e70dde8090c89a640274e0dbc2564893a2613fe6605c85a757cbc"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 10028501,
+      "sha256": "f166e31373c5c269570425380189738981b3156abeeb08f33ed115417a71b837"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5054305,
+      "sha256": "649f39f1bbc7a5f301b69cd898bf1805cec649c536d4ac484b864b4893ce7ba1"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/ue.raw",
+      "size_bytes": 23010271,
+      "sha256": "ab78a946be461a7569c3f19eb14b74a2b11594c2e7087447816e6ee3387cfd6b"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/04__adverse_stable__order1__rep1/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "af71323917c2113f7b7f3495400065a86740b0073063ee28e9dcc2353bdb2991"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/cell_record.json",
+      "size_bytes": 2790,
+      "sha256": "215b1cc9bde4d09321b1da869d226f88a9432b67d1e38a65cbdeeca4f999a273"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "3124fe661a8e4567b5460b998321b06ce37678dd10765b6e303e4aa8274b5fd4"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/command_log.json",
+      "size_bytes": 162063,
+      "sha256": "cb412a250ae3d7e99ae1be34721ce89fe0ac2cc6619ab53f9d945a138f8343cd"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "c107953ffa1a4f07982a51b997be2ad3741c228cf17aa4e6945a5ecba8cf0d0f"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/gnb.log",
+      "size_bytes": 112963,
+      "sha256": "3294d485d786a38ea6fb4718d99e833030668d277be308e8da50e5df30d5aeb7"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/receiver_block0_low.log",
+      "size_bytes": 575,
+      "sha256": "b41501538465b9030b4d11e95cc889fdf5947f173462f704e9ade3c359f04fc3"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/receiver_block1_high.log",
+      "size_bytes": 577,
+      "sha256": "2b0c062ed7e58a5225dee6b46d3345140e29b424dfdef96e31135d238269d71e"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/receiver_block2_medium.log",
+      "size_bytes": 581,
+      "sha256": "b141a840f65f9046ff9d4a61145d33842fc504be90827928b7393c18c66465f9"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/sender.log",
+      "size_bytes": 206,
+      "sha256": "8d6493db59d537f0d5498590f4dd9467315d63b78f3c5b1a472eeb1bb68a424c"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/ue.log",
+      "size_bytes": 30546,
+      "sha256": "c934c30968f7ad551417c7c13505fe76c57320903605bacf3025b4732a9a2c54"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "72c1aa39195938fbd533855a74ac808c4dfb93d1f42af08023c2793ab472669a"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block0_low_events.jsonl",
+      "size_bytes": 92346,
+      "sha256": "6737c911a22ae9398ed02c22a0604f632fae9a93b8d174a9d6b51b12abf123cd"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block0_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "13419b0c3e79de7c94ddc2b55298b5c3b10c8ecebf8819b239be3564a47724ff"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block0_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "ec0a2406a48b089f95a80713be5adf9f6098bb646f002ffe6cc49740216886a4"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block1_high_events.jsonl",
+      "size_bytes": 765930,
+      "sha256": "305c4efabdc12c2ba5bb97714e4fbe5396637ced6ff5188d20667eed8463afd3"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block1_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "115e63d79e441c654ad46196970994814acd0733359efc216f4304a257370306"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block1_high_summary.json",
+      "size_bytes": 2446,
+      "sha256": "1ab50daf39ea81505150315c2c0e7bf28d94976448ac91d16e84442fc2c24156"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block2_medium_events.jsonl",
+      "size_bytes": 349736,
+      "sha256": "90b3e317a290b7015997988b81dd28945200226e3c0db214a8f479ed57505635"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block2_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "ca57f158b9f1618ffbb4e5954e46caf037db0173999950e84032ee41ff013587"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/receiver_block2_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "38a4bed43323148f4979b233fd9b0e33ce319900df3a13165afcd6d79ba885b4"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "79a2569603484fa104fd51204f202d82d8e6fb4344a7ca86a3a573e0acff1eb9"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/sender_decisions.csv",
+      "size_bytes": 97269,
+      "sha256": "f8710d21f45249eefea232b9b1ab4140f1aeb3e3d4eb119e67c19763d05979d9"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/sender_summary.json",
+      "size_bytes": 1852,
+      "sha256": "329052c870e60772fb7605564f325524434569c03e9cf6a8bcadde0574215b39"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 1583553,
+      "sha256": "f1fdaad9eb72955623318715b2e721cd1f0d6500afadcffbc7ec4e998ddb70eb"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 2856123,
+      "sha256": "60dfba1b44b47d5cce054084544929ee389c42574197b854976f19172005d855"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/gnb.raw",
+      "size_bytes": 5392035,
+      "sha256": "d796c822eb053e775ba05dc8365d9d2d917d53ef4a1db847860142ea5d0c0611"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 2598184,
+      "sha256": "f95dbef6e5d8b6ddc5cc8097b4138423d0c81df1ec9bdf89a16fb080214df14a"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9593111,
+      "sha256": "c692cf7379f98f82763cd3e7b86d0eb52bbddeed390dce856c23d47b6cbd01eb"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5050062,
+      "sha256": "fbbdb9cf002bb05da0344484d581497d436d22a63004008c768f82aab650f525"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/ue.raw",
+      "size_bytes": 20639679,
+      "sha256": "c793e44fb6f0931cc5e7009dcdcfd9c01f25d3b54cf5f0a52aed98ea6a4095a2"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/05__favorable_stable__order1__rep1/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "9493e83ea47526a37250144512d6102d3dd462763f92c3028d925cabb091f635"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/cell_record.json",
+      "size_bytes": 2782,
+      "sha256": "b8e8810ea66d0a463f8316ebfaea8bf9aa8f7e592ca744dd8c77d2babe71de54"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "df9038b43c228d67109eb0f92e884a743339144a5e35c55e09c2d11f7e80a367"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/command_log.json",
+      "size_bytes": 163154,
+      "sha256": "c6f6f99582552f2a70667b48dd7e97409273223d751e1555b0fd34de1d11da1a"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "fbc7b0bcc0e9699d939b8083f51340a51c21a9ae931bd224e607f53f2ce90307"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/gnb.log",
+      "size_bytes": 440714,
+      "sha256": "c6f85af94c1c5a6be8b7747d0aa1892fdb97798f45a5db402579ad8122c04677"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/receiver_block0_low.log",
+      "size_bytes": 571,
+      "sha256": "c875cda7e38ecbdb119d1f02fec4046c36468216fc481967796f49f34f96f6b4"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/receiver_block1_medium.log",
+      "size_bytes": 577,
+      "sha256": "666b6e9bb32cae4fd2f795911d8039c7d848644ef174bf1bacc6842f31ff51b9"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/receiver_block2_high.log",
+      "size_bytes": 573,
+      "sha256": "2440e817b169ff9485926c86912910654358e9405c6113bdf6b0d5fea88b0fe8"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/sender.log",
+      "size_bytes": 204,
+      "sha256": "439af4f60276a25eb318d65f7d048c3553af82385053fdcc14226b976275fae7"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/ue.log",
+      "size_bytes": 40705,
+      "sha256": "eb8554aa7262f91f99f71cf8f82105dc6459b00d7aaae281aab815aba7ea17f4"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "489b9c46546ff3064e96726a67ce4d3614b3d0de65e1db30c6490d84b2cd818b"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block0_low_events.jsonl",
+      "size_bytes": 92348,
+      "sha256": "4eb5e5eee3927fe16ea2fb06d8ab9d4878498f383b2aaad22db0c89beba1709a"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block0_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "90b28ff837a22d92ba9838afc409f04d3d5084fdc44a1639091867c3d64e12d0"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block0_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "da4962ad628646ef7ed2c08bdf2c4bec755a995c08b8b59121d634cbdd3930c0"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block1_medium_events.jsonl",
+      "size_bytes": 349966,
+      "sha256": "048f190beb953d16863d5c95f7966850be31ef0a02ca2dc5daabc8998dcdad78"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block1_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "410ae0749656315f5d039915c0d2a27184f98aae22e79a364178ace078eb6fed"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block1_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "9a870b2dd498e5a07e3b35ac1ef6704fd8c6b63e5fc99147161e3201a7e68396"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block2_high_events.jsonl",
+      "size_bytes": 322359,
+      "sha256": "feb3aee2dd3d2474db52ac7e881a991870ff6daf9173f9d7f4ed0d88eac74b5e"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block2_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "337311630d57bdb9562fca0c19d728922fab20d5eaf7c49f6770e6509aabc041"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/receiver_block2_high_summary.json",
+      "size_bytes": 2403,
+      "sha256": "b4a9e93ac84916111322761bcb094b7fcd5f8d55e60f12d5aea1a56dd273a6e7"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "525d5b9523513b5274eb313556b8bbd0d920c9d8dbbb71efea361c520136dd7c"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/sender_decisions.csv",
+      "size_bytes": 96398,
+      "sha256": "a74915ac24de36a778e82132f33696b13cee83390364817480243d3a034bf60b"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/sender_summary.json",
+      "size_bytes": 1850,
+      "sha256": "ae995681b081c76c90bf2cdd5331261a3dc62c2cbac54e99b4fb37a263bafee1"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 2392780,
+      "sha256": "3eebfbac376bac82086b190fa4cf5b77df2b93a2b5b6784919c25e39d4d52d36"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 4250132,
+      "sha256": "3ac84e4406cf4ff1182e846e693e214dd88f5d3289a82c56623a881f19fecc10"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/gnb.raw",
+      "size_bytes": 8335951,
+      "sha256": "0fc6ae65fdc0ba0f661582a90e6f3ddcd2ed246da1617d5677f1f3d9afaf5a6e"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 3871307,
+      "sha256": "1af4b1788449aeac97a57085c844a31cd565cccc66c8cf8142e3e3b31018de30"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9978187,
+      "sha256": "21de7d731d5a78df0acb54675c6ae65d0af876b0ab0fa1b013e1897711ee7fe3"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5056194,
+      "sha256": "295b2e2e19bc140c614135d24868e761d61d146b8089f7d904185e255bbcdb4e"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/ue.raw",
+      "size_bytes": 22886759,
+      "sha256": "4896e646d45670c0227c1b1b017337f53cee9c55e165227eb544f574f7cff316"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/06__adverse_stable__order0__rep0/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "2ff44804af99c303990b9878be05a208d999074bc89bb21f01fb98106623ef09"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/cell_record.json",
+      "size_bytes": 2779,
+      "sha256": "545da5e6794bf43909f459dbffe389eab9d3d4e53bf6f22435f5017f0a49d37c"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "359e097398d0a8125a9b540f33fb1d0872ab9311e4f75bc10f614b1f1374a259"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/command_log.json",
+      "size_bytes": 163158,
+      "sha256": "475489ead96d7e24e92d06d45741fae084d6b16de42cd832efc909878702feae"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "ab55d4405b0773a8cb4ab168b3d996317b63cf0d2274c6b0da1ec7575d2ff61c"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/gnb.log",
+      "size_bytes": 120449,
+      "sha256": "5899de7008cfcfb9263101c72fd1f328fc2555211eeacd7e9fa8d948f509cb63"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/receiver_block0_medium.log",
+      "size_bytes": 577,
+      "sha256": "25de931c20f1c60e6d06b62bd2ad881b11470f3c282ae5c9bfecd7aab2024383"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/receiver_block1_low.log",
+      "size_bytes": 571,
+      "sha256": "43b3229999fc594b360b6e5515bc1ef6f70372af3b90581a08264443ba6e89f3"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/receiver_block2_high.log",
+      "size_bytes": 573,
+      "sha256": "5df1e1c86f12bceb9f5df27ff2055eb9f79e8e72701671bf62a6c243b4c970dc"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/sender.log",
+      "size_bytes": 204,
+      "sha256": "7c9b52f1038e6a7a1c816244d61e72ed92c31834c48b15260be920cf96ed9e1c"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/ue.log",
+      "size_bytes": 31421,
+      "sha256": "e136ce06ed95af44f2f6a01597f7cae85e525f813b25630a025171e5e779badf"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "489b9c46546ff3064e96726a67ce4d3614b3d0de65e1db30c6490d84b2cd818b"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block0_medium_events.jsonl",
+      "size_bytes": 349589,
+      "sha256": "bc50a6af0a010c1cdc476d16d61518f590288a43173930f34ea68f9dfbc00be5"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block0_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "7a2b28caf475a228cc04e81208314442bb0c86e5c3dc3a4cd4368308d11ba92e"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block0_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "91fbb4383b3570f68a866da10c396baaa79af16565a3b0c5ca429bd484a041b5"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block1_low_events.jsonl",
+      "size_bytes": 92357,
+      "sha256": "00f24dc125cfa826a72bb24577255781136a66a76f030fb3fe809f8a73e727a7"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block1_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "721772b238e494a8913bf7d6b64c277f42d4945888b2e54f82f391a9b7d95d67"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block1_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "9451d8e293c4200c6cea53d4c7a66781d9ce5989dcbce6f5c82147d2ca022146"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block2_high_events.jsonl",
+      "size_bytes": 438783,
+      "sha256": "d3a4dfa0bd2a8401a51ca0e8b0a08daa1cbec5e87b27e25b7a76054e5d7e7fe6"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block2_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "f0a0f2a53fd0fb13a0ac340f9f8e8b3c3cdd68fefd000f0a0ce8e621f76a92a3"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/receiver_block2_high_summary.json",
+      "size_bytes": 2417,
+      "sha256": "c15f22ba2eb6f2a5848fc9248bef2b064728e03106e91ddbcf55fccfccaa01a4"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "5cd2a1076e115116b6e4cbe36dbe4849d1e5fad3dae8345902857389ea1ad635"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/sender_decisions.csv",
+      "size_bytes": 96398,
+      "sha256": "457ea141d67cff96d02074db1d211d8e9cdf153554febc05cecae976224353fa"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/sender_summary.json",
+      "size_bytes": 1850,
+      "sha256": "7a38d7e2f1183b7fa194076e16569dfa0eef1c43ba9aa9ad03772f09ffa1639a"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 2734277,
+      "sha256": "b9e23d0a9f3299313217535c4ee9491af989a852b53e134e038af9b5d52fd0d0"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 4863477,
+      "sha256": "f404af5c7716c3884bd82edf9e4bba8bba584c7dc8e5272b9e6c3653f39132e5"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/gnb.raw",
+      "size_bytes": 9483999,
+      "sha256": "325a770f23742a1d15fb89d7e4aff71274cf581ef350e82d095cafa5da195111"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 4409140,
+      "sha256": "793e0c71d66ef6869399e84b411f8db4e08dfca50daa2326ca339c4b93b5f36d"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 10119587,
+      "sha256": "b54d60c7b03f0844a4f35102b0dc01e34a50dc67f4a6c90444c9a9b4591da8fb"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5060231,
+      "sha256": "37f616bb9ee9fd77f9779aa924c41f91fc1933055c1157712807fa0f47e32823"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/ue.raw",
+      "size_bytes": 23800183,
+      "sha256": "ba849d67c370f57be1a4ec7d75efa89aca078ed17dde62a02e0083b94b0e4134"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/07__adverse_stable__order2__rep1/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "945a366930522a5dd38c05a0b4122c3648bed554db46ec147772aaf7ad1863ba"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/cell_record.json",
+      "size_bytes": 2790,
+      "sha256": "87bff3fd3660d5ea641dc98448aa48d5682ee28937bc58a864d55f15913e3210"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "58f9baefe0d1a6bb2a94802c80cc0808332ffe9334829ad5484ec55c39b3f442"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/command_log.json",
+      "size_bytes": 162066,
+      "sha256": "a34cd72919a86ccfee70104e1a1293e7cc2f8f3e4602699d4cf78ddb85f04540"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "c4d5767281cdb46baf8ad0f35aab20358401523a6df2dabd6763988b97d75b6f"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/gnb.log",
+      "size_bytes": 114399,
+      "sha256": "371448390e168d76fb84a705d9ab05fdd8b98c96813d0eafbcb1a1d207d47978"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/receiver_block0_medium.log",
+      "size_bytes": 581,
+      "sha256": "57741fd2b648c4fc74220817249533d1a91b1843a71f3881429bdedc188fe341"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/receiver_block1_high.log",
+      "size_bytes": 577,
+      "sha256": "a8687a27518985c72fe2b2711803cf1633a1d61c8709f44fe2f1922df9bc63c2"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/receiver_block2_low.log",
+      "size_bytes": 575,
+      "sha256": "d3bb6b27886239504d14bd4e0d6205076c734922f135edf7aa7f2c7319f0ecf4"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/sender.log",
+      "size_bytes": 206,
+      "sha256": "124c27e4bfdbe0f00ceec8c0041c73af89ea46c7d4bf5c47f33d91b848de487d"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/ue.log",
+      "size_bytes": 30653,
+      "sha256": "3020a3363d218f68ae31e3211c2b1fa473b75bfbecef26f7c5b570c992719d2f"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "506824a49af47afcaddedb7525aad45e938dd387cde1a024061f3df4bf1043ac"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block0_medium_events.jsonl",
+      "size_bytes": 349349,
+      "sha256": "877811b8bb0429eb7476b7597fb80aeaaef2000ec4c89a71ec429a96c7c3dfe4"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block0_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "520f7329449b178a11a785518b2de52672fbac9f77cbd0ef74f28c0e65fb33b2"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block0_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "2e3fd8aeca4a384593ebd73989cb6b30f7cda99bbffe839116f9f1267bd9e4a5"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block1_high_events.jsonl",
+      "size_bytes": 779241,
+      "sha256": "d8ca8e53fd29ee023cbac48e1e5d0f3900a4b7878b88332121f5f12aa79814a0"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block1_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "eac57df0cc10b7ef4c0116adbdb39192afc1d78881371c2b83ccafde59844819"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block1_high_summary.json",
+      "size_bytes": 2433,
+      "sha256": "452efd77575f0d26608677dca9414c54aa016c9d759cde97b820c136a04e9e2e"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block2_low_events.jsonl",
+      "size_bytes": 92336,
+      "sha256": "b59d245bfc339e2120510f7967534aaafd4ae3d251c5c5f427b002a854288e05"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block2_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "9d6e08285e752abaf8acaff059d85b1262c8af63d712f7e267f9627c3221f5be"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/receiver_block2_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "1dd7288c4ca2820b8ba714e7149411ce433216c7bcf0932d24b510d292f47ffd"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "cf62197d98c3fe19c8fd8b113c23ef4de8c0bbea83f1b9dacf690ed8bbc49325"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/sender_decisions.csv",
+      "size_bytes": 97307,
+      "sha256": "9510956ee3a67dcf84782fa5f3c597d5d59af8ed84bef6a976b9624f04bdaeba"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/sender_summary.json",
+      "size_bytes": 1852,
+      "sha256": "2de54fcc815865c13e9b8d4be570166362c7bf4aa60486bb7f77a9d99c4bbd45"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 1652874,
+      "sha256": "d18c12865527627a79b9f1617d24c3ab07300ed382015994e255341150b2e0c4"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 2978793,
+      "sha256": "e84632d3339b3cbbf894b16c16af6b17800fe8dc2a2955e57ebb3dcd08909c24"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/gnb.raw",
+      "size_bytes": 5620491,
+      "sha256": "165a65e0961e87d9a5000ca3e2de473f761d17896a26a79b869994088474aa51"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 2686967,
+      "sha256": "f74cae4f3dac6f8e70914893055a7e80fcf6c1e752e5ad302144cc9c24dfd5fe"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9726566,
+      "sha256": "b3b575fd3fc76d67839f57264bb43d0ee47688460fdbda93ae7bab20dfdbb8da"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5059889,
+      "sha256": "fefd5712aa56f12a167d476b10c61eb5d5d7a6f0ef578347a8e576cbe3618038"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/ue.raw",
+      "size_bytes": 20951247,
+      "sha256": "491782c77c39091c330d517b1735752323eba9a865d6bad2c6534eae68f571b6"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/08__favorable_stable__order1__rep0/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "945a366930522a5dd38c05a0b4122c3648bed554db46ec147772aaf7ad1863ba"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/cell_record.json",
+      "size_bytes": 2780,
+      "sha256": "6cdeca1a29ab48d738be7f69fa0d626d035a2c1983fed0cbf5bb6b8ea6e55dae"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "477bd166d56bbcc8df262d173e9013ff0fda13a6590f6a70ecddce768a9515ed"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/command_log.json",
+      "size_bytes": 163159,
+      "sha256": "59f505eb47e358ffff864a5b05b71da39fe2994cef74612402a1850b9c3ee990"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "af21e2a98345ef08ad16567a932317385a6abf89839558118b5a86a37f90ec03"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/gnb.log",
+      "size_bytes": 118109,
+      "sha256": "ab490b985fd79e95381251ed24b1cf963d565c469606987a66b88837923a78ef"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/receiver_block0_medium.log",
+      "size_bytes": 577,
+      "sha256": "03921376413770615c2dde633a54bc4e6ad1288700f0463f6653143c4be22353"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/receiver_block1_high.log",
+      "size_bytes": 573,
+      "sha256": "e541faf741dea61f31842ca598f17cce1eb86ea8ccc1ad34c8ac5c1181efe473"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/receiver_block2_low.log",
+      "size_bytes": 571,
+      "sha256": "54696f6e781782b21cfdad4da9a9306abc7ede46a2a9343d2364cc68349ed42e"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/sender.log",
+      "size_bytes": 203,
+      "sha256": "744dc7f5c79965910043a3a0e879b0b4f192c85f6db51483b4934d7388fbfcb9"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/ue.log",
+      "size_bytes": 32094,
+      "sha256": "b66934afbf186459ba7007e7ff46b89c004600d7c4c1a9351455b06e439280e6"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "e464570582e57984f1b906ceeb43684e0db43ba429a918b3c46b9b3daab99864"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block0_medium_events.jsonl",
+      "size_bytes": 349610,
+      "sha256": "353b77341c7c62a0ac8b7854aa184050e03f98ce354809407a1e2ad33d2e6a8c"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block0_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "d6f6a48f92cbf80fdfef3982ed1d8aa31063ec8701ad49e636d735b0fd050eff"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block0_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "94cf664dd478952d7ce729eaff4627239f2b69e44d89309430d500003b1ebbfe"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block1_high_events.jsonl",
+      "size_bytes": 424658,
+      "sha256": "60a991f2a31960c1463b22755801bc75a9be419f24e435c033f7bd891b2ba5c3"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block1_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "58ce7b9fba0969e44a4b57b56f57eed89b2965acf69597806e3121e28dcee846"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block1_high_summary.json",
+      "size_bytes": 2441,
+      "sha256": "27a18d162c22ee0b2fae04a92a5eb5e6f5be06233b9029e9c8b370dafef67251"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block2_low_events.jsonl",
+      "size_bytes": 13036,
+      "sha256": "c27537584b1d98b73f94ad102afae561eda08cdea703efbd584d17bcaba4edec"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block2_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "c003a56a2fed2e9f41ca782cf36b03f10c0777e5e29bc00f8b58a1b0b03ba658"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/receiver_block2_low_summary.json",
+      "size_bytes": 1124,
+      "sha256": "0b10144ebdb5010f1d9d22dae9dfe1f54ded767c104bff0d712113c3d8741876"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "42301a1715b4ad7cf34c79129e43346f9c61519fbb09815d66f799ce796b85b1"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/sender_decisions.csv",
+      "size_bytes": 96405,
+      "sha256": "386a33e009a9f6d9457069e145883d2431254265e1c1bd5eaeb587f4e13463d7"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/sender_summary.json",
+      "size_bytes": 1849,
+      "sha256": "90e95c961b47789278ad4e372717b780fd066b2250b8878e33969317f4a8bf81"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 2808585,
+      "sha256": "efe704562134e8398441e4f29039229bee8a80e4f0ffc2e118e76b8631e7f3d3"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 4998076,
+      "sha256": "54b257beb0eaba1748fca149eabde629fcd89f77bc75406306f457552c4fa976"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/gnb.raw",
+      "size_bytes": 9729707,
+      "sha256": "4dc46d344affe498622d881e3fa705222d391e8a4db27a6c8cc67902070d00fb"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 4519994,
+      "sha256": "c0d289c61dcfc01caad5192eea55f2d25a748c206797e8e6cbce65de04eb94bd"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 10001969,
+      "sha256": "fab013445d7b960c7ea76d3405310564a02cc33d53f1fa1e0754091a662f65d7"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5058428,
+      "sha256": "f6cb57b2c69cff1e5402946f5f9fbe731eb796db3cae917f7dc29d812022a718"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/ue.raw",
+      "size_bytes": 23806519,
+      "sha256": "500312d2364627b918731562d9c6f3eba0de532e07767e9ab56583c8f91e0c74"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/09__adverse_stable__order1__rep0/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "bed5b7c315885f93b8d7ec6659f36ed9e24235e7f6e905c673d32268f2f2efb9"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/cell_record.json",
+      "size_bytes": 2780,
+      "sha256": "afb89c30ca52eeae057bcc735682e84ac283545deeebc4dd31295983d73902bf"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "34e0179afe7ec17f775e03e3d793283200b7d3f824ba5e551d8ecd4378aa2134"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/command_log.json",
+      "size_bytes": 163160,
+      "sha256": "1bd4b813d2dcbe5806f59036c9c70b47265ba0a68bf8c20a3b654407457be316"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "88d66e3d4f3cad48ccdb779586c76b30b6187f1cfe7f30bf15ba32b774a15698"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/gnb.log",
+      "size_bytes": 118121,
+      "sha256": "a53157199c7eb85c2b928c7cf1c1b7bd744b1cf7be6a1e61e9d24233136e0606"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/receiver_block0_high.log",
+      "size_bytes": 573,
+      "sha256": "41683d42de12ced1878c96e18e173188851da22692ed6e1be5a73b4107454ea8"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/receiver_block1_low.log",
+      "size_bytes": 571,
+      "sha256": "b1d3ce52991a4185623e506051183d21ef7b3f88daa640a2509cda156890a9e9"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/receiver_block2_medium.log",
+      "size_bytes": 577,
+      "sha256": "970169beb4bd96e3ce51401b8e43ca184674b1b4da252cb5a602022fd96bfb03"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/sender.log",
+      "size_bytes": 204,
+      "sha256": "53539675466a4b337e70f5122c8fd853f1f4447dabc356c8b653cf3bae85eb72"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/ue.log",
+      "size_bytes": 31817,
+      "sha256": "88224bab73edbc5e7e3e17ec5191604ec18b535be1523e6bec7101e6a571bfb8"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "b708f66e360ad50faaa298e7751b339c6a62f5dedab7586e4e8ea6c646a14f0b"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block0_high_events.jsonl",
+      "size_bytes": 557552,
+      "sha256": "0061edbdee0420c6927a07c0783ac986a8b052aa2eeb7a6604b359b058bbe160"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block0_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "773c8186474d67dee7674ed6cac363951f1b270eac47194942631b64e791fdc9"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block0_high_summary.json",
+      "size_bytes": 2443,
+      "sha256": "e26b0f91a8fe3727618333e5166c96401ac9da31ead5bfb0fb822b4b55c2c3bd"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block1_low_events.jsonl",
+      "size_bytes": 92281,
+      "sha256": "b64ec37b52017eb5150debf2bf90e0a522e47eac249f2e0687d923d449197a6a"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block1_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "694e2c468d219625e4c3171bc05e2d775ba5bd372212f49d7925b752edd21d65"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block1_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "f636802f606c72df35565d03923d303893dbb037934be7b4c90fea49d2deb44c"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block2_medium_events.jsonl",
+      "size_bytes": 280036,
+      "sha256": "dbb53ed5b2771456462030271aac5801a23b7017fde578b20775701664acc98d"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block2_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "9dcf02ac2711812f3af1888c76caaa1abfc4d46da2295758a219f2ee81b9fe7f"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/receiver_block2_medium_summary.json",
+      "size_bytes": 2421,
+      "sha256": "c3e8c7c8939ebeaa78c811cac4c606f416a759d678ca832c8ed2a620a25698f6"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "5d24ee4b9a8074c80a3882fd60de16b825bd9df464e86fa07e5915d12a68ce52"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/sender_decisions.csv",
+      "size_bytes": 96383,
+      "sha256": "7c3a71dd60b85f393e7359f4c506fc23ef8947a0abf59fd5d0a0be379deece09"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/sender_summary.json",
+      "size_bytes": 1850,
+      "sha256": "015346cb90b0c07929b6c9859818835e023bcd461ff57d4b15e2fec9e568e848"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 3028670,
+      "sha256": "cf1070b567b2b01b657cfe0db9c187c08cfa5e3597c48c12594f6f4a3ce06830"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 5395968,
+      "sha256": "2c4bd5eb78a5f3a1db1b1a0084ca5322905a44ff67cb0515a984d06c92b9dadf"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/gnb.raw",
+      "size_bytes": 10491823,
+      "sha256": "0ef55374f628b6745f0a26bc2e5cf6f1ae491ac883973c7121689abf08f55575"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 4892161,
+      "sha256": "1d8a11a84d7f62b8a4940a772beb459ee8bf4961403325a5fbf23e70539873a3"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 10177589,
+      "sha256": "a4aae05c3379a5e5eaa8367c3a11aeaec79e0ea94bebce596b3485bf42e68c5a"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5046145,
+      "sha256": "62299de7d88cfbcb79184554fab54e0fcf4b1d45bd18607c34f203e44d44b530"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/ue.raw",
+      "size_bytes": 24486279,
+      "sha256": "ede6d64fe8ec4b204156991f821a6199389673c2033fb9253b87a007b0b557aa"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/10__adverse_stable__order2__rep0/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/block_plan.json",
+      "size_bytes": 583,
+      "sha256": "9493e83ea47526a37250144512d6102d3dd462763f92c3028d925cabb091f635"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/cell_record.json",
+      "size_bytes": 2793,
+      "sha256": "f7edabe122d7bc3081255a1a9630eb5606a0121ad7b547d2034effc392f5d40c"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/channel_state_initial.txt",
+      "size_bytes": 1470,
+      "sha256": "d42722e503e8af1d21448d22b05587f997fb05427db7d30617392d4774f68593"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/clean_cell_marker.json",
+      "size_bytes": 219,
+      "sha256": "836971fa0a33244a35fbcb9b3a0320ce53da65bcae54e444937d41b3b9d96d87"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/command_log.json",
+      "size_bytes": 162058,
+      "sha256": "1a81dd7348181b189a4469074ec87c9fb5065573c15a68dd59eeed504905d098"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "06fed6b09d545c8f8ea95b26076d979e5646062ef5f43a13a2ec055619b5ed9f"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/gnb.log",
+      "size_bytes": 112784,
+      "sha256": "83b8e5654bb70b187df70d88391a2aed66119c471f3141e36d7f018ef26c3a44"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/receiver_block0_low.log",
+      "size_bytes": 575,
+      "sha256": "6867b7c7c07ed7a0006751bc1839332e9e6eb7c57f128e1515a8f3d0af45798f"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/receiver_block1_medium.log",
+      "size_bytes": 581,
+      "sha256": "235e5dc0a85f8da3dfb28b8e1e33f5143e80c062ba7a88a18cf3bde93b810fb5"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/receiver_block2_high.log",
+      "size_bytes": 577,
+      "sha256": "96d1b71b0eca646e162766187a6ada54cf2e11d1827bf821917bfbc6a526a592"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/sender.log",
+      "size_bytes": 206,
+      "sha256": "dfbf24d374c3098efb58fb25c6dcf416bd0a80ec1602be208f2dfce27e198c68"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/ue.log",
+      "size_bytes": 29753,
+      "sha256": "c1c6c9dc5349659be2b622cab44ba43b3f8682830c36aa694c90c178f4202057"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/radio_path_check.json",
+      "size_bytes": 404,
+      "sha256": "318b96ef1f4d587ed8bd149936504bf9a2635371a243a661653e085dbc4b5b35"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block0_low_events.jsonl",
+      "size_bytes": 92337,
+      "sha256": "43745e8462263f2f90d0b7516929fae0de551f9bcce9bac93214271af216131c"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block0_low_ready.json",
+      "size_bytes": 207,
+      "sha256": "c433a78301a4e75998d54681c57bcb356085a085c86478e0f2401ce1b14b8621"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block0_low_summary.json",
+      "size_bytes": 2385,
+      "sha256": "19174be4c2b225ee1d1cb3ddb752973820d7ca77192273ce75cd214616b1fea5"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block1_medium_events.jsonl",
+      "size_bytes": 349820,
+      "sha256": "aa602d550290a1b55f736b217bd90dedb23882f7854bdd7c490a18c1cee4ebc2"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block1_medium_ready.json",
+      "size_bytes": 207,
+      "sha256": "918a0e7c709d2ca44aa7d2d119291afa2a7d6b55b6ddfea3c85d559a6d99a298"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block1_medium_summary.json",
+      "size_bytes": 2391,
+      "sha256": "1ee888d69f6a0bfdc566218df9524d55b7548d1d12975ebed278ab3cc7eb375b"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block2_high_events.jsonl",
+      "size_bytes": 932786,
+      "sha256": "855a626df42ee3eaeb26ede25915baab07f224248d0d6a74847e41f1cc4c3412"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block2_high_ready.json",
+      "size_bytes": 207,
+      "sha256": "9ed9fa26cb55b0745f778aed48556ceade01088d2e65cb19ca4484710516d628"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/receiver_block2_high_summary.json",
+      "size_bytes": 2448,
+      "sha256": "9bb7e7812216bf767da152731a6474e05d98ab755f23ab0bd77ba2cdb884740c"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/restore_readback.json",
+      "size_bytes": 143,
+      "sha256": "4b57e12bbbbbb901feffd3f6a9f068eea0d1b6d939e66833a05a717bf289a950"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/sender_decisions.csv",
+      "size_bytes": 97306,
+      "sha256": "9a3076b57884536556b08d8d439dcbd25412627d5e655363d670caecd7b3caaa"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/sender_summary.json",
+      "size_bytes": 1852,
+      "sha256": "4991bb77945428bbeec744e0d00926ff89502832d91a41818bb02e6fcc9da037"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_csv.log",
+      "size_bytes": 68,
+      "sha256": "0efbe4e4f3b14268009db12289e069e142e24d4edf0bce32a53747d79c8848c9"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/GNB_MAC_PUSCH_POWER_CONTROL_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_csv.log",
+      "size_bytes": 64,
+      "sha256": "e004e12f5bb867e9a8f26be2d7fa20b71e0d8312b8955eee3a881548b0207afa"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/GNB_MAC_UL_MCS_DECISION_replay.log",
+      "size_bytes": 49,
+      "sha256": "061f6ff095d24d2d69e57b3158af10bd6c7a508efdd5abf9197ca426c1b84512"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv",
+      "size_bytes": 1808268,
+      "sha256": "ef87a280d2b2bf379e67956186fd5878387a1910dcb1cdeb2c8129229451e0f8"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
+      "size_bytes": 3267458,
+      "sha256": "0ec7bafbe3cd78f1934d3a8b8b8ec8364705f622653d8aed936d4347169076d3"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/gnb.raw",
+      "size_bytes": 6141059,
+      "sha256": "d211f585d932cdb4b3146341bbd9156d6f76eb7576420a2bb212a8b95a6e407d"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/gnb_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/gnb/gnb_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_csv.log",
+      "size_bytes": 59,
+      "sha256": "673d6ac77086324755234ca2c445af4647b6b96a0c7311a1f7cc55278f4b2ea0"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/NRUE_MAC_DCI_GRANT_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_csv.log",
+      "size_bytes": 67,
+      "sha256": "69aed62653d58d1b411cac1bbd73434cf54b573adee425bc518149e69b82585f"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/NRUE_MAC_RLC_BUFFER_STATUS_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/NR_PDCP_TX_SDU_csv.log",
+      "size_bytes": 55,
+      "sha256": "304f22fb146a0a87c7bdf44a789e4e3b33f1fd963c466d5f3836f5723471d856"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/NR_PDCP_TX_SDU_replay.log",
+      "size_bytes": 49,
+      "sha256": "1b2bedef0d3a6ad251e9ab7c5e583cfc4725ac544a6e08fb0e979ac4c93c5b1f"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/csv/NRUE_MAC_DCI_GRANT.csv",
+      "size_bytes": 2951807,
+      "sha256": "927c25c59912d51deb9ad6cefe94ad69f30a2348edad1e85f05d73b4150fbffc"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv",
+      "size_bytes": 9552887,
+      "sha256": "30ae17bbf9db340ba35fdcff4124d98578735e4e6a157e9a39ad037634b01e19"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/csv/NR_PDCP_TX_SDU.csv",
+      "size_bytes": 5058857,
+      "sha256": "dbcd8b86a2cbf06505f12fb191c7920a0813918ba71ce4e8f07bf48aa5c619c3"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/ue.raw",
+      "size_bytes": 21098799,
+      "sha256": "242bb2736dad959f64ad26d808e5e6479c9ff96e0a15891d875f7818c537f7a9"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/ue_extract_config.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/11__favorable_stable__order0__rep0/ttracer/ue/ue_extracted_T_messages.txt",
+      "size_bytes": 144111,
+      "sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+    },
+    {
+      "relative_path": "cells/calibration/logs/attach_ping.log",
+      "size_bytes": 424,
+      "sha256": "cac9b5be57e81874d4dda5194e140b04051fb85d0bd9985bb276a87b824cb344"
+    },
+    {
+      "relative_path": "cells/calibration/logs/gnb.log",
+      "size_bytes": 51199,
+      "sha256": "54711484d740f3f94c7697f6659de1b8b4491549188964ac6100fc9cf337fd9c"
+    },
+    {
+      "relative_path": "cells/calibration/logs/gnb_record.log",
+      "size_bytes": 146,
+      "sha256": "3f11cd1f709da59be87e83536ac2c8c79a8ba4d84a7210a2c9cc83032c8d91e6"
+    },
+    {
+      "relative_path": "cells/calibration/logs/gnb_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/calibration/logs/receiver_block0_low.log",
+      "size_bytes": 517,
+      "sha256": "c07cbb7290e533bcd7449ac033fec025888bf50186280a609deeadf6752f8ffc"
+    },
+    {
+      "relative_path": "cells/calibration/logs/sender.log",
+      "size_bytes": 168,
+      "sha256": "c84c2b2f1164af3f49b37fc0f9a70adfbcf09076c900bee03bde1f830d889df8"
+    },
+    {
+      "relative_path": "cells/calibration/logs/ue.log",
+      "size_bytes": 21852,
+      "sha256": "68b4490d28b5b61d914a514da869b403bfb90a4f2aac3c64e103defd1a348c59"
+    },
+    {
+      "relative_path": "cells/calibration/logs/ue_record.log",
+      "size_bytes": 166,
+      "sha256": "99e572289a47447f324c5f1bfc3577f49916ea624c6da47ec3251f402967bc43"
+    },
+    {
+      "relative_path": "cells/calibration/logs/ue_relay.log",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "relative_path": "cells/calibration/ttracer/gnb/gnb.raw",
+      "size_bytes": 392679,
+      "sha256": "1839ab341bf3b23c0f7fd905da06e6fbe166775b80db3dbbe47aa358e8e0d63f"
+    },
+    {
+      "relative_path": "cells/calibration/ttracer/gnb/live_pusch.csv",
+      "size_bytes": 119540,
+      "sha256": "ccc2a432d6d23aea222c37c34b878ad74531fba9b674858f01b44583bde1413c"
+    },
+    {
+      "relative_path": "cells/calibration/ttracer/ue/ue.raw",
+      "size_bytes": 6448195,
+      "sha256": "6e37b2958477a41204e0f1c7dd0db054569a486c21806d4573e715a54463ab71"
+    },
+    {
+      "relative_path": "decisions.csv",
+      "size_bytes": 410251,
+      "sha256": "b7e7dc959419c8c1919fcf87aa9d1ac16ad08763f955573cd8e65e32237bac2c"
+    },
+    {
+      "relative_path": "decisions_build.json",
+      "size_bytes": 5332,
+      "sha256": "d3116421e7433969514b4e91c27dc2e3266eb60c0092317c93025cd1d3c086f2"
+    },
+    {
+      "relative_path": "figures/fig01_mcs_by_channel_and_load.pdf",
+      "size_bytes": 17616,
+      "sha256": "b597f23d527f300524fb547550c63c49dcc5a3ba0f7d3c8d8e8a4b92f68b1dd6"
+    },
+    {
+      "relative_path": "figures/fig01_mcs_by_channel_and_load.png",
+      "size_bytes": 60855,
+      "sha256": "43226fb8d18c63720c67596ee98b546b1261dbaf32965d3fe1beda72ccff2279"
+    },
+    {
+      "relative_path": "figures/fig02_backlog_by_channel_and_load.pdf",
+      "size_bytes": 19250,
+      "sha256": "6312ff8882b4f360a50b686f91cdd43151d2c97709ce2d1584d9f61826b6e188"
+    },
+    {
+      "relative_path": "figures/fig02_backlog_by_channel_and_load.png",
+      "size_bytes": 64680,
+      "sha256": "b6ca3e7b39017839e2055d7b76d730b8485fcff1d67189e6261ce68b8c8dc7c1"
+    },
+    {
+      "relative_path": "figures/fig03_transient_backlog_after_transition.pdf",
+      "size_bytes": 25488,
+      "sha256": "f9703be65891f6e75d6785966f00fc4dd3b5c1a27d90076b02ac3fe2a3289c74"
+    },
+    {
+      "relative_path": "figures/fig03_transient_backlog_after_transition.png",
+      "size_bytes": 138280,
+      "sha256": "9948cccf7b1ec2db12b64a3ef94b6857bdf99c16d869930f2536bb4dae49b7bf"
+    },
+    {
+      "relative_path": "figures/fig04_mcs_age_and_coverage_by_cell.pdf",
+      "size_bytes": 16122,
+      "sha256": "af99a312c4fc55ffefbdfe19a9f02d24784df1363abe6dabb7ba245ba501477a"
+    },
+    {
+      "relative_path": "figures/fig04_mcs_age_and_coverage_by_cell.png",
+      "size_bytes": 80858,
+      "sha256": "6650d9c2962234ac2cc13335245212f43fdc2c9372560da5f8d1343eabc34ee2"
+    },
+    {
+      "relative_path": "figures/fig05_features_vs_next_frame_latency.pdf",
+      "size_bytes": 40680,
+      "sha256": "441c22ef0056cc22a75de46d90970f223d6e27304690b77585197a0247f07eed"
+    },
+    {
+      "relative_path": "figures/fig05_features_vs_next_frame_latency.png",
+      "size_bytes": 142350,
+      "sha256": "b47c0783198455c363402f2dc59317f3260e934dbdbdf685ca5f78b95c247eb2"
+    },
+    {
+      "relative_path": "figures/fig06_prediction_comparison_abc.pdf",
+      "size_bytes": 16862,
+      "sha256": "695190a6c48c897f97ecd3c85a3a7db0d5805ccb638932aba0c5c26fbad7c349"
+    },
+    {
+      "relative_path": "figures/fig06_prediction_comparison_abc.png",
+      "size_bytes": 59966,
+      "sha256": "4454611f0a0b25ccb309ef2dfc8f44b44ae0dc2c8ebedb6caea6cdc4da113a4b"
+    },
+    {
+      "relative_path": "final_cold_state.json",
+      "size_bytes": 185,
+      "sha256": "1e9b738d5accdfb172714bf456d03a0af06c66e3dc99816f3d1d4471e1cc9a2e"
+    },
+    {
+      "relative_path": "plan.json",
+      "size_bytes": 18285,
+      "sha256": "1f3290fe1826d31e068cb74fe02d09b94ece7d10d2c4bb7f7826fd39ea10dc21"
+    },
+    {
+      "relative_path": "preflight.json",
+      "size_bytes": 466,
+      "sha256": "e2b40329c7ce3722c8e44fa1cf771673ec9a8cc08e52e35730f33ce75e1a8b18"
+    }
+  ]
+}

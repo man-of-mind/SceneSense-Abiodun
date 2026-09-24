@@ -1,0 +1,177 @@
+{
+  "run_dir": "rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_125340",
+  "cells_total": 5,
+  "cells_joined": 3,
+  "decisions": 1350,
+  "per_cell": [
+    {
+      "cell_tag": "00__adverse_stable__order0__rep1",
+      "cell_status": "CAPTURED",
+      "joined": true,
+      "clock_bridge": {
+        "method": "SAME_EVENT_BRIDGE_FROM_NR_PDCP_TX_SDU",
+        "offset_ns": 6870783310694753,
+        "samples": 450,
+        "residual_ns": {
+          "p50": 364.0,
+          "p95": 1050.0,
+          "max": 26191.0
+        },
+        "day_wraps": 0,
+        "note": "tracer header CLOCK_REALTIME and in-payload CLOCK_MONOTONIC are captured at the same call site, so this is a measured bridge rather than a reconstructed date",
+        "source": "SENDER_SAME_INSTANT_WALL_MONOTONIC_PAIRS",
+        "window_audit": {
+          "checked_rows": 5000,
+          "inside_cell_window": 5000,
+          "fraction_inside": 1.0,
+          "window_slack_s": 120.0,
+          "verified": true
+        }
+      },
+      "grant_counts": {
+        "ul_rows": 1185,
+        "new_data": 1026,
+        "retransmission": 159,
+        "non_ul": 130
+      },
+      "backlog_ticks": 62515,
+      "pdcp_rows": 0,
+      "bridge_source": "SENDER_SAME_INSTANT_WALL_MONOTONIC_PAIRS",
+      "causal_audit": {
+        "records": 450,
+        "negative_uplink_latency": 0,
+        "negative_observation_age": 0,
+        "stale_mcs_used_as_observed": 0,
+        "missing_mcs_coerced_to_zero": 0,
+        "mcs_observed": 450,
+        "mcs_missing_stale": 0,
+        "mcs_missing_no_prior": 0,
+        "backlog_observed": 450,
+        "distinct_mcs_tables": [
+          0
+        ],
+        "distinct_prev_grant_rounds": [
+          0
+        ],
+        "all_joined_observations_precede_decision": true
+      },
+      "sender_decisions": 450
+    },
+    {
+      "cell_tag": "01__favorable_stable__order0__rep1",
+      "cell_status": "CAPTURED",
+      "joined": true,
+      "clock_bridge": {
+        "method": "SAME_EVENT_BRIDGE_FROM_NR_PDCP_TX_SDU",
+        "offset_ns": 6870783310694828,
+        "samples": 450,
+        "residual_ns": {
+          "p50": 316.0,
+          "p95": 876.0,
+          "max": 40387.0
+        },
+        "day_wraps": 0,
+        "note": "tracer header CLOCK_REALTIME and in-payload CLOCK_MONOTONIC are captured at the same call site, so this is a measured bridge rather than a reconstructed date",
+        "source": "SENDER_SAME_INSTANT_WALL_MONOTONIC_PAIRS",
+        "window_audit": {
+          "checked_rows": 5000,
+          "inside_cell_window": 5000,
+          "fraction_inside": 1.0,
+          "window_slack_s": 120.0,
+          "verified": true
+        }
+      },
+      "grant_counts": {
+        "ul_rows": 1112,
+        "new_data": 1004,
+        "retransmission": 108,
+        "non_ul": 105
+      },
+      "backlog_ticks": 60888,
+      "pdcp_rows": 0,
+      "bridge_source": "SENDER_SAME_INSTANT_WALL_MONOTONIC_PAIRS",
+      "causal_audit": {
+        "records": 450,
+        "negative_uplink_latency": 0,
+        "negative_observation_age": 0,
+        "stale_mcs_used_as_observed": 0,
+        "missing_mcs_coerced_to_zero": 0,
+        "mcs_observed": 450,
+        "mcs_missing_stale": 0,
+        "mcs_missing_no_prior": 0,
+        "backlog_observed": 450,
+        "distinct_mcs_tables": [
+          0
+        ],
+        "distinct_prev_grant_rounds": [
+          0
+        ],
+        "all_joined_observations_precede_decision": true
+      },
+      "sender_decisions": 450
+    },
+    {
+      "cell_tag": "02__favorable_stable__order2__rep1",
+      "cell_status": "CAPTURED",
+      "joined": true,
+      "clock_bridge": {
+        "method": "SAME_EVENT_BRIDGE_FROM_NR_PDCP_TX_SDU",
+        "offset_ns": 6870783310694901,
+        "samples": 450,
+        "residual_ns": {
+          "p50": 337.0,
+          "p95": 890.0,
+          "max": 1546.0
+        },
+        "day_wraps": 0,
+        "note": "tracer header CLOCK_REALTIME and in-payload CLOCK_MONOTONIC are captured at the same call site, so this is a measured bridge rather than a reconstructed date",
+        "source": "SENDER_SAME_INSTANT_WALL_MONOTONIC_PAIRS",
+        "window_audit": {
+          "checked_rows": 5000,
+          "inside_cell_window": 5000,
+          "fraction_inside": 1.0,
+          "window_slack_s": 120.0,
+          "verified": true
+        }
+      },
+      "grant_counts": {
+        "ul_rows": 1108,
+        "new_data": 1003,
+        "retransmission": 105,
+        "non_ul": 101
+      },
+      "backlog_ticks": 60799,
+      "pdcp_rows": 0,
+      "bridge_source": "SENDER_SAME_INSTANT_WALL_MONOTONIC_PAIRS",
+      "causal_audit": {
+        "records": 450,
+        "negative_uplink_latency": 0,
+        "negative_observation_age": 0,
+        "stale_mcs_used_as_observed": 0,
+        "missing_mcs_coerced_to_zero": 0,
+        "mcs_observed": 450,
+        "mcs_missing_stale": 0,
+        "mcs_missing_no_prior": 0,
+        "backlog_observed": 450,
+        "distinct_mcs_tables": [
+          0
+        ],
+        "distinct_prev_grant_rounds": [
+          0
+        ],
+        "all_joined_observations_precede_decision": true
+      },
+      "sender_decisions": 450
+    },
+    {
+      "cell_tag": "03__favorable_stable__order2__rep0",
+      "joined": false,
+      "reason": "no cell_record.json"
+    },
+    {
+      "cell_tag": "calibration",
+      "joined": false,
+      "reason": "no cell_record.json"
+    }
+  ]
+}

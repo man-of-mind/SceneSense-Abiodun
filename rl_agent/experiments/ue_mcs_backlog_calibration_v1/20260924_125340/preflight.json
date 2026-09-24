@@ -1,0 +1,14 @@
+{
+  "utc": "2026-09-24T19:53:40.326772Z",
+  "loadavg": "0.29 0.85 0.59 2/2516 105071",
+  "core_containers": {
+    "oai-amf": "true healthy",
+    "oai-smf": "true healthy",
+    "oai-upf": "true healthy",
+    "oai-ext-dn": "true healthy"
+  },
+  "edge_host_on_cn_bridge": "192.168.70.129",
+  "carla_running": false,
+  "cuda_untouched": true,
+  "nvidia_smi_absent_or_unused": false
+}

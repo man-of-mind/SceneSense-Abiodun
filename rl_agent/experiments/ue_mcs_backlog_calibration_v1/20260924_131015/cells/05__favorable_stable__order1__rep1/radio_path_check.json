@@ -1,0 +1,13 @@
+{
+  "edge_host": "192.168.70.135",
+  "ue_ip": "10.0.0.14",
+  "route_lookup": "192.168.70.135 from 10.0.0.14 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+  "routes_via_ue_tunnel": true,
+  "policy_rule_table": "9999",
+  "policy_table_routes_via_tunnel": true,
+  "policy_table_routes": [
+    "default dev oaitun_ue1 scope link"
+  ],
+  "edge_host_is_host_local": false,
+  "radio_path_verified": true
+}

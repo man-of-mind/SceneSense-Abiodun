@@ -1,0 +1,73 @@
+{
+  "cell_id": "adverse_stable__order0__rep0",
+  "decisions": 450,
+  "fps": 10.0,
+  "blocks": [
+    {
+      "block_index": 0,
+      "tier": "low",
+      "action_id": 71,
+      "payload_bytes": 6229,
+      "frames": 150,
+      "port": 5401,
+      "payload_sha256": "0e5b7b4e21ab61f6813469651632f92f5be4339d870330c07091ef471cd1c41d"
+    },
+    {
+      "block_index": 1,
+      "tier": "medium",
+      "action_id": 50,
+      "payload_bytes": 263507,
+      "frames": 150,
+      "port": 5402,
+      "payload_sha256": "a4081edef137046f0c079f1debe66fa4ccc0ab4bd650ced7242b2861ff6898dc"
+    },
+    {
+      "block_index": 2,
+      "tier": "high",
+      "action_id": 30,
+      "payload_bytes": 880567,
+      "frames": 150,
+      "port": 5403,
+      "payload_sha256": "63bad12904c5d672f1515828cc496fb2e5abfa4813735fa5fb0ab916acc5c23a"
+    }
+  ],
+  "sequence": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "chunk_bytes": 60000,
+  "payload_seed_base": 20260924,
+  "wire_contract": {
+    "magic": "SSBURST",
+    "header_struct": "!8sIIII",
+    "header_bytes": 24,
+    "imported_from": "rl_agent/ue_n3_structured_udp_receiver.py"
+  },
+  "remote_host": "192.168.70.135",
+  "bind_host": "10.0.0.15",
+  "start_monotonic_ns": 6918830172625277,
+  "start_wall_ns": 1790281246861929638,
+  "end_monotonic_ns": 6918875073141374,
+  "per_tier": {
+    "low": {
+      "decisions": 150,
+      "datagrams_handed_to_socket": 150,
+      "datagrams_dropped_at_socket": 0
+    },
+    "medium": {
+      "decisions": 150,
+      "datagrams_handed_to_socket": 750,
+      "datagrams_dropped_at_socket": 0
+    },
+    "high": {
+      "decisions": 150,
+      "datagrams_handed_to_socket": 2250,
+      "datagrams_dropped_at_socket": 0
+    }
+  },
+  "datagrams_handed_to_socket": 3150,
+  "datagrams_dropped_at_socket": 0,
+  "bytes_handed_to_socket": 172621050,
+  "max_schedule_lag_ms": 0.441254
+}

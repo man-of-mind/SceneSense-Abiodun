@@ -1,0 +1,82 @@
+{
+  "cell_tag": "04__adverse_stable__order1__rep1",
+  "cell_id": "adverse_stable__order1__rep1",
+  "profile_id": "ADVERSE_STABLE",
+  "order_index": 1,
+  "repetition": 1,
+  "sequence": [
+    "low",
+    "high",
+    "medium"
+  ],
+  "transitions": [
+    "low->high",
+    "high->medium"
+  ],
+  "blocks": [
+    {
+      "block_index": 0,
+      "tier": "low",
+      "action_id": 71,
+      "payload_bytes": 6229,
+      "chunks_per_frame": 1,
+      "frames": 150,
+      "first_frame_index": 0,
+      "port": 5401
+    },
+    {
+      "block_index": 1,
+      "tier": "high",
+      "action_id": 30,
+      "payload_bytes": 880567,
+      "chunks_per_frame": 15,
+      "frames": 150,
+      "first_frame_index": 150,
+      "port": 5403
+    },
+    {
+      "block_index": 2,
+      "tier": "medium",
+      "action_id": 50,
+      "payload_bytes": 263507,
+      "chunks_per_frame": 5,
+      "frames": 150,
+      "first_frame_index": 300,
+      "port": 5402
+    }
+  ],
+  "run_index": 4,
+  "frames_per_block": 150,
+  "frames_total": 450,
+  "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+  "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+  "started_utc": "2026-09-24T20:00:35.142711Z",
+  "status": "CAPTURED",
+  "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_125340/cells/04__adverse_stable__order1__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+  "mcs_policy_env": "sinr",
+  "ue_ip": "10.0.0.8",
+  "udp_path_probe": {
+    "edge_host": "192.168.70.129",
+    "ue_ip": "10.0.0.8",
+    "port": 5409,
+    "sent": 5,
+    "received": 5,
+    "path_verified": true
+  },
+  "clean_cell_marker": {
+    "clean_cell_marker_utc": "2026-09-24T20:00:51.455591Z",
+    "clean_cell_monotonic_ns": 6917634766304930,
+    "ran_rebuilt_from_cold": true,
+    "queue_empty_by_construction": true,
+    "initial_noise_read_back_db": -50.0
+  },
+  "profile_prime_command_db": -4.25,
+  "profile_prime_read_back_db": -4.25,
+  "profile_read_back_ok": true,
+  "commands_sent": 397,
+  "commands_skipped": 0,
+  "targets_clamped": 0,
+  "restored": true,
+  "teardown_notes": [],
+  "finished_utc": "2026-09-24T20:02:05.509024Z"
+}

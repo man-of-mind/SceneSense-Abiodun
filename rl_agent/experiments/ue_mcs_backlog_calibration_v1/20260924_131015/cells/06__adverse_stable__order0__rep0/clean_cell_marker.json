@@ -1,0 +1,7 @@
+{
+  "clean_cell_marker_utc": "2026-09-24T20:20:42.506525Z",
+  "clean_cell_monotonic_ns": 6918825817239322,
+  "ran_rebuilt_from_cold": true,
+  "queue_empty_by_construction": true,
+  "initial_noise_read_back_db": -50.0
+}

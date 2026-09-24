@@ -1,0 +1,58 @@
+{
+  "cell_tag": "07__adverse_stable__order2__rep1",
+  "cell_id": "adverse_stable__order2__rep1",
+  "profile_id": "ADVERSE_STABLE",
+  "order_index": 2,
+  "repetition": 1,
+  "sequence": [
+    "medium",
+    "low",
+    "high"
+  ],
+  "transitions": [
+    "medium->low",
+    "low->high"
+  ],
+  "blocks": [
+    {
+      "block_index": 0,
+      "tier": "medium",
+      "action_id": 50,
+      "payload_bytes": 263507,
+      "chunks_per_frame": 5,
+      "frames": 150,
+      "first_frame_index": 0,
+      "port": 5402
+    },
+    {
+      "block_index": 1,
+      "tier": "low",
+      "action_id": 71,
+      "payload_bytes": 6229,
+      "chunks_per_frame": 1,
+      "frames": 150,
+      "first_frame_index": 150,
+      "port": 5401
+    },
+    {
+      "block_index": 2,
+      "tier": "high",
+      "action_id": 30,
+      "payload_bytes": 880567,
+      "chunks_per_frame": 15,
+      "frames": 150,
+      "first_frame_index": 300,
+      "port": 5403
+    }
+  ],
+  "run_index": 7,
+  "frames_per_block": 150,
+  "frames_total": 450,
+  "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+  "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+  "started_utc": "2026-09-24T20:03:46.170347Z",
+  "status": "FAILED",
+  "failure": "RunFailure: received signal 15",
+  "teardown_notes": [],
+  "finished_utc": "2026-09-24T20:03:54.587448Z"
+}

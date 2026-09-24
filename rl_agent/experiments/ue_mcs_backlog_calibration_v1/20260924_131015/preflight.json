@@ -1,0 +1,17 @@
+{
+  "utc": "2026-09-24T20:10:16.130508Z",
+  "loadavg": "0.31 1.06 1.21 1/2531 171758",
+  "core_containers": {
+    "oai-amf": "true healthy",
+    "oai-smf": "true healthy",
+    "oai-upf": "true healthy",
+    "oai-ext-dn": "true healthy"
+  },
+  "edge_host": "192.168.70.135",
+  "edge_container": "oai-ext-dn",
+  "edge_container_pid": 81491,
+  "edge_host_is_not_local": true,
+  "carla_running": false,
+  "cuda_untouched": true,
+  "nvidia_smi_absent_or_unused": false
+}

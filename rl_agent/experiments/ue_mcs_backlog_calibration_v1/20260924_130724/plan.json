@@ -1,0 +1,735 @@
+{
+  "design": {
+    "block_orders": [
+      [
+        "low",
+        "medium",
+        "high"
+      ],
+      [
+        "medium",
+        "high",
+        "low"
+      ],
+      [
+        "high",
+        "low",
+        "medium"
+      ]
+    ],
+    "contrast_profiles": [
+      "FAVORABLE_STABLE",
+      "ADVERSE_STABLE"
+    ],
+    "repetitions": 2,
+    "frames_per_block": 150,
+    "frames_per_cell": 450,
+    "transient_decisions": 30,
+    "steady_state_decisions": 80
+  },
+  "plan_audit": {
+    "cells": 12,
+    "expected_cells": 12,
+    "tier_block_counts": {
+      "high": 12,
+      "medium": 12,
+      "low": 12
+    },
+    "position_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "transition_counts_per_channel": {
+      "FAVORABLE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "high->low": 2,
+        "low->medium": 2,
+        "medium->high": 2
+      },
+      "ADVERSE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "low->medium": 2,
+        "medium->high": 2,
+        "high->low": 2
+      }
+    },
+    "all_six_transitions_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "repetition_1_reverses_repetition_0": true,
+    "load_is_within_cell": true
+  },
+  "cells": [
+    {
+      "cell_id": "adverse_stable__order0__rep1",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 0,
+      "repetition": 1,
+      "sequence": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "transitions": [
+        "high->medium",
+        "medium->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 0,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "favorable_stable__order0__rep1",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 0,
+      "repetition": 1,
+      "sequence": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "transitions": [
+        "high->medium",
+        "medium->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 1,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "favorable_stable__order2__rep1",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 2,
+      "repetition": 1,
+      "sequence": [
+        "medium",
+        "low",
+        "high"
+      ],
+      "transitions": [
+        "medium->low",
+        "low->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 2,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "favorable_stable__order2__rep0",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 2,
+      "repetition": 0,
+      "sequence": [
+        "high",
+        "low",
+        "medium"
+      ],
+      "transitions": [
+        "high->low",
+        "low->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 3,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "adverse_stable__order1__rep1",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 1,
+      "repetition": 1,
+      "sequence": [
+        "low",
+        "high",
+        "medium"
+      ],
+      "transitions": [
+        "low->high",
+        "high->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 4,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "favorable_stable__order1__rep1",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 1,
+      "repetition": 1,
+      "sequence": [
+        "low",
+        "high",
+        "medium"
+      ],
+      "transitions": [
+        "low->high",
+        "high->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 5,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "adverse_stable__order0__rep0",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 0,
+      "repetition": 0,
+      "sequence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "transitions": [
+        "low->medium",
+        "medium->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 6,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "adverse_stable__order2__rep1",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 2,
+      "repetition": 1,
+      "sequence": [
+        "medium",
+        "low",
+        "high"
+      ],
+      "transitions": [
+        "medium->low",
+        "low->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 7,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "favorable_stable__order1__rep0",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 1,
+      "repetition": 0,
+      "sequence": [
+        "medium",
+        "high",
+        "low"
+      ],
+      "transitions": [
+        "medium->high",
+        "high->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 8,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "adverse_stable__order1__rep0",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 1,
+      "repetition": 0,
+      "sequence": [
+        "medium",
+        "high",
+        "low"
+      ],
+      "transitions": [
+        "medium->high",
+        "high->low"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5402
+        },
+        {
+          "block_index": 1,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5403
+        },
+        {
+          "block_index": 2,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5401
+        }
+      ],
+      "run_index": 9,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "adverse_stable__order2__rep0",
+      "profile_id": "ADVERSE_STABLE",
+      "order_index": 2,
+      "repetition": 0,
+      "sequence": [
+        "high",
+        "low",
+        "medium"
+      ],
+      "transitions": [
+        "high->low",
+        "low->medium"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5403
+        },
+        {
+          "block_index": 1,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5401
+        },
+        {
+          "block_index": 2,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5402
+        }
+      ],
+      "run_index": 10,
+      "frames_per_block": 150,
+      "frames_total": 450
+    },
+    {
+      "cell_id": "favorable_stable__order0__rep0",
+      "profile_id": "FAVORABLE_STABLE",
+      "order_index": 0,
+      "repetition": 0,
+      "sequence": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "transitions": [
+        "low->medium",
+        "medium->high"
+      ],
+      "blocks": [
+        {
+          "block_index": 0,
+          "tier": "low",
+          "action_id": 71,
+          "payload_bytes": 6229,
+          "chunks_per_frame": 1,
+          "frames": 150,
+          "first_frame_index": 0,
+          "port": 5401
+        },
+        {
+          "block_index": 1,
+          "tier": "medium",
+          "action_id": 50,
+          "payload_bytes": 263507,
+          "chunks_per_frame": 5,
+          "frames": 150,
+          "first_frame_index": 150,
+          "port": 5402
+        },
+        {
+          "block_index": 2,
+          "tier": "high",
+          "action_id": 30,
+          "payload_bytes": 880567,
+          "chunks_per_frame": 15,
+          "frames": 150,
+          "first_frame_index": 300,
+          "port": 5403
+        }
+      ],
+      "run_index": 11,
+      "frames_per_block": 150,
+      "frames_total": 450
+    }
+  ],
+  "tiers": [
+    {
+      "tier": "low",
+      "action_id": 71,
+      "profile_id": "split_ae32_uint4_q9800",
+      "payload_bytes": 6229,
+      "family": "AE32",
+      "q_e4": 9800,
+      "chunks_per_frame": 1,
+      "offered_mbps": 0.49832
+    },
+    {
+      "tier": "medium",
+      "action_id": 50,
+      "profile_id": "split_ae64_uint4_q5000",
+      "payload_bytes": 263507,
+      "family": "AE64",
+      "q_e4": 5000,
+      "chunks_per_frame": 5,
+      "offered_mbps": 21.08056
+    },
+    {
+      "tier": "high",
+      "action_id": 30,
+      "profile_id": "split_ae128_uint4_q0000",
+      "payload_bytes": 880567,
+      "family": "AE128",
+      "q_e4": 0,
+      "chunks_per_frame": 15,
+      "offered_mbps": 70.44536
+    }
+  ],
+  "profiles": [
+    {
+      "profile_id": "FAVORABLE_STABLE",
+      "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+      "seed": 2026082101,
+      "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+      "samples": 450,
+      "target_snr_db_min": 6.719892,
+      "target_snr_db_max": 24.487938
+    },
+    {
+      "profile_id": "ADVERSE_STABLE",
+      "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+      "seed": 2026082103,
+      "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+      "samples": 450,
+      "target_snr_db_min": 5.53734,
+      "target_snr_db_max": 23.313437
+    }
+  ],
+  "cell_order_seed": 20260924,
+  "source_hashes": {
+    "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "rl_agent/configs/splitfusion_phase14b_corrected_four_profile_replay_v1.json": "0dafbe9150859111956618f9573b94c48ad83b9edd43d7b06bad9da04f577f69",
+    "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+    "rl_agent/ue_n3_structured_udp_receiver.py": "3e92ba8f756d2c028dcfe51c2a35f18d4f268a041516ea1e054f349f1b916446"
+  },
+  "oai_citations": {
+    "sinr_policy_gate": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c:2027 (scenesense_use_sinr_mcs_policy, reads SCENESENSE_MCS_POLICY)",
+    "sinr_mcs_selection": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c:2028 (get_mcs_from_SINRx10(mcs_table, pusch_pc.avg_snr * 10, nrOfLayers))",
+    "sinr_mcs_table_support": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c:238-241 (get_mcs_from_SINRx10 supports MCS table 0 only)",
+    "pdcp_enqueue_t0": "OAI/openairinterface5g/openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c:941-944 (NR_PDCP_TX_SDU, CLOCK_MONOTONIC, SDU entering PDCP TX on UE UL)",
+    "rlc_buffer_status": "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c:1462 (NRUE_MAC_RLC_BUFFER_STATUS, pre-multiplex raw bytes per LCID)"
+  }
+}

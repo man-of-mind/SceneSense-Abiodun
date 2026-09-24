@@ -1,0 +1,8 @@
+{
+  "edge_host": "192.168.70.129",
+  "ue_ip": "10.0.0.10",
+  "port": 5409,
+  "sent": 5,
+  "received": 5,
+  "path_verified": true
+}

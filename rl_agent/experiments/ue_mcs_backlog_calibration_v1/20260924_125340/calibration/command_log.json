@@ -1,0 +1,22 @@
+[
+  {
+    "reason": "UPPER_ANCHOR_CALIBRATION",
+    "commanded_noise_power_db": -12.5,
+    "send_monotonic_ns": 6917220319534842,
+    "ack_monotonic_ns": 6917220362122102,
+    "send_wall_ns": 1790279637008838819,
+    "ack_wall_ns": 1790279637051426773,
+    "ack_latency_ms": 42.58726,
+    "status": "ACK"
+  },
+  {
+    "reason": "RESTORE_CLEAN",
+    "commanded_noise_power_db": -50.0,
+    "send_monotonic_ns": 6917255549032903,
+    "ack_monotonic_ns": 6917255549113849,
+    "send_wall_ns": 1790279672238337043,
+    "ack_wall_ns": 1790279672238417615,
+    "ack_latency_ms": 0.080946,
+    "status": "ACK"
+  }
+]

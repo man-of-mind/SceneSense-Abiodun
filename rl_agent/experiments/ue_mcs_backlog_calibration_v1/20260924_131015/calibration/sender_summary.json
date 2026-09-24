@@ -1,0 +1,43 @@
+{
+  "cell_id": "calibration",
+  "decisions": 150,
+  "fps": 10.0,
+  "blocks": [
+    {
+      "block_index": 0,
+      "tier": "low",
+      "action_id": 71,
+      "payload_bytes": 6229,
+      "frames": 150,
+      "port": 5401,
+      "payload_sha256": "0e5b7b4e21ab61f6813469651632f92f5be4339d870330c07091ef471cd1c41d"
+    }
+  ],
+  "sequence": [
+    "low"
+  ],
+  "chunk_bytes": 60000,
+  "payload_seed_base": 20260924,
+  "wire_contract": {
+    "magic": "SSBURST",
+    "header_struct": "!8sIIII",
+    "header_bytes": 24,
+    "imported_from": "rl_agent/ue_n3_structured_udp_receiver.py"
+  },
+  "remote_host": "192.168.70.135",
+  "bind_host": "10.0.0.11",
+  "start_monotonic_ns": 6918216384317792,
+  "start_wall_ns": 1790280633073622004,
+  "end_monotonic_ns": 6918231284498448,
+  "per_tier": {
+    "low": {
+      "decisions": 150,
+      "datagrams_handed_to_socket": 150,
+      "datagrams_dropped_at_socket": 0
+    }
+  },
+  "datagrams_handed_to_socket": 150,
+  "datagrams_dropped_at_socket": 0,
+  "bytes_handed_to_socket": 937950,
+  "max_schedule_lag_ms": 0.699674
+}

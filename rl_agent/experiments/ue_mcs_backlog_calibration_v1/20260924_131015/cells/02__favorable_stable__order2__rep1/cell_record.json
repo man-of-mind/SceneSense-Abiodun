@@ -1,0 +1,87 @@
+{
+  "cell_tag": "02__favorable_stable__order2__rep1",
+  "cell_id": "favorable_stable__order2__rep1",
+  "profile_id": "FAVORABLE_STABLE",
+  "order_index": 2,
+  "repetition": 1,
+  "sequence": [
+    "medium",
+    "low",
+    "high"
+  ],
+  "transitions": [
+    "medium->low",
+    "low->high"
+  ],
+  "blocks": [
+    {
+      "block_index": 0,
+      "tier": "medium",
+      "action_id": 50,
+      "payload_bytes": 263507,
+      "chunks_per_frame": 5,
+      "frames": 150,
+      "first_frame_index": 0,
+      "port": 5402
+    },
+    {
+      "block_index": 1,
+      "tier": "low",
+      "action_id": 71,
+      "payload_bytes": 6229,
+      "chunks_per_frame": 1,
+      "frames": 150,
+      "first_frame_index": 150,
+      "port": 5401
+    },
+    {
+      "block_index": 2,
+      "tier": "high",
+      "action_id": 30,
+      "payload_bytes": 880567,
+      "chunks_per_frame": 15,
+      "frames": 150,
+      "first_frame_index": 300,
+      "port": 5403
+    }
+  ],
+  "run_index": 2,
+  "frames_per_block": 150,
+  "frames_total": 450,
+  "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101",
+  "registered_trace_sha256": "8cad86e2e1ee98176c75b872132eb68f7d770f889d7330fa4a9932c45c172de6",
+  "started_utc": "2026-09-24T20:14:15.259278Z",
+  "status": "CAPTURED",
+  "gnb_argv": "sudo -n env -u SCENESENSE_FORCE_UL_MCS SCENESENSE_MCS_POLICY=sinr ./nr-softmodem -O /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/cells/02__favorable_stable__order2__rep1/runtime/effective_gnb.conf --gNBs.[0].min_rxtxtime 6 --rfsim --rfsimulator.[0].options chanmod --telnetsrv --telnetsrv.listenaddr 127.0.0.1 --telnetsrv.listenport 9090 --T_stdout 2 --T_nowait --T_port 2021",
+  "mcs_policy_env": "sinr",
+  "ue_ip": "10.0.0.13",
+  "radio_path_check": {
+    "edge_host": "192.168.70.135",
+    "ue_ip": "10.0.0.13",
+    "route_lookup": "192.168.70.135 from 10.0.0.13 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+    "routes_via_ue_tunnel": true,
+    "policy_rule_table": "9999",
+    "policy_table_routes_via_tunnel": true,
+    "policy_table_routes": [
+      "default dev oaitun_ue1 scope link"
+    ],
+    "edge_host_is_host_local": false,
+    "radio_path_verified": true
+  },
+  "clean_cell_marker": {
+    "clean_cell_marker_utc": "2026-09-24T20:14:31.584680Z",
+    "clean_cell_monotonic_ns": 6918454895394964,
+    "ran_rebuilt_from_cold": true,
+    "queue_empty_by_construction": true,
+    "initial_noise_read_back_db": -50.0
+  },
+  "profile_prime_command_db": -11.0,
+  "profile_prime_read_back_db": -11.0,
+  "profile_read_back_ok": true,
+  "commands_sent": 391,
+  "commands_skipped": 0,
+  "targets_clamped": 0,
+  "restored": true,
+  "teardown_notes": [],
+  "finished_utc": "2026-09-24T20:15:50.016375Z"
+}

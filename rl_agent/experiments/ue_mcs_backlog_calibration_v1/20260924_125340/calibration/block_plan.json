@@ -1,0 +1,12 @@
+[
+  {
+    "block_index": 0,
+    "tier": "low",
+    "action_id": 71,
+    "payload_bytes": 6229,
+    "chunks_per_frame": 1,
+    "frames": 150,
+    "first_frame_index": 0,
+    "port": 5401
+  }
+]

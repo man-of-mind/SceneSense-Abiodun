@@ -1,0 +1,32 @@
+[
+  {
+    "block_index": 0,
+    "tier": "high",
+    "action_id": 30,
+    "payload_bytes": 880567,
+    "chunks_per_frame": 15,
+    "frames": 150,
+    "first_frame_index": 0,
+    "port": 5403
+  },
+  {
+    "block_index": 1,
+    "tier": "low",
+    "action_id": 71,
+    "payload_bytes": 6229,
+    "chunks_per_frame": 1,
+    "frames": 150,
+    "first_frame_index": 150,
+    "port": 5401
+  },
+  {
+    "block_index": 2,
+    "tier": "medium",
+    "action_id": 50,
+    "payload_bytes": 263507,
+    "chunks_per_frame": 5,
+    "frames": 150,
+    "first_frame_index": 300,
+    "port": 5402
+  }
+]

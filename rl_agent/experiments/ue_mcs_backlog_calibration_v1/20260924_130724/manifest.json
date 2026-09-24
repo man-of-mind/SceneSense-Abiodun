@@ -1,0 +1,104 @@
+{
+  "schema": "scenesense.ue_mcs_backlog_calibration.v1",
+  "contract_id": "ue_mcs_backlog_calibration_v1",
+  "status": "UE_MCS_BACKLOG_CALIBRATION_FAILED",
+  "utc": "2026-09-24T20:07:44.090589Z",
+  "config_sha256": "bf9c165d2236ba182a19cb017428e4e7c4ad53d99aaaa9deed758e1590dbdd0d",
+  "source_hashes": {
+    "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "rl_agent/configs/splitfusion_phase14b_corrected_four_profile_replay_v1.json": "0dafbe9150859111956618f9573b94c48ad83b9edd43d7b06bad9da04f577f69",
+    "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+    "rl_agent/ue_n3_structured_udp_receiver.py": "3e92ba8f756d2c028dcfe51c2a35f18d4f268a041516ea1e054f349f1b916446"
+  },
+  "failure": "SmokeFailure: command failed rc=2: ['ip', 'route', 'get', '192.168.70.135', 'from', '10.0.0.11', 'iif', 'lo']\nRTNETLINK answers: Invalid argument\n",
+  "notes": [],
+  "calibration": {},
+  "plan_audit": {
+    "cells": 12,
+    "expected_cells": 12,
+    "tier_block_counts": {
+      "high": 12,
+      "medium": 12,
+      "low": 12
+    },
+    "position_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "transition_counts_per_channel": {
+      "FAVORABLE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "high->low": 2,
+        "low->medium": 2,
+        "medium->high": 2
+      },
+      "ADVERSE_STABLE": {
+        "high->medium": 2,
+        "medium->low": 2,
+        "low->high": 2,
+        "low->medium": 2,
+        "medium->high": 2,
+        "high->low": 2
+      }
+    },
+    "all_six_transitions_balanced_per_channel": {
+      "FAVORABLE_STABLE": true,
+      "ADVERSE_STABLE": true
+    },
+    "repetition_1_reverses_repetition_0": true,
+    "load_is_within_cell": true
+  },
+  "cells": [],
+  "final_cold_state": {
+    "utc": "2026-09-24T20:07:44.089773Z",
+    "loadavg": "1.04 1.61 1.39 1/2541 163755",
+    "orphan_processes": {},
+    "residual_ue_tunnels": [],
+    "carla_running": false,
+    "cold": true
+  },
+  "files": [
+    {
+      "relative_path": "calibration/runtime/effective_gnb.conf",
+      "size_bytes": 10170,
+      "sha256": "a3c2140dceb28aee34865ddd28fa6ffeae69abd8bfd59dfdb97083847d981d22"
+    },
+    {
+      "relative_path": "calibration/runtime/effective_ue.conf",
+      "size_bytes": 1166,
+      "sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97"
+    },
+    {
+      "relative_path": "cells/calibration/logs/attach_ping.log",
+      "size_bytes": 425,
+      "sha256": "5ff66751db5b46a4293fc8da53e28de1b66d81ede83cfc3d7c3f43c30387cf1c"
+    },
+    {
+      "relative_path": "cells/calibration/logs/gnb.log",
+      "size_bytes": 22769,
+      "sha256": "26f48e20c21dc921cea496c65ab14c1d47e231606f8ecdcb13a742ee1170edb6"
+    },
+    {
+      "relative_path": "cells/calibration/logs/ue.log",
+      "size_bytes": 16750,
+      "sha256": "4594499bca852802aee8668be15e4da568d66d03cccd5250bb46aad5990925b0"
+    },
+    {
+      "relative_path": "final_cold_state.json",
+      "size_bytes": 185,
+      "sha256": "aff6b843e784feedc8ac168eb23802ba2d889f4fecbae446ebc6bceaffda5f86"
+    },
+    {
+      "relative_path": "plan.json",
+      "size_bytes": 18285,
+      "sha256": "1f3290fe1826d31e068cb74fe02d09b94ece7d10d2c4bb7f7826fd39ea10dc21"
+    },
+    {
+      "relative_path": "preflight.json",
+      "size_bytes": 466,
+      "sha256": "a1097272d009ed81069935205f52be8311296f3becf6fe5efc5201918d09f756"
+    }
+  ]
+}
