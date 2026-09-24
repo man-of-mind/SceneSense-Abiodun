@@ -1,0 +1,115 @@
+{
+  "schema": "scenesense.ue_mcs_backlog_calibration.v1",
+  "experiment_id": "ue_mcs_backlog_calibration_v1",
+  "claim_boundary": "BOUNDED_ENGINEERING_QUALIFICATION_OF_A_UE_LOCAL_TWO_FEATURE_STATE_WITHIN_CELL_LOAD_TRANSITIONS_NOT_PUBLICATION_EVIDENCE",
+  "paths": {
+    "output_root": "rl_agent/experiments/ue_mcs_backlog_calibration_v1",
+    "oai_ran_build": "OAI/openairinterface5g/cmake_targets/ran_build/build",
+    "oai_ran_conf": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF",
+    "t_messages": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "t_tracer_dir": "OAI/openairinterface5g/common/utils/T/tracer",
+    "extract_script": "scripts/ttracer_extract_csv_smoke.sh",
+    "gnb_base_config": "gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+    "ue_base_config": "ue.conf",
+    "channel_config": "channelmod_rfsimu.conf"
+  },
+  "radio": {
+    "core_containers": [
+      "oai-amf",
+      "oai-smf",
+      "oai-upf",
+      "oai-ext-dn"
+    ],
+    "cn_network": "oai-cn5g-public-net",
+    "ue_interface": "oaitun_ue1",
+    "prb": 106,
+    "band": 78,
+    "numerology": 1,
+    "downlink_frequency_hz": 3619200000,
+    "mcs_policy": "sinr",
+    "gnb_start_lead_s": 8.0,
+    "attach_timeout_s": 180.0
+  },
+  "actuator": {
+    "telnet_host": "127.0.0.1",
+    "telnet_port": 9090,
+    "response_timeout_s": 2,
+    "max_response_bytes": 1048576,
+    "channel_model_name": "rfsimu_channel_ue0",
+    "clean_and_restore_commanded_noise_power_db": "-50",
+    "command_granularity_db": 0.25,
+    "existing_measured_anchors": [
+      {
+        "noise_power_db": -2.25,
+        "achieved_median_pusch_snr_db": 5.5
+      },
+      {
+        "noise_power_db": -2.5,
+        "achieved_median_pusch_snr_db": 6.0
+      },
+      {
+        "noise_power_db": -3.0,
+        "achieved_median_pusch_snr_db": 6.5
+      },
+      {
+        "noise_power_db": -3.5,
+        "achieved_median_pusch_snr_db": 7.5
+      },
+      {
+        "noise_power_db": -4.0,
+        "achieved_median_pusch_snr_db": 8.5
+      },
+      {
+        "noise_power_db": -5.0,
+        "achieved_median_pusch_snr_db": 10.0
+      },
+      {
+        "noise_power_db": -8.0,
+        "achieved_median_pusch_snr_db": 16.0
+      },
+      {
+        "noise_power_db": -10.0,
+        "achieved_median_pusch_snr_db": 19.5
+      }
+    ],
+    "upper_anchor": {
+      "first_command_db": -12.5,
+      "measurement_duration_s": 6.0,
+      "calibration_frames": 150,
+      "minimum_pusch_samples": 30
+    }
+  },
+  "telemetry": {
+    "gnb_port": 2021,
+    "ue_port": 2022,
+    "gnb_relay_port": 2121,
+    "ue_relay_port": 2122,
+    "events": {
+      "gnb": [
+        "GNB_MAC_PUSCH_POWER_CONTROL",
+        "GNB_MAC_UL_MCS_DECISION"
+      ],
+      "ue": [
+        "NRUE_MAC_DCI_GRANT",
+        "NRUE_MAC_RLC_BUFFER_STATUS",
+        "NR_PDCP_TX_SDU"
+      ]
+    }
+  },
+  "traffic": {
+    "ports": {
+      "low": 5401,
+      "medium": 5402,
+      "high": 5403
+    },
+    "receiver_tail_s": 20.0,
+    "send_buffer_bytes": 8388608,
+    "receive_buffer_bytes": 33554432
+  },
+  "campaign": {
+    "cell_order_seed": 20260924,
+    "payload_seed": 20260924,
+    "warmup_s": 4.0,
+    "sample_period_s": 0.1
+  }
+}
