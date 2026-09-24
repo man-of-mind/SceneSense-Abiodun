@@ -121,6 +121,82 @@ def build_clock_bridge(pdcp_rows: Sequence[Mapping[str, str]]) -> ClockBridge:
     )
 
 
+def build_clock_bridge_from_sender(
+    sender_rows: Sequence[Mapping[str, str]]
+) -> ClockBridge:
+    """Fallback bridge, from the sender's own same-instant clock pairs.
+
+    The preferred bridge is ``NR_PDCP_TX_SDU``, which carries the tracer's
+    CLOCK_REALTIME header and an in-payload CLOCK_MONOTONIC stamp from one call
+    site. When that event is not emitted, this is an equally *measured*
+    substitute: for every decision the sender reads ``CLOCK_REALTIME`` and
+    ``CLOCK_MONOTONIC`` microseconds apart in one process, giving hundreds of
+    same-instant pairs spanning the whole cell. Both clocks are system-wide on
+    Linux, so the pairs bridge the tracer's realtime domain to the monotonic
+    domain the sender and receiver share.
+
+    The only reconstructed quantity is the *date*, which the tracer drops. It is
+    recovered from the same wall timestamps and is unambiguous for a run of this
+    length; :func:`audit_bridge_window` checks the result actually lands inside
+    the cell's own wall-clock window instead of trusting it.
+    """
+    pairs: list[tuple[int, int]] = []
+    for row in sender_rows:
+        wall = row.get("decision_wall_ns")
+        mono = row.get("decision_monotonic_ns")
+        if not wall or not mono:
+            continue
+        pairs.append((int(wall), int(mono)))
+    require(bool(pairs),
+            "sender recorded no wall/monotonic pairs; no measured clock bridge")
+
+    reference = datetime.fromtimestamp(pairs[0][0] / 1e9).astimezone()
+    utc_offset_ns = int(reference.utcoffset().total_seconds()) * 1_000_000_000
+
+    offsets = [mono - ((wall + utc_offset_ns) % NS_PER_DAY) for wall, mono in pairs]
+    offsets.sort()
+    median = offsets[len(offsets) // 2]
+    wraps = sum(1 for value in offsets if abs(value - median) > NS_PER_DAY // 2)
+    kept = [value for value in offsets if abs(value - median) <= NS_PER_DAY // 2]
+    median = sorted(kept)[len(kept) // 2]
+    residuals = sorted(abs(value - median) for value in kept)
+    return ClockBridge(
+        offset_ns=median, samples=len(kept),
+        residual_p50_ns=float(residuals[len(residuals) // 2]),
+        residual_p95_ns=float(residuals[min(len(residuals) - 1,
+                                            int(0.95 * len(residuals)))]),
+        residual_max_ns=float(residuals[-1]),
+        day_wraps=wraps,
+    )
+
+
+def audit_bridge_window(
+    bridge: ClockBridge, tracer_rows: Sequence[Mapping[str, str]],
+    sender_rows: Sequence[Mapping[str, str]], *, slack_s: float = 120.0
+) -> dict[str, Any]:
+    """Check converted tracer times land inside the cell's own wall window.
+
+    A wrong date reconstruction would shift every tracer sample by whole days,
+    which this catches immediately rather than letting it silently poison the
+    join.
+    """
+    monos = [int(r["decision_monotonic_ns"]) for r in sender_rows
+             if r.get("decision_monotonic_ns")]
+    require(bool(monos), "sender rows carry no monotonic timestamps")
+    low = min(monos) - int(slack_s * 1e9)
+    high = max(monos) + int(slack_s * 1e9)
+    converted = [bridge.to_monotonic(tracer_time_of_day_ns(r["time"]))
+                 for r in tracer_rows[:5000]]
+    inside = sum(1 for value in converted if low <= value <= high)
+    return {
+        "checked_rows": len(converted),
+        "inside_cell_window": inside,
+        "fraction_inside": (inside / len(converted)) if converted else None,
+        "window_slack_s": slack_s,
+        "verified": bool(converted) and inside / len(converted) >= 0.95,
+    }
+
+
 # --------------------------------------------------------------------------
 # UE-local observations
 # --------------------------------------------------------------------------
@@ -356,7 +432,11 @@ def join_cell(
         elif row["terminal_reason"] == "SOCKET_BACKPRESSURE_ALL_CHUNKS_DROPPED":
             terminal = "NEVER_SENT_SOCKET_BACKPRESSURE"
         else:
-            terminal = "NO_DATAGRAM_ARRIVED"
+            # The frame was handed to the socket but nothing arrived while the
+            # receiver was still listening. Under a saturated uplink a datagram
+            # can still be queued when the window closes, so this is stated as
+            # a bounded observation rather than as proven loss.
+            terminal = "NO_ARRIVAL_WITHIN_OBSERVATION_WINDOW"
 
         out.append({
             "cell_id": cell_meta["cell_id"],

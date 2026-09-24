@@ -28,7 +28,11 @@
     "downlink_frequency_hz": 3619200000,
     "mcs_policy": "sinr",
     "gnb_start_lead_s": 8.0,
-    "attach_timeout_s": 180.0
+    "attach_timeout_s": 180.0,
+    "attach_probe_ip": "192.168.70.135",
+    "attach_probe_note": "oai-ext-dn. Used only to prove the PDU session is up, because it is the one CN-side address with a working return route to the UE. The host's route to 10.0.0.0/16 points at the corporate LAN, so ICMP replies from the edge host are misrouted; the edge data path itself is receive-only and is verified separately by a real UDP probe.",
+    "edge_container": "oai-ext-dn",
+    "edge_host_note": "The edge reassembly endpoint must be the ext-DN container address, which is NOT local to this host. A host-local destination (e.g. the CN bridge gateway) is matched by ip rule 0 'from all lookup local' and delivered without ever entering oaitun_ue1, so the traffic would bypass the radio entirely. Receivers are therefore run inside the ext-DN network namespace via nsenter, using the host python3 and the host filesystem."
   },
   "actuator": {
     "telnet_host": "127.0.0.1",
@@ -104,7 +108,9 @@
     },
     "receiver_tail_s": 20.0,
     "send_buffer_bytes": 8388608,
-    "receive_buffer_bytes": 33554432
+    "receive_buffer_bytes": 33554432,
+    "udp_probe_port": 5409,
+    "udp_probe_datagrams": 5
   },
   "campaign": {
     "cell_order_seed": 20260924,

@@ -82,6 +82,8 @@ class Runner:
         self.ue_ip: str | None = None
         self.anchors = [dict(r) for r in self.config["actuator"]["existing_measured_anchors"]]
         self.edge_host: str | None = None
+        self.edge_pid: int | None = None
+        self.aborted = False
         self.notes: list[str] = []
 
     # -- helpers -------------------------------------------------------
@@ -125,20 +127,35 @@ class Runner:
                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         require(not carla.stdout.strip(), "a CARLA process is running; this is network-only")
 
-        # The edge reassembly endpoint is the host on the CN bridge, so the
-        # payload still traverses the radio, GTP and the UPF.
-        gateway = n2.run_checked([
-            "sudo", "-n", "docker", "network", "inspect", radio["cn_network"],
-            "-f", "{{(index .IPAM.Config 0).Gateway}}"]).stdout.strip()
-        require(bool(re.match(r"^\d+\.\d+\.\d+\.\d+$", gateway)),
-                f"could not resolve CN bridge gateway: {gateway!r}")
-        self.edge_host = gateway
+        # The edge reassembly endpoint is the ext-DN *container*. It must not be
+        # an address local to this host: ip rule 0 ("from all lookup local")
+        # matches a local destination first and delivers it without ever
+        # entering oaitun_ue1, which would silently bypass the radio.
+        container = radio["edge_container"]
+        edge_host = n2.run_checked([
+            "sudo", "-n", "docker", "inspect", "-f",
+            "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}",
+            container]).stdout.strip()
+        require(bool(re.match(r"^\d+\.\d+\.\d+\.\d+$", edge_host)),
+                f"could not resolve {container} address: {edge_host!r}")
+        local_table = n2.run_checked(
+            ["ip", "route", "show", "table", "local"]).stdout
+        require(f"local {edge_host} " not in local_table,
+                f"edge host {edge_host} is a host-local address; traffic to it "
+                f"would never reach the radio")
+        self.edge_host = edge_host
+        self.edge_pid = int(n2.run_checked([
+            "sudo", "-n", "docker", "inspect", "-f", "{{.State.Pid}}",
+            container]).stdout.strip())
 
         snapshot = {
             "utc": utc_now(),
             "loadavg": Path("/proc/loadavg").read_text().strip(),
             "core_containers": containers,
-            "edge_host_on_cn_bridge": gateway,
+            "edge_host": edge_host,
+            "edge_container": container,
+            "edge_container_pid": self.edge_pid,
+            "edge_host_is_not_local": True,
             "carla_running": False,
             "cuda_untouched": True,
             "nvidia_smi_absent_or_unused": not Path("/proc/driver/nvidia").exists()
@@ -230,15 +247,85 @@ class Runner:
                 except (json.JSONDecodeError, KeyError, TypeError):
                     ips = []
             if len(ips) == 1:
+                # Ping the ext-DN, not the edge host. The host's route to
+                # 10.0.0.0/16 points at the corporate LAN, so an ICMP reply
+                # from the edge host is misrouted even though the inbound data
+                # path is fine. ext-DN is the one CN-side address with a
+                # working return route, so it is what proves the PDU session.
                 ping = subprocess.run(
-                    ["ping", "-I", iface, "-c", "3", "-W", "2", self.edge_host],
+                    ["ping", "-I", iface, "-c", "3", "-W", "2",
+                     radio["attach_probe_ip"]],
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                 if ping.returncode == 0:
                     self.ue_ip = ips[0]
                     self.out(f"cells/{cell_tag}/logs/attach_ping.log").write_text(ping.stdout)
                     return
             time.sleep(1)
-        raise RunFailure("UE did not attach and reach the edge host before timeout")
+        raise RunFailure(
+            f"UE did not attach and reach {radio['attach_probe_ip']} before timeout")
+
+    def verify_radio_path(self, cell_dir: Path) -> dict[str, Any]:
+        """Prove the traffic will actually traverse the radio.
+
+        Two independent checks, because "a datagram arrived" is not evidence
+        that it went over the air. A host-local destination, or a destination
+        whose route does not resolve through ``oaitun_ue1``, is delivered by
+        the kernel without ever entering the UE stack. That failure is silent
+        and would make every cell measure loopback instead of the radio, so it
+        is checked before any traffic is trusted.
+        """
+        radio = self.config["radio"]
+        assert self.ue_ip is not None and self.edge_host is not None
+        iface = radio["ue_interface"]
+
+        # `iif` turns this into a forwarding lookup and is rejected here, so the
+        # source-selected form is used instead.
+        route = subprocess.run(
+            ["ip", "route", "get", self.edge_host, "from", self.ue_ip],
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.strip()
+        via_tunnel = f"dev {iface}" in route
+
+        # Independent confirmation that does not rely on `ip route get`: the UE
+        # policy rule must exist and its table must route through the tunnel.
+        rules = subprocess.run(["ip", "rule", "show"], text=True,
+                               stdout=subprocess.PIPE).stdout
+        table = None
+        for line in rules.splitlines():
+            parts = line.split()
+            if f"from" in parts and self.ue_ip in parts and "lookup" in parts:
+                table = parts[parts.index("lookup") + 1]
+                break
+        table_routes = ""
+        if table is not None:
+            table_routes = subprocess.run(
+                ["ip", "route", "show", "table", table], text=True,
+                stdout=subprocess.PIPE).stdout
+        rule_via_tunnel = iface in table_routes
+
+        local_table = n2.run_checked(
+            ["ip", "route", "show", "table", "local"]).stdout
+        is_local = f"local {self.edge_host} " in local_table
+
+        outcome = {
+            "edge_host": self.edge_host, "ue_ip": self.ue_ip,
+            "route_lookup": route, "routes_via_ue_tunnel": via_tunnel,
+            "policy_rule_table": table,
+            "policy_table_routes_via_tunnel": rule_via_tunnel,
+            "policy_table_routes": table_routes.strip().splitlines(),
+            "edge_host_is_host_local": is_local,
+            "radio_path_verified": (via_tunnel or rule_via_tunnel) and not is_local,
+        }
+        (cell_dir / "radio_path_check.json").write_text(
+            json.dumps(outcome, indent=2) + "\n")
+        require(not is_local,
+                f"edge host {self.edge_host} is host-local; traffic would bypass "
+                f"the radio")
+        require(via_tunnel or rule_via_tunnel,
+                f"neither the route lookup nor the UE policy table sends "
+                f"{self.ue_ip} -> {self.edge_host} through {iface}; traffic would "
+                f"bypass the radio. Route: {route!r}; table {table}: "
+                f"{table_routes.strip()!r}")
+        return outcome
 
     def start_telemetry(self, cell_tag: str) -> None:
         tel = self.config["telemetry"]
@@ -424,7 +511,8 @@ class Runner:
             ready = cell_dir / f"receiver_{tag}_ready.json"
             process = self.spawn(
                 f"receiver_{cell_tag}_{tag}",
-                [sys.executable, str(self.path(C.PRODUCTION_RECEIVER_RELPATH)),
+                ["sudo", "-n", "nsenter", "-t", str(self.edge_pid), "-n",
+                 sys.executable, str(self.path(C.PRODUCTION_RECEIVER_RELPATH)),
                  "--bind-host", "0.0.0.0", "--port", str(block["port"]),
                  "--events-jsonl", str(events), "--summary-json", str(summary),
                  "--ready-json", str(ready), "--duration-s", f"{duration:.3f}",
@@ -434,7 +522,7 @@ class Runner:
                  str(max(16, int(block["chunks_per_frame"]) * 2)),
                  "--socket-receive-buffer-bytes",
                  str(traffic["receive_buffer_bytes"])],
-                f"cells/{cell_tag}/logs/receiver_{tag}.log")
+                f"cells/{cell_tag}/logs/receiver_{tag}.log", root_owned=True)
             receivers.append({"process": process, "ready": ready,
                               "block_index": int(block["block_index"]),
                               "tier": block["tier"], "events": events,
@@ -502,6 +590,7 @@ class Runner:
             record["mcs_policy_env"] = self.config["radio"]["mcs_policy"]
             self.wait_attach(cell_tag)
             record["ue_ip"] = self.ue_ip
+            record["radio_path_check"] = self.verify_radio_path(cell_dir)
             self.start_telemetry(cell_tag)
             self.open_telnet(cell_dir)
 
@@ -605,6 +694,9 @@ class Runner:
         failure: str | None = None
 
         def terminate(signum: int, _frame: Any) -> None:
+            # Mark the campaign aborted so the cell loop stops instead of
+            # absorbing the signal into one cell's failure handler.
+            self.aborted = True
             raise RunFailure(f"received signal {signum}")
 
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -658,6 +750,7 @@ class Runner:
             gnb_cfg, ue_cfg = self.materialize_configs(cal_dir)
             self.start_ran(gnb_cfg, ue_cfg, "calibration")
             self.wait_attach("calibration")
+            self.verify_radio_path(cal_dir)
             self.start_telemetry("calibration")
             self.open_telnet(cal_dir)
             self.start_live_pusch("calibration")
@@ -667,7 +760,12 @@ class Runner:
             self.teardown_ran()
 
             for cell in plan:
+                if self.aborted:
+                    self.notes.append("campaign aborted before "
+                                      f"{cell.cell_id}")
+                    break
                 cell_records.append(self.run_cell(cell, profiles[cell.profile_id]))
+            require(not self.aborted, "campaign was aborted by signal")
 
             status = (STATUS_OK
                       if all(r["status"] == "CAPTURED" for r in cell_records)
