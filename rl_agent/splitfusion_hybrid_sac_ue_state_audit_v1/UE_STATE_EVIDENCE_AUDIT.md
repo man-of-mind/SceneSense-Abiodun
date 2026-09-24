@@ -21,14 +21,19 @@ state. Two independent blockers, either of which is sufficient:
    multiplexing and is the right *kind* of source, but "pre-multiplex" is a weaker property than
    "pre-enqueue". Proving the policy read older backlog requires knowing when the application
    enqueued the payload, and **no retained run contains an application-enqueue timestamp**
-   (`NR_PDCP_TX_SDU`, `NR_RLC_TX_SDU`, `NR_RLC_TX_DEQUEUE` are defined in `T_messages.txt` but
-   extracted in 0 of 15 runs).
-2. **Offered load never reaches the SplitFusion action range, let alone spans it.** All 15 runs use
-   a fixed-rate generator. Across every run there are exactly **two** distinct offered payload sizes,
-   12 500 B and 25 000 B, both at a fixed 0.1 s period, with **no within-run variation**. The largest
-   is **0.51×** the *smallest* registered SplitFusion payload (49 400 B) and **0.0088×** the largest
-   (2 835 000 B). The evidence sits *below* the action range. Nothing here identifies how 12 modes
-   and a continuous `q` move future backlog.
+   (`NR_PDCP_TX_SDU` and `NR_RLC_TX_SDU` are defined in `T_messages.txt` but extracted in 0 of 15
+   runs). `NR_RLC_TX_DEQUEUE` is **not** an enqueue candidate: it fires when a PDU is handed down to
+   MAC for a grant, i.e. it *ends* the RLC queue wait, so treating it as an enqueue instant would
+   date the payload to when it was served rather than when it arrived.
+2. **Offered load does not *span* the action range, and no run varies payload at all.** All 15 runs
+   use a fixed-rate generator. Across every run there are exactly **two** distinct offered payload
+   sizes, 12 500 B and 25 000 B, both at a fixed 0.1 s period, with **no within-run variation**.
+   Against the frozen 72-action FCOS catalogue (**6 229 B – 3 568 326 B**) both values sit *inside*
+   the low end of the action range — they are **not** below it — and both also fall inside the Run-3
+   modeled support (**6 423 B – 427 605 B**). They are insufficient for a different reason than
+   coverage of the low end: there are only **two** sizes, payload is **constant within each run**,
+   and no run pairs a changed payload with an observed queue transition, so **no action-conditioned
+   queue transition can be inferred**.
 
 **Recommended pre-action source: `UNRESOLVED`.** `NRUE_MAC_RLC_BUFFER_STATUS` is the correct
 *candidate* and the only one that survives the action-leakage check, but it is not yet qualified.
@@ -272,16 +277,20 @@ separately; substituting one for another changes what is being controlled.
 | Within-run payload variation | **None.** Every run has exactly one `frame_bytes`, one `period_s`, one `chunk_bytes`. |
 | Across-run payload variation | **Two values total**: 12 500 B (14 runs) and 25 000 B (1 run). |
 | Offered period | Fixed 0.1 s everywhere. |
-| SplitFusion registered payload range | 49 400 B – 2 835 000 B (`rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md`). |
-| Largest retained offered payload vs range | **0.51× the minimum**, **0.0088× the maximum**. |
+| Frozen action payload range | **6 229 B – 3 568 326 B** (72-action FCOS catalogue, `rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json`, `zstd_median_bytes`; action 71 `split_ae32_uint4_q9800` to action 0 `split_noae_uint8_q0000`). |
+| Run-3 modeled support | **6 423 B – 427 605 B** (`rl_agent/splitfusion_hybrid_sac_v1/modeled_smoke_support.py:60`). |
+| Retained offered payload vs range | 12 500 B and 25 000 B are **inside** the low end of both the action range and the Run-3 support. |
+| Why still insufficient | Only **two** sizes; payload **fixed within every run**; no action-conditioned queue transition inferable. |
 | Radio-condition variation | **Yes** — commanded noise −4.0 → −2.0 dB, gNB SNR P50 5.0 → 50.5 dB, MCS 7 → 28. |
 | Enqueue-instant evidence | **Absent in 15/15 runs.** |
 
 The runs *do* vary radio conditions well, and they *do* show real backlog build-up (P99 up to
 160 KB, max 247 KB under `minus2p0`). What they never vary is the **payload**. A fixed-rate generator
-cannot identify how 12 modes and a continuous `q` affect future backlog, and traffic that stays
-**below** the smallest registered payload cannot be extrapolated up into the action range. These runs
-characterize BSR under a fixed traffic generator; they do not identify
+cannot identify how 12 modes and a continuous `q` affect future backlog. The retained traffic is
+*inside* the low end of the action range rather than below it, so the blocker is not that the
+payloads are unreachably small — it is that **payload never moves**: two fixed sizes, each constant
+within its run, never paired with an observed queue transition. These runs characterize BSR under a
+fixed traffic generator; they do not identify
 
 ```
 (previous backlog, SplitFusion action/payload, radio service) → (next backlog, delay/failure)
@@ -324,13 +333,14 @@ Shown for the most congested run, `sequence_01_rep_01_minus2p0` (74 748 ticks, 6
 | `CANDIDATE_log1p_engineering_bound_8192B` | 9.0110 | 0.5949 | 1 220 | yes |
 | `CANDIDATE_log1p_nonzero_P95_13583B` | 9.5166 | 0.0618 | 1 688 | yes |
 | `CANDIDATE_log1p_nonzero_P99_184759B` | 12.1268 | 0.0109 | 1 927 | yes |
-| `CANDIDATE_log1p_splitfusion_max_payload_2835000B` | 14.8576 | **0.0000** | 1 996 | yes |
+| `CANDIDATE_log1p_run3_support_max_427605B` | 12.9660 | **0.0000** | 1 996 | yes |
+| `CANDIDATE_log1p_action_max_payload_3568326B` | 15.0876 | **0.0000** | 1 996 | yes |
 
 Every candidate maps 0 → 0.0 exactly, so zero is preserved throughout. Percentile anchors are
 computed over **nonzero** values only, so a 99 %-zero run cannot produce a degenerate scale of 0.
 
 **No scaler is selected.** Freezing one requires a resolved causal source, a declared train-only
-split, and payload coverage reaching the SplitFusion action range — **none of which hold**. Note that
+split, and payload coverage that *spans* the frozen action range — **none of which hold**. Note that
 the per-run P95/P99 anchors differ by an order of magnitude across runs (13 581 B vs 12 751 B vs
 184 759 B), so a scale fitted on today's evidence would be fitted to the *generator*, not to
 SplitFusion. `synthetic_contract_environment.py:905` already uses a different, unreconciled scale of
@@ -490,7 +500,8 @@ to a session scratch directory, never into `rl_agent/experiments/`.
 
 **Source files read but not modified:** `nr_ue_scheduler.c`, `T_messages.txt`, `T.h`, `tracer/csv.c`
 (OAI submodule); `state_reward_transition_contract.py`, `empirical_contextual_environment.py`,
-`synthetic_contract_environment.py` (Hybrid-SAC); `PERMODEL_KNOB_MATRIX_ZSTD.md`.
+`synthetic_contract_environment.py` (Hybrid-SAC); `splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json`;
+`splitfusion_hybrid_sac_v1/modeled_smoke_support.py`.
 
 ---
 
@@ -527,3 +538,118 @@ python3 -m unittest test_audit_ue_state_evidence                                
 git diff --check                                                                  → clean
 audit --evidence-root rl_agent/experiments                                        → 15 runs, 11.9 s
 ```
+
+---
+
+## 15. Corrections applied (audit revision 2)
+
+This revision narrowly corrects four defects in the first release of this audit. The **verdict is
+unchanged** — `INSUFFICIENT_OR_CAUSALLY_UNRESOLVED`, recommended source `UNRESOLVED`, 0 of 15 runs
+qualified — but three of the four defects were reasons the audit could have been *wrong in the
+permissive direction*, and one was a factual error about the payload range.
+
+### 15.1 Payload authority rebound to the frozen FCOS catalogue (A1)
+
+The audit quoted the legacy PERMODEL knob-matrix range **49 400 B – 2 835 000 B**. That range is
+retired. The current authority is the frozen 72-action FCOS catalogue, **6 229 B – 3 568 326 B**
+(`zstd_median_bytes`, action 71 `split_ae32_uint4_q9800` → action 0 `split_noae_uint8_q0000`), with
+the Run-3 contextual surrogate fitted on the narrower support **6 423 B – 427 605 B**.
+
+The practical consequence is a reversed factual claim. Under the legacy constants the retained
+12 500 B and 25 000 B traffic points were reported as sitting **below** the action range; under the
+correct authority they sit **inside its low end**. The runs remain insufficient, but for the honest
+reason: only two sizes, fixed within each run, never paired with an observed queue transition.
+
+`verify_payload_authority()` re-reads both authoritative files and refuses to proceed if either has
+drifted, so these constants are checked rather than trusted. The retired pair is retained only as
+`RETIRED_PERMODEL_PAYLOAD_BYTES` so that a test can assert it never returns.
+
+### 15.2 Future-qualification logic repaired (A2)
+
+The previous implementation qualified a causal queue source from **filename existence**
+(`{path.stem for path in ue_csv_dir.glob("*.csv")}`). A zero-row, wrong-schema, wrong-run or
+dequeue-only file would have qualified it, and a single qualified run qualified **all** runs
+globally via `any(...)`.
+
+Qualification now requires, per run and in order: file present; exact schema; non-empty parsed
+records; ingress (not dequeue) semantics; same-run identity; UE/RNTI identity that actually
+intersects the backlog trace; bearer/LCID identity; decision and frame identity; a source timestamp
+*and* an availability timestamp; and a demonstrated ordering
+
+```
+t_measure <= t_available_to_agent <= t_state_commit < t_action < t_current_payload_enqueue
+```
+
+for **every admitted decision**, not on average. A missing instant fails closed — it is never read
+as zero and never forward-filled. `CoverageVerdict.ACTION_CONDITIONED` is now unreachable while any
+run's ordering is unresolved, so payload variation alone can no longer promote the verdict. The
+global pre-action status is promoted only when **every** run qualifies.
+
+`NR_RLC_TX_DEQUEUE` has been moved out of the enqueue candidates into `SERVICE_DEQUEUE_EVENTS`.
+
+### 15.3 The post-multiplex BSR statement made precise (A3)
+
+The earlier text implied `NRUE_MAC_BSR_STATUS` is *always* invalid. The precise position:
+
+* A post-multiplex BSR generated **after** the current action **must not** be aligned as that
+  action's own pre-action state — its bytes are what remained once the current payload had already
+  been multiplexed into the current grant, so the action would enter its own observation.
+* A **correctly lagged** BSR **may** legitimately describe a *previous* action. That use is not
+  refused here; it requires the lag to be proven rather than assumed.
+* Either way, pre-multiplex `NRUE_MAC_RLC_BUFFER_STATUS` remains the **preferred** candidate: it is
+  more direct (true RLC occupancy in bytes, read before the grant is filled) and less quantized
+  (unquantized bytes, against coarse BSR-table indices).
+
+`assert_no_action_leakage(source, aligned_to_same_action=...)` now encodes exactly this distinction.
+
+### 15.4 UE-side SNR candidate registered (A4)
+
+Four quantities are routinely conflated; they are now kept apart by link direction, observer, and
+whether the number is a standardized index.
+
+| Quantity | Direction | UE-visible at runtime | Units | Standardized index |
+|---|---|---|---|---|
+| `UE_PHY_MEAS.snr` | **UE downlink receive** | yes | integer dB (**not** ×10) | no |
+| `UE_PHY_MEAS.w_cqi` | UE downlink receive | yes | integer dB | **no** |
+| CSI-RS CQI | UE downlink receive | only if CSI-RS configured | index 0–15 | **yes** |
+| `GNB_MAC_PUSCH_POWER_CONTROL.snrx10` | **gNB uplink receive** | **no** | dB ×10 | no |
+
+Source-code provenance, cited to exact lines in this worktree:
+
+| Fact | Citation |
+|---|---|
+| `UE_PHY_MEAS` message and field order | `common/utils/T/T_messages.txt:1510-1513` |
+| Event emission | `openair1/SCHED_NR_UE/phy_procedures_nr_ue.c:411` (guarded by `#if T_TRACER`) |
+| Emission gate | same file `:403,409` — only when `l == 2` **and** `nr_slot_rx == 0` |
+| Only call site | same file `:529`, inside the PDSCH channel-estimation path |
+| `snr` expression | same file `:415` — `rx_power_avg_dB[0] - n0_power_avg_dB` |
+| `rx_power_avg_dB` / `n0_power_avg_dB` | `openair1/PHY/NR_UE_ESTIMATION/nr_ue_measurements.c:99-100` |
+| `w_cqi` expression | same file `:102` |
+| RSSI | same file `:103-106` |
+| CSI-RS CQI table | `openair1/PHY/NR_UE_TRANSPORT/csi_rx.c:666-695` |
+| CSI-RS CQI population | same file `:926,958` |
+
+Three findings follow directly from those lines and matter for any later use:
+
+1. **`w_cqi` is not a CQI index.** `nr_ue_measurements.c:102` computes
+   `wideband_cqi_avg = rx_power_avg_dB - n0_power_avg_dB` — the *identical* expression to the `snr`
+   field emitted at `phy_procedures_nr_ue.c:415`. In this build the two fields therefore carry the
+   **same number**. `w_cqi` is diagnostic only. The only standardized 0–15 downlink CQI is the
+   CSI-RS path, which is conditional on CSI-RS measurement/reporting actually being configured and
+   has no T-tracer event of its own.
+2. **Cadence is at most one sample per 10 ms frame**, because the emit is gated on `nr_slot_rx == 0`.
+   That is 10× the 10 Hz policy rate, so it is not *a priori* too slow — but it is an upper bound.
+3. **Availability is conditional on downlink traffic.** The only call site sits in the PDSCH
+   channel-estimation path, so with no PDSCH allocation to this UE in slot 0 the event simply does
+   not fire. Any qualification of this signal must therefore run a sustained downlink stream, and
+   must report coverage rather than assume it.
+
+**`UE_PHY_MEAS.snr` is a UE receive-side *downlink* measurement derived from the downlink channel
+estimates. It must never be called "uplink SNR."** The gNB's PUSCH SNR is an uplink measurement that
+the UE cannot observe at runtime. `assert_direction_not_mislabelled()` and `assert_ue_observable()`
+enforce both statements, and no candidate may be rendered with the bare label "SNR".
+
+**Retained evidence contains no `UE_PHY_MEAS` rows.** Verified: all 15 retained runs hold exactly
+four UE CSVs each (`NRUE_MAC_BSR_STATUS`, `NRUE_MAC_RLC_BUFFER_STATUS`, `NRUE_MAC_DCI_GRANT`,
+`UE_PHY_UL_PAYLOAD_TX_BITS`); `**/ttracer/ue/csv/UE_PHY_MEAS.csv` matches nothing. The expectation
+held. Qualifying this signal therefore requires a **new** bounded measurement, not a re-read.

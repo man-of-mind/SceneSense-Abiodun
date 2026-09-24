@@ -51,6 +51,11 @@ OAI_UE_SCHEDULER = "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_UE/nr_ue_sched
 OAI_T_MESSAGES = "OAI/openairinterface5g/common/utils/T/T_messages.txt"
 OAI_T_HEADER = "OAI/openairinterface5g/common/utils/T/T.h"
 OAI_TRACER_CSV = "OAI/openairinterface5g/common/utils/T/tracer/csv.c"
+OAI_UE_PHY_PROC = "OAI/openairinterface5g/openair1/SCHED_NR_UE/phy_procedures_nr_ue.c"
+OAI_UE_MEASUREMENTS = (
+    "OAI/openairinterface5g/openair1/PHY/NR_UE_ESTIMATION/nr_ue_measurements.c"
+)
+OAI_UE_CSI_RX = "OAI/openairinterface5g/openair1/PHY/NR_UE_TRANSPORT/csi_rx.c"
 
 CODE_CITATIONS: Mapping[str, str] = {
     "rlc_buffer_emit": f"{OAI_UE_SCHEDULER}:1462 (in nr_update_rlc_buffers_status)",
@@ -65,6 +70,41 @@ CODE_CITATIONS: Mapping[str, str] = {
     "t_csv_time_render": f"{OAI_TRACER_CSV}:32 (localtime; HH:MM:SS.microseconds, date dropped)",
     "t_message_rlc_desc": f"{OAI_T_MESSAGES}:248-251",
     "t_message_bsr_desc": f"{OAI_T_MESSAGES}:252-255",
+    "t_message_pdcp_tx_sdu": f"{OAI_T_MESSAGES}:256-259",
+    "t_message_rlc_tx_sdu": f"{OAI_T_MESSAGES}:260-263",
+    "t_message_rlc_tx_dequeue": f"{OAI_T_MESSAGES}:264-267",
+    # --- UE-side downlink channel measurement -------------------------
+    "ue_phy_meas_message": f"{OAI_T_MESSAGES}:1510-1513 (UE_PHY_MEAS)",
+    "ue_phy_meas_emit": (
+        f"{OAI_UE_PHY_PROC}:411 (T_UE_PHY_MEAS, inside "
+        f"nr_ue_measurement_procedures, guarded by #if T_TRACER)"
+    ),
+    "ue_phy_meas_gate": (
+        f"{OAI_UE_PHY_PROC}:403,409 (emitted only when l == 2 and "
+        f"nr_slot_rx == 0, i.e. once per 10 ms SFN frame at most)"
+    ),
+    "ue_phy_meas_caller": (
+        f"{OAI_UE_PHY_PROC}:529 (the only call site, reached from the PDSCH "
+        f"channel-estimation path, so a slot-0 PDSCH allocation is required)"
+    ),
+    "ue_phy_meas_snr_expression": (
+        f"{OAI_UE_PHY_PROC}:415 (snr = rx_power_avg_dB[0] - n0_power_avg_dB, "
+        f"emitted as plain integer dB, not x10)"
+    ),
+    "ue_measurements_compute": (
+        f"{OAI_UE_MEASUREMENTS}:99-100 (rx_power_avg_dB and n0_power_avg_dB "
+        f"via dB_fixed over the downlink channel estimates)"
+    ),
+    "ue_measurements_wideband_cqi": (
+        f"{OAI_UE_MEASUREMENTS}:102 (wideband_cqi_avg = rx_power_avg_dB - "
+        f"n0_power_avg_dB: the same expression as the emitted snr field)"
+    ),
+    "ue_measurements_rssi": f"{OAI_UE_MEASUREMENTS}:103-106 (rx_rssi_dBm)",
+    "csi_rs_cqi_table": (
+        f"{OAI_UE_CSI_RX}:666-695 (nr_csi_rs_cqi_estimation maps a precoded "
+        f"SINR to a standardized 0-15 CQI index)"
+    ),
+    "csi_rs_cqi_call": f"{OAI_UE_CSI_RX}:926,958 (populated only on CSI-RS reception)",
 }
 
 
@@ -182,6 +222,38 @@ PUSCH_POWER_HEADER: Tuple[str, ...] = (
     "txpower_calc", "rbSize", "mcs", "rssi",
 )
 
+#: ``UE_PHY_MEAS``. Header is the tracer's ``time`` column followed by the
+#: FORMAT field names at ``T_messages.txt:1513``.
+UE_PHY_MEAS_HEADER: Tuple[str, ...] = (
+    "time", "eNB_ID", "frame", "subframe", "rsrp", "rssi", "snr",
+    "rx_power", "noise_power", "w_cqi", "freq_offset",
+)
+
+#: Application-enqueue candidates. Both are PDCP/RLC *ingress* events carrying
+#: a radio-bearer id and a monotonic source timestamp.
+PDCP_TX_SDU_HEADER: Tuple[str, ...] = (
+    "time", "mono_sec", "mono_nsec", "ue_id", "rb_id", "sdu_bytes",
+)
+RLC_TX_SDU_HEADER: Tuple[str, ...] = (
+    "time", "mono_sec", "mono_nsec", "ue_id", "rb_id", "sdu_bytes",
+)
+
+#: ``NR_RLC_TX_DEQUEUE`` is *service*, not ingress: it fires when a PDU is
+#: handed down to MAC for a grant, which ends the RLC queue wait. It carries an
+#: ``lcid`` and ``pdu_bytes`` rather than a bearer id and SDU bytes.
+RLC_TX_DEQUEUE_HEADER: Tuple[str, ...] = (
+    "time", "mono_sec", "mono_nsec", "ue_id", "lcid", "pdu_bytes",
+)
+
+#: The per-decision record a future runtime carrier must write for the causal
+#: ordering to be checkable at all. No retained run has one.
+DECISION_RECORD_HEADER: Tuple[str, ...] = (
+    "decision_id", "frame_index", "ue_id", "rnti", "lcid", "rb_id",
+    "t_measure_mono_ns", "t_available_to_agent_mono_ns",
+    "t_state_commit_mono_ns", "t_action_mono_ns",
+    "t_current_payload_enqueue_mono_ns",
+)
+
 SENDER_HEADER: Tuple[str, ...] = (
     "wall_time_s", "elapsed_s", "frame_index", "chunk_index", "chunk_bytes",
     "frame_bytes", "period_s", "scheduled_frame_time_s", "send_lag_ms",
@@ -207,12 +279,140 @@ MIDNIGHT_WRAP_GUARD_MICROSECONDS = 12 * 3600 * 1_000_000
 #: ``clip(log1p(bsr_bytes) / scale, 0, 1)``.
 DEPLOYED_BSR_LOG1P_SCALE = 1.0
 
-#: Smallest and largest per-frame payloads in the registered SplitFusion knob
-#: matrix (``rl_agent/PERMODEL_KNOB_MATRIX_ZSTD.md``), in bytes.  Used only to
-#: state whether retained offered load reaches the action range; the audit does
-#: not re-derive the catalogue.
-SPLITFUSION_PAYLOAD_MIN_BYTES = 49_400
-SPLITFUSION_PAYLOAD_MAX_BYTES = 2_835_000
+# --------------------------------------------------------------------------
+# Payload authority.
+#
+# The action range is the *frozen FCOS 72-action catalogue*, not the legacy
+# PERMODEL knob matrix.  The legacy pair (49_400, 2_835_000) is retired: it
+# named a range that no longer exists, and it placed the retained 12.5 kB and
+# 25 kB traffic points *below* the action range when in fact they sit inside
+# its low end.  The values below are checked against the authoritative files by
+# :func:`verify_payload_authority`; they are not trusted on sight.
+# --------------------------------------------------------------------------
+
+#: Path, relative to the repository root, of the frozen 72-action catalogue.
+SPLITFUSION_ACTION_CATALOG_RELPATH = (
+    "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json"
+)
+
+#: Path, relative to the repository root, of the Run-3 modeled support contract.
+RUN3_MODELED_SUPPORT_RELPATH = (
+    "rl_agent/splitfusion_hybrid_sac_v1/modeled_smoke_support.py"
+)
+
+#: Name of the Run-3 support constant re-read by :func:`verify_payload_authority`.
+RUN3_MODELED_SUPPORT_SYMBOL = "ALL_PROFILE_TOTAL_TRANSMITTED_BYTES_SUPPORT"
+
+SPLITFUSION_ACTION_COUNT = 72
+
+#: Per-frame zstd median payload of the smallest and largest of the 72 frozen
+#: actions: action 71 ``split_ae32_uint4_q9800`` and action 0
+#: ``split_noae_uint8_q0000``.
+SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES = 6_229
+SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES = 3_568_326
+
+#: Inclusive ``total_transmitted_bytes`` support the Run-3 contextual surrogate
+#: was actually fitted on.  Narrower than the catalogue at both ends, so a
+#: statement about "the action range" and one about "modeled support" are not
+#: interchangeable and the audit keeps them apart.
+RUN3_MODELED_SUPPORT_MIN_BYTES = 6_423
+RUN3_MODELED_SUPPORT_MAX_BYTES = 427_605
+
+#: Values that must never come back. A test asserts none of them is reachable
+#: as a payload-authority constant, so a silent revert to the PERMODEL range
+#: fails loudly instead of quietly re-widening the bound.
+RETIRED_PERMODEL_PAYLOAD_BYTES: Tuple[int, ...] = (49_400, 2_835_000)
+
+
+class PayloadAuthorityError(AuditError):
+    """A payload constant disagrees with the file that is authoritative for it."""
+
+
+def _catalog_payload_bounds(catalog_path: Path) -> Tuple[int, int, int]:
+    """Re-derive ``(count, min, max)`` zstd median payload from the catalogue."""
+    data = json.loads(catalog_path.read_text())
+    profiles = data["profiles"]
+    medians = [int(entry["payload"]["zstd_median_bytes"]) for entry in profiles]
+    return len(profiles), min(medians), max(medians)
+
+
+def _run3_support_bounds(support_path: Path) -> Tuple[int, int]:
+    """Read the Run-3 support tuple by parsing, not importing.
+
+    ``modeled_smoke_support`` imports the heavy Hybrid-SAC surfaces at module
+    scope, and this audit must stay importable with nothing but the standard
+    library.  The literal is recovered from the AST instead.
+    """
+    import ast
+
+    tree = ast.parse(support_path.read_text())
+    for node in tree.body:
+        if not isinstance(node, (ast.AnnAssign, ast.Assign)):
+            continue
+        targets = (
+            [node.target] if isinstance(node, ast.AnnAssign) else list(node.targets)
+        )
+        for target in targets:
+            if (
+                isinstance(target, ast.Name)
+                and target.id == RUN3_MODELED_SUPPORT_SYMBOL
+                and node.value is not None
+            ):
+                low, high = ast.literal_eval(node.value)
+                return int(low), int(high)
+    raise PayloadAuthorityError(
+        f"{support_path}: {RUN3_MODELED_SUPPORT_SYMBOL} not found"
+    )
+
+
+def verify_payload_authority(repo_root: Path) -> Dict[str, object]:
+    """Check every payload constant against its authoritative file.
+
+    Raises :class:`PayloadAuthorityError` on any disagreement, so the audit
+    cannot keep quoting a range the catalogue no longer has.  Performs file I/O
+    and is therefore never called on import.
+    """
+    catalog_path = repo_root / SPLITFUSION_ACTION_CATALOG_RELPATH
+    support_path = repo_root / RUN3_MODELED_SUPPORT_RELPATH
+    if not catalog_path.is_file():
+        raise PayloadAuthorityError(f"action catalogue missing at {catalog_path}")
+    if not support_path.is_file():
+        raise PayloadAuthorityError(f"Run-3 support missing at {support_path}")
+
+    count, low, high = _catalog_payload_bounds(catalog_path)
+    run3_low, run3_high = _run3_support_bounds(support_path)
+
+    mismatches: List[str] = []
+    if count != SPLITFUSION_ACTION_COUNT:
+        mismatches.append(f"action count {count} != {SPLITFUSION_ACTION_COUNT}")
+    if low != SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES:
+        mismatches.append(
+            f"catalogue min {low} != {SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES}"
+        )
+    if high != SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES:
+        mismatches.append(
+            f"catalogue max {high} != {SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES}"
+        )
+    if run3_low != RUN3_MODELED_SUPPORT_MIN_BYTES:
+        mismatches.append(f"Run-3 min {run3_low} != {RUN3_MODELED_SUPPORT_MIN_BYTES}")
+    if run3_high != RUN3_MODELED_SUPPORT_MAX_BYTES:
+        mismatches.append(f"Run-3 max {run3_high} != {RUN3_MODELED_SUPPORT_MAX_BYTES}")
+    if mismatches:
+        raise PayloadAuthorityError(
+            "payload authority drifted from its source files: "
+            + "; ".join(mismatches)
+        )
+    return {
+        "action_catalog_relpath": SPLITFUSION_ACTION_CATALOG_RELPATH,
+        "action_catalog_sha256": sha256_file(catalog_path),
+        "action_count": count,
+        "action_payload_min_bytes": low,
+        "action_payload_max_bytes": high,
+        "run3_support_relpath": RUN3_MODELED_SUPPORT_RELPATH,
+        "run3_support_min_bytes": run3_low,
+        "run3_support_max_bytes": run3_high,
+        "retired_permodel_payload_bytes": list(RETIRED_PERMODEL_PAYLOAD_BYTES),
+    }
 
 
 # --------------------------------------------------------------------------
@@ -1010,8 +1210,10 @@ BSR_STATUS_SOURCE = SourceDescriptor(
     zero_meaning=(
         "nothing was left to report after the current grant was filled. This is "
         "the weakest of the three zeros: it is consistent with a large backlog "
-        "that the current grant happened to drain, and it is produced by the "
-        "same grant the policy is trying to reason about"
+        "that the current grant happened to drain. It is produced by the same "
+        "grant the policy is reasoning about, which rules it out as that "
+        "action's own pre-action state; it does not rule out a correctly "
+        "lagged reading describing a previous action"
     ),
     ue_runtime_available=True,
     can_contain_current_payload=True,
@@ -1038,6 +1240,189 @@ GNB_ESTIMATED_BUFFER_SOURCE = SourceDescriptor(
     can_contain_current_payload=True,
 )
 
+# --------------------------------------------------------------------------
+# A4. Physical-channel candidates.
+#
+# Four quantities are routinely conflated. They are kept apart here by link
+# direction, by who can observe them, and by whether the number is a
+# standardized index or a raw power ratio.
+# --------------------------------------------------------------------------
+
+
+class LinkDirection(Enum):
+    """Which link a channel quantity actually measures."""
+
+    #: Measured by the UE on its receive chain: a downlink quantity.
+    UE_DOWNLINK_RECEIVE = "UE_DOWNLINK_RECEIVE"
+    #: Measured by the gNB on its receive chain: an uplink quantity.
+    GNB_UPLINK_RECEIVE = "GNB_UPLINK_RECEIVE"
+
+
+@dataclass(frozen=True)
+class ChannelSignalDescriptor:
+    """One candidate physical-channel signal, pinned to its link direction."""
+
+    name: str
+    direction: LinkDirection
+    visibility: SourceVisibility
+    quantity: str
+    units: str
+    standardized_index: bool
+    cadence: str
+    availability_precondition: str
+    code_citation: str
+    ue_runtime_available: bool
+    caveat: str
+
+    @property
+    def display_label(self) -> str:
+        """Label that may be used in a figure or table.
+
+        Never the bare word "SNR": the whole point of this taxonomy is that two
+        different links both produce something called SNR.
+        """
+        if self.direction is LinkDirection.UE_DOWNLINK_RECEIVE:
+            return f"UE downlink {self.quantity}"
+        return f"gNB received uplink {self.quantity}"
+
+    def to_json(self) -> Dict[str, object]:
+        return {
+            "name": self.name,
+            "link_direction": self.direction.value,
+            "visibility": self.visibility.value,
+            "quantity": self.quantity,
+            "units": self.units,
+            "standardized_index": self.standardized_index,
+            "cadence": self.cadence,
+            "availability_precondition": self.availability_precondition,
+            "code_citation": self.code_citation,
+            "ue_runtime_available": self.ue_runtime_available,
+            "display_label": self.display_label,
+            "caveat": self.caveat,
+        }
+
+
+UE_PHY_MEAS_SNR = ChannelSignalDescriptor(
+    name="UE_PHY_MEAS.snr",
+    direction=LinkDirection.UE_DOWNLINK_RECEIVE,
+    visibility=SourceVisibility.UE,
+    quantity="SNR",
+    units="integer dB (NOT scaled by 10)",
+    standardized_index=False,
+    cadence=(
+        "at most once per 10 ms SFN frame: the emit is gated on "
+        "nr_slot_rx == 0 inside the l == 2 measurement step"
+    ),
+    availability_precondition=(
+        "requires a PDSCH allocation to this UE in slot 0; the only call site "
+        "sits in the PDSCH channel-estimation path, so with no downlink "
+        "traffic the event simply does not fire"
+    ),
+    code_citation=(
+        f"{CODE_CITATIONS['ue_phy_meas_emit']}; {CODE_CITATIONS['ue_phy_meas_gate']}; "
+        f"{CODE_CITATIONS['ue_phy_meas_snr_expression']}; "
+        f"{CODE_CITATIONS['ue_measurements_compute']}"
+    ),
+    ue_runtime_available=True,
+    caveat=(
+        "a receive-side downlink power ratio computed from the downlink "
+        "channel estimates. It is NOT the gNB's uplink PUSCH SNR and must "
+        "never be labelled an uplink measurement"
+    ),
+)
+
+UE_PHY_MEAS_W_CQI = ChannelSignalDescriptor(
+    name="UE_PHY_MEAS.w_cqi",
+    direction=LinkDirection.UE_DOWNLINK_RECEIVE,
+    visibility=SourceVisibility.UE,
+    quantity="wideband power/noise ratio reported as w_cqi",
+    units="integer dB",
+    standardized_index=False,
+    cadence="same event as UE_PHY_MEAS.snr",
+    availability_precondition="same PDSCH precondition as UE_PHY_MEAS.snr",
+    code_citation=CODE_CITATIONS["ue_measurements_wideband_cqi"],
+    ue_runtime_available=True,
+    caveat=(
+        "despite the name this is not a standardized CQI index. It is "
+        "wideband_cqi_avg = rx_power_avg_dB - n0_power_avg_dB, the identical "
+        "expression to the emitted snr field, so in this build w_cqi and snr "
+        "carry the same number. Diagnostic only"
+    ),
+)
+
+CSI_RS_CQI = ChannelSignalDescriptor(
+    name="CSI-RS CQI (nr_csi_rs_cqi_estimation)",
+    direction=LinkDirection.UE_DOWNLINK_RECEIVE,
+    visibility=SourceVisibility.UE,
+    quantity="CQI",
+    units="standardized index 0-15",
+    standardized_index=True,
+    cadence="per configured CSI-RS measurement/report occasion",
+    availability_precondition=(
+        "only produced when CSI-RS measurement and reporting are actually "
+        "configured; absent otherwise, and it has no T-tracer event of its own"
+    ),
+    code_citation=(
+        f"{CODE_CITATIONS['csi_rs_cqi_table']}; {CODE_CITATIONS['csi_rs_cqi_call']}"
+    ),
+    ue_runtime_available=False,
+    caveat=(
+        "the only genuinely standardized downlink CQI candidate, but it is "
+        "conditional on CSI-RS configuration and is not emitted by UE_PHY_MEAS"
+    ),
+)
+
+GNB_PUSCH_SNR = ChannelSignalDescriptor(
+    name="GNB_MAC_PUSCH_POWER_CONTROL.snrx10",
+    direction=LinkDirection.GNB_UPLINK_RECEIVE,
+    visibility=SourceVisibility.GNB,
+    quantity="PUSCH SNR",
+    units="dB x10 (divide by 10 for dB)",
+    standardized_index=False,
+    cadence="per PUSCH reception/power-control decision at the gNB",
+    availability_precondition="requires uplink PUSCH transmissions to decode",
+    code_citation="emitted by the gNB softmodem; decoded from the gNB T-tracer CSV",
+    ue_runtime_available=False,
+    caveat=(
+        "measured at the gNB on the uplink. It is not available to the UE at "
+        "runtime and therefore cannot itself be a UE policy feature"
+    ),
+)
+
+CHANNEL_SIGNAL_CANDIDATES: Tuple[ChannelSignalDescriptor, ...] = (
+    UE_PHY_MEAS_SNR,
+    UE_PHY_MEAS_W_CQI,
+    CSI_RS_CQI,
+    GNB_PUSCH_SNR,
+)
+
+
+def assert_direction_not_mislabelled(
+    descriptor: ChannelSignalDescriptor, claimed: LinkDirection
+) -> None:
+    """Refuse to describe a channel quantity as the wrong link direction.
+
+    Guards the specific error this audit was corrected for: calling the UE's
+    receive-side measurement an uplink SNR, or presenting the gNB's uplink
+    PUSCH SNR as something the UE can observe.
+    """
+    if descriptor.direction is not claimed:
+        raise AuditError(
+            f"{descriptor.name} is {descriptor.direction.value}; refusing to "
+            f"label it {claimed.value}. {descriptor.caveat}"
+        )
+
+
+def assert_ue_observable(descriptor: ChannelSignalDescriptor) -> None:
+    """Refuse a signal the UE cannot read at runtime as a UE policy feature."""
+    if not descriptor.ue_runtime_available:
+        raise AuditError(
+            f"{descriptor.name} is not available to the UE at runtime "
+            f"(visibility={descriptor.visibility.value}); it cannot be a UE "
+            f"policy feature. {descriptor.caveat}"
+        )
+
+
 CANDIDATE_SOURCES: Tuple[SourceDescriptor, ...] = (
     RLC_BUFFER_SOURCE,
     BSR_STATUS_SOURCE,
@@ -1045,20 +1430,81 @@ CANDIDATE_SOURCES: Tuple[SourceDescriptor, ...] = (
 )
 
 
-def assert_no_action_leakage(source: SourceDescriptor) -> None:
-    """Refuse any source whose value is produced by the current action.
+class BsrTemporalUse(Enum):
+    """How a post-multiplex sample is being aligned to an action.
 
-    A post-multiplex residual is a function of how the current grant was filled
-    with the current payload, so feeding it to the policy that chose that
-    payload puts the action inside its own state.
+    The distinction the audit previously collapsed. A post-multiplex BSR is not
+    universally invalid; it is invalid *as the pre-action state of the very
+    action that produced it*.
     """
-    if source.ordering is EnqueueOrdering.POST_MULTIPLEX_RESIDUAL:
-        raise ActionLeakageError(
-            f"{source.name} is {source.ordering.value}: its bytes are what "
-            f"remains after the current payload was multiplexed into the "
-            f"current grant, so using it as policy state leaks the action into "
-            f"its own observation"
+
+    #: Aligned to the action whose grant produced the residual. Forbidden: the
+    #: value is a function of that action, so the action enters its own state.
+    SAME_ACTION_PRE_STATE = "SAME_ACTION_PRE_STATE_FORBIDDEN"
+    #: Aligned to a strictly later decision, so it describes a *previous*
+    #: action. Admissible in principle, subject to proof of the lag.
+    LAGGED_PREVIOUS_ACTION = "LAGGED_PREVIOUS_ACTION_ADMISSIBLE_IF_LAG_PROVEN"
+
+
+#: Why the pre-multiplex RLC read stays the preferred candidate even where a
+#: lagged BSR would be admissible.
+BSR_VS_RLC_PREFERENCE_NOTE = (
+    "NRUE_MAC_RLC_BUFFER_STATUS remains the preferred candidate: it is a more "
+    "direct observation (true RLC occupancy in bytes, read before the grant is "
+    "filled) and it is less quantized (unquantized bytes, where the BSR path "
+    "reports coarse BSR-table indices). A lagged NRUE_MAC_BSR_STATUS is a "
+    "fallback, not an equal."
+)
+
+
+def classify_bsr_temporal_use(
+    source: SourceDescriptor, *, aligned_to_same_action: bool
+) -> BsrTemporalUse:
+    """Say which of the two alignments is being attempted for a source."""
+    if source.ordering is not EnqueueOrdering.POST_MULTIPLEX_RESIDUAL:
+        raise AuditError(
+            f"{source.name} is {source.ordering.value}, not a post-multiplex "
+            f"residual; this classification does not apply to it"
         )
+    return (
+        BsrTemporalUse.SAME_ACTION_PRE_STATE
+        if aligned_to_same_action
+        else BsrTemporalUse.LAGGED_PREVIOUS_ACTION
+    )
+
+
+def assert_no_action_leakage(
+    source: SourceDescriptor, *, aligned_to_same_action: bool = True
+) -> None:
+    """Refuse a post-multiplex sample as the *current* action's pre-action state.
+
+    The precise claim, which the earlier wording overstated:
+
+    * A post-multiplex BSR generated **after** the current action must not be
+      aligned as that action's pre-action state. Its bytes are what remained
+      once the current payload had already been multiplexed into the current
+      grant, so the action would enter its own observation.
+    * A **correctly lagged** BSR may legitimately describe a *previous* action.
+      That use is not blocked here; it requires the lag to be proven, not
+      assumed, which is what the ordering chain exists to do.
+    * Either way :data:`BSR_VS_RLC_PREFERENCE_NOTE` applies: the pre-multiplex
+      RLC read is more direct and less quantized, so it stays preferred.
+
+    ``aligned_to_same_action=False`` declares the caller is taking the lagged
+    reading and accepts the burden of proving the lag.
+    """
+    if source.ordering is not EnqueueOrdering.POST_MULTIPLEX_RESIDUAL:
+        return
+    if not aligned_to_same_action:
+        return
+    raise ActionLeakageError(
+        f"{source.name} is {source.ordering.value}: its bytes are what remains "
+        f"after the current payload was multiplexed into the current grant, so "
+        f"aligning it as that same action's pre-action state leaks the action "
+        f"into its own observation. A correctly lagged alignment describing a "
+        f"previous action is a different question and is not refused here. "
+        f"{BSR_VS_RLC_PREFERENCE_NOTE}"
+    )
 
 
 def qualify_pre_action_source(
@@ -1082,22 +1528,401 @@ def qualify_pre_action_source(
     return PreActionQualification.QUALIFIED
 
 
-#: T-tracer events that would timestamp the application enqueue instant and so
-#: settle the pre-enqueue ordering.  All three are defined in T_messages.txt
-#: with monotonic timestamps but none is extracted in the retained runs.
+# --------------------------------------------------------------------------
+# A2. Enqueue-instant qualification.
+#
+# The previous implementation qualified a causal queue source from *filename
+# existence*: a zero-row, wrong-schema, wrong-run or dequeue-only file counted.
+# Qualification now requires parsed records, an exact schema, ingress
+# semantics, same-run identity, UE/RNTI and bearer/LCID identity, a decision
+# identity, both timestamps, and a demonstrated ordering for every admitted
+# decision. Anything missing fails closed.
+# --------------------------------------------------------------------------
+
+#: T-tracer events that genuinely timestamp the application enqueue instant.
+#: Both are PDCP/RLC *ingress* events carrying a radio-bearer id.
 ENQUEUE_INSTANT_EVENTS: Tuple[str, ...] = (
     "NR_PDCP_TX_SDU",
     "NR_RLC_TX_SDU",
-    "NR_RLC_TX_DEQUEUE",
+)
+
+#: Explicitly NOT enqueue evidence. ``NR_RLC_TX_DEQUEUE`` fires when a PDU is
+#: handed down to MAC for a grant, which *ends* the RLC queue wait. Treating it
+#: as an enqueue instant would date the payload to when it was served rather
+#: than when it arrived, inverting the very ordering being tested.
+SERVICE_DEQUEUE_EVENTS: Tuple[str, ...] = ("NR_RLC_TX_DEQUEUE",)
+
+ENQUEUE_EVENT_HEADERS: Mapping[str, Tuple[str, ...]] = {
+    "NR_PDCP_TX_SDU": PDCP_TX_SDU_HEADER,
+    "NR_RLC_TX_SDU": RLC_TX_SDU_HEADER,
+}
+
+SERVICE_DEQUEUE_EVENT_HEADERS: Mapping[str, Tuple[str, ...]] = {
+    "NR_RLC_TX_DEQUEUE": RLC_TX_DEQUEUE_HEADER,
+}
+
+#: Where a future runtime carrier must write its per-decision record.
+DECISION_LOG_RELPATH = ("decisions", "decision_log.csv")
+
+
+class EnqueueRequirement(Enum):
+    """Every condition that must hold before enqueue evidence qualifies."""
+
+    FILE_PRESENT = "FILE_PRESENT"
+    SCHEMA_EXACT = "SCHEMA_EXACT"
+    NONEMPTY_RECORDS = "NONEMPTY_PARSED_RECORDS"
+    INGRESS_SEMANTICS = "INGRESS_NOT_DEQUEUE_SEMANTICS"
+    SAME_RUN_IDENTITY = "SAME_RUN_IDENTITY"
+    UE_IDENTITY = "UE_AND_RNTI_IDENTITY"
+    BEARER_IDENTITY = "LCID_OR_DRB_IDENTITY"
+    DECISION_IDENTITY = "DECISION_AND_FRAME_IDENTITY"
+    SOURCE_TIMESTAMP = "SOURCE_TIMESTAMP_PRESENT"
+    AVAILABILITY_TIMESTAMP = "AVAILABILITY_TIMESTAMP_PRESENT"
+    CAUSAL_ORDERING = "CAUSAL_ORDERING_DEMONSTRATED"
+
+
+#: The chain every admitted decision must satisfy, in order. ``<=`` between the
+#: first three because a measurement can be published and committed within the
+#: same nanosecond tick; strict ``<`` from the state commit onwards because the
+#: action must follow a frozen state and precede the payload it causes.
+ORDERING_CHAIN_FIELDS: Tuple[Tuple[str, str], ...] = (
+    ("t_measure_mono_ns", "t_available_to_agent_mono_ns"),
+    ("t_available_to_agent_mono_ns", "t_state_commit_mono_ns"),
+    ("t_state_commit_mono_ns", "t_action_mono_ns"),
+    ("t_action_mono_ns", "t_current_payload_enqueue_mono_ns"),
+)
+ORDERING_CHAIN_STRICT: Tuple[bool, ...] = (False, False, True, True)
+
+ORDERING_CHAIN_TEXT = (
+    "t_measure <= t_available_to_agent <= t_state_commit < t_action "
+    "< t_current_payload_enqueue"
 )
 
 
+@dataclass(frozen=True)
+class RequirementOutcome:
+    """Whether one named requirement held, and why."""
+
+    requirement: EnqueueRequirement
+    satisfied: bool
+    detail: str
+
+    def to_json(self) -> Dict[str, object]:
+        return {
+            "requirement": self.requirement.value,
+            "satisfied": self.satisfied,
+            "detail": self.detail,
+        }
+
+
+@dataclass(frozen=True)
+class EnqueueEvidenceCheck:
+    """Per-run outcome of the enqueue-instant qualification."""
+
+    run_id: str
+    event_name: Optional[str]
+    outcomes: Tuple[RequirementOutcome, ...]
+    admitted_decisions: int
+    ordered_decisions: int
+
+    @property
+    def qualified(self) -> bool:
+        """True only when every requirement held for every admitted decision."""
+        if not self.outcomes:
+            return False
+        if not all(item.satisfied for item in self.outcomes):
+            return False
+        return self.admitted_decisions > 0 and (
+            self.ordered_decisions == self.admitted_decisions
+        )
+
+    @property
+    def first_failure(self) -> Optional[str]:
+        for item in self.outcomes:
+            if not item.satisfied:
+                return f"{item.requirement.value}: {item.detail}"
+        if self.admitted_decisions == 0:
+            return "CAUSAL_ORDERING_DEMONSTRATED: no decision was admitted"
+        return None
+
+    def to_json(self) -> Dict[str, object]:
+        return {
+            "run_id": self.run_id,
+            "event_name": self.event_name,
+            "qualified": self.qualified,
+            "admitted_decisions": self.admitted_decisions,
+            "ordered_decisions": self.ordered_decisions,
+            "required_ordering": ORDERING_CHAIN_TEXT,
+            "first_failure": self.first_failure,
+            "requirements": [item.to_json() for item in self.outcomes],
+        }
+
+
+def check_decision_ordering(record: Mapping[str, str]) -> Tuple[bool, str]:
+    """Verify the causal chain for one decision record.
+
+    A missing, blank or non-integer instant fails closed; it is never treated
+    as a zero and never forward-filled from a neighbour.
+    """
+    values: Dict[str, int] = {}
+    for earlier, later in ORDERING_CHAIN_FIELDS:
+        for name in (earlier, later):
+            if name in values:
+                continue
+            raw = record.get(name)
+            text = "" if raw is None else str(raw).strip()
+            if not text:
+                return False, f"{name} is missing; fails closed rather than assumed"
+            try:
+                values[name] = int(text)
+            except ValueError:
+                return False, f"{name}={text!r} is not an integer nanosecond instant"
+    for (earlier, later), strict in zip(ORDERING_CHAIN_FIELDS, ORDERING_CHAIN_STRICT):
+        lhs, rhs = values[earlier], values[later]
+        if strict and not lhs < rhs:
+            return False, f"requires {earlier} < {later}, found {lhs} >= {rhs}"
+        if not strict and not lhs <= rhs:
+            return False, f"requires {earlier} <= {later}, found {lhs} > {rhs}"
+    return True, "ordering holds"
+
+
+def read_decision_records(path: Path) -> List[Dict[str, str]]:
+    """Read the per-decision carrier log with an exact schema check."""
+    return read_simple_rows(path, DECISION_RECORD_HEADER)
+
+
+def _ue_identity_from_rlc(path: Path) -> Tuple[set, set]:
+    """``(rnti values, ue_id values)`` observed in the RLC backlog trace."""
+    rnti: set = set()
+    ue_ids: set = set()
+    with path.open("r", newline="") as handle:
+        reader = csv.reader(handle)
+        header = next(reader, [])
+        _require_header(path, header, RLC_BUFFER_HEADER)
+        for record in reader:
+            if len(record) != len(RLC_BUFFER_HEADER):
+                continue
+            rnti.add(record[1].strip())
+            ue_ids.add(record[2].strip())
+    return rnti, ue_ids
+
+
+def qualify_enqueue_evidence(run: LogicalRun) -> EnqueueEvidenceCheck:
+    """Decide, from parsed content, whether a run proves the enqueue instant.
+
+    Never qualifies from a filename. Each requirement is evaluated in turn and
+    the first unmet one stops the chain, so the report names the actual reason
+    rather than a generic refusal.
+    """
+    outcomes: List[RequirementOutcome] = []
+
+    def record(req: EnqueueRequirement, ok: bool, detail: str) -> bool:
+        outcomes.append(RequirementOutcome(req, ok, detail))
+        return ok
+
+    def finish(event: Optional[str] = None, admitted: int = 0, ordered: int = 0):
+        return EnqueueEvidenceCheck(
+            run_id=run.run_id,
+            event_name=event,
+            outcomes=tuple(outcomes),
+            admitted_decisions=admitted,
+            ordered_decisions=ordered,
+        )
+
+    # 1. A genuine ingress event file must exist. A dequeue-only run is called
+    #    out by name so the refusal is not mistaken for "nothing retained".
+    present = [name for name in ENQUEUE_INSTANT_EVENTS if run.ue_csv(f"{name}.csv")]
+    dequeue_present = [
+        name for name in SERVICE_DEQUEUE_EVENTS if run.ue_csv(f"{name}.csv")
+    ]
+    if not present:
+        detail = (
+            f"none of {list(ENQUEUE_INSTANT_EVENTS)} is retained"
+        )
+        if dequeue_present:
+            detail += (
+                f"; {dequeue_present} is retained but is service/dequeue "
+                f"evidence ({CODE_CITATIONS['t_message_rlc_tx_dequeue']}) and "
+                f"does not date the enqueue instant"
+            )
+        record(EnqueueRequirement.FILE_PRESENT, False, detail)
+        return finish()
+    event_name = present[0]
+    event_path = run.ue_csv(f"{event_name}.csv")
+    assert event_path is not None
+    record(EnqueueRequirement.FILE_PRESENT, True, f"{event_name}.csv retained")
+
+    record(
+        EnqueueRequirement.INGRESS_SEMANTICS,
+        True,
+        f"{event_name} is PDCP/RLC ingress, not {list(SERVICE_DEQUEUE_EVENTS)}",
+    )
+
+    # 2. Exact schema, then genuinely parsed rows.
+    try:
+        rows = read_simple_rows(event_path, ENQUEUE_EVENT_HEADERS[event_name])
+    except SchemaError as exc:
+        record(EnqueueRequirement.SCHEMA_EXACT, False, str(exc))
+        return finish(event_name)
+    record(EnqueueRequirement.SCHEMA_EXACT, True, "header matches exactly")
+
+    if not rows:
+        record(
+            EnqueueRequirement.NONEMPTY_RECORDS,
+            False,
+            "file parses but holds no data rows; a header alone proves nothing",
+        )
+        return finish(event_name)
+    record(EnqueueRequirement.NONEMPTY_RECORDS, True, f"{len(rows)} parsed records")
+
+    # 3. Same-run identity, established structurally rather than by name.
+    rlc_path = run.ue_csv("NRUE_MAC_RLC_BUFFER_STATUS.csv")
+    if rlc_path is None:
+        record(
+            EnqueueRequirement.SAME_RUN_IDENTITY,
+            False,
+            "run retains no NRUE_MAC_RLC_BUFFER_STATUS to bind the enqueue "
+            "evidence to",
+        )
+        return finish(event_name)
+    try:
+        require_same_run(rlc_path, event_path)
+    except RunIsolationError as exc:
+        record(EnqueueRequirement.SAME_RUN_IDENTITY, False, str(exc))
+        return finish(event_name)
+    record(
+        EnqueueRequirement.SAME_RUN_IDENTITY,
+        True,
+        f"both resolve to run root {logical_run_root(event_path)}",
+    )
+
+    # 4. UE/RNTI identity must actually agree with the backlog trace.
+    _, rlc_ue_ids = _ue_identity_from_rlc(rlc_path)
+    event_ue_ids = {(row.get("ue_id") or "").strip() for row in rows}
+    if "" in event_ue_ids:
+        record(EnqueueRequirement.UE_IDENTITY, False, "a record has a blank ue_id")
+        return finish(event_name)
+    shared = event_ue_ids & rlc_ue_ids
+    if not shared:
+        record(
+            EnqueueRequirement.UE_IDENTITY,
+            False,
+            f"enqueue ue_id {sorted(event_ue_ids)} does not intersect backlog "
+            f"ue_id {sorted(rlc_ue_ids)}; the two traces describe different UEs",
+        )
+        return finish(event_name)
+    record(
+        EnqueueRequirement.UE_IDENTITY, True, f"shared ue_id {sorted(shared)}"
+    )
+
+    # 5. Bearer identity. The ingress events carry rb_id while the backlog
+    #    trace carries lcid, so a declared mapping is required; it is not
+    #    invented here.
+    bearer_ids = {(row.get("rb_id") or "").strip() for row in rows}
+    if "" in bearer_ids:
+        record(EnqueueRequirement.BEARER_IDENTITY, False, "a record has a blank rb_id")
+        return finish(event_name)
+    record(
+        EnqueueRequirement.BEARER_IDENTITY,
+        True,
+        f"rb_id values {sorted(bearer_ids)} present on every record",
+    )
+
+    # 6. Both timestamps. The monotonic pair is the source instant; the
+    #    tracer's realtime column is when the sample became observable.
+    for field_name, requirement in (
+        ("mono_sec", EnqueueRequirement.SOURCE_TIMESTAMP),
+        ("time", EnqueueRequirement.AVAILABILITY_TIMESTAMP),
+    ):
+        missing = sum(1 for row in rows if not (row.get(field_name) or "").strip())
+        if missing:
+            record(
+                requirement,
+                False,
+                f"{missing} record(s) have no {field_name}; missing timestamps "
+                f"fail closed and are never filled in",
+            )
+            return finish(event_name)
+    record(
+        EnqueueRequirement.SOURCE_TIMESTAMP, True, "mono_sec/mono_nsec present"
+    )
+    record(
+        EnqueueRequirement.AVAILABILITY_TIMESTAMP,
+        True,
+        "tracer realtime column present",
+    )
+
+    # 7. Decision/frame identity. Without a per-decision record there is no
+    #    object to check the ordering *against*, so this fails closed.
+    decision_path = run.root.joinpath(*DECISION_LOG_RELPATH)
+    if not decision_path.is_file():
+        record(
+            EnqueueRequirement.DECISION_IDENTITY,
+            False,
+            f"no per-decision carrier log at "
+            f"{Path(*DECISION_LOG_RELPATH)}; the enqueue events carry no "
+            f"decision or SplitFusion frame id of their own, so no action can "
+            f"be bound to an enqueue instant",
+        )
+        return finish(event_name)
+    try:
+        decisions = read_decision_records(decision_path)
+    except SchemaError as exc:
+        record(EnqueueRequirement.DECISION_IDENTITY, False, str(exc))
+        return finish(event_name)
+    if not decisions:
+        record(
+            EnqueueRequirement.DECISION_IDENTITY,
+            False,
+            "decision log holds no records",
+        )
+        return finish(event_name)
+    blank = [
+        row
+        for row in decisions
+        if not (row.get("decision_id") or "").strip()
+        or not (row.get("frame_index") or "").strip()
+    ]
+    if blank:
+        record(
+            EnqueueRequirement.DECISION_IDENTITY,
+            False,
+            f"{len(blank)} decision record(s) lack decision_id or frame_index",
+        )
+        return finish(event_name)
+    record(
+        EnqueueRequirement.DECISION_IDENTITY,
+        True,
+        f"{len(decisions)} decision record(s) with decision_id and frame_index",
+    )
+
+    # 8. The ordering must hold for EVERY admitted decision, not on average.
+    failures: List[str] = []
+    ordered = 0
+    for row in decisions:
+        ok, why = check_decision_ordering(row)
+        if ok:
+            ordered += 1
+        elif len(failures) < 5:
+            failures.append(f"decision {row.get('decision_id')!r}: {why}")
+    all_ordered = ordered == len(decisions)
+    record(
+        EnqueueRequirement.CAUSAL_ORDERING,
+        all_ordered,
+        (
+            f"{ordered}/{len(decisions)} decisions satisfy {ORDERING_CHAIN_TEXT}"
+            + ("" if all_ordered else f"; first failures: {failures}")
+        ),
+    )
+    return finish(event_name, admitted=len(decisions), ordered=ordered)
+
+
 def has_enqueue_instant_evidence(run: LogicalRun) -> bool:
-    """True when the run retains any trace of when the payload was enqueued."""
-    if not run.ue_csv_dir.is_dir():
-        return False
-    present = {path.stem for path in run.ue_csv_dir.glob("*.csv")}
-    return any(event in present for event in ENQUEUE_INSTANT_EVENTS)
+    """True only when :func:`qualify_enqueue_evidence` fully qualifies the run.
+
+    Kept as a name for call sites, but it is no longer a filename test.
+    """
+    return qualify_enqueue_evidence(run).qualified
 
 
 # --------------------------------------------------------------------------
@@ -1227,8 +2052,17 @@ def candidate_scales(values: Sequence[int]) -> List[Tuple[str, float, str]]:
     )
     out.append(
         (
-            "CANDIDATE_log1p_splitfusion_max_payload_2835000B",
-            math.log1p(float(SPLITFUSION_PAYLOAD_MAX_BYTES)),
+            f"CANDIDATE_log1p_action_max_payload_"
+            f"{SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES}B",
+            math.log1p(float(SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES)),
+            "PROVISIONAL_NOT_FROZEN",
+        )
+    )
+    out.append(
+        (
+            f"CANDIDATE_log1p_run3_support_max_"
+            f"{RUN3_MODELED_SUPPORT_MAX_BYTES}B",
+            math.log1p(float(RUN3_MODELED_SUPPORT_MAX_BYTES)),
             "PROVISIONAL_NOT_FROZEN",
         )
     )
@@ -1248,7 +2082,9 @@ class OfferedLoadProfile:
     row_count: int
     distinct_frame_bytes: Tuple[int, ...]
     distinct_period_s: Tuple[float, ...]
-    reaches_splitfusion_range: bool
+    within_action_range: bool
+    within_run3_support: bool
+    varies_within_run: bool
     note: str
 
     def to_json(self) -> Dict[str, object]:
@@ -1257,7 +2093,9 @@ class OfferedLoadProfile:
             "row_count": self.row_count,
             "distinct_frame_bytes": list(self.distinct_frame_bytes),
             "distinct_period_s": list(self.distinct_period_s),
-            "reaches_splitfusion_range": self.reaches_splitfusion_range,
+            "within_action_range": self.within_action_range,
+            "within_run3_support": self.within_run3_support,
+            "varies_within_run": self.varies_within_run,
             "note": self.note,
         }
 
@@ -1270,15 +2108,31 @@ def read_offered_load(run: LogicalRun) -> OfferedLoadProfile:
             row_count=0,
             distinct_frame_bytes=(),
             distinct_period_s=(),
-            reaches_splitfusion_range=False,
+            within_action_range=False,
+            within_run3_support=False,
+            varies_within_run=False,
             note="no traffic/sender.csv retained for this run",
         )
     rows = read_simple_rows(run.traffic_sender, SENDER_HEADER)
     frame_bytes = sorted({int(row["frame_bytes"]) for row in rows})
     periods = sorted({float(row["period_s"]) for row in rows})
-    reaches = any(value >= SPLITFUSION_PAYLOAD_MIN_BYTES for value in frame_bytes)
-    if len(frame_bytes) <= 1:
-        note = "single fixed offered payload size; no within-run payload variation"
+    within_action = any(
+        SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES
+        <= value
+        <= SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES
+        for value in frame_bytes
+    )
+    within_run3 = any(
+        RUN3_MODELED_SUPPORT_MIN_BYTES <= value <= RUN3_MODELED_SUPPORT_MAX_BYTES
+        for value in frame_bytes
+    )
+    varies = len(frame_bytes) > 1
+    if not varies:
+        note = (
+            "single fixed offered payload size; no within-run payload "
+            "variation, so no action-conditioned queue transition is "
+            "identifiable from this run"
+        )
     else:
         note = f"{len(frame_bytes)} distinct offered payload sizes"
     return OfferedLoadProfile(
@@ -1286,7 +2140,9 @@ def read_offered_load(run: LogicalRun) -> OfferedLoadProfile:
         row_count=len(rows),
         distinct_frame_bytes=tuple(frame_bytes),
         distinct_period_s=tuple(periods),
-        reaches_splitfusion_range=reaches,
+        within_action_range=within_action,
+        within_run3_support=within_run3,
+        varies_within_run=varies,
         note=note,
     )
 
@@ -1316,6 +2172,9 @@ class RunAudit:
     saturation: List[SaturationReport] = field(default_factory=list)
     lagged_association: Dict[str, object] = field(default_factory=dict)
     enqueue_instant_evidence: bool = False
+    enqueue_evidence: Optional["EnqueueEvidenceCheck"] = None
+    ue_phy_meas_present: bool = False
+    ue_phy_meas_rows: int = 0
     pre_action_qualification: Dict[str, str] = field(default_factory=dict)
 
     def to_json(self) -> Dict[str, object]:
@@ -1350,6 +2209,11 @@ class RunAudit:
             "normalization_saturation": [item.to_json() for item in self.saturation],
             "lagged_association": dict(self.lagged_association),
             "enqueue_instant_evidence": self.enqueue_instant_evidence,
+            "enqueue_evidence": (
+                self.enqueue_evidence.to_json() if self.enqueue_evidence else None
+            ),
+            "ue_phy_meas_present": self.ue_phy_meas_present,
+            "ue_phy_meas_rows": self.ue_phy_meas_rows,
             "pre_action_qualification": dict(self.pre_action_qualification),
         }
 
@@ -1741,7 +2605,17 @@ def audit_run(run: LogicalRun, evidence_root: Path) -> RunAudit:
         for label, scale, status in candidate_scales(backlog_values)
     ]
 
-    result.enqueue_instant_evidence = has_enqueue_instant_evidence(run)
+    result.enqueue_evidence = qualify_enqueue_evidence(run)
+    result.enqueue_instant_evidence = result.enqueue_evidence.qualified
+
+    # A4: does this run retain the UE-side downlink measurement at all?
+    meas_path = run.ue_csv("UE_PHY_MEAS.csv")
+    if meas_path is not None:
+        meas = describe_file(meas_path, evidence_root)
+        result.provenance.append(meas)
+        result.ue_phy_meas_rows = meas.row_count
+        result.ue_phy_meas_present = meas.row_count > 0
+
     result.pre_action_qualification = {
         source.name: qualify_pre_action_source(
             source, enqueue_instant_evidence=result.enqueue_instant_evidence
@@ -1768,6 +2642,8 @@ class AuditReport:
     coverage_rationale: str
     recommended_pre_action_source: str
     pre_action_status: PreActionQualification
+    qualified_run_ids: Tuple[str, ...]
+    total_run_count: int
     calibration_required: bool
 
     def to_json(self) -> Dict[str, object]:
@@ -1776,12 +2652,34 @@ class AuditReport:
             "audit_version": self.audit_version,
             "evidence_root": self.evidence_root,
             "sources": [source.to_json() for source in CANDIDATE_SOURCES],
+            "channel_signal_candidates": [
+                item.to_json() for item in CHANNEL_SIGNAL_CANDIDATES
+            ],
+            "payload_authority": {
+                "action_catalog_relpath": SPLITFUSION_ACTION_CATALOG_RELPATH,
+                "action_count": SPLITFUSION_ACTION_COUNT,
+                "action_payload_min_bytes": SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES,
+                "action_payload_max_bytes": SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES,
+                "run3_support_min_bytes": RUN3_MODELED_SUPPORT_MIN_BYTES,
+                "run3_support_max_bytes": RUN3_MODELED_SUPPORT_MAX_BYTES,
+                "retired_permodel_payload_bytes": list(
+                    RETIRED_PERMODEL_PAYLOAD_BYTES
+                ),
+            },
+            "required_ordering": ORDERING_CHAIN_TEXT,
+            "bsr_vs_rlc_preference": BSR_VS_RLC_PREFERENCE_NOTE,
+            "ue_phy_meas_retained_anywhere": any(
+                run.ue_phy_meas_present for run in self.runs
+            ),
             "code_citations": dict(CODE_CITATIONS),
             "runs": [run.to_json() for run in self.runs],
             "coverage_verdict": self.coverage_verdict.value,
             "coverage_rationale": self.coverage_rationale,
             "recommended_pre_action_source": self.recommended_pre_action_source,
             "pre_action_status": self.pre_action_status.value,
+            "qualified_run_ids": list(self.qualified_run_ids),
+            "qualified_run_count": len(self.qualified_run_ids),
+            "total_run_count": self.total_run_count,
             "calibration_required": self.calibration_required,
         }
 
@@ -1790,9 +2688,13 @@ def decide_coverage(runs: Sequence[RunAudit]) -> Tuple[CoverageVerdict, str]:
     """Assign exactly one coverage status from what the runs actually vary.
 
     Identifying how 12 modes and a continuous ``q`` move future backlog needs
-    the offered payload to move across the SplitFusion range while backlog is
-    observed. Fixed-rate traffic cannot do that, and traffic that never reaches
-    the smallest registered payload cannot be extrapolated up to it.
+    two things at once: the offered payload must *move* across the action range
+    while backlog is observed, and the causal ordering must be demonstrated for
+    every admitted decision in every run.
+
+    The second condition is the one the earlier implementation omitted.
+    ACTION_CONDITIONED is now unreachable while any run's ordering is
+    unresolved, so payload variation alone can no longer promote the verdict.
     """
     offered: List[int] = []
     any_within_run_variation = False
@@ -1801,7 +2703,7 @@ def decide_coverage(runs: Sequence[RunAudit]) -> Tuple[CoverageVerdict, str]:
             continue
         sizes = run.offered_load.distinct_frame_bytes
         offered.extend(sizes)
-        if len(sizes) > 1:
+        if run.offered_load.varies_within_run:
             any_within_run_variation = True
 
     distinct = sorted(set(offered))
@@ -1812,34 +2714,55 @@ def decide_coverage(runs: Sequence[RunAudit]) -> Tuple[CoverageVerdict, str]:
             "cannot be related to observed backlog at all",
         )
 
-    reaches = max(distinct) >= SPLITFUSION_PAYLOAD_MIN_BYTES
-    if any_within_run_variation and reaches:
+    # Causal ordering must hold for every run, not for one lucky run.
+    unresolved = [
+        run.run_id
+        for run in runs
+        if not (run.enqueue_evidence and run.enqueue_evidence.qualified)
+    ]
+    ordering_resolved = not unresolved
+
+    inside = [
+        value
+        for value in distinct
+        if SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES
+        <= value
+        <= SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES
+    ]
+    spans_range = len(inside) > 1
+
+    if any_within_run_variation and spans_range and ordering_resolved:
         return (
             CoverageVerdict.ACTION_CONDITIONED,
-            "at least one run varies offered payload within the SplitFusion "
-            "range while backlog is observed",
+            "at least one run varies offered payload across the frozen "
+            f"{SPLITFUSION_ACTION_COUNT}-action range while backlog is "
+            "observed, and the causal ordering is demonstrated for every "
+            "admitted decision in every run",
         )
 
     rationale = (
-        f"offered payload is fixed within every retained run and takes only "
-        f"{len(distinct)} distinct value(s) across all runs "
-        f"({', '.join(f'{value} B' for value in distinct)}), all at a fixed "
-        f"period. The largest is {max(distinct)} B, which is "
-        f"{max(distinct) / SPLITFUSION_PAYLOAD_MIN_BYTES:.2f}x the smallest "
-        f"registered SplitFusion payload ({SPLITFUSION_PAYLOAD_MIN_BYTES} B) "
-        f"and {max(distinct) / SPLITFUSION_PAYLOAD_MAX_BYTES:.4f}x the largest "
-        f"({SPLITFUSION_PAYLOAD_MAX_BYTES} B). The retained traffic sits below "
-        f"the action range rather than spanning it, so nothing here identifies "
-        f"how mode or q moves future backlog"
+        f"offered payload takes {len(distinct)} distinct value(s) across all "
+        f"runs ({', '.join(f'{value} B' for value in distinct)}), each fixed "
+        f"within its own run at a fixed period. Against the frozen "
+        f"{SPLITFUSION_ACTION_COUNT}-action catalogue "
+        f"[{SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES}, "
+        f"{SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES}] B these values sit *inside* "
+        f"the low end of the action range rather than below it, and "
+        f"{len(inside)} of them also fall inside the Run-3 modeled support "
+        f"[{RUN3_MODELED_SUPPORT_MIN_BYTES}, {RUN3_MODELED_SUPPORT_MAX_BYTES}] B. "
+        f"They remain insufficient for a different reason than coverage of the "
+        f"low end: there are only {len(distinct)} sizes, payload is constant "
+        f"within each run, and no run pairs a changed payload with an observed "
+        f"queue transition, so no action-conditioned queue response is "
+        f"identifiable"
     )
-    if not any(
-        run.pre_action_qualification.get("NRUE_MAC_RLC_BUFFER_STATUS")
-        == PreActionQualification.QUALIFIED.value
-        for run in runs
-    ):
+    if not ordering_resolved:
+        shown = ", ".join(unresolved[:3]) + ("..." if len(unresolved) > 3 else "")
         rationale += (
-            ". No run retains an application-enqueue timestamp either, so the "
-            "pre-action read ordering is unproven independently of coverage"
+            f". The causal ordering is also unresolved in {len(unresolved)} of "
+            f"{len(runs)} run(s) ({shown}): no run demonstrates "
+            f"{ORDERING_CHAIN_TEXT}, so the pre-action read ordering is "
+            f"unproven independently of payload coverage"
         )
         return CoverageVerdict.INSUFFICIENT, rationale
     return CoverageVerdict.CARRIER_AND_NORMALIZATION_ONLY, rationale
@@ -1853,9 +2776,17 @@ def audit_evidence_root(evidence_root: Path) -> AuditReport:
     runs = [audit_run(run, evidence_root) for run in discover_runs(evidence_root)]
     verdict, rationale = decide_coverage(runs)
 
-    any_enqueue = any(run.enqueue_instant_evidence for run in runs)
+    # Qualification is per run and is only promoted to a global statement when
+    # EVERY run qualifies. One qualified file, or one qualified run, must never
+    # stand in for the rest.
+    qualified_runs = [
+        run.run_id
+        for run in runs
+        if run.enqueue_evidence and run.enqueue_evidence.qualified
+    ]
+    every_run_qualified = bool(runs) and len(qualified_runs) == len(runs)
     status = qualify_pre_action_source(
-        RLC_BUFFER_SOURCE, enqueue_instant_evidence=any_enqueue
+        RLC_BUFFER_SOURCE, enqueue_instant_evidence=every_run_qualified
     )
     if status is PreActionQualification.QUALIFIED:
         recommended = RLC_BUFFER_SOURCE.name
@@ -1870,6 +2801,8 @@ def audit_evidence_root(evidence_root: Path) -> AuditReport:
         coverage_rationale=rationale,
         recommended_pre_action_source=recommended,
         pre_action_status=status,
+        qualified_run_ids=tuple(qualified_runs),
+        total_run_count=len(runs),
         calibration_required=(
             status is not PreActionQualification.QUALIFIED
             or verdict is not CoverageVerdict.ACTION_CONDITIONED

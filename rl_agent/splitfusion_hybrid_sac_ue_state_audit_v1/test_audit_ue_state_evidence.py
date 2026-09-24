@@ -486,28 +486,236 @@ class OrderingAndLeakageTests(unittest.TestCase):
 
 
 class EnqueueEvidenceTests(unittest.TestCase):
+    """A2. Qualification must come from parsed content, never a filename."""
+
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
 
-    def _run(self, names):
-        csv_dir = self.tmp / "exp" / "r" / "ttracer" / "ue" / "csv"
+    def _build(
+        self,
+        *,
+        event="NR_PDCP_TX_SDU",
+        enqueue_rows=((("00:00:01.000000", 1, 0, 0, 1, 1200)),),
+        decisions=None,
+        with_rlc=True,
+        with_decisions=True,
+        root="exp/r",
+    ):
+        """A run that fully qualifies unless a caller removes something."""
+        run_root = self.tmp / root
+        csv_dir = run_root / "ttracer" / "ue" / "csv"
         csv_dir.mkdir(parents=True, exist_ok=True)
-        for name in names:
-            (csv_dir / f"{name}.csv").write_text("time\n")
+        if with_rlc:
+            write_csv(
+                csv_dir / "NRUE_MAC_RLC_BUFFER_STATUS.csv",
+                audit.RLC_BUFFER_HEADER,
+                [rlc_row("00:00:01.000000", 1, 0, 4, 1, 4096)],
+            )
+        if event is not None:
+            header = audit.ENQUEUE_EVENT_HEADERS.get(
+                event, audit.SERVICE_DEQUEUE_EVENT_HEADERS.get(event)
+            )
+            write_csv(csv_dir / f"{event}.csv", header, list(enqueue_rows))
+        if with_decisions:
+            if decisions is None:
+                decisions = [
+                    ["d0", 7, 0, 1, 4, 1, 100, 110, 120, 130, 140],
+                    ["d1", 8, 0, 1, 4, 1, 200, 200, 200, 230, 240],
+                ]
+            write_csv(
+                run_root / "decisions" / "decision_log.csv",
+                audit.DECISION_RECORD_HEADER,
+                decisions,
+            )
         return audit.LogicalRun(
-            run_id="exp/r", root=self.tmp / "exp" / "r",
-            ue_csv_dir=csv_dir, gnb_csv_dir=None, traffic_sender=None,
+            run_id=root, root=run_root, ue_csv_dir=csv_dir,
+            gnb_csv_dir=None, traffic_sender=None,
         )
 
-    def test_absent_enqueue_traces_are_detected(self):
-        run = self._run(["NRUE_MAC_BSR_STATUS", "NRUE_MAC_RLC_BUFFER_STATUS"])
-        self.assertFalse(audit.has_enqueue_instant_evidence(run))
+    # -- the positive control: the check is satisfiable, not vacuous ----
+    def test_a_complete_run_does_qualify(self):
+        check = audit.qualify_enqueue_evidence(self._build())
+        self.assertTrue(check.qualified, check.first_failure)
+        self.assertEqual(check.admitted_decisions, 2)
+        self.assertEqual(check.ordered_decisions, 2)
+        self.assertIsNone(check.first_failure)
 
-    def test_any_enqueue_trace_counts(self):
-        for event in audit.ENQUEUE_INSTANT_EVENTS:
-            self.assertTrue(audit.has_enqueue_instant_evidence(self._run([event])))
+    def test_equal_instants_are_allowed_only_where_the_chain_permits(self):
+        # t_measure == t_available == t_state_commit is admissible.
+        check = audit.qualify_enqueue_evidence(
+            self._build(decisions=[["d0", 1, 0, 1, 4, 1, 5, 5, 5, 6, 7]])
+        )
+        self.assertTrue(check.qualified, check.first_failure)
+
+    # -- filename existence must not qualify ---------------------------
+    def test_header_only_file_does_not_qualify(self):
+        check = audit.qualify_enqueue_evidence(self._build(enqueue_rows=()))
+        self.assertFalse(check.qualified)
+        self.assertIn("NONEMPTY_PARSED_RECORDS", check.first_failure)
+
+    def test_wrong_schema_does_not_qualify(self):
+        run = self._build()
+        path = run.ue_csv_dir / "NR_PDCP_TX_SDU.csv"
+        path.write_text("time,mono_sec,ue_id\n00:00:01.000000,1,0\n")
+        check = audit.qualify_enqueue_evidence(run)
+        self.assertFalse(check.qualified)
+        self.assertIn("SCHEMA_EXACT", check.first_failure)
+
+    def test_blank_source_timestamp_fails_closed(self):
+        check = audit.qualify_enqueue_evidence(
+            self._build(enqueue_rows=[["00:00:01.000000", "", 0, 0, 1, 1200]])
+        )
+        self.assertFalse(check.qualified)
+        self.assertIn("SOURCE_TIMESTAMP_PRESENT", check.first_failure)
+
+    def test_blank_availability_timestamp_fails_closed(self):
+        check = audit.qualify_enqueue_evidence(
+            self._build(enqueue_rows=[["", 1, 0, 0, 1, 1200]])
+        )
+        self.assertFalse(check.qualified)
+        self.assertIn("AVAILABILITY_TIMESTAMP_PRESENT", check.first_failure)
+
+    # -- dequeue is not enqueue ----------------------------------------
+    def test_dequeue_only_evidence_does_not_qualify_enqueue_ordering(self):
+        run = self._build(
+            event="NR_RLC_TX_DEQUEUE",
+            enqueue_rows=[["00:00:01.000000", 1, 0, 4, 900]],
+        )
+        check = audit.qualify_enqueue_evidence(run)
+        self.assertFalse(check.qualified)
+        self.assertIn("FILE_PRESENT", check.first_failure)
+        # And the refusal must say *why* rather than claim nothing was kept.
+        self.assertIn("service/dequeue", check.first_failure)
+
+    def test_dequeue_is_not_listed_as_an_enqueue_event(self):
+        self.assertNotIn("NR_RLC_TX_DEQUEUE", audit.ENQUEUE_INSTANT_EVENTS)
+        self.assertIn("NR_RLC_TX_DEQUEUE", audit.SERVICE_DEQUEUE_EVENTS)
+        self.assertEqual(
+            set(audit.ENQUEUE_INSTANT_EVENTS) & set(audit.SERVICE_DEQUEUE_EVENTS),
+            set(),
+        )
+
+    # -- identity ------------------------------------------------------
+    def test_mismatched_ue_identity_does_not_qualify(self):
+        check = audit.qualify_enqueue_evidence(
+            # field 3 is ue_id: 99 does not appear in the backlog trace.
+            self._build(enqueue_rows=[["00:00:01.000000", 1, 0, 99, 1, 1200]])
+        )
+        self.assertFalse(check.qualified)
+        self.assertIn("UE_AND_RNTI_IDENTITY", check.first_failure)
+
+    def test_blank_bearer_identity_does_not_qualify(self):
+        check = audit.qualify_enqueue_evidence(
+            self._build(enqueue_rows=[["00:00:01.000000", 1, 0, 0, "", 1200]])
+        )
+        self.assertFalse(check.qualified)
+        self.assertIn("LCID_OR_DRB_IDENTITY", check.first_failure)
+
+    def test_missing_decision_identity_fails_closed(self):
+        check = audit.qualify_enqueue_evidence(self._build(with_decisions=False))
+        self.assertFalse(check.qualified)
+        self.assertIn("DECISION_AND_FRAME_IDENTITY", check.first_failure)
+
+    def test_blank_frame_index_fails_closed(self):
+        check = audit.qualify_enqueue_evidence(
+            self._build(decisions=[["d0", "", 0, 1, 4, 1, 1, 2, 3, 4, 5]])
+        )
+        self.assertFalse(check.qualified)
+        self.assertIn("DECISION_AND_FRAME_IDENTITY", check.first_failure)
+
+    # -- cross-run contamination ---------------------------------------
+    def test_evidence_from_one_run_cannot_qualify_another(self):
+        good = self._build(root="exp/a")
+        other = self._build(root="exp/b", event=None, with_decisions=False)
+        # Point run B at run A's enqueue trace: the run roots differ, so the
+        # structural identity check must refuse it.
+        with self.assertRaises(audit.RunIsolationError):
+            audit.require_same_run(
+                other.ue_csv_dir / "NRUE_MAC_RLC_BUFFER_STATUS.csv",
+                good.ue_csv_dir / "NR_PDCP_TX_SDU.csv",
+            )
+        # And run B, which retains no enqueue trace of its own, stays unqualified
+        # even though a sibling run under the same tree is fully qualified.
+        self.assertTrue(audit.qualify_enqueue_evidence(good).qualified)
+        self.assertFalse(audit.qualify_enqueue_evidence(other).qualified)
+
+    def test_one_qualified_run_does_not_qualify_the_others_globally(self):
+        self._build(root="exp/a")
+        self._build(root="exp/b", event=None, with_decisions=False)
+        write_csv(
+            self.tmp / "exp" / "b" / "ttracer" / "ue" / "csv"
+            / "NRUE_MAC_BSR_STATUS.csv",
+            audit.BSR_STATUS_HEADER,
+            [bsr_row("00:00:01.000000", 1, 0, [0])],
+        )
+        write_csv(
+            self.tmp / "exp" / "a" / "ttracer" / "ue" / "csv"
+            / "NRUE_MAC_BSR_STATUS.csv",
+            audit.BSR_STATUS_HEADER,
+            [bsr_row("00:00:01.000000", 1, 0, [0])],
+        )
+        report = audit.audit_evidence_root(self.tmp)
+        self.assertEqual(report.total_run_count, 2)
+        self.assertEqual(len(report.qualified_run_ids), 1)
+        self.assertIs(
+            report.pre_action_status, audit.PreActionQualification.UNRESOLVED
+        )
+        self.assertEqual(report.recommended_pre_action_source, "UNRESOLVED")
+
+    # -- ordering ------------------------------------------------------
+    def test_action_after_enqueue_is_refused(self):
+        # t_action must strictly precede the payload enqueue it causes.
+        ok, why = audit.check_decision_ordering(
+            dict(zip(audit.DECISION_RECORD_HEADER,
+                     ["d", 1, 0, 1, 4, 1, 1, 2, 3, 40, 30]))
+        )
+        self.assertFalse(ok)
+        self.assertIn("t_action_mono_ns", why)
+
+    def test_state_commit_after_action_is_refused(self):
+        ok, why = audit.check_decision_ordering(
+            dict(zip(audit.DECISION_RECORD_HEADER,
+                     ["d", 1, 0, 1, 4, 1, 1, 2, 30, 3, 40]))
+        )
+        self.assertFalse(ok)
+        self.assertIn("t_state_commit_mono_ns", why)
+
+    def test_measurement_after_availability_is_refused(self):
+        ok, why = audit.check_decision_ordering(
+            dict(zip(audit.DECISION_RECORD_HEADER,
+                     ["d", 1, 0, 1, 4, 1, 50, 2, 60, 70, 80]))
+        )
+        self.assertFalse(ok)
+        self.assertIn("t_measure_mono_ns", why)
+
+    def test_missing_instant_fails_closed_rather_than_defaulting_to_zero(self):
+        for index in range(6, 11):
+            row = ["d", 1, 0, 1, 4, 1, 10, 20, 30, 40, 50]
+            row[index] = ""
+            ok, why = audit.check_decision_ordering(
+                dict(zip(audit.DECISION_RECORD_HEADER, row))
+            )
+            self.assertFalse(ok)
+            self.assertIn("missing", why)
+
+    def test_ordering_must_hold_for_every_admitted_decision(self):
+        # One good decision must not carry a bad one.
+        check = audit.qualify_enqueue_evidence(
+            self._build(decisions=[
+                ["d0", 1, 0, 1, 4, 1, 10, 20, 30, 40, 50],
+                ["d1", 2, 0, 1, 4, 1, 10, 20, 30, 90, 50],
+            ])
+        )
+        self.assertFalse(check.qualified)
+        self.assertEqual(check.admitted_decisions, 2)
+        self.assertEqual(check.ordered_decisions, 1)
+        self.assertIn("CAUSAL_ORDERING", check.first_failure)
+
+    def test_absent_enqueue_traces_are_detected(self):
+        run = self._build(event=None, with_decisions=False)
+        self.assertFalse(audit.has_enqueue_instant_evidence(run))
 
 
 class NormalizationTests(unittest.TestCase):
@@ -581,51 +789,93 @@ class NormalizationTests(unittest.TestCase):
 
 
 class CoverageVerdictTests(unittest.TestCase):
-    def _run_audit(self, sizes_per_run, enqueue=False):
-        runs = []
-        for index, sizes in enumerate(sizes_per_run):
-            run = audit.RunAudit(run_id=f"r{index}")
-            run.offered_load = audit.OfferedLoadProfile(
-                present=True, row_count=10,
-                distinct_frame_bytes=tuple(sizes), distinct_period_s=(0.1,),
-                reaches_splitfusion_range=max(sizes)
-                >= audit.SPLITFUSION_PAYLOAD_MIN_BYTES,
-                note="",
-            )
-            run.enqueue_instant_evidence = enqueue
-            run.pre_action_qualification = {
-                source.name: audit.qualify_pre_action_source(
-                    source, enqueue_instant_evidence=enqueue
-                ).value
-                for source in audit.CANDIDATE_SOURCES
-            }
-            runs.append(run)
+    def _make_run(self, index, sizes, *, ordering_ok):
+        run = audit.RunAudit(run_id=f"r{index}")
+        run.offered_load = audit.OfferedLoadProfile(
+            present=True, row_count=10,
+            distinct_frame_bytes=tuple(sorted(sizes)), distinct_period_s=(0.1,),
+            within_action_range=any(
+                audit.SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES
+                <= value
+                <= audit.SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES
+                for value in sizes
+            ),
+            within_run3_support=any(
+                audit.RUN3_MODELED_SUPPORT_MIN_BYTES
+                <= value
+                <= audit.RUN3_MODELED_SUPPORT_MAX_BYTES
+                for value in sizes
+            ),
+            varies_within_run=len(set(sizes)) > 1,
+            note="",
+        )
+        run.enqueue_evidence = audit.EnqueueEvidenceCheck(
+            run_id=run.run_id,
+            event_name="NR_PDCP_TX_SDU" if ordering_ok else None,
+            outcomes=(
+                audit.RequirementOutcome(
+                    audit.EnqueueRequirement.CAUSAL_ORDERING, ordering_ok, ""
+                ),
+            ),
+            admitted_decisions=3 if ordering_ok else 0,
+            ordered_decisions=3 if ordering_ok else 0,
+        )
+        run.enqueue_instant_evidence = run.enqueue_evidence.qualified
+        return run
+
+    def _run_audit(self, sizes_per_run, ordering_ok=False):
+        runs = [
+            self._make_run(index, sizes, ordering_ok=ordering_ok)
+            for index, sizes in enumerate(sizes_per_run)
+        ]
         return audit.decide_coverage(runs)
 
-    def test_fixed_subrange_traffic_is_insufficient(self):
+    def test_retained_traffic_is_inside_the_low_end_not_below_the_range(self):
+        # A1: the corrected authority puts 12.5 kB / 25 kB *inside* the action
+        # range. The old "below the action range" claim must be gone.
         verdict, rationale = self._run_audit([[12_500], [25_000]])
         self.assertIs(verdict, audit.CoverageVerdict.INSUFFICIENT)
-        self.assertIn("below the action range", rationale)
+        self.assertNotIn("below the action range", rationale)
+        self.assertIn("inside", rationale)
 
-    def test_varied_traffic_reaching_the_action_range_is_adequate(self):
-        verdict, _ = self._run_audit([[49_400, 400_000, 1_000_000]])
+    def test_fixed_within_run_payload_is_insufficient_even_inside_the_range(self):
+        verdict, rationale = self._run_audit([[12_500], [25_000]])
+        self.assertIs(verdict, audit.CoverageVerdict.INSUFFICIENT)
+        self.assertIn("constant", rationale)
+
+    def test_payload_variation_alone_cannot_reach_action_conditioned(self):
+        # A2: causal ordering is unresolved, so no amount of payload spread
+        # may promote the verdict.
+        verdict, _ = self._run_audit([[6_500, 400_000, 3_000_000]])
+        self.assertIs(verdict, audit.CoverageVerdict.INSUFFICIENT)
+
+    def test_action_conditioned_requires_both_variation_and_ordering(self):
+        verdict, _ = self._run_audit(
+            [[6_500, 400_000, 3_000_000]], ordering_ok=True
+        )
         self.assertIs(verdict, audit.CoverageVerdict.ACTION_CONDITIONED)
 
+    def test_one_unresolved_run_blocks_action_conditioned_for_all(self):
+        runs = [
+            self._make_run(0, [6_500, 400_000, 3_000_000], ordering_ok=True),
+            self._make_run(1, [12_500], ordering_ok=False),
+        ]
+        verdict, rationale = audit.decide_coverage(runs)
+        self.assertIsNot(verdict, audit.CoverageVerdict.ACTION_CONDITIONED)
+        self.assertIn("unresolved in 1 of 2", rationale)
+
     def test_fixed_traffic_with_resolved_ordering_is_carrier_audit_only(self):
-        verdict, _ = self._run_audit([[12_500]], enqueue=True)
+        verdict, _ = self._run_audit([[12_500]], ordering_ok=True)
         self.assertIs(verdict, audit.CoverageVerdict.CARRIER_AND_NORMALIZATION_ONLY)
 
     def test_no_offered_load_evidence_is_insufficient(self):
         run = audit.RunAudit(run_id="r0")
         run.offered_load = audit.OfferedLoadProfile(
             present=False, row_count=0, distinct_frame_bytes=(),
-            distinct_period_s=(), reaches_splitfusion_range=False, note="",
+            distinct_period_s=(), within_action_range=False,
+            within_run3_support=False, varies_within_run=False, note="",
         )
         verdict, _ = audit.decide_coverage([run])
-        self.assertIs(verdict, audit.CoverageVerdict.INSUFFICIENT)
-
-    def test_varied_traffic_below_the_action_range_does_not_extrapolate_up(self):
-        verdict, _ = self._run_audit([[12_500, 25_000]])
         self.assertIs(verdict, audit.CoverageVerdict.INSUFFICIENT)
 
 
@@ -877,6 +1127,196 @@ class RealEvidenceSmokeTests(unittest.TestCase):
             path: (audit.sha256_file(path), path.stat().st_size) for path in watched
         }
         self.assertEqual(before, after)
+
+
+class PayloadAuthorityTests(unittest.TestCase):
+    """A1. The legacy PERMODEL range must not be able to come back."""
+
+    def test_retired_permodel_constants_are_not_reachable(self):
+        for name in ("SPLITFUSION_PAYLOAD_MIN_BYTES", "SPLITFUSION_PAYLOAD_MAX_BYTES"):
+            self.assertFalse(
+                hasattr(audit, name), f"{name} must stay retired"
+            )
+
+    def test_no_payload_authority_constant_holds_a_retired_value(self):
+        live = {
+            audit.SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES,
+            audit.SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES,
+            audit.RUN3_MODELED_SUPPORT_MIN_BYTES,
+            audit.RUN3_MODELED_SUPPORT_MAX_BYTES,
+        }
+        self.assertEqual(live & set(audit.RETIRED_PERMODEL_PAYLOAD_BYTES), set())
+
+    def test_constants_match_the_authoritative_files(self):
+        # Verified against the catalogue and the Run-3 contract, not hard-coded
+        # on trust. This is the check that fails if either file is re-frozen.
+        summary = audit.verify_payload_authority(REPO_ROOT)
+        self.assertEqual(summary["action_count"], 72)
+        self.assertEqual(summary["action_payload_min_bytes"], 6_229)
+        self.assertEqual(summary["action_payload_max_bytes"], 3_568_326)
+        self.assertEqual(summary["run3_support_min_bytes"], 6_423)
+        self.assertEqual(summary["run3_support_max_bytes"], 427_605)
+
+    def test_drift_from_the_catalogue_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            catalog = root / audit.SPLITFUSION_ACTION_CATALOG_RELPATH
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({
+                "profiles": [
+                    {"payload": {"zstd_median_bytes": 1}},
+                    {"payload": {"zstd_median_bytes": 2}},
+                ]
+            }))
+            support = root / audit.RUN3_MODELED_SUPPORT_RELPATH
+            support.parent.mkdir(parents=True)
+            support.write_text(
+                f"{audit.RUN3_MODELED_SUPPORT_SYMBOL} = (6423, 427605)\n"
+            )
+            with self.assertRaises(audit.PayloadAuthorityError):
+                audit.verify_payload_authority(root)
+
+    def test_retained_traffic_sits_inside_the_action_range(self):
+        # The concrete A1 fact: 12.5 kB and 25 kB are inside the low end.
+        for value in (12_500, 25_000):
+            self.assertGreaterEqual(
+                value, audit.SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES
+            )
+            self.assertLessEqual(
+                value, audit.SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES
+            )
+
+    def test_run3_support_is_narrower_than_the_catalogue(self):
+        self.assertGreater(
+            audit.RUN3_MODELED_SUPPORT_MIN_BYTES,
+            audit.SPLITFUSION_ACTION_PAYLOAD_MIN_BYTES,
+        )
+        self.assertLess(
+            audit.RUN3_MODELED_SUPPORT_MAX_BYTES,
+            audit.SPLITFUSION_ACTION_PAYLOAD_MAX_BYTES,
+        )
+
+
+class ChannelSignalTaxonomyTests(unittest.TestCase):
+    """A4. UE downlink SNR and gNB uplink PUSCH SNR must stay distinct."""
+
+    def test_ue_snr_is_downlink_not_uplink(self):
+        self.assertIs(
+            audit.UE_PHY_MEAS_SNR.direction, audit.LinkDirection.UE_DOWNLINK_RECEIVE
+        )
+        with self.assertRaises(audit.AuditError):
+            audit.assert_direction_not_mislabelled(
+                audit.UE_PHY_MEAS_SNR, audit.LinkDirection.GNB_UPLINK_RECEIVE
+            )
+
+    def test_gnb_pusch_snr_cannot_be_labelled_ue_visible(self):
+        self.assertIs(
+            audit.GNB_PUSCH_SNR.direction, audit.LinkDirection.GNB_UPLINK_RECEIVE
+        )
+        self.assertFalse(audit.GNB_PUSCH_SNR.ue_runtime_available)
+        with self.assertRaises(audit.AuditError):
+            audit.assert_ue_observable(audit.GNB_PUSCH_SNR)
+
+    def test_ue_snr_is_ue_observable(self):
+        audit.assert_ue_observable(audit.UE_PHY_MEAS_SNR)
+
+    def test_no_candidate_is_labelled_bare_snr(self):
+        for candidate in audit.CHANNEL_SIGNAL_CANDIDATES:
+            self.assertNotEqual(candidate.display_label.strip().lower(), "snr")
+            self.assertTrue(
+                candidate.display_label.startswith(("UE downlink", "gNB received"))
+            )
+
+    def test_the_two_directions_never_share_a_display_label(self):
+        labels = {c.display_label for c in audit.CHANNEL_SIGNAL_CANDIDATES}
+        self.assertEqual(len(labels), len(audit.CHANNEL_SIGNAL_CANDIDATES))
+        self.assertNotEqual(
+            audit.UE_PHY_MEAS_SNR.display_label, audit.GNB_PUSCH_SNR.display_label
+        )
+
+    def test_w_cqi_is_not_a_standardized_index_but_csi_rs_cqi_is(self):
+        self.assertFalse(audit.UE_PHY_MEAS_W_CQI.standardized_index)
+        self.assertTrue(audit.CSI_RS_CQI.standardized_index)
+        self.assertIn("not a standardized CQI", audit.UE_PHY_MEAS_W_CQI.caveat)
+
+    def test_units_record_the_x10_conversion_asymmetry(self):
+        self.assertIn("NOT scaled by 10", audit.UE_PHY_MEAS_SNR.units)
+        self.assertIn("x10", audit.GNB_PUSCH_SNR.units)
+
+    def test_every_candidate_cites_source_code(self):
+        for candidate in audit.CHANNEL_SIGNAL_CANDIDATES:
+            self.assertTrue(candidate.code_citation.strip())
+
+    def test_ue_phy_meas_schema_matches_the_t_message_format(self):
+        self.assertEqual(audit.UE_PHY_MEAS_HEADER[0], "time")
+        for field in ("rsrp", "rssi", "snr", "rx_power", "noise_power", "w_cqi"):
+            self.assertIn(field, audit.UE_PHY_MEAS_HEADER)
+
+
+class BsrTemporalUseTests(unittest.TestCase):
+    """A3. Post-multiplex is not universally invalid, only same-action."""
+
+    def test_same_action_alignment_is_refused(self):
+        with self.assertRaises(audit.ActionLeakageError):
+            audit.assert_no_action_leakage(
+                audit.BSR_STATUS_SOURCE, aligned_to_same_action=True
+            )
+
+    def test_lagged_alignment_is_not_refused(self):
+        # A correctly lagged BSR may describe a *previous* action.
+        audit.assert_no_action_leakage(
+            audit.BSR_STATUS_SOURCE, aligned_to_same_action=False
+        )
+
+    def test_classification_names_both_uses(self):
+        self.assertIs(
+            audit.classify_bsr_temporal_use(
+                audit.BSR_STATUS_SOURCE, aligned_to_same_action=True
+            ),
+            audit.BsrTemporalUse.SAME_ACTION_PRE_STATE,
+        )
+        self.assertIs(
+            audit.classify_bsr_temporal_use(
+                audit.BSR_STATUS_SOURCE, aligned_to_same_action=False
+            ),
+            audit.BsrTemporalUse.LAGGED_PREVIOUS_ACTION,
+        )
+
+    def test_rlc_stays_the_preferred_candidate(self):
+        self.assertIn("preferred", audit.BSR_VS_RLC_PREFERENCE_NOTE)
+        self.assertIn("less quantized", audit.BSR_VS_RLC_PREFERENCE_NOTE)
+
+    def test_pre_multiplex_source_is_never_refused(self):
+        for same_action in (True, False):
+            audit.assert_no_action_leakage(
+                audit.RLC_BUFFER_SOURCE, aligned_to_same_action=same_action
+            )
+
+    def test_classification_rejects_a_pre_multiplex_source(self):
+        with self.assertRaises(audit.AuditError):
+            audit.classify_bsr_temporal_use(
+                audit.RLC_BUFFER_SOURCE, aligned_to_same_action=True
+            )
+
+    def test_post_multiplex_still_never_qualifies_as_pre_action_state(self):
+        self.assertIs(
+            audit.qualify_pre_action_source(
+                audit.BSR_STATUS_SOURCE, enqueue_instant_evidence=True
+            ),
+            audit.PreActionQualification.DISQUALIFIED_ACTION_CONTAMINATED,
+        )
+
+
+class RetainedUePhyMeasTests(unittest.TestCase):
+    """A4. Does the retained evidence actually contain UE_PHY_MEAS rows?"""
+
+    def test_no_retained_run_holds_ue_phy_meas(self):
+        if not REAL_EVIDENCE_ROOT.is_dir():
+            self.skipTest("evidence tree not present")
+        found = sorted(REAL_EVIDENCE_ROOT.glob("**/ttracer/ue/csv/UE_PHY_MEAS.csv"))
+        self.assertEqual(
+            found, [], "expectation was that no run retains UE_PHY_MEAS"
+        )
 
 
 if __name__ == "__main__":
