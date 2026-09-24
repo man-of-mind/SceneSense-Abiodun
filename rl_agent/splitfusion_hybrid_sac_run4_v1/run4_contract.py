@@ -1274,6 +1274,11 @@ class PolicyStateV2(_CanonicalRecord):
             raise MetadataError(
                 "prior_ul_mcs must be PriorUlGrantObservationV1"
             )
+        if (self.identity.decision_seq == 0) != (self.previous is None):
+            raise MetadataError(
+                "only decision_seq 0 may omit previous; every later decision "
+                "must carry the immediately preceding resolved outcome"
+            )
         if self.previous is not None:
             if not isinstance(self.previous, PreviousOutcomeV1):
                 raise MetadataError("previous must be PreviousOutcomeV1 or None")

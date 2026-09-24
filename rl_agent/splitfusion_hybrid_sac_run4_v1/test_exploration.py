@@ -6,10 +6,12 @@ import random
 import unittest
 from dataclasses import fields, replace
 
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract as contract
 from rl_agent.splitfusion_hybrid_sac_run4_v1.exploration import (
     ActionTraceSample,
     ActorPathError,
     CoverageGateConfig,
+    CoverageEvidenceClass,
     CoverageObservation,
     CoverageRecordError,
     DecisionPhase,
@@ -26,10 +28,20 @@ from rl_agent.splitfusion_hybrid_sac_run4_v1.exploration import (
     require_selection_path,
     summarize_action_trace,
 )
+from rl_agent.splitfusion_hybrid_sac_v1 import action_contract as actions
 from rl_agent.splitfusion_hybrid_sac_v1.action_contract import (
     EXPECTED_MODE_COUNT,
     round_half_up_q_e4,
 )
+from rl_agent.splitfusion_hybrid_sac_v1.transaction_identity import (
+    ExecutedActionIdentity,
+)
+
+
+SESSION = "11111111-1111-4111-8111-111111111111"
+UE_ID = "ue-1"
+CLOCK = "RUN4_EXPLORATION_TEST_MONOTONIC"
+EVIDENCE = "a" * 64
 
 
 def _bounds(lower: int = 0, upper: int = 99) -> tuple[tuple[int, int], ...]:
@@ -157,9 +169,9 @@ def _filled_ledger(
     gate: CoverageGateConfig | None = None,
 ) -> ExplorationCoverageLedger:
     schedule = _schedule()
-    ledger = ExplorationCoverageLedger(schedule, gate or _gate())
+    ledger = ExplorationCoverageLedger.for_test_only(schedule, gate or _gate())
     for ordinal, action in enumerate(schedule.actions):
-        ledger.record_decision(
+        ledger.record_test_only_decision(
             decision_identity=f"decision-{ordinal}",
             action=action,
             observation=_observation(
@@ -172,7 +184,7 @@ def _filled_ledger(
                 nonfinite_feature=nonfinite_feature,
             ),
         )
-    ledger.record_final_feedback_state(
+    ledger.record_test_only_final_feedback_state(
         _observation(
             schedule,
             len(schedule),
@@ -183,6 +195,229 @@ def _filled_ledger(
             nonfinite_feature=nonfinite_feature,
         )
     )
+    return ledger
+
+
+def _metadata(
+    identity: contract.DecisionIdentityV1,
+    *,
+    sample_seq: int,
+    kind: contract.MeasurementKind,
+    observer: contract.Observer,
+    direction: contract.LinkDirection,
+    source_ns: int,
+    available_ns: int,
+) -> contract.MeasurementMetadataV1:
+    return contract.MeasurementMetadataV1(
+        identity=contract.SampleIdentityV1(
+            identity.session_uuid, identity.ue_id, sample_seq
+        ),
+        kind=kind,
+        observer=observer,
+        link_direction=direction,
+        source="run4-exploration-attested-unit-test",
+        source_timestamp_ns=source_ns,
+        available_timestamp_ns=available_ns,
+        clock_domain=CLOCK,
+        valid=True,
+    )
+
+
+def _guarded_state(
+    *,
+    sequence: int,
+    action_open_ns: int,
+    previous: contract.PreviousOutcomeV1 | None,
+    freshness: contract.FreshnessPolicyV2,
+    scaling: contract.EmpiricalScalingV2,
+    state_bias: float = 0.0,
+) -> tuple[contract.GuardedPolicyStateV2, contract.PolicyFeatureVectorV2]:
+    identity = contract.DecisionIdentityV1(SESSION, UE_ID, sequence)
+    source_ns = action_open_ns - 30_000_000
+    available_ns = action_open_ns - 20_000_000
+    common = dict(source_ns=source_ns, available_ns=available_ns)
+    scene_identity = 1_000 + sequence
+    state = contract.PolicyStateV2(
+        identity=identity,
+        camera_si=contract.ScalarObservationV1(
+            value=10.0 + sequence + state_bias,
+            metadata=_metadata(
+                identity,
+                sample_seq=scene_identity,
+                kind=contract.MeasurementKind.CAMERA_SI,
+                observer=contract.Observer.SCENE_PIPELINE,
+                direction=contract.LinkDirection.NOT_APPLICABLE,
+                **common,
+            ),
+            missing_reason=None,
+        ),
+        radar_p40=contract.ScalarObservationV1(
+            value=0.2 + (sequence % 11) / 20.0,
+            metadata=_metadata(
+                identity,
+                sample_seq=scene_identity,
+                kind=contract.MeasurementKind.RADAR_P40,
+                observer=contract.Observer.SCENE_PIPELINE,
+                direction=contract.LinkDirection.NOT_APPLICABLE,
+                **common,
+            ),
+            missing_reason=None,
+        ),
+        prior_ul_mcs=contract.PriorUlGrantObservationV1(
+            observation=contract.ScalarObservationV1(
+                value=sequence % 29,
+                metadata=_metadata(
+                    identity,
+                    sample_seq=2_000 + sequence,
+                    kind=(
+                        contract.MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX
+                    ),
+                    observer=contract.Observer.UE,
+                    direction=contract.LinkDirection.UPLINK,
+                    **common,
+                ),
+                missing_reason=None,
+            ),
+            mcs_table=contract.UL_MCS_TABLE_ID,
+            harq_round=0,
+            new_data_indicator=sequence % 2,
+            grant_identity=f"exploration-test-grant-{sequence}",
+            scheduler_policy_id=contract.UL_MCS_POLICY_ID,
+            selection_rule_id=contract.UL_MCS_SELECTION_RULE_ID,
+        ),
+        pre_action_rlc_backlog=contract.ScalarObservationV1(
+            value=100 + 37 * sequence,
+            metadata=_metadata(
+                identity,
+                sample_seq=3_000 + sequence,
+                kind=contract.MeasurementKind.UE_PRE_ACTION_RLC_BACKLOG_BYTES,
+                observer=contract.Observer.UE,
+                direction=contract.LinkDirection.UPLINK,
+                **common,
+            ),
+            missing_reason=None,
+        ),
+        previous=previous,
+    )
+    boundary = contract.DecisionBoundaryV1(
+        identity=identity,
+        state_commit_timestamp_ns=action_open_ns - 10_000_000,
+        action_open_timestamp_ns=action_open_ns,
+        clock_domain=CLOCK,
+    )
+    guarded = contract.guard_state_for_action(state, boundary, freshness)
+    return guarded, contract.build_policy_features(guarded, scaling)
+
+
+def _attested_transitions(
+    schedule: StratifiedWarmupSchedule,
+    action_contract: actions.SplitActionContract,
+    *,
+    state_bias: float = 0.0,
+) -> tuple[contract.SemiMarkovTransitionV2, ...]:
+    freshness = contract.FreshnessPolicyV2(
+        policy_id="run4-exploration-attested-test",
+        policy_version=1,
+        evidence_sha256=EVIDENCE,
+        camera_si_max_age_ns=50_000_000,
+        radar_p40_max_age_ns=50_000_000,
+        prior_ul_mcs_max_age_ns=50_000_000,
+        pre_action_rlc_backlog_max_age_ns=50_000_000,
+    )
+    scaling = contract.EmpiricalScalingV2(
+        scaling_id="run4-exploration-attested-test",
+        scaling_version=1,
+        evidence_sha256=EVIDENCE,
+        camera_si_center=0.0,
+        camera_si_scale=1.0,
+        backlog_log1p_scale=10.0,
+    )
+    current, current_features = _guarded_state(
+        sequence=0,
+        action_open_ns=2_000_000_000,
+        previous=None,
+        freshness=freshness,
+        scaling=scaling,
+        state_bias=state_bias,
+    )
+    transitions = []
+    for ordinal, scheduled in enumerate(schedule.actions):
+        executable = action_contract.resolve(
+            scheduled.mode_id, scheduled.q_e4 / float(actions.Q_E4_SCALE)
+        )
+        action = ExecutedActionIdentity.from_executable_action(
+            executable, action_contract
+        )
+        opened = current.boundary.action_open_timestamp_ns
+        success = ordinal % 2 == 0
+        resolution_offset_ns = 40_000_000 + (ordinal % 100) * 1_000_000
+        event = contract.RewardEventV1(
+            identity=current.state.identity,
+            action=action,
+            kind=(
+                contract.RewardEventKind.DELIVERED_SUCCESS
+                if success
+                else contract.RewardEventKind.REGISTERED_SERVICE_FAILURE
+            ),
+            action_open_timestamp_ns=opened,
+            resolution_timestamp_ns=opened + resolution_offset_ns,
+            clock_domain=CLOCK,
+            source="run4-exploration-attested-unit-test",
+            q_perc=(0.5 + (ordinal % 40) / 100.0 if success else None),
+        )
+        resolution = contract.resolve_reward(event)
+        hold = contract.ActionHoldV1(
+            identity=current.state.identity,
+            action=action,
+            tensors=tuple(
+                contract.HoldTensorV1(
+                    tensor_seq=ordinal * 10 + index,
+                    offered_payload_bytes=1_000 + ordinal + index,
+                    payload_evidence_class=(
+                        contract.PayloadEvidenceClass.MEASURED_EXACT_ACTION_NODE
+                    ),
+                    payload_provenance_sha256="b" * 64,
+                    reward_requested=index == 0,
+                )
+                for index in range(2)
+            ),
+        )
+        cycle_end = opened + 200_000_000
+        next_state, next_features = _guarded_state(
+            sequence=ordinal + 1,
+            action_open_ns=cycle_end,
+            previous=contract.PreviousOutcomeV1.from_resolution(resolution),
+            freshness=freshness,
+            scaling=scaling,
+            state_bias=state_bias,
+        )
+        transition = contract.build_transition(
+            state=current,
+            state_features=current_features,
+            action=action,
+            hold=hold,
+            reward_resolution=resolution,
+            next_state=next_state,
+            next_state_features=next_features,
+            episode_boundary=contract.EpisodeBoundary.CONTINUES,
+            duration=2,
+            cycle_end_timestamp_ns=cycle_end,
+            elapsed_virtual_ns=200_000_000,
+            gamma=0.99,
+            discount=0.99**2,
+        )
+        transitions.append(transition)
+        current, current_features = next_state, next_features
+    return tuple(transitions)
+
+
+def _filled_attested_ledger(
+    action_contract: actions.SplitActionContract,
+) -> ExplorationCoverageLedger:
+    schedule = _schedule()
+    ledger = ExplorationCoverageLedger(schedule, _gate())
+    for transition in _attested_transitions(schedule, action_contract):
+        ledger.record_transition(transition)
     return ledger
 
 
@@ -371,10 +606,18 @@ class ObservationContractTests(unittest.TestCase):
 
 
 class FeedbackCoverageGateTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.action_contract = actions.load_contract()
+
     def test_complete_real_sequence_passes_all_current_and_previous_strata(self) -> None:
-        ledger = _filled_ledger()
+        ledger = _filled_attested_ledger(self.action_contract)
         report = ledger.require_gradient_start()
         self.assertTrue(report.gradient_start_allowed)
+        self.assertIs(
+            report.evidence_class, CoverageEvidenceClass.TRANSITION_ATTESTED
+        )
+        self.assertEqual(report.attested_transition_count, len(ledger.schedule))
         self.assertTrue(report.final_feedback_state_recorded)
         self.assertEqual(report.decision_count, report.expected_decision_count)
         self.assertEqual(
@@ -394,9 +637,9 @@ class FeedbackCoverageGateTests(unittest.TestCase):
 
     def test_no_gradient_before_all_modes_bins_and_final_feedback(self) -> None:
         schedule = _schedule()
-        ledger = ExplorationCoverageLedger(schedule, _gate())
+        ledger = ExplorationCoverageLedger.for_test_only(schedule, _gate())
         for ordinal, action in enumerate(schedule.actions[:-1]):
-            ledger.record_decision(
+            ledger.record_test_only_decision(
                 decision_identity=f"decision-{ordinal}",
                 action=action,
                 observation=_observation(schedule, ordinal),
@@ -409,7 +652,7 @@ class FeedbackCoverageGateTests(unittest.TestCase):
             ledger.require_gradient_start()
 
         last_ordinal = len(schedule) - 1
-        ledger.record_decision(
+        ledger.record_test_only_decision(
             decision_identity=f"decision-{last_ordinal}",
             action=schedule.action_at(last_ordinal),
             observation=_observation(schedule, last_ordinal),
@@ -422,20 +665,20 @@ class FeedbackCoverageGateTests(unittest.TestCase):
 
     def test_previous_action_link_and_counter_order_fail_closed(self) -> None:
         schedule = _schedule()
-        ledger = ExplorationCoverageLedger(schedule, _gate())
+        ledger = ExplorationCoverageLedger.for_test_only(schedule, _gate())
         with self.assertRaises(CoverageRecordError):
-            ledger.record_decision(
+            ledger.record_test_only_decision(
                 decision_identity="out-of-order",
                 action=schedule.action_at(1),
                 observation=_observation(schedule, 0),
             )
-        ledger.record_decision(
+        ledger.record_test_only_decision(
             decision_identity="decision-0",
             action=schedule.action_at(0),
             observation=_observation(schedule, 0),
         )
         with self.assertRaises(CoverageRecordError):
-            ledger.record_decision(
+            ledger.record_test_only_decision(
                 decision_identity="decision-1",
                 action=schedule.action_at(1),
                 observation=CoverageObservation(
@@ -447,11 +690,48 @@ class FeedbackCoverageGateTests(unittest.TestCase):
                 ),
             )
         with self.assertRaises(CoverageRecordError):
-            ledger.record_decision(
+            ledger.record_test_only_decision(
                 decision_identity="decision-0",
                 action=schedule.action_at(1),
                 observation=_observation(schedule, 1),
             )
+
+    def test_fabricated_bare_variation_cannot_authorize_gradient_start(self) -> None:
+        schedule = _schedule()
+        production = ExplorationCoverageLedger(schedule, _gate())
+        with self.assertRaisesRegex(
+            CoverageRecordError, "bare CoverageObservation cannot authorize"
+        ):
+            production.record_decision(
+                decision_identity="fabricated-genesis",
+                action=schedule.action_at(0),
+                observation=_observation(schedule, 0),
+            )
+
+        fabricated = _filled_ledger()
+        report = fabricated.report()
+        self.assertIs(
+            report.evidence_class, CoverageEvidenceClass.TEST_ONLY_UNATTESTED
+        )
+        self.assertFalse(report.gradient_start_allowed)
+        self.assertIn(
+            "test-only unattested observations cannot authorize production "
+            "gradient start",
+            report.failures,
+        )
+        with self.assertRaises(GradientStartRefused):
+            fabricated.require_gradient_start()
+
+    def test_attested_sequence_must_reuse_the_exact_prior_successor(self) -> None:
+        schedule = _schedule()
+        canonical = _attested_transitions(schedule, self.action_contract)
+        independently_redrawn = _attested_transitions(
+            schedule, self.action_contract, state_bias=0.125
+        )
+        ledger = ExplorationCoverageLedger(schedule, _gate())
+        ledger.record_transition(canonical[0])
+        with self.assertRaisesRegex(CoverageRecordError, "exact prior transition"):
+            ledger.record_transition(independently_redrawn[1])
 
     def test_constant_saturated_and_nonfinite_state_evidence_refuses_gradient(self) -> None:
         constant = _filled_ledger(constant_feature="prior_ul_mcs_index").report()

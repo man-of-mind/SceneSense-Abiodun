@@ -19,7 +19,9 @@ decisions and receive neither an action identity nor a reward transition.
 
 `exploration.py` implements only the essential pre-gradient boundary and
 diagnostics.  It does not implement a trainer, load evidence, launch a runtime,
-or choose scientific thresholds.
+or choose scientific thresholds. Production coverage enters only as an
+attested `SemiMarkovTransitionV2`; caller-constructed numeric observations
+cannot authorize gradient start.
 
 ## Run-3 audit
 
@@ -68,7 +70,10 @@ Identifiers and privileged labels are rejected by the mapping boundary.
 Network-profile identity, profile labels, frame/session IDs, future fields, and
 reward fields cannot enter `CoverageObservation`.  Measurement timestamps and
 validity remain runtime adapter guards; they are not actor features in this
-minimal state.
+minimal state. `CoverageObservation.from_mapping` and the bare-record helpers
+exist only for isolated statistics tests. Their ledger is explicitly
+`TEST_ONLY_UNATTESTED`, and its report always refuses gradient start regardless
+of apparent variation.
 
 ## Stratified warm-up
 
@@ -96,12 +101,16 @@ profile to satisfy coverage.
 
 ## Gradient-start gate
 
-`ExplorationCoverageLedger` accepts only the next exact scheduled action.  For
-every decision after the first, it verifies that the state's previous action is
-the immediately preceding scheduled mode/q.  After the last warm-up action,
-the caller must wait for and record one additional natural feedback state.  As
-a result, every scheduled action is observed once as a causal predecessor
-before gradients can start.
+The production `ExplorationCoverageLedger` accepts only the next exact attested
+transition. It derives all coverage values from the guarded current state,
+checks the scheduled mode/q, and requires one session, UE, and strictly
+incrementing decision sequence beginning at sequence zero. For every decision
+after the first, the current guarded-state digest must equal the preceding
+transition's successor digest. This also binds the visible previous action and
+outcome to the exact preceding reward resolution. The final scheduled
+transition must be `CONTINUES`; its real successor is recorded automatically as
+the final feedback state. Thus every scheduled action is observed once as a
+causal predecessor before gradients can start.
 
 The report and gate cover:
 
@@ -132,16 +141,19 @@ The intended integration order is:
 ```text
 state = environment.reset()
 for scheduled_action in warmup_schedule:
-    ledger.record_decision(state, scheduled_action, decision_identity)
-    environment.step(scheduled_action)
-    state = wait_for_that_action_feedback_or_timeout()
+    execute scheduled_action and wait for feedback/timeout
+    transition = build the attested transition with its real successor
+    ledger.record_transition(transition)
 
-ledger.record_final_feedback_state(state)
 ledger.require_gradient_start()
 
 training:   sample categorical mode and conditional q stochastically
 evaluation: categorical argmax and conditional mean only
 ```
+
+If an episode boundary or excluded fault occurs before this chain is complete,
+start a new ledger and a fresh session UUID. Do not splice independent genesis
+draws or states from another episode into the coverage record.
 
 If the gate fails because naturally observed state or outcome variation was
 insufficient, do not synthesize missing states.  Extend or repeat a

@@ -20,6 +20,7 @@ from rl_agent.splitfusion_hybrid_sac_v1.transaction_identity import (
 
 
 SESSION = "11111111-1111-4111-8111-111111111111"
+NEXT_SESSION = "22222222-2222-4222-8222-222222222222"
 UE_ID = "ue-1"
 CLOCK = "RUN4_ENV_TEST_MONOTONIC"
 SYNTHETIC_EVIDENCE = "a" * 64
@@ -319,6 +320,36 @@ class EnvironmentTest(unittest.TestCase):
         self.assertEqual(
             [request.identity.decision_seq for request in provider.requests],
             [0, 1, 2],
+        )
+
+    def test_reset_cannot_abandon_an_active_decision_sequence(self) -> None:
+        environment, provider, _ = self.environment()
+        active_sha256 = environment.current_state.state.canonical_sha256()
+
+        with self.assertRaisesRegex(src.EnvironmentStateError, "cannot reset an active"):
+            environment.reset(session_uuid=NEXT_SESSION, ue_id=UE_ID)
+
+        self.assertEqual(
+            environment.current_state.state.canonical_sha256(), active_sha256
+        )
+        self.assertEqual(len(provider.requests), 1)
+
+    def test_restart_after_boundary_requires_a_fresh_session_uuid(self) -> None:
+        kernel = FixtureKernel(boundary=contract.EpisodeBoundary.TERMINATED)
+        environment, provider, _ = self.environment(kernel=kernel)
+        environment.step(self.action())
+        self.assertTrue(environment.requires_reset)
+
+        with self.assertRaisesRegex(src.EnvironmentStateError, "fresh session_uuid"):
+            environment.reset(session_uuid=SESSION, ue_id=UE_ID)
+
+        restarted = environment.reset(session_uuid=NEXT_SESSION, ue_id=UE_ID)
+        self.assertEqual(restarted.state.state.identity.session_uuid, NEXT_SESSION)
+        self.assertEqual(restarted.state.state.identity.decision_seq, 0)
+        self.assertIsNone(restarted.state.state.previous)
+        self.assertEqual(
+            [request.identity.session_uuid for request in provider.requests],
+            [SESSION, NEXT_SESSION],
         )
 
     def test_hold_reuses_exact_action_and_only_first_tensor_requests_reward(self) -> None:

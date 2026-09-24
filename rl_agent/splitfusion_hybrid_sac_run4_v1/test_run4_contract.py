@@ -308,6 +308,17 @@ class Run4ContractTest(unittest.TestCase):
         self.assertEqual(vector.as_tuple()[:4], (2.0, 0.4, 12.0 / 28.0, 1.0))
         self.assertEqual(vector.as_tuple()[4:], (0.0,) * 17)
 
+    def test_previous_outcome_presence_is_exactly_the_genesis_boundary(self) -> None:
+        resolution = self.success(sequence=0)
+        previous = src.PreviousOutcomeV1.from_resolution(resolution)
+
+        accepted = self.state(sequence=1, previous=previous)
+        self.assertEqual(accepted.previous, previous)
+        with self.assertRaisesRegex(src.MetadataError, "only decision_seq 0"):
+            self.state(sequence=1, previous=None)
+        with self.assertRaisesRegex(src.MetadataError, "only decision_seq 0"):
+            self.state(sequence=0, previous=previous)
+
     def test_forbidden_actor_leakage_and_redundant_reward_are_absent(self) -> None:
         src.assert_policy_feature_schema()
         joined = " ".join(src.POLICY_FEATURE_ORDER).lower()

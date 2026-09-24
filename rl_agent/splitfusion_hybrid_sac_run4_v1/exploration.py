@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Iterable, Mapping, Optional, Sequence, Tuple
 
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract as contract
 from rl_agent.splitfusion_hybrid_sac_v1.action_contract import (
     EXPECTED_MODE_COUNT,
     Q_E4_MAX,
@@ -84,6 +85,13 @@ class GradientStartRefused(RuntimeError):
 
 class ActorPathError(ExplorationError):
     """An actor sampling path does not match its training/evaluation phase."""
+
+
+class CoverageEvidenceClass(str, Enum):
+    """Whether coverage rows came from authenticated causal transitions."""
+
+    TRANSITION_ATTESTED = "TRANSITION_ATTESTED"
+    TEST_ONLY_UNATTESTED = "TEST_ONLY_UNATTESTED"
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -524,6 +532,38 @@ class CoverageObservation:
         )
 
 
+def _coverage_from_guarded_state(
+    guarded: contract.GuardedPolicyStateV2,
+) -> CoverageObservation:
+    """Derive coverage values from a contract-attested state, never bare input."""
+
+    if type(guarded) is not contract.GuardedPolicyStateV2:
+        raise CoverageRecordError(
+            "production coverage requires exactly GuardedPolicyStateV2"
+        )
+    guarded.require_guarded()
+    state = guarded.state
+    previous = state.previous
+    previous_observation = (
+        None
+        if previous is None
+        else PreviousDecisionObservation(
+            mode_id=previous.action.mode_id,
+            q_e4=previous.action.q_e4,
+            success=previous.success,
+            quality=previous.q_perc,
+            latency_ms=previous.latency_ms,
+        )
+    )
+    return CoverageObservation(
+        scene_si=float(state.camera_si.value),
+        scene_p40=float(state.radar_p40.value),
+        prior_ul_mcs_index=state.prior_ul_mcs.observation.value,
+        rlc_backlog_bytes=float(state.pre_action_rlc_backlog.value),
+        previous=previous_observation,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class StateFeatureThreshold:
     """Caller-preregistered variation/saturation limits for one state input."""
@@ -935,6 +975,8 @@ def summarize_action_trace(
 class ExplorationCoverageReport:
     schedule_id: str
     gate_config_sha256: str
+    evidence_class: CoverageEvidenceClass
+    attested_transition_count: int
     decision_count: int
     expected_decision_count: int
     final_feedback_state_recorded: bool
@@ -970,28 +1012,63 @@ class ExplorationCoverageReport:
 class ExplorationCoverageLedger:
     """Causal pre-gradient ledger for one finite stratified warm-up.
 
-    ``record_decision`` accepts only the next exact scheduled action and checks
-    that the state exposes the immediately previous scheduled action/outcome.
-    Held transmissions must never be recorded here: they are queue evolution,
-    not policy decisions and not reward-bearing transitions.
+    The production constructor accepts only attested semi-Markov transitions.
+    Bare observations remain available through :meth:`for_test_only` solely for
+    schedule/statistics unit tests; such a ledger can never authorize gradient
+    start.  Held transmissions are already contained by their one transition
+    and must never be recorded as independent policy decisions.
     """
 
     def __init__(
         self,
         schedule: StratifiedWarmupSchedule,
         gate_config: CoverageGateConfig,
+        *,
+        _evidence_class: CoverageEvidenceClass = (
+            CoverageEvidenceClass.TRANSITION_ATTESTED
+        ),
     ) -> None:
         if type(schedule) is not StratifiedWarmupSchedule:
             raise ExplorationError("schedule has a foreign type")
         if type(gate_config) is not CoverageGateConfig:
             raise ExplorationError("gate_config has a foreign type")
         gate_config.__post_init__()
+        if not isinstance(_evidence_class, CoverageEvidenceClass):
+            raise ExplorationError("evidence class has a foreign type")
         self.schedule = schedule
         self.gate_config = gate_config
+        self._evidence_class = _evidence_class
         self._decision_ids: set[str] = set()
+        self._transition_digests: set[str] = set()
         self._samples: list[ActionTraceSample] = []
         self._observations: list[CoverageObservation] = []
         self._final_feedback_recorded = False
+        self._session_uuid: Optional[str] = None
+        self._ue_id: Optional[str] = None
+        self._last_decision_seq: Optional[int] = None
+        self._last_successor_sha256: Optional[str] = None
+
+    @classmethod
+    def for_test_only(
+        cls,
+        schedule: StratifiedWarmupSchedule,
+        gate_config: CoverageGateConfig,
+    ) -> "ExplorationCoverageLedger":
+        """Build an explicitly non-production ledger for pure math tests."""
+
+        return cls(
+            schedule,
+            gate_config,
+            _evidence_class=CoverageEvidenceClass.TEST_ONLY_UNATTESTED,
+        )
+
+    @property
+    def evidence_class(self) -> CoverageEvidenceClass:
+        return self._evidence_class
+
+    @property
+    def attested_transition_count(self) -> int:
+        return len(self._transition_digests)
 
     @property
     def decision_count(self) -> int:
@@ -1020,7 +1097,7 @@ class ExplorationCoverageLedger:
                 "scheduled decision"
             )
 
-    def record_decision(
+    def _append_decision(
         self,
         *,
         decision_identity: str,
@@ -1060,7 +1137,116 @@ class ExplorationCoverageLedger:
             )
         )
 
-    def record_final_feedback_state(self, observation: CoverageObservation) -> None:
+    def record_transition(
+        self, transition: contract.SemiMarkovTransitionV2
+    ) -> None:
+        """Record the next exact scheduled action from one attested transition."""
+
+        if self._evidence_class is not CoverageEvidenceClass.TRANSITION_ATTESTED:
+            raise CoverageRecordError(
+                "a test-only ledger cannot ingest production transitions"
+            )
+        if type(transition) is not contract.SemiMarkovTransitionV2:
+            raise CoverageRecordError(
+                "production coverage requires exactly SemiMarkovTransitionV2"
+            )
+        transition.require_attested()
+        if transition.episode_boundary is not contract.EpisodeBoundary.CONTINUES:
+            raise CoverageRecordError(
+                "warm-up coverage requires a real successor for every scheduled "
+                "decision, including the final feedback state"
+            )
+        if self._final_feedback_recorded:
+            raise CoverageRecordError("cannot append a decision after final feedback")
+
+        digest = transition.canonical_sha256()
+        if digest in self._transition_digests:
+            raise CoverageRecordError("duplicate attested transition")
+        expected = self.schedule.action_at(self.decision_count)
+        if (transition.action.mode_id, transition.action.q_e4) != (
+            expected.mode_id,
+            expected.q_e4,
+        ):
+            raise CoverageRecordError(
+                "transition action differs from the exact counter-addressed "
+                "schedule entry"
+            )
+
+        state = transition.state
+        identity = state.state.identity
+        current_sha256 = state.canonical_sha256()
+        if self.decision_count == 0:
+            if identity.decision_seq != 0:
+                raise CoverageRecordError(
+                    "the production warm-up must begin at the sole session genesis"
+                )
+            self._session_uuid = identity.session_uuid
+            self._ue_id = identity.ue_id
+        else:
+            if (
+                identity.session_uuid != self._session_uuid
+                or identity.ue_id != self._ue_id
+                or identity.decision_seq != self._last_decision_seq + 1
+            ):
+                raise CoverageRecordError(
+                    "attested transitions must remain in one session/UE and advance "
+                    "the decision sequence by exactly one"
+                )
+            if current_sha256 != self._last_successor_sha256:
+                raise CoverageRecordError(
+                    "transition current state is not the exact prior transition "
+                    "successor"
+                )
+
+        observation = _coverage_from_guarded_state(state)
+        self._append_decision(
+            decision_identity=_sha256(identity.to_canonical_dict()),
+            action=expected,
+            observation=observation,
+        )
+        self._transition_digests.add(digest)
+        self._last_decision_seq = identity.decision_seq
+        assert transition.next_state is not None  # guaranteed by attested CONTINUES
+        self._last_successor_sha256 = transition.next_state.canonical_sha256()
+
+        if self.decision_count == len(self.schedule):
+            final_observation = _coverage_from_guarded_state(transition.next_state)
+            self._validate_previous_link(final_observation, expected)
+            self._observations.append(final_observation)
+            self._final_feedback_recorded = True
+
+    def record_decision(
+        self,
+        *,
+        decision_identity: str,
+        action: WarmupAction,
+        observation: CoverageObservation,
+    ) -> None:
+        """Reject the former unattested production ingestion path."""
+
+        raise CoverageRecordError(
+            "bare CoverageObservation cannot authorize production gradients; "
+            "use record_transition(), or an explicit test-only ledger"
+        )
+
+    def record_test_only_decision(
+        self,
+        *,
+        decision_identity: str,
+        action: WarmupAction,
+        observation: CoverageObservation,
+    ) -> None:
+        if self._evidence_class is not CoverageEvidenceClass.TEST_ONLY_UNATTESTED:
+            raise CoverageRecordError(
+                "bare observations are accepted only by for_test_only() ledgers"
+            )
+        self._append_decision(
+            decision_identity=decision_identity,
+            action=action,
+            observation=observation,
+        )
+
+    def _append_final_feedback_state(self, observation: CoverageObservation) -> None:
         if self.decision_count != len(self.schedule):
             raise CoverageRecordError(
                 "final feedback state is allowed only after the complete schedule"
@@ -1072,6 +1258,23 @@ class ExplorationCoverageLedger:
         self._validate_previous_link(observation, self.schedule.action_at(len(self.schedule) - 1))
         self._observations.append(observation)
         self._final_feedback_recorded = True
+
+    def record_final_feedback_state(self, observation: CoverageObservation) -> None:
+        """Reject the former unattested production final-state path."""
+
+        raise CoverageRecordError(
+            "bare final feedback cannot authorize production gradients; the final "
+            "state is derived from the last attested transition successor"
+        )
+
+    def record_test_only_final_feedback_state(
+        self, observation: CoverageObservation
+    ) -> None:
+        if self._evidence_class is not CoverageEvidenceClass.TEST_ONLY_UNATTESTED:
+            raise CoverageRecordError(
+                "bare observations are accepted only by for_test_only() ledgers"
+            )
+        self._append_final_feedback_state(observation)
 
     def _previous_inventory(self) -> tuple[
         Tuple[int, ...], Tuple[Tuple[int, ...], ...], int, int, int, int
@@ -1158,6 +1361,16 @@ class ExplorationCoverageLedger:
         ) = self._previous_inventory()
 
         failures: list[str] = []
+        if self._evidence_class is not CoverageEvidenceClass.TRANSITION_ATTESTED:
+            failures.append(
+                "test-only unattested observations cannot authorize production "
+                "gradient start"
+            )
+        elif self.attested_transition_count != self.decision_count:
+            failures.append(
+                "every production decision must come from one unique attested "
+                "transition"
+            )
         if self.decision_count != len(self.schedule):
             failures.append(
                 f"warm-up incomplete: {self.decision_count}/{len(self.schedule)} decisions"
@@ -1272,6 +1485,8 @@ class ExplorationCoverageLedger:
         return ExplorationCoverageReport(
             schedule_id=self.schedule.config.schedule_id,
             gate_config_sha256=self.gate_config.config_sha256,
+            evidence_class=self._evidence_class,
+            attested_transition_count=self.attested_transition_count,
             decision_count=self.decision_count,
             expected_decision_count=len(self.schedule),
             final_feedback_state_recorded=self._final_feedback_recorded,

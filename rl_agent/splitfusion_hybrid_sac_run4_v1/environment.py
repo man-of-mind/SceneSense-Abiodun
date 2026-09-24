@@ -439,6 +439,7 @@ class Run4SequentialEnvironmentV1:
 
         self._current: Optional[DecisionStateBundleV1] = None
         self._requires_reset = False
+        self._used_session_uuids: set[str] = set()
 
     @property
     def evidence_class(self) -> EnvironmentEvidenceClass:
@@ -499,10 +500,26 @@ class Run4SequentialEnvironmentV1:
         return bundle
 
     def reset(self, *, session_uuid: str, ue_id: str) -> DecisionStateBundleV1:
-        """Acquire a real guarded genesis state for decision sequence zero."""
+        """Acquire one guarded genesis under a never-before-used session UUID.
 
+        An active sequence cannot be abandoned through ``reset``.  After an
+        explicit boundary or fault, the next genesis must use a fresh session
+        UUID so sequence zero cannot masquerade as a continuation or retry.
+        """
+
+        canonical_session = _canonical_uuid(session_uuid, "session_uuid")
+        if self._current is not None and not self._requires_reset:
+            raise EnvironmentStateError(
+                "cannot reset an active decision sequence without an explicit "
+                "boundary or fault"
+            )
+        if canonical_session in self._used_session_uuids:
+            raise EnvironmentStateError(
+                "reset requires a fresh session_uuid; a completed, faulted, or "
+                "abandoned sequence must never restart at decision_seq 0"
+            )
         identity = contract.DecisionIdentityV1(
-            _canonical_uuid(session_uuid, "session_uuid"),
+            canonical_session,
             _non_empty_str(ue_id, "ue_id"),
             0,
         )
@@ -515,6 +532,7 @@ class Run4SequentialEnvironmentV1:
         bundle = self._validate_bundle(
             self._state_provider.build_state(request), request
         )
+        self._used_session_uuids.add(canonical_session)
         self._current = bundle
         self._requires_reset = False
         return bundle

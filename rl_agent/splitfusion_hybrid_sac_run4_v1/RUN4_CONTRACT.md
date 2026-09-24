@@ -27,8 +27,10 @@ proximity descriptor. The prior UL MCS is normalized over the registered table-0
 wire domain `[0,28]`. Previous `q` is normalized by the frozen wire maximum,
 and successful previous latency is normalized by the 170 ms reward deadline.
 
-At episode genesis, all previous-decision fields are zero and
-`prev_present=0`. After success, the exact previous action, quality, and latency
+Only `decision_seq=0` is episode genesis and only that state may omit a previous
+outcome; all previous-decision fields are then zero and `prev_present=0`. Every
+later sequence must carry the immediately preceding resolved outcome. After
+success, the exact previous action, quality, and latency
 are required and `prev_present=prev_success=1`. After a registered failure or
 timeout, the previous action remains required, quality and latency must be
 absent, and only those two vector positions become numeric zero under the
