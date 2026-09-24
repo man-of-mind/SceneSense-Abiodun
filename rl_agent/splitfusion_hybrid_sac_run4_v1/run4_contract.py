@@ -8,7 +8,9 @@ The policy sees exactly 21 numeric features.  Source timestamps, availability,
 validity, freshness and identity are mandatory causal metadata, but are checked
 by :func:`guard_state_for_action` outside the actor and never appended to the
 feature vector.  The radio feature is the latest strictly prior, UE-decoded,
-round-0 UL MCS selected by the registered SINR-driven gNB scheduler.  Missing
+round-0 granted/final UL MCS under the registered SINR-driven gNB scheduler.
+It is the value the UE actually decoded after scheduler constraints, not a
+fabricated UE SNR or an unobserved intermediate lookup value.  Missing
 or stale measurements raise
 :class:`ExternalFallbackRequired`; they are never represented by numeric zero.
 
@@ -305,9 +307,9 @@ REWARD_DEADLINE_NS = 170_000_000
 REWARD_LATENCY_WEIGHT = 0.25
 REGISTERED_FAILURE_REWARD = -1.0
 
-# The local SINR-driven scheduler's lookup accepts only TS 38.214 table 0 and
-# emits indices 0..28.  The runtime adapter must construct the observation
-# from the latest strictly prior UE-decoded round-0/new-data UL DCI grant.
+# The local SINR-driven scheduler uses TS 38.214 table 0.  The policy observes
+# the granted/final index (0..28) carried by the latest strictly prior,
+# UE-decoded round-0/new-data UL DCI, after any scheduler-side constraints.
 UL_MCS_TABLE_ID = 0
 UL_MCS_INDEX_MIN = 0
 UL_MCS_INDEX_MAX = 28

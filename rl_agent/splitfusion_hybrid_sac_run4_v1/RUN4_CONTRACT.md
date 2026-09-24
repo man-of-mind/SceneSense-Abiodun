@@ -68,7 +68,9 @@ the expected measurement semantics. In particular:
 - camera SI and radar P40 must carry the exact same current-scene
   `SampleIdentity`; UE MCS and RLC samples may remain asynchronous;
 - `prior_ul_mcs` must be the latest strictly prior, UE-decoded, round-0/new-data
-  UL DCI MCS under table 0 and the registered SINR-driven scheduler; the typed
+  granted/final UL DCI MCS under table 0 and the registered SINR-driven
+  scheduler. It is the value actually decoded by the UE after scheduler-side
+  constraints, not a fabricated UE SNR or an intermediate lookup value; the typed
   grant evidence hash includes table, HARQ round, NDI, grant identity,
   scheduler policy, and the strict-prior selection rule;
 - gNB-received uplink PUSCH SNR, UE downlink SNR, and retransmission-grant MCS
