@@ -215,6 +215,29 @@ class Fixture:
         guarded = contract.guard_state_for_action(state, boundary, freshness)
         return guarded, contract.build_policy_features(guarded, scaling)
 
+    def resolved_predecessor(
+        self, *, sequence: int, session: str, current_base_ns: int
+    ) -> contract.PreviousOutcomeV1 | None:
+        """Return a real resolved predecessor for every non-genesis state."""
+
+        if sequence == 0:
+            return None
+        previous_action = self.action(mode_id=2, q_e4=4000)
+        opened = current_base_ns - 300_000_000
+        event = contract.RewardEventV1(
+            identity=contract.DecisionIdentityV1(session, UE_ID, sequence - 1),
+            action=previous_action,
+            kind=contract.RewardEventKind.DELIVERED_SUCCESS,
+            action_open_timestamp_ns=opened,
+            resolution_timestamp_ns=opened + 100_000_000,
+            clock_domain=CLOCK,
+            source="run4-replay-unit-test-predecessor",
+            q_perc=0.7,
+        )
+        return contract.PreviousOutcomeV1.from_resolution(
+            contract.resolve_reward(event)
+        )
+
     def transition(
         self,
         *,
@@ -237,6 +260,9 @@ class Fixture:
         action = self.action(mode_id, q_e4)
         base = self._base(sequence)
         opened = base + 60_000_000
+        predecessor = self.resolved_predecessor(
+            sequence=sequence, session=session, current_base_ns=base
+        )
         state, features = self.guarded_features(
             sequence=sequence,
             session=session,
@@ -244,7 +270,7 @@ class Fixture:
             available_ns=base + 10_000_000,
             commit_ns=base + 50_000_000,
             action_ns=opened,
-            previous=None,
+            previous=predecessor,
             freshness=freshness,
             scaling=scaling,
             camera=camera,
@@ -511,6 +537,25 @@ class ReplayTest(unittest.TestCase):
         self.assertEqual(successor["prev_success"], 1.0)
         self.assertEqual(successor["prev_quality_qperc"], 0.8)
         self.assertGreater(successor["prev_latency_normalized"], 0.0)
+
+    def test_non_genesis_source_state_contains_real_previous_outcome(self) -> None:
+        transition = self.fx.transition(sequence=1)
+        previous = transition.state.state.previous
+        self.assertIsNotNone(previous)
+        self.assertEqual(previous.identity.decision_seq, 0)
+        self.assertEqual(previous.action.mode_id, 2)
+        self.assertEqual(previous.action.q_e4, 4000)
+        self.assertEqual(previous.q_perc, 0.7)
+        self.assertEqual(previous.latency_ms, 100.0)
+        named = transition.state_features.as_dict()
+        self.assertEqual(named["prev_present"], 1.0)
+        self.assertEqual(named["prev_success"], 1.0)
+        self.assertEqual(named["prev_quality_qperc"], 0.7)
+        self.assertEqual(named["prev_latency_normalized"], 100.0 / 170.0)
+        self.assertEqual(named["prev_joint_mode_2_one_hot"], 1.0)
+        self.assertEqual(
+            named["prev_q_normalized"], 4000 / float(actions.Q_E4_MAX)
+        )
 
     def test_failure_successor_preserves_action_and_failure_not_zero_history(self) -> None:
         for event_kind in (
