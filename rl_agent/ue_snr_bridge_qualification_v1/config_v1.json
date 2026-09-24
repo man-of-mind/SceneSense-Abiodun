@@ -1,0 +1,88 @@
+{
+  "schema": "scenesense.ue_snr_bridge_qualification.v1",
+  "experiment_id": "ue_snr_bridge_qualification_v1",
+  "claim_boundary": "SHORT_BIDIRECTIONAL_IPERF_UE_DOWNLINK_SNR_VERSUS_GNB_UPLINK_PUSCH_SNR_QUALIFICATION_NOT_A_PHYSICAL_BOUNDARY_STUDY",
+  "paths": {
+    "output_root": "rl_agent/experiments/ue_snr_bridge_qualification_v1",
+    "oai_ran_build": "OAI/openairinterface5g/cmake_targets/ran_build/build",
+    "oai_ran_conf": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF",
+    "t_messages": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "t_tracer_dir": "OAI/openairinterface5g/common/utils/T/tracer",
+    "extract_script": "scripts/ttracer_extract_csv_smoke.sh",
+    "gnb_base_config": "gnb.sa.band78.fr1.106PRB.usrpb210.conf",
+    "ue_base_config": "ue.conf",
+    "channel_config": "channelmod_rfsimu.conf",
+    "trace_csv": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+    "profile_binding": "rl_agent/configs/splitfusion_phase14b_corrected_four_profile_replay_v1.json"
+  },
+  "radio": {
+    "core_containers": ["oai-amf", "oai-smf", "oai-upf", "oai-ext-dn"],
+    "ue_interface": "oaitun_ue1",
+    "ext_dn_ip": "192.168.70.135",
+    "ext_dn_container": "oai-ext-dn",
+    "expected_imsi": "001010000000001",
+    "ue_count": 1,
+    "prb": 106,
+    "band": 78,
+    "numerology": 1,
+    "downlink_frequency_hz": 3619200000,
+    "mcs_policy": "sinr",
+    "gnb_start_lead_s": 8.0,
+    "attach_timeout_s": 180.0
+  },
+  "actuator": {
+    "telnet_host": "127.0.0.1",
+    "telnet_port": 9090,
+    "connect_timeout_s": 15,
+    "response_timeout_s": 2,
+    "max_response_bytes": 1048576,
+    "channel_model_name": "rfsimu_channel_ue0",
+    "clean_and_restore_commanded_noise_power_db": "-50",
+    "command_granularity_db": 0.25,
+    "existing_measured_anchors": [
+      {"noise_power_db": -2.25, "achieved_median_pusch_snr_db": 5.5},
+      {"noise_power_db": -2.5,  "achieved_median_pusch_snr_db": 6.0},
+      {"noise_power_db": -3.0,  "achieved_median_pusch_snr_db": 6.5},
+      {"noise_power_db": -3.5,  "achieved_median_pusch_snr_db": 7.5},
+      {"noise_power_db": -4.0,  "achieved_median_pusch_snr_db": 8.5},
+      {"noise_power_db": -5.0,  "achieved_median_pusch_snr_db": 10.0},
+      {"noise_power_db": -8.0,  "achieved_median_pusch_snr_db": 16.0},
+      {"noise_power_db": -10.0, "achieved_median_pusch_snr_db": 19.5}
+    ],
+    "upper_anchor": {
+      "first_command_db": -12.5,
+      "measurement_duration_s": 6.0,
+      "minimum_pusch_samples": 30
+    }
+  },
+  "telemetry": {
+    "gnb_port": 2021, "ue_port": 2022,
+    "gnb_relay_port": 2121, "ue_relay_port": 2122,
+    "events": {
+      "gnb": ["GNB_MAC_PUSCH_POWER_CONTROL", "GNB_MAC_UL_MCS_DECISION"],
+      "ue": ["UE_PHY_MEAS", "NRUE_MAC_DCI_GRANT", "NRUE_MAC_BSR_STATUS", "NRUE_MAC_RLC_BUFFER_STATUS"]
+    }
+  },
+  "traffic": {
+    "note": "One constant offered load for every profile. Channel condition is the only intended independent variable.",
+    "uplink_mbps": 4.0,
+    "downlink_mbps": 1.0,
+    "datagram_bytes": 1200,
+    "uplink_port": 5401,
+    "downlink_port": 5402,
+    "server_settle_s": 2.0
+  },
+  "replay": {
+    "profile_order": ["FAVORABLE_STABLE", "MID_VARIABLE", "ADVERSE_STABLE", "FADE_RECOVERY"],
+    "sample_period_s": 0.1,
+    "warmup_samples": 50,
+    "measured_samples": 250,
+    "clean_recovery_s": 3.0,
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST"
+  },
+  "decision": {
+    "policy_decision_bin_ms": 100,
+    "minimum_ue_bin_coverage": 0.90,
+    "minimum_ue_samples_per_profile": 100
+  }
+}
