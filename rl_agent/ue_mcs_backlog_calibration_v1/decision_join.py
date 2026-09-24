@@ -26,8 +26,8 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .contract import (
-    DCI_GRANT_HEADER, MCS_MAX_AGE_MS, NEW_DATA_HARQ_ROUND, PDCP_TX_SDU_HEADER,
-    RLC_BUFFER_HEADER, UL_DIRECTION,
+    DCI_GRANT_HEADER, GNB_MCS_DECISION_HEADER, NEW_DATA_HARQ_ROUND,
+    PDCP_TX_SDU_HEADER, RLC_BUFFER_HEADER, UL_DIRECTION,
 )
 
 
@@ -251,10 +251,15 @@ def build_backlog_ticks(
 
 
 @dataclass(frozen=True)
-class UlGrant:
-    """One UE-decoded uplink DCI grant."""
+class UeUlGrant:
+    """A UE-decoded round-0 UL grant with its exact scheduling identity."""
 
     monotonic_ns: int
+    rnti: int
+    dci_frame: int
+    dci_slot: int
+    sched_frame: int
+    sched_slot: int
     mcs: int
     mcs_table: int
     rb_size: int
@@ -264,17 +269,46 @@ class UlGrant:
     rv: int
     harq_round: int
 
+    @property
+    def schedule_identity(self) -> tuple[int, int, int, int, int, int]:
+        return (self.rnti, self.dci_frame, self.dci_slot, self.sched_frame,
+                self.sched_slot, self.mcs_table)
+
+    @property
+    def provenance_identity(self) -> tuple[int, int, int, int, int, int, int]:
+        return (self.monotonic_ns, *self.schedule_identity)
+
+
+@dataclass(frozen=True)
+class GnbMcsDecision:
+    """gNB-side provenance for one UL grant; never a policy input."""
+
+    monotonic_ns: int
+    rnti: int
+    frame: int
+    slot: int
+    sched_frame: int
+    sched_slot: int
+    mcs_table: int
+    selected_mcs: int
+    final_mcs: int
+
+    @property
+    def schedule_identity(self) -> tuple[int, int, int, int, int, int]:
+        return (self.rnti, self.frame, self.slot, self.sched_frame,
+                self.sched_slot, self.mcs_table)
+
 
 def build_ul_grants(
     rows: Sequence[Mapping[str, str]], bridge: ClockBridge
-) -> tuple[list[UlGrant], dict[str, int]]:
+) -> tuple[list[UeUlGrant], dict[str, int]]:
     """UE-decoded uplink grants, split into new-data and retransmission.
 
     Only HARQ round 0 grants carry a freshly selected MCS. A retransmission
     repeats the original transmission's MCS and would smear a stale scheduler
     decision into the feature, so it is excluded and counted.
     """
-    new_data: list[UlGrant] = []
+    new_data: list[UeUlGrant] = []
     counts = {"ul_rows": 0, "new_data": 0, "retransmission": 0, "non_ul": 0}
     for row in rows:
         if row["direction"] != UL_DIRECTION:
@@ -286,8 +320,11 @@ def build_ul_grants(
             counts["retransmission"] += 1
             continue
         counts["new_data"] += 1
-        new_data.append(UlGrant(
+        new_data.append(UeUlGrant(
             monotonic_ns=bridge.to_monotonic(tracer_time_of_day_ns(row["time"])),
+            rnti=int(row["rnti"]), dci_frame=int(row["dci_frame"]),
+            dci_slot=int(row["dci_slot"]), sched_frame=int(row["sched_frame"]),
+            sched_slot=int(row["sched_slot"]),
             mcs=int(row["mcs"]), mcs_table=int(row["mcs_table"]),
             rb_size=int(row["rb_size"]), tbs=int(row["tbs"]),
             harq_pid=int(row["harq_pid"]), ndi=int(row["ndi"]),
@@ -295,6 +332,125 @@ def build_ul_grants(
         ))
     new_data.sort(key=lambda grant: grant.monotonic_ns)
     return new_data, counts
+
+
+def build_gnb_mcs_decisions(
+    rows: Sequence[Mapping[str, str]], bridge: ClockBridge
+) -> list[GnbMcsDecision]:
+    """Parse exact-schema gNB MCS decisions for provenance only."""
+    decisions = [GnbMcsDecision(
+        monotonic_ns=bridge.to_monotonic(tracer_time_of_day_ns(row["time"])),
+        rnti=int(row["rnti"]), frame=int(row["frame"]), slot=int(row["slot"]),
+        sched_frame=int(row["sched_frame"]), sched_slot=int(row["sched_slot"]),
+        mcs_table=int(row["mcs_table"]), selected_mcs=int(row["selected_mcs"]),
+        final_mcs=int(row["final_mcs"]),
+    ) for row in rows]
+    decisions.sort(key=lambda item: item.monotonic_ns)
+    return decisions
+
+
+def audit_ue_gnb_mcs_provenance(
+    ue_grants: Sequence[UeUlGrant],
+    gnb_decisions: Sequence[GnbMcsDecision],
+    *,
+    max_delta_ms: float = 10.0,
+) -> dict[str, Any]:
+    """One-to-one reconciliation using exact schedule identity plus time.
+
+    NR frame numbers wrap, so schedule identity alone is intentionally not
+    treated as globally unique.  Within an identity bucket a UE grant is paired
+    only with one unused gNB record inside the explicit same-event time bound.
+    Equal-nearest candidates are ambiguous and remain unmatched.
+    """
+    require(max_delta_ms > 0, "provenance max_delta_ms must be positive")
+    by_identity: dict[tuple[int, int, int, int, int, int], list[GnbMcsDecision]] = {}
+    for item in gnb_decisions:
+        by_identity.setdefault(item.schedule_identity, []).append(item)
+    used: set[tuple[tuple[int, int, int, int, int, int], int]] = set()
+    max_delta_ns = int(max_delta_ms * 1e6)
+    deltas_ms: list[float] = []
+    selected_final_adjustments: list[dict[str, Any]] = []
+    ue_final_mismatches: list[dict[str, Any]] = []
+    unmatched: list[dict[str, Any]] = []
+    ambiguous: list[dict[str, Any]] = []
+
+    for ue in ue_grants:
+        identity = ue.schedule_identity
+        candidates = []
+        for index, gnb in enumerate(by_identity.get(identity, ())):
+            token = (identity, index)
+            delta = abs(ue.monotonic_ns - gnb.monotonic_ns)
+            if token not in used and delta <= max_delta_ns:
+                candidates.append((delta, index, gnb))
+        candidates.sort(key=lambda item: item[0])
+        base = {"schedule_identity": list(identity), "ue_mcs": ue.mcs}
+        if not candidates:
+            unmatched.append(base)
+            continue
+        if len(candidates) > 1 and candidates[0][0] == candidates[1][0]:
+            ambiguous.append({**base, "nearest_delta_ms": candidates[0][0] / 1e6})
+            continue
+        delta, index, gnb = candidates[0]
+        used.add((identity, index))
+        deltas_ms.append(delta / 1e6)
+        detail = {**base, "selected_mcs": gnb.selected_mcs,
+                  "final_mcs": gnb.final_mcs, "delta_ms": delta / 1e6}
+        if gnb.selected_mcs != gnb.final_mcs:
+            selected_final_adjustments.append(detail)
+        if ue.mcs != gnb.final_mcs:
+            ue_final_mismatches.append(detail)
+
+    matched = len(deltas_ms)
+    return {
+        "ue_round0_grants": len(ue_grants),
+        "gnb_mcs_decisions": len(gnb_decisions),
+        "matched": matched,
+        "coverage": matched / len(ue_grants) if ue_grants else None,
+        "max_match_delta_ms": max_delta_ms,
+        "observed_delta_ms": {
+            "min": min(deltas_ms) if deltas_ms else None,
+            "p50": statistics.median(deltas_ms) if deltas_ms else None,
+            "max": max(deltas_ms) if deltas_ms else None,
+        },
+        "unmatched": len(unmatched), "ambiguous": len(ambiguous),
+        "selected_final_adjustments": len(selected_final_adjustments),
+        "selected_final_adjustment_rate": (
+            len(selected_final_adjustments) / matched if matched else None),
+        "ue_final_mismatches": len(ue_final_mismatches),
+        "examples": {
+            "unmatched": unmatched[:5], "ambiguous": ambiguous[:5],
+            "selected_final_adjustments": selected_final_adjustments[:5],
+            "ue_final": ue_final_mismatches[:5],
+        },
+        "provenance_verified": (
+            bool(ue_grants) and matched == len(ue_grants)
+            and not ambiguous and not ue_final_mismatches),
+    }
+
+
+def grants_used_by_records(
+    records: Sequence[Mapping[str, Any]], grants: Sequence[UeUlGrant]
+) -> list[UeUlGrant]:
+    """Resolve exactly the unique prior grants selected by decision rows."""
+    by_identity: dict[tuple[int, int, int, int, int, int, int], UeUlGrant] = {}
+    for grant in grants:
+        require(grant.provenance_identity not in by_identity,
+                f"duplicate UE grant provenance identity: {grant.provenance_identity}")
+        by_identity[grant.provenance_identity] = grant
+    used: set[tuple[int, int, int, int, int, int, int]] = set()
+    for row in records:
+        if not row["has_prior_ul_grant"]:
+            continue
+        identity = (
+            int(row["prior_grant_monotonic_ns"]), int(row["prior_grant_rnti"]),
+            int(row["prior_grant_dci_frame"]), int(row["prior_grant_dci_slot"]),
+            int(row["prior_grant_sched_frame"]), int(row["prior_grant_sched_slot"]),
+            int(row["mcs_table"]),
+        )
+        require(identity in by_identity,
+                f"decision references an unknown UE grant identity: {identity}")
+        used.add(identity)
+    return [by_identity[identity] for identity in sorted(used)]
 
 
 # --------------------------------------------------------------------------
@@ -360,7 +516,10 @@ DECISION_FIELDS = (
     "payload_bytes", "chunks_per_frame", "chunks_sent", "chunks_dropped",
     "send_terminal_reason",
     "pre_enqueue_backlog_bytes", "backlog_age_ms", "backlog_status",
-    "previous_ul_mcs", "mcs_age_ms", "mcs_status",
+    "prior_ul_mcs_raw", "has_prior_ul_grant", "mcs_age_ms", "mcs_status",
+    "prior_grant_monotonic_ns", "prior_grant_rnti",
+    "prior_grant_dci_frame", "prior_grant_dci_slot",
+    "prior_grant_sched_frame", "prior_grant_sched_slot",
     "mcs_table", "prev_grant_rb_size", "prev_grant_tbs", "prev_grant_harq_pid",
     "prev_grant_ndi", "prev_grant_rv", "prev_grant_round",
     "first_arrival_monotonic_ns", "last_arrival_monotonic_ns",
@@ -374,7 +533,7 @@ def join_cell(
     cell_meta: Mapping[str, Any],
     sender_rows: Sequence[Mapping[str, str]],
     ticks: Sequence[BacklogTick],
-    grants: Sequence[UlGrant],
+    grants: Sequence[UeUlGrant],
     arrivals_by_block: Mapping[int, Mapping[int, FrameArrival]],
     budget_ms: float,
 ) -> list[dict[str, Any]]:
@@ -398,19 +557,14 @@ def join_cell(
         else:
             backlog, backlog_age, backlog_status = None, None, "MISSING_NO_PRIOR_TICK"
 
-        # --- previous new-data UL MCS: strictly before, bounded age ---
+        # --- previous new-data UL MCS: strictly before, lossless raw value ---
         position = bisect.bisect_left(grant_times, decision) - 1
         if position < 0:
             mcs, mcs_age, mcs_status, grant = None, None, "MISSING_NO_PRIOR_GRANT", None
         else:
             grant = grants[position]
             mcs_age = (decision - grant.monotonic_ns) / 1e6
-            if mcs_age > MCS_MAX_AGE_MS:
-                # Never forward-filled past its validity window, and never
-                # coerced to 0, which is a real modulation index.
-                mcs, mcs_status, grant = None, "MISSING_STALE", grant
-            else:
-                mcs, mcs_status = grant.mcs, "OBSERVED"
+            mcs, mcs_status = grant.mcs, "OBSERVED_PRIOR"
 
         arrival = arrivals_by_block.get(block_index, {}).get(frame_index)
         if arrival is None:
@@ -462,9 +616,20 @@ def join_cell(
             "pre_enqueue_backlog_bytes": backlog,
             "backlog_age_ms": backlog_age,
             "backlog_status": backlog_status,
-            "previous_ul_mcs": mcs,
+            "prior_ul_mcs_raw": mcs,
+            "has_prior_ul_grant": grant is not None,
             "mcs_age_ms": mcs_age,
             "mcs_status": mcs_status,
+            "prior_grant_monotonic_ns": (
+                grant.monotonic_ns if grant is not None else None),
+            "prior_grant_rnti": grant.rnti if grant is not None else None,
+            "prior_grant_dci_frame": (
+                grant.dci_frame if grant is not None else None),
+            "prior_grant_dci_slot": grant.dci_slot if grant is not None else None,
+            "prior_grant_sched_frame": (
+                grant.sched_frame if grant is not None else None),
+            "prior_grant_sched_slot": (
+                grant.sched_slot if grant is not None else None),
             "mcs_table": grant.mcs_table if grant is not None else None,
             "prev_grant_rb_size": grant.rb_size if grant is not None else None,
             "prev_grant_tbs": grant.tbs if grant is not None else None,
@@ -493,12 +658,9 @@ def causal_audit(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         1 for row in records
         for key in ("backlog_age_ms", "mcs_age_ms")
         if row[key] is not None and row[key] < 0)
-    stale_used = sum(
-        1 for row in records
-        if row["mcs_status"] == "OBSERVED" and (row["mcs_age_ms"] or 0) > MCS_MAX_AGE_MS)
     zero_coerced = sum(
         1 for row in records
-        if row["mcs_status"] != "OBSERVED" and row["previous_ul_mcs"] == 0)
+        if not row["has_prior_ul_grant"] and row["prior_ul_mcs_raw"] == 0)
     tables = {row["mcs_table"] for row in records if row["mcs_table"] is not None}
     rounds = {row["prev_grant_round"] for row in records
               if row["prev_grant_round"] is not None}
@@ -506,10 +668,8 @@ def causal_audit(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         "records": len(records),
         "negative_uplink_latency": negative_latency,
         "negative_observation_age": negative_age,
-        "stale_mcs_used_as_observed": stale_used,
         "missing_mcs_coerced_to_zero": zero_coerced,
-        "mcs_observed": sum(1 for r in records if r["mcs_status"] == "OBSERVED"),
-        "mcs_missing_stale": sum(1 for r in records if r["mcs_status"] == "MISSING_STALE"),
+        "mcs_observed": sum(1 for r in records if r["has_prior_ul_grant"]),
         "mcs_missing_no_prior": sum(
             1 for r in records if r["mcs_status"] == "MISSING_NO_PRIOR_GRANT"),
         "backlog_observed": sum(1 for r in records if r["backlog_status"] == "OBSERVED"),

@@ -99,6 +99,14 @@ RLC_BUFFER_HEADER = (
 PDCP_TX_SDU_HEADER = (
     "time", "mono_sec", "mono_nsec", "ue_id", "rb_id", "sdu_bytes",
 )
+GNB_MCS_DECISION_HEADER = (
+    "time", "rnti", "frame", "slot", "sched_frame", "sched_slot",
+    "avg_snr_x10", "mcs_table", "ul_bler_mcs_before", "selected_mcs",
+    "pre_phr_mcs", "post_phr_mcs", "final_mcs", "estimated_ul_buffer",
+    "sched_ul_bytes", "B", "min_rb", "available_rb_before",
+    "available_rb_after", "ph", "pcmax", "rb_size_final", "tbs_final",
+    "force_ul_mcs",
+)
 
 #: ``NRUE_MAC_DCI_GRANT.direction`` value meaning uplink.
 UL_DIRECTION = "1"
@@ -107,8 +115,14 @@ UL_DIRECTION = "1"
 #: original transmission and must never enter the policy feature.
 NEW_DATA_HARQ_ROUND = 0
 
-#: Beyond this the observation is stale and is recorded as MISSING. It is never
-#: forward-filled and never coerced to MCS 0, which is a real modulation index.
+#: Candidate external validity bounds.  The causal join itself is deliberately
+#: threshold-free and retains the raw prior grant and its age.  Analysis may
+#: project any of these bounds without destroying evidence.  No member is an
+#: actor feature or an empirically established optimum.
+MCS_VALIDITY_CANDIDATES_MS = (100.0, 150.0, 200.0, 250.0)
+
+#: Backwards-compatible name used by the v1 preregistration and plots.  It is a
+#: hypothesis to test, not a rule applied by the v2 join.
 MCS_MAX_AGE_MS = 200.0
 
 #: Sentinel for "no prior grant". Must stay distinguishable from MCS 0.

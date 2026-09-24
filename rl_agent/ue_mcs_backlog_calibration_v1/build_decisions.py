@@ -23,6 +23,15 @@ from rl_agent.ue_mcs_backlog_calibration_v1 import contract as C  # noqa: E402
 from rl_agent.ue_mcs_backlog_calibration_v1 import decision_join as J  # noqa: E402
 
 
+def require_create_only_targets(run_dir: Path) -> tuple[Path, Path]:
+    """Refuse to overwrite either immutable v2 decision artifact."""
+    targets = (run_dir / "decisions_v2.csv", run_dir / "decisions_build_v2.json")
+    existing = [str(path) for path in targets if path.exists()]
+    if existing:
+        raise FileExistsError(f"v2 decision output already exists: {existing}")
+    return targets
+
+
 def build_cell(cell_dir: Path) -> dict[str, Any]:
     """Join one cell, or explain precisely why it cannot be joined."""
     record = json.loads((cell_dir / "cell_record.json").read_text())
@@ -35,6 +44,7 @@ def build_cell(cell_dir: Path) -> dict[str, Any]:
         "sender": sender_csv,
         "dci": ue_csv / "NRUE_MAC_DCI_GRANT.csv",
         "rlc": ue_csv / "NRUE_MAC_RLC_BUFFER_STATUS.csv",
+        "gnb_mcs": cell_dir / "ttracer/gnb/csv/GNB_MAC_UL_MCS_DECISION.csv",
     }
     missing = [name for name, path in needed.items() if not path.is_file()]
     if missing:
@@ -59,6 +69,8 @@ def build_cell(cell_dir: Path) -> dict[str, Any]:
         bridge_source = "SENDER_SAME_INSTANT_WALL_MONOTONIC_PAIRS"
     rlc_rows = J.read_exact_csv(needed["rlc"], C.RLC_BUFFER_HEADER)
     dci_rows = J.read_exact_csv(needed["dci"], C.DCI_GRANT_HEADER)
+    gnb_mcs_rows = J.read_exact_csv(
+        needed["gnb_mcs"], C.GNB_MCS_DECISION_HEADER)
     window_audit = J.audit_bridge_window(bridge, rlc_rows, sender_rows)
     if not window_audit["verified"]:
         out["joined"] = False
@@ -66,6 +78,7 @@ def build_cell(cell_dir: Path) -> dict[str, Any]:
         return out
     ticks = J.build_backlog_ticks(rlc_rows, bridge)
     grants, grant_counts = J.build_ul_grants(dci_rows, bridge)
+    gnb_decisions = J.build_gnb_mcs_decisions(gnb_mcs_rows, bridge)
 
     arrivals_by_block: dict[int, dict[int, J.FrameArrival]] = {}
     for block in record["blocks"]:
@@ -82,6 +95,10 @@ def build_cell(cell_dir: Path) -> dict[str, Any]:
                    "sequence": tuple(record["sequence"])},
         sender_rows=sender_rows, ticks=ticks, grants=grants,
         arrivals_by_block=arrivals_by_block, budget_ms=C.AGENT_PATH_BUDGET_MS)
+    used_grants = J.grants_used_by_records(records, grants)
+    provenance = J.audit_ue_gnb_mcs_provenance(used_grants, gnb_decisions)
+    provenance["scope"] = "UNIQUE_UE_GRANTS_ACTUALLY_USED_BY_DECISIONS"
+    provenance["raw_ue_round0_grants_available"] = len(grants)
 
     bridge_json = bridge.to_json()
     bridge_json["source"] = bridge_source
@@ -91,6 +108,7 @@ def build_cell(cell_dir: Path) -> dict[str, Any]:
         "records": records,
         "clock_bridge": bridge_json,
         "grant_counts": grant_counts,
+        "ue_gnb_mcs_provenance": provenance,
         "backlog_ticks": len(ticks),
         "pdcp_rows": len(pdcp_rows),
         "bridge_source": bridge_source,
@@ -104,6 +122,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", required=True, type=Path)
     args = parser.parse_args(argv)
+    out_csv, out_summary = require_create_only_targets(args.run_dir)
 
     cells = sorted(p for p in (args.run_dir / "cells").iterdir() if p.is_dir())
     all_records: list[dict[str, Any]] = []
@@ -118,8 +137,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             all_records.extend(result.pop("records"))
         per_cell.append(result)
 
-    out_csv = args.run_dir / "decisions.csv"
-    with out_csv.open("w", newline="", encoding="utf-8") as handle:
+    with out_csv.open("x", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(J.DECISION_FIELDS))
         writer.writeheader()
         for row in all_records:
@@ -132,8 +150,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "decisions": len(all_records),
         "per_cell": per_cell,
     }
-    (args.run_dir / "decisions_build.json").write_text(
-        json.dumps(summary, indent=2) + "\n")
+    with out_summary.open("x", encoding="utf-8") as handle:
+        handle.write(json.dumps(summary, indent=2) + "\n")
     print(json.dumps({k: summary[k] for k in
                       ("cells_total", "cells_joined", "decisions")}, indent=2))
     return 0

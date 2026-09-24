@@ -101,7 +101,9 @@ residual spread is reported so join precision is visible rather than trusted.
 ## 6. Provenance to verify offline
 
 gNB traces are used **only** to confirm the UE-observed MCS has the claimed provenance, never as a
-runtime input: that `selected_mcs == final_mcs` (load did not override), and that UE DCI MCS matches.
+runtime input. The binding is to `final_mcs`, because OAI may legitimately adjust the initial
+`selected_mcs` through later scheduling/PHR constraints. The UE DCI MCS must match `final_mcs`;
+`selected_mcs != final_mcs` is retained and reported as a diagnostic, not treated as a failure.
 `SCENESENSE_MCS_POLICY=sinr` gates `get_mcs_from_SINRx10` at `gNB_scheduler_ulsch.c:2027-2028`;
 `get_mcs_from_SINRx10` supports MCS table 0 only (`gNB_scheduler_primitives.c:238-241`), and the
 table id is recorded per decision and asserted constant across cells.

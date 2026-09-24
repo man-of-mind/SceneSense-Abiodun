@@ -223,8 +223,10 @@ class CausalJoinTests(unittest.TestCase):
                 "repetition": 0, "sequence": ("low", "medium", "high")}
 
     def _grant(self, ns, mcs, harq_round=0):
-        return J.UlGrant(monotonic_ns=ns, mcs=mcs, mcs_table=0, rb_size=10,
-                         tbs=100, harq_pid=1, ndi=1, rv=0, harq_round=harq_round)
+        return J.UeUlGrant(
+            monotonic_ns=ns, rnti=618, dci_frame=1, dci_slot=2,
+            sched_frame=1, sched_slot=8, mcs=mcs, mcs_table=0, rb_size=10,
+            tbs=100, harq_pid=1, ndi=1, rv=0, harq_round=harq_round)
 
     def test_backlog_and_mcs_must_precede_the_decision(self):
         ticks = [J.BacklogTick(monotonic_ns=1_000, total_bytes=500, per_lcid=()),
@@ -236,7 +238,9 @@ class CausalJoinTests(unittest.TestCase):
                           budget_ms=170.0)
         # The 9_000 tick and 9_500 grant are AFTER the decision and must not win.
         self.assertEqual(out[0]["pre_enqueue_backlog_bytes"], 500)
-        self.assertEqual(out[0]["previous_ul_mcs"], 12)
+        self.assertEqual(out[0]["prior_ul_mcs_raw"], 12)
+        self.assertTrue(out[0]["has_prior_ul_grant"])
+        self.assertEqual(out[0]["prior_grant_monotonic_ns"], 2_000)
         self.assertGreater(out[0]["backlog_age_ms"], 0)
 
     def test_retransmission_grants_never_enter_the_feature(self):
@@ -260,23 +264,26 @@ class CausalJoinTests(unittest.TestCase):
         self.assertEqual(grants, [])
         self.assertEqual(counts["non_ul"], 1)
 
-    def test_stale_mcs_becomes_missing_and_is_never_forward_filled(self):
+    def test_old_prior_grant_retains_raw_mcs_and_age(self):
         stale_ns = int((C.MCS_MAX_AGE_MS + 50) * 1e6)
         out = J.join_cell(
             cell_meta=self._meta(),
             sender_rows=[self._sender_row(stale_ns + 1_000)],
             ticks=[J.BacklogTick(monotonic_ns=0, total_bytes=0, per_lcid=())],
             grants=[self._grant(1_000, 14)], arrivals_by_block={}, budget_ms=170.0)
-        self.assertIsNone(out[0]["previous_ul_mcs"])
-        self.assertEqual(out[0]["mcs_status"], "MISSING_STALE")
+        self.assertEqual(out[0]["prior_ul_mcs_raw"], 14)
+        self.assertTrue(out[0]["has_prior_ul_grant"])
+        self.assertGreater(out[0]["mcs_age_ms"], C.MCS_MAX_AGE_MS)
+        self.assertEqual(out[0]["mcs_status"], "OBSERVED_PRIOR")
 
     def test_missing_mcs_is_never_coerced_to_zero(self):
         out = J.join_cell(
             cell_meta=self._meta(), sender_rows=[self._sender_row(10)],
             ticks=[], grants=[], arrivals_by_block={}, budget_ms=170.0)
-        self.assertIsNone(out[0]["previous_ul_mcs"])
+        self.assertIsNone(out[0]["prior_ul_mcs_raw"])
+        self.assertFalse(out[0]["has_prior_ul_grant"])
         self.assertEqual(out[0]["mcs_status"], "MISSING_NO_PRIOR_GRANT")
-        self.assertNotEqual(out[0]["previous_ul_mcs"], 0)
+        self.assertNotEqual(out[0]["prior_ul_mcs_raw"], 0)
         audit = J.causal_audit(out)
         self.assertEqual(audit["missing_mcs_coerced_to_zero"], 0)
 
@@ -286,8 +293,21 @@ class CausalJoinTests(unittest.TestCase):
             cell_meta=self._meta(), sender_rows=[self._sender_row(2_000)],
             ticks=[], grants=[self._grant(1_000, 0)], arrivals_by_block={},
             budget_ms=170.0)
-        self.assertEqual(out[0]["previous_ul_mcs"], 0)
-        self.assertEqual(out[0]["mcs_status"], "OBSERVED")
+        self.assertEqual(out[0]["prior_ul_mcs_raw"], 0)
+        self.assertTrue(out[0]["has_prior_ul_grant"])
+        self.assertEqual(out[0]["mcs_status"], "OBSERVED_PRIOR")
+
+    def test_tick_and_grant_exactly_at_decision_are_not_prior(self):
+        decision = 5_000
+        out = J.join_cell(
+            cell_meta=self._meta(), sender_rows=[self._sender_row(decision)],
+            ticks=[J.BacklogTick(monotonic_ns=decision, total_bytes=99,
+                                 per_lcid=())],
+            grants=[self._grant(decision, 17)], arrivals_by_block={},
+            budget_ms=170.0)
+        self.assertIsNone(out[0]["pre_enqueue_backlog_bytes"])
+        self.assertIsNone(out[0]["prior_ul_mcs_raw"])
+        self.assertFalse(out[0]["has_prior_ul_grant"])
 
     def test_raw_backlog_bytes_are_retained_unscaled(self):
         out = J.join_cell(
@@ -305,7 +325,75 @@ class CausalJoinTests(unittest.TestCase):
         audit = J.causal_audit(out)
         self.assertTrue(audit["all_joined_observations_precede_decision"])
         self.assertEqual(audit["negative_observation_age"], 0)
-        self.assertEqual(audit["stale_mcs_used_as_observed"], 0)
+
+
+class McsProvenanceTests(unittest.TestCase):
+    # The final two methods below also exercise arrival joining.  Keep minimal
+    # sender/meta fixtures local so this class is independent of CausalJoinTests.
+    def _sender_row(self, decision_ns, **over):
+        row = {"cell_id": "c", "decision_index": "0", "block_index": "0",
+               "tier": "low", "action_id": "71", "frame_index_in_block": "0",
+               "is_first_frame_of_block": "True", "decisions_since_transition": "0",
+               "previous_tier": "", "decision_monotonic_ns": str(decision_ns),
+               "schedule_lag_ms": "0.0", "payload_bytes": "6229",
+               "chunks_per_frame": "1", "chunks_sent": "1", "chunks_dropped": "0",
+               "terminal_reason": "ALL_CHUNKS_HANDED_TO_SOCKET"}
+        row.update(over)
+        return row
+
+    def _meta(self):
+        return {"cell_id": "c", "profile_id": "ADVERSE_STABLE", "order_index": 0,
+                "repetition": 0, "sequence": ("low", "medium", "high")}
+
+    def _ue(self, ns=2_000, mcs=11, frame=10):
+        return J.UeUlGrant(
+            monotonic_ns=ns, rnti=618, dci_frame=frame, dci_slot=2,
+            sched_frame=frame, sched_slot=8, mcs=mcs, mcs_table=0,
+            rb_size=5, tbs=480, harq_pid=1, ndi=1, rv=0, harq_round=0)
+
+    def _gnb(self, ns=1_000, selected=11, final=11):
+        return J.GnbMcsDecision(
+            monotonic_ns=ns, rnti=618, frame=10, slot=2,
+            sched_frame=10, sched_slot=8, mcs_table=0,
+            selected_mcs=selected, final_mcs=final)
+
+    def test_ue_grant_matches_gnb_final_on_exact_schedule_identity(self):
+        audit = J.audit_ue_gnb_mcs_provenance([self._ue()], [self._gnb()])
+        self.assertTrue(audit["provenance_verified"])
+        self.assertEqual(audit["coverage"], 1.0)
+
+    def test_selected_final_divergence_is_reported(self):
+        audit = J.audit_ue_gnb_mcs_provenance(
+            [self._ue(mcs=10)], [self._gnb(selected=11, final=10)])
+        self.assertTrue(audit["provenance_verified"])
+        self.assertEqual(audit["selected_final_adjustments"], 1)
+        self.assertEqual(audit["selected_final_adjustment_rate"], 1.0)
+
+    def test_ue_gnb_mcs_mismatch_fails_provenance_gate(self):
+        audit = J.audit_ue_gnb_mcs_provenance(
+            [self._ue(mcs=9)], [self._gnb(final=10)])
+        self.assertFalse(audit["provenance_verified"])
+        self.assertEqual(audit["ue_final_mismatches"], 1)
+
+    def test_equal_nearest_candidates_are_ambiguous_not_guessed(self):
+        audit = J.audit_ue_gnb_mcs_provenance(
+            [self._ue(ns=2_000_000)],
+            [self._gnb(ns=1_000_000), self._gnb(ns=3_000_000)])
+        self.assertFalse(audit["provenance_verified"])
+        self.assertEqual(audit["ambiguous"], 1)
+        self.assertEqual(audit["matched"], 0)
+
+    def test_same_timestamp_does_not_broaden_used_grant_population(self):
+        first = self._ue(ns=2_000, mcs=9, frame=10)
+        second = self._ue(ns=2_000, mcs=13, frame=11)
+        records = J.join_cell(
+            cell_meta=self._meta(), sender_rows=[self._sender_row(3_000)],
+            ticks=[], grants=[first, second], arrivals_by_block={},
+            budget_ms=170.0)
+        self.assertEqual(records[0]["prior_ul_mcs_raw"], 13)
+        self.assertEqual(records[0]["prior_grant_dci_frame"], 11)
+        used = J.grants_used_by_records(records, [first, second])
+        self.assertEqual(used, [second])
 
     def test_arrivals_are_looked_up_per_block(self):
         # 5.000 ms after the decision, in nanoseconds.

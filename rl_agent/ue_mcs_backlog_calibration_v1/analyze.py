@@ -60,7 +60,9 @@ def load_decisions(path: Path) -> list[dict[str, Any]]:
         rows = list(csv.DictReader(handle))
     for row in rows:
         row["backlog"] = to_float(row["pre_enqueue_backlog_bytes"])
-        row["mcs"] = to_float(row["previous_ul_mcs"])
+        row["mcs_raw"] = to_float(row["prior_ul_mcs_raw"])
+        row["has_prior_mcs"] = to_bool(row["has_prior_ul_grant"])
+        row["mcs"] = row["mcs_raw"]
         row["latency_ms"] = to_float(row["uplink_latency_ms"])
         row["complete"] = to_bool(row["complete_reassembly"])
         row["in_budget"] = to_bool(row["within_transport_budget"])
@@ -68,6 +70,46 @@ def load_decisions(path: Path) -> list[dict[str, Any]]:
         row["block_index"] = int(row["block_index"])
         row["decision_index"] = int(row["decision_index"])
     return rows
+
+
+def project_mcs_validity(
+    rows: Sequence[Mapping[str, Any]], max_age_ms: float
+) -> list[dict[str, Any]]:
+    """Project an external age guard without mutating lossless evidence."""
+    if not math.isfinite(max_age_ms) or max_age_ms <= 0:
+        raise ValueError("max_age_ms must be finite and positive")
+    projected: list[dict[str, Any]] = []
+    for source in rows:
+        row = dict(source)
+        raw = source.get("mcs_raw")
+        age = to_float(source.get("mcs_age_ms"))
+        present = source.get("has_prior_mcs") is True
+        if not present:
+            row["mcs"] = None
+            row["mcs_status"] = "MISSING_NO_PRIOR_GRANT"
+        elif age is None or age > max_age_ms:
+            row["mcs"] = None
+            row["mcs_status"] = "MISSING_STALE"
+        else:
+            row["mcs"] = raw
+            row["mcs_status"] = "OBSERVED"
+        projected.append(row)
+    return projected
+
+
+def mcs_age_sensitivity(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Coverage under each candidate guard; raw MCS values remain unchanged."""
+    out: dict[str, Any] = {}
+    for bound in C.MCS_VALIDITY_CANDIDATES_MS:
+        projected = project_mcs_validity(rows, bound)
+        observed = sum(1 for row in projected if row["mcs_status"] == "OBSERVED")
+        out[f"{bound:g}_ms"] = {
+            "max_age_ms": bound,
+            "observed": observed,
+            "decisions": len(projected),
+            "coverage": observed / len(projected) if projected else None,
+        }
+    return out
 
 
 def describe(values: Sequence[float]) -> dict[str, Any]:
@@ -355,40 +397,35 @@ def saturation_analysis(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
 # Prediction: A (MCS) vs B (backlog) vs C (both)
 # --------------------------------------------------------------------------
 
-FEATURE_SETS = {"A_mcs_only": ("mcs",),
-                "B_backlog_only": ("backlog",),
-                "C_mcs_and_backlog": ("mcs", "backlog")}
+FEATURE_SETS = {
+    "P_action_only": ("log_payload_bytes",),
+    "A_action_and_mcs": ("log_payload_bytes", "mcs"),
+    "B_action_and_backlog": ("log_payload_bytes", "backlog"),
+    "C_action_mcs_and_backlog": ("log_payload_bytes", "mcs", "backlog"),
+}
 
 
-def next_frame_targets(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """Attach frame t+1's outcome to decision t, inside the same cell.
+def same_row_action_conditioned_targets(
+    rows: Sequence[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
+    """Pair pre-action state and current action with that action's outcome.
 
-    The state is read at t and the outcome belongs to t+1, so nothing about the
-    predicted frame is ever visible in its own features.
+    MCS and backlog were sampled strictly before the current decision, so no
+    temporal shift is needed.  Payload is explicit: otherwise a load change
+    could be misattributed to the radio features.
     """
-    by_cell: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
-    for row in rows:
-        by_cell[row["cell_id"]].append(row)
-    out: list[dict[str, Any]] = []
-    for cell_id, cell_rows in by_cell.items():
-        ordered = sorted(cell_rows, key=lambda r: r["decision_index"])
-        for current, nxt in zip(ordered, ordered[1:]):
-            if nxt["decision_index"] != current["decision_index"] + 1:
-                continue
-            out.append({
-                "cell_id": cell_id,
-                "profile_id": current["profile_id"],
-                "block_index": current["block_index"],
-                "tier": current["tier"],
-                "mcs": current["mcs"],
-                "backlog": current["backlog"],
-                "crosses_block_boundary": nxt["block_index"] != current["block_index"],
-                "y_complete": 1.0 if nxt["complete"] else 0.0,
-                "y_latency_ms": nxt["latency_ms"],
-                "y_in_budget": (None if nxt["in_budget"] is None
-                                else (1.0 if nxt["in_budget"] else 0.0)),
-            })
-    return out
+    return [{
+        "cell_id": row["cell_id"], "profile_id": row["profile_id"],
+        "block_index": row["block_index"], "tier": row["tier"],
+        "action_id": int(row["action_id"]),
+        "payload_bytes": int(row["payload_bytes"]),
+        "log_payload_bytes": math.log1p(int(row["payload_bytes"])),
+        "mcs": row["mcs"], "backlog": row["backlog"],
+        "y_complete": 1.0 if row["complete"] else 0.0,
+        "y_latency_ms": row["latency_ms"],
+        "y_in_budget": (None if row["in_budget"] is None
+                        else (1.0 if row["in_budget"] else 0.0)),
+    } for row in rows]
 
 
 def _standardize(columns: Sequence[Sequence[float]]) -> tuple[list[list[float]], list[tuple[float, float]]]:
@@ -504,15 +541,19 @@ def blocked_prediction(samples: Sequence[Mapping[str, Any]], target: str
             "brier_mean": statistics.fmean(fold_brier) if fold_brier else None,
             "per_fold_auc": fold_auc,
         }
-    base = results.get("B_backlog_only", {}).get("auc_mean")
-    both = results.get("C_mcs_and_backlog", {}).get("auc_mean")
-    only = results.get("A_mcs_only", {}).get("auc_mean")
+    action = results.get("P_action_only", {}).get("auc_mean")
+    backlog = results.get("B_action_and_backlog", {}).get("auc_mean")
+    both = results.get("C_action_mcs_and_backlog", {}).get("auc_mean")
+    mcs = results.get("A_action_and_mcs", {}).get("auc_mean")
     results["comparison"] = {
         "target": target, "usable_rows": len(usable),
         "dropped_incomplete_case_rows": dropped,
         "split": "LEAVE_ONE_CELL_OUT_BLOCKED",
-        "c_minus_b_auc": (None if base is None or both is None else both - base),
-        "c_minus_a_auc": (None if only is None or both is None else both - only),
+        "c_minus_action_auc": (
+            None if action is None or both is None else both - action),
+        "c_minus_b_auc": (
+            None if backlog is None or both is None else both - backlog),
+        "c_minus_a_auc": (None if mcs is None or both is None else both - mcs),
         "best_feature_set": max(
             (k for k in FEATURE_SETS if results.get(k, {}).get("auc_mean") is not None),
             key=lambda k: results[k]["auc_mean"], default=None),
@@ -612,6 +653,16 @@ def evaluate_gates(run_dir: Path, rows: Sequence[Mapping[str, Any]],
     add("MCS_TABLE_CONSTANT_ACROSS_CELLS", len(tables) <= 1,
         f"observed MCS table(s): {sorted(tables)}")
 
+    provenance = [c.get("ue_gnb_mcs_provenance", {})
+                  for c in build["per_cell"] if c.get("joined")]
+    add("UE_DCI_MATCHES_GNB_FINAL_MCS",
+        bool(provenance) and all(p.get("provenance_verified") for p in provenance),
+        "; ".join(
+            f"{i}: coverage={p.get('coverage')}, selected!=final="
+            f"{p.get('selected_final_adjustments')} (diagnostic), ue!=final="
+            f"{p.get('ue_final_mismatches')}, ambiguous={p.get('ambiguous')}"
+            for i, p in enumerate(provenance)))
+
     restored = [c for c in cells if c.get("restored")]
     add("RF_RESTORED_AND_READ_BACK", len(restored) == len(cells) and bool(cells),
         f"{len(restored)}/{len(cells)} cells restored noise_power_dB=-50 with read-back")
@@ -682,7 +733,7 @@ def decide(steady: Mapping[str, Any], transient: Mapping[str, Any],
     add("REPEATABLE_ACROSS_REPETITIONS", not unstable,
         f"cells whose two repetitions disagree at LARGE effect: {unstable or 'none'}")
 
-    # The pair must beat each single feature on at least one outcome.
+    # The pair must add value after the current payload/action is controlled.
     improvements = []
     for target, block in prediction.items():
         comparison = block.get("comparison")
@@ -761,6 +812,18 @@ TIER_COLORS = {"low": "#2E7D32", "medium": "#1565C0", "high": "#C62828"}
 CHANNEL_COLORS = {"FAVORABLE_STABLE": "#2E7D32", "ADVERSE_STABLE": "#C62828"}
 
 
+def require_create_only_targets(run_dir: Path, figures: bool) -> tuple[Path, Path]:
+    """Refuse to overwrite immutable v2 analysis outputs."""
+    report = run_dir / "analysis_v2.json"
+    figure_dir = run_dir / "figures_v2"
+    existing = [str(report)] if report.exists() else []
+    if figures and figure_dir.exists():
+        existing.append(str(figure_dir))
+    if existing:
+        raise FileExistsError(f"v2 analysis output already exists: {existing}")
+    return report, figure_dir
+
+
 def render_figures(rows: Sequence[Mapping[str, Any]], transient: Mapping[str, Any],
                    prediction: Mapping[str, Any], missing: Mapping[str, Any],
                    out_dir: Path) -> list[str]:
@@ -768,7 +831,7 @@ def render_figures(rows: Sequence[Mapping[str, Any]], transient: Mapping[str, An
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=False)
     written: list[str] = []
 
     def save(fig, stem: str) -> None:
@@ -864,8 +927,8 @@ def render_figures(rows: Sequence[Mapping[str, Any]], transient: Mapping[str, An
                  "not a policy feature)", fontsize=10)
     save(fig, "fig04_mcs_age_and_coverage_by_cell")
 
-    # 5. Feature vs next-frame latency.
-    samples = next_frame_targets(rows)
+    # 5. Pre-action feature vs the same action's uplink latency.
+    samples = same_row_action_conditioned_targets(rows)
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.8))
     for axis, key, label in ((axes[0], "mcs", "previous round-0 UL MCS"),
                              (axes[1], "backlog", "pre-enqueue backlog (bytes)")):
@@ -879,20 +942,21 @@ def render_figures(rows: Sequence[Mapping[str, Any]], transient: Mapping[str, An
             axis.scatter(xs, ys, s=5, alpha=0.25,
                          color=CHANNEL_COLORS[channel], label=channel)
         axis.set_xlabel(label)
-        axis.set_ylabel("next-frame uplink latency (ms)")
+        axis.set_ylabel("current action uplink latency (ms)")
         axis.set_yscale("symlog")
         if key == "backlog":
             axis.set_xscale("symlog")
         axis.grid(alpha=0.25)
     axes[0].legend(fontsize=8)
-    fig.suptitle("Each feature against the NEXT frame's uplink latency", fontsize=11)
-    save(fig, "fig05_features_vs_next_frame_latency")
+    fig.suptitle("Pre-action features against the current action's uplink latency",
+                 fontsize=11)
+    save(fig, "fig05_features_vs_same_action_latency")
 
-    # 6. Prediction comparison A/B/C.
+    # 6. Action baseline plus incremental MCS/backlog comparisons.
     targets = [t for t in prediction if prediction[t].get("comparison")]
     if targets:
         fig, axis = plt.subplots(figsize=(9, 5))
-        width = 0.25
+        width = 0.20
         for offset, name in enumerate(FEATURE_SETS):
             values = [prediction[t].get(name, {}).get("auc_mean") or 0
                       for t in targets]
@@ -901,10 +965,10 @@ def render_figures(rows: Sequence[Mapping[str, Any]], transient: Mapping[str, An
             axis.bar([i + offset * width for i in range(len(targets))], values,
                      width, yerr=errors, capsize=3, label=name, alpha=0.85)
         axis.axhline(0.5, color="#555555", ls="--", lw=1, label="chance")
-        axis.set_xticks([i + width for i in range(len(targets))])
+        axis.set_xticks([i + 1.5 * width for i in range(len(targets))])
         axis.set_xticklabels(targets, fontsize=8)
         axis.set_ylabel("leave-one-cell-out AUC (mean +/- sd across folds)")
-        axis.set_title("Next-frame prediction: MCS only vs backlog only vs both",
+        axis.set_title("Action-conditioned prediction: incremental MCS/backlog value",
                        fontsize=11)
         axis.legend(fontsize=8)
         axis.grid(alpha=0.25, axis="y")
@@ -918,9 +982,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--run-dir", required=True, type=Path)
     parser.add_argument("--figures", action="store_true")
     args = parser.parse_args(argv)
+    report_path, figure_dir = require_create_only_targets(
+        args.run_dir, args.figures)
 
-    rows = load_decisions(args.run_dir / "decisions.csv")
-    build = json.loads((args.run_dir / "decisions_build.json").read_text())
+    raw_rows = load_decisions(args.run_dir / "decisions_v2.csv")
+    rows = project_mcs_validity(raw_rows, C.MCS_MAX_AGE_MS)
+    build = json.loads((args.run_dir / "decisions_build_v2.json").read_text())
     manifest_path = args.run_dir / "manifest.json"
     if manifest_path.is_file():
         manifest = json.loads(manifest_path.read_text())
@@ -942,7 +1009,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     repeat = repeatability_analysis(rows)
     missing = missingness_analysis(rows)
     accounting = terminal_accounting(rows, args.run_dir)
-    samples = next_frame_targets(rows)
+    samples = same_row_action_conditioned_targets(rows)
     prediction = {
         target: blocked_prediction(samples, target)
         for target in ("y_complete", "y_in_budget")
@@ -952,6 +1019,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     report = {
         "run_dir": str(args.run_dir),
+        "analysis_schema": "ue_mcs_backlog_analysis_v2",
         "decisions": len(rows),
         "design": {
             "block_orders": [list(o) for o in C.BLOCK_ORDERS],
@@ -960,25 +1028,29 @@ def main(argv: Sequence[str] | None = None) -> int:
             "frames_per_block": C.FRAMES_PER_BLOCK,
             "transient_decisions": C.TRANSIENT_DECISIONS,
             "steady_state_decisions": C.STEADY_STATE_DECISIONS,
+            "primary_mcs_validity_bound_ms": C.MCS_MAX_AGE_MS,
+            "validity_bound_status": "ENGINEERING_HYPOTHESIS_SENSITIVITY_REPORTED",
         },
         "steady_state": steady,
         "saturation": saturation,
         "transient": transient,
         "repeatability": repeat,
         "missingness": missing,
+        "mcs_age_sensitivity": mcs_age_sensitivity(raw_rows),
         "terminal_accounting": accounting,
         "prediction": prediction,
-        "normalization_bounds": normalization_bounds(rows),
+        "normalization_bounds": normalization_bounds(raw_rows),
         "gates": gates,
         "interpretation": verdict,
     }
     figures: list[str] = []
     if args.figures:
         figures = render_figures(rows, transient, prediction, missing,
-                                 args.run_dir / "figures")
+                                 figure_dir)
     report["figures"] = figures
-    (args.run_dir / "analysis_v1.json").write_text(
-        json.dumps(report, indent=2, sort_keys=True, default=str) + "\n")
+    with report_path.open("x", encoding="utf-8") as handle:
+        handle.write(json.dumps(
+            report, indent=2, sort_keys=True, default=str) + "\n")
 
     print(json.dumps({
         "verdict": verdict["verdict"],
