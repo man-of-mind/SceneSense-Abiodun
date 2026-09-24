@@ -33,14 +33,16 @@ class FixtureProvider:
         self.requests: list[src.DecisionStateRequestV1] = []
         self.fail_at_sequence: int | None = None
         self.wrong_previous = False
+        self.successor_commit_delay_ns = 20_000_000
+        self.successor_open_delay_ns = 60_000_000
         self.freshness = contract.FreshnessPolicyV2(
             policy_id="synthetic-test-freshness",
             policy_version=1,
             evidence_sha256=SYNTHETIC_EVIDENCE,
-            camera_si_max_age_ns=50_000_000,
-            radar_p40_max_age_ns=50_000_000,
-            prior_ul_mcs_max_age_ns=50_000_000,
-            pre_action_rlc_backlog_max_age_ns=50_000_000,
+            camera_si_max_age_ns=200_000_000,
+            radar_p40_max_age_ns=200_000_000,
+            prior_ul_mcs_max_age_ns=200_000_000,
+            pre_action_rlc_backlog_max_age_ns=200_000_000,
         )
         self.scaling = contract.EmpiricalScalingV2(
             scaling_id="synthetic-test-scaling",
@@ -83,14 +85,23 @@ class FixtureProvider:
         sequence = request.identity.decision_seq
         if sequence == self.fail_at_sequence:
             raise contract.ExternalFallbackRequired("fixture observation missing")
-        open_ns = (
-            2_000_000_000
-            if request.required_action_open_timestamp_ns is None
-            else request.required_action_open_timestamp_ns
-        )
-        commit_ns = open_ns - 10_000_000
-        source_ns = open_ns - 30_000_000
-        available_ns = open_ns - 20_000_000
+        if sequence == 0:
+            open_ns = 2_000_000_000
+            commit_ns = open_ns - 10_000_000
+        else:
+            # A continuation supplies a newly measured state commit and next
+            # action-open event.  Neither is copied from kernel closure.
+            self.assert_no_required_open(request)
+            commit_ns = (
+                request.minimum_state_commit_timestamp_ns
+                + self.successor_commit_delay_ns
+            )
+            open_ns = (
+                request.minimum_state_commit_timestamp_ns
+                + self.successor_open_delay_ns
+            )
+        source_ns = commit_ns - 20_000_000
+        available_ns = commit_ns - 10_000_000
         scene_sample = 100 + sequence
 
         camera_metadata = self._metadata(
@@ -165,6 +176,13 @@ class FixtureProvider:
         )
         features = contract.build_policy_features(guarded, self.scaling)
         return src.DecisionStateBundleV1(guarded, features)
+
+    @staticmethod
+    def assert_no_required_open(request: src.DecisionStateRequestV1) -> None:
+        if request.required_action_open_timestamp_ns is not None:
+            raise AssertionError(
+                "continuation action-open must be measured, not prescribed"
+            )
 
 
 class FixtureKernel:
@@ -288,6 +306,21 @@ class EnvironmentTest(unittest.TestCase):
         self.assertEqual(previous.derived_reward, result.reward)
         self.assertEqual(current.state.state.identity.decision_seq, 1)
         self.assertEqual(provider.requests[-1].previous, previous)
+        self.assertIsNone(
+            provider.requests[-1].required_action_open_timestamp_ns
+        )
+        self.assertEqual(
+            result.transition_cycle_end_timestamp_ns,
+            current.state.boundary.action_open_timestamp_ns,
+        )
+        self.assertEqual(
+            result.kernel_terminal_closure_timestamp_ns,
+            2_200_000_000,
+        )
+        self.assertEqual(
+            result.transition_cycle_end_timestamp_ns,
+            2_210_000_000,
+        )
         named = current.features.as_dict()
         self.assertEqual(named["prev_joint_mode_7_one_hot"], 1.0)
         self.assertEqual(named["prev_q_normalized"], 7000 / 9800.0)
@@ -320,6 +353,41 @@ class EnvironmentTest(unittest.TestCase):
         self.assertEqual(
             [request.identity.decision_seq for request in provider.requests],
             [0, 1, 2],
+        )
+        self.assertTrue(
+            all(
+                request.required_action_open_timestamp_ns is None
+                for request in provider.requests
+            )
+        )
+
+    def test_successor_state_cannot_commit_before_reward_resolution(self) -> None:
+        provider = FixtureProvider()
+        provider.successor_commit_delay_ns = -1
+        environment, _, _ = self.environment(provider=provider)
+        with self.assertRaisesRegex(
+            src.SuccessorUnavailableError, "no valid real successor"
+        ):
+            environment.step(self.action())
+        self.assertTrue(environment.requires_reset)
+
+    def test_transition_end_is_the_measured_successor_open_not_kernel_closure(self) -> None:
+        provider = FixtureProvider()
+        provider.successor_commit_delay_ns = 25_000_000
+        provider.successor_open_delay_ns = 95_000_000
+        environment, _, kernel = self.environment(provider=provider)
+        result = environment.step(self.action())
+        measured_open = environment.current_state.state.boundary.action_open_timestamp_ns
+        assert kernel.last_result is not None
+        self.assertEqual(measured_open, 2_245_000_000)
+        self.assertEqual(
+            result.kernel_terminal_closure_timestamp_ns,
+            kernel.last_result.cycle_end_timestamp_ns,
+        )
+        self.assertEqual(result.transition_cycle_end_timestamp_ns, measured_open)
+        self.assertNotEqual(
+            result.transition_cycle_end_timestamp_ns,
+            result.kernel_terminal_closure_timestamp_ns,
         )
 
     def test_reset_cannot_abandon_an_active_decision_sequence(self) -> None:

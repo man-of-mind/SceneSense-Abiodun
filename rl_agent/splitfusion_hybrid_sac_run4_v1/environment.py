@@ -309,6 +309,8 @@ class SyntheticMechanicsCycleV1:
     hold_sha256: str
     reward_resolution_sha256: str
     transition_sha256: str
+    kernel_terminal_closure_timestamp_ns: int
+    transition_cycle_end_timestamp_ns: int
     next_state_sha256: Optional[str]
     reward_request_flags: tuple[bool, ...]
 
@@ -341,8 +343,26 @@ class SyntheticMechanicsCycleV1:
             "transition_sha256",
         ):
             _sha256(getattr(self, name), name)
-        if self.next_state_sha256 is not None:
+        closure = _exact_non_negative_int(
+            self.kernel_terminal_closure_timestamp_ns,
+            "kernel_terminal_closure_timestamp_ns",
+        )
+        transition_end = _exact_non_negative_int(
+            self.transition_cycle_end_timestamp_ns,
+            "transition_cycle_end_timestamp_ns",
+        )
+        if self.next_state_sha256 is None:
+            if transition_end != closure:
+                raise SyntheticEvidenceRejected(
+                    "a terminal episode transition must end at kernel closure"
+                )
+        else:
             _sha256(self.next_state_sha256, "next_state_sha256")
+            if transition_end <= closure:
+                raise SyntheticEvidenceRejected(
+                    "a continuing transition must end at the measured successor "
+                    "action-open strictly after kernel closure"
+                )
         if type(self.reward_request_flags) is not tuple or any(
             type(value) is not bool for value in self.reward_request_flags
         ):
@@ -488,8 +508,8 @@ class Run4SequentialEnvironmentV1:
             actual_boundary.action_open_timestamp_ns != required_open
         ):
             raise EnvironmentStateError(
-                "successor action-open timestamp differs from the requested "
-                "cycle end"
+                "action-open timestamp differs from the explicitly requested "
+                "decision boundary"
             )
         if actual_boundary.state_commit_timestamp_ns < (
             request.minimum_state_commit_timestamp_ns
@@ -582,9 +602,11 @@ class Run4SequentialEnvironmentV1:
                         current.state.state.identity.decision_seq + 1,
                     ),
                     previous=previous,
-                    required_action_open_timestamp_ns=(
-                        raw.cycle_end_timestamp_ns
-                    ),
+                    # The next decision boundary is a newly measured causal
+                    # event, not an alias for the just-completed kernel's
+                    # terminal closure.  The provider must return a real
+                    # commit/open pair after feedback resolution.
+                    required_action_open_timestamp_ns=None,
                     minimum_state_commit_timestamp_ns=(
                         resolution.resolution_timestamp_ns
                     ),
@@ -601,8 +623,13 @@ class Run4SequentialEnvironmentV1:
             else:
                 next_bundle = None
 
-            elapsed = (
+            transition_cycle_end_timestamp_ns = (
                 raw.cycle_end_timestamp_ns
+                if next_bundle is None
+                else next_bundle.state.boundary.action_open_timestamp_ns
+            )
+            elapsed = (
+                transition_cycle_end_timestamp_ns
                 - current.state.boundary.action_open_timestamp_ns
             )
             transition = contract.build_transition(
@@ -617,7 +644,7 @@ class Run4SequentialEnvironmentV1:
                 ),
                 episode_boundary=raw.episode_boundary,
                 duration=raw.hold.duration,
-                cycle_end_timestamp_ns=raw.cycle_end_timestamp_ns,
+                cycle_end_timestamp_ns=transition_cycle_end_timestamp_ns,
                 elapsed_virtual_ns=elapsed,
                 gamma=self._gamma,
                 discount=self._gamma ** raw.hold.duration,
@@ -645,6 +672,12 @@ class Run4SequentialEnvironmentV1:
                 hold_sha256=raw.hold.canonical_sha256(),
                 reward_resolution_sha256=resolution.canonical_sha256(),
                 transition_sha256=transition.canonical_sha256(),
+                kernel_terminal_closure_timestamp_ns=(
+                    raw.cycle_end_timestamp_ns
+                ),
+                transition_cycle_end_timestamp_ns=(
+                    transition_cycle_end_timestamp_ns
+                ),
                 next_state_sha256=(
                     None
                     if next_bundle is None
