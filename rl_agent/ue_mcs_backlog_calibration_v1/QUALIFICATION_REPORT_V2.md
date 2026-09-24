@@ -1,4 +1,17 @@
-# UE-local `[previous UL MCS, pre-enqueue backlog]` — bounded qualification
+# SUPERSEDED — UE-local `[previous UL MCS, pre-enqueue backlog]` qualification
+
+> **Do not cite the numerical analysis below.** This report describes the
+> rejected v1-derived analysis and predates corrective commit `8f1b5da`.
+> The authoritative create-only result is
+> `experiments/ue_mcs_backlog_calibration_v1/20260924_131015/analysis_v2.json`,
+> bound by `VERIFIER_INPUT_MANIFEST_V2.json`. Its verdict is `INCONCLUSIVE`:
+> **4/7 scientific checks and 12/13 structural gates**. The sole structural
+> failure is incomplete verifier-only gNB provenance for 4 of 5,400 decisions;
+> UE-side MCS and backlog coverage remain 100%, with no MCS mismatch among
+> matched records. See `INTEGRITY_AMENDMENT_DERIVED_V1_SUPERSEDED.md` for why
+> the v1 derivatives below were rejected and retained only as history.
+
+## Historical superseded report (retained verbatim below)
 
 **Verdict: `INCONCLUSIVE`** — 5 of 7 registered checks, **12 of 12 structural gates**.
 
