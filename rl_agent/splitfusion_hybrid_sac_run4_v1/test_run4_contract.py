@@ -63,6 +63,10 @@ class Run4ContractTest(unittest.TestCase):
                 src.Observer.SCENE_PIPELINE,
                 src.LinkDirection.NOT_APPLICABLE,
             ),
+            src.MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX: (
+                src.Observer.UE,
+                src.LinkDirection.UPLINK,
+            ),
             src.MeasurementKind.UE_DL_SNR_DB: (
                 src.Observer.UE,
                 src.LinkDirection.DOWNLINK,
@@ -104,6 +108,36 @@ class Run4ContractTest(unittest.TestCase):
             missing_reason=None if valid else "not reported",
         )
 
+    def prior_grant(
+        self,
+        value: int | float | None = 12,
+        *,
+        kind: src.MeasurementKind | None = None,
+        mcs_table: int = src.UL_MCS_TABLE_ID,
+        harq_round: int | None = 0,
+        new_data_indicator: int | None = 1,
+        grant_identity: str | None = "ue-dci-grant:10",
+        scheduler_policy_id: str = src.UL_MCS_POLICY_ID,
+        selection_rule_id: str = src.UL_MCS_SELECTION_RULE_ID,
+        **metadata_overrides: object,
+    ) -> src.PriorUlGrantObservationV1:
+        if kind is None:
+            kind = src.MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX
+        valid = bool(metadata_overrides.get("valid", value is not None))
+        return src.PriorUlGrantObservationV1(
+            observation=self.observation(
+                kind,
+                value,
+                **metadata_overrides,
+            ),
+            mcs_table=mcs_table,
+            harq_round=harq_round if valid else None,
+            new_data_indicator=(new_data_indicator if valid else None),
+            grant_identity=grant_identity if valid else None,
+            scheduler_policy_id=scheduler_policy_id,
+            selection_rule_id=selection_rule_id,
+        )
+
     def state(
         self,
         *,
@@ -114,15 +148,15 @@ class Run4ContractTest(unittest.TestCase):
         sample_seq: int = 10,
         camera: src.ScalarObservationV1 | None = None,
         radar: src.ScalarObservationV1 | None = None,
-        snr: src.ScalarObservationV1 | None = None,
+        mcs: src.PriorUlGrantObservationV1 | None = None,
         backlog: src.ScalarObservationV1 | None = None,
-    ) -> src.PolicyStateV1:
+    ) -> src.PolicyStateV2:
         common = dict(
             source_ns=source_ns,
             available_ns=available_ns,
             sample_seq=sample_seq,
         )
-        return src.PolicyStateV1(
+        return src.PolicyStateV2(
             identity=self.decision(sequence),
             camera_si=(
                 camera
@@ -134,10 +168,10 @@ class Run4ContractTest(unittest.TestCase):
                 if radar is not None
                 else self.observation(src.MeasurementKind.RADAR_P40, 0.4, **common)
             ),
-            ue_dl_snr=(
-                snr
-                if snr is not None
-                else self.observation(src.MeasurementKind.UE_DL_SNR_DB, 12.0, **common)
+            prior_ul_mcs=(
+                mcs
+                if mcs is not None
+                else self.prior_grant(12, **common)
             ),
             pre_action_rlc_backlog=(
                 backlog
@@ -165,38 +199,36 @@ class Run4ContractTest(unittest.TestCase):
             clock_domain=CLOCK,
         )
 
-    def freshness(self, **overrides: int) -> src.FreshnessPolicyV1:
+    def freshness(self, **overrides: int) -> src.FreshnessPolicyV2:
         values = dict(
             camera_si_max_age_ns=100_000_000,
             radar_p40_max_age_ns=100_000_000,
-            ue_dl_snr_max_age_ns=100_000_000,
+            prior_ul_mcs_max_age_ns=100_000_000,
             pre_action_rlc_backlog_max_age_ns=100_000_000,
         )
         values.update(overrides)
-        return src.FreshnessPolicyV1(
+        return src.FreshnessPolicyV2(
             policy_id="unit-test-freshness",
             policy_version=1,
             evidence_sha256=EVIDENCE_A,
             **values,
         )
 
-    def scaling(self) -> src.EmpiricalScalingV1:
-        return src.EmpiricalScalingV1(
+    def scaling(self) -> src.EmpiricalScalingV2:
+        return src.EmpiricalScalingV2(
             scaling_id="unit-test-only-not-production",
             scaling_version=1,
             evidence_sha256=EVIDENCE_B,
             camera_si_center=10.0,
             camera_si_scale=5.0,
-            ue_dl_snr_center_db=2.0,
-            ue_dl_snr_scale_db=5.0,
             backlog_log1p_scale=math.log1p(1023),
         )
 
     def guarded(
         self,
-        state: src.PolicyStateV1 | None = None,
+        state: src.PolicyStateV2 | None = None,
         boundary: src.DecisionBoundaryV1 | None = None,
-    ) -> src.GuardedPolicyStateV1:
+    ) -> src.GuardedPolicyStateV2:
         return src.guard_state_for_action(
             self.state() if state is None else state,
             self.boundary() if boundary is None else boundary,
@@ -236,7 +268,7 @@ class Run4ContractTest(unittest.TestCase):
         resolution: src.RewardResolutionV1,
         *,
         sample_seq: int = 7,
-    ) -> tuple[src.GuardedPolicyStateV1, src.PolicyFeatureVectorV1]:
+    ) -> tuple[src.GuardedPolicyStateV2, src.PolicyFeatureVectorV2]:
         previous = src.PreviousOutcomeV1.from_resolution(resolution)
         next_state = self.state(
             sequence=1,
@@ -261,7 +293,7 @@ class Run4ContractTest(unittest.TestCase):
         expected = (
             "camera_si_scaled",
             "radar_p40",
-            "ue_dl_snr_scaled",
+            "prior_ul_mcs_normalized",
             "pre_action_rlc_backlog_log1p_scaled",
             *(f"prev_joint_mode_{i}_one_hot" for i in range(12)),
             "prev_q_normalized",
@@ -276,7 +308,7 @@ class Run4ContractTest(unittest.TestCase):
         vector = src.build_policy_features(self.guarded(), self.scaling())
         self.assertEqual(vector.feature_names, expected)
         self.assertEqual(len(vector.as_tuple()), 21)
-        self.assertEqual(vector.as_tuple()[:4], (2.0, 0.4, 2.0, 1.0))
+        self.assertEqual(vector.as_tuple()[:4], (2.0, 0.4, 12.0 / 28.0, 1.0))
         self.assertEqual(vector.as_tuple()[4:], (0.0,) * 17)
 
     def test_forbidden_actor_leakage_and_redundant_reward_are_absent(self) -> None:
@@ -285,7 +317,6 @@ class Run4ContractTest(unittest.TestCase):
         for forbidden in src.FORBIDDEN_POLICY_FEATURE_TERMS:
             self.assertNotIn(forbidden, joined)
         for forbidden in (
-            "mcs",
             "tbs",
             "grant",
             "network_profile",
@@ -304,17 +335,15 @@ class Run4ContractTest(unittest.TestCase):
 
     def test_empirical_scaling_has_no_defaults_and_is_hash_bound(self) -> None:
         with self.assertRaises(TypeError):
-            src.EmpiricalScalingV1()  # type: ignore[call-arg]
+            src.EmpiricalScalingV2()  # type: ignore[call-arg]
         scale = self.scaling()
         self.assertEqual(len(scale.canonical_sha256()), 64)
-        changed = src.EmpiricalScalingV1(
+        changed = src.EmpiricalScalingV2(
             scaling_id=scale.scaling_id,
             scaling_version=scale.scaling_version,
             evidence_sha256="c" * 64,
             camera_si_center=scale.camera_si_center,
             camera_si_scale=scale.camera_si_scale,
-            ue_dl_snr_center_db=scale.ue_dl_snr_center_db,
-            ue_dl_snr_scale_db=scale.ue_dl_snr_scale_db,
             backlog_log1p_scale=scale.backlog_log1p_scale,
         )
         self.assertNotEqual(scale.canonical_sha256(), changed.canonical_sha256())
@@ -326,32 +355,30 @@ class Run4ContractTest(unittest.TestCase):
     def test_timestamp_causality_fails_closed(self) -> None:
         with self.assertRaises(src.MetadataError):
             self.metadata(
-                src.MeasurementKind.UE_DL_SNR_DB,
+                src.MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX,
                 source_ns=1_020,
                 available_ns=1_019,
             )
         with self.assertRaises(src.MetadataError):
             self.boundary(commit_ns=100, action_ns=100)
 
-        late_snr = self.observation(
-            src.MeasurementKind.UE_DL_SNR_DB,
-            12.0,
+        late_mcs = self.prior_grant(
+            12,
             source_ns=1_049_000_000,
             available_ns=1_051_000_000,
         )
         with self.assertRaisesRegex(
             src.ExternalFallbackRequired, "not available"
         ):
-            self.guarded(self.state(snr=late_snr), self.boundary())
+            self.guarded(self.state(mcs=late_mcs), self.boundary())
 
     def test_missing_stale_and_zero_fill_rules(self) -> None:
-        missing_snr = self.observation(
-            src.MeasurementKind.UE_DL_SNR_DB,
+        missing_mcs = self.prior_grant(
             None,
             valid=False,
         )
         with self.assertRaises(src.ExternalFallbackRequired):
-            self.guarded(self.state(snr=missing_snr), self.boundary())
+            self.guarded(self.state(mcs=missing_mcs), self.boundary())
 
         missing_backlog = self.observation(
             src.MeasurementKind.UE_PRE_ACTION_RLC_BACKLOG_BYTES,
@@ -365,7 +392,8 @@ class Run4ContractTest(unittest.TestCase):
             src.ScalarObservationV1(
                 value=0,
                 metadata=self.metadata(
-                    src.MeasurementKind.UE_DL_SNR_DB, valid=False
+                    src.MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX,
+                    valid=False,
                 ),
                 missing_reason="missing",
             )
@@ -386,20 +414,81 @@ class Run4ContractTest(unittest.TestCase):
             src.guard_state_for_action(
                 self.state(),
                 self.boundary(),
-                self.freshness(ue_dl_snr_max_age_ns=50_000_000),
+                self.freshness(prior_ul_mcs_max_age_ns=50_000_000),
             )
 
-    def test_ue_downlink_snr_cannot_be_replaced_by_gnb_uplink_pusch_snr(self) -> None:
-        gnb_snr = self.observation(
+    def test_prior_ul_mcs_cannot_be_replaced_by_physical_snr(self) -> None:
+        for kind in (
             src.MeasurementKind.GNB_UL_PUSCH_SNR_DB,
-            18.0,
-        )
-        with self.assertRaisesRegex(src.ExternalFallbackRequired, "semantic mismatch"):
-            self.guarded(self.state(snr=gnb_snr), self.boundary())
+            src.MeasurementKind.UE_DL_SNR_DB,
+        ):
+            with self.subTest(kind=kind), self.assertRaisesRegex(
+                src.MetadataError, "UE-observed uplink MCS evidence"
+            ):
+                self.prior_grant(18.0, kind=kind)
 
-        ue_snr = self.observation(src.MeasurementKind.UE_DL_SNR_DB, 18.0)
-        admitted = self.guarded(self.state(snr=ue_snr), self.boundary())
+        prior_mcs = self.prior_grant(18)
+        admitted = self.guarded(self.state(mcs=prior_mcs), self.boundary())
         self.assertTrue(admitted.is_guarded)
+
+    def test_prior_ul_mcs_provenance_is_hash_bound_and_fail_closed(self) -> None:
+        for overrides, message in (
+            ({"mcs_table": 1}, "mcs_table"),
+            ({"harq_round": 1}, "HARQ round 0"),
+            ({"new_data_indicator": 2}, "NDI"),
+            ({"grant_identity": ""}, "grant_identity"),
+            ({"scheduler_policy_id": "foreign"}, "scheduler_policy_id"),
+            ({"selection_rule_id": "foreign"}, "selection_rule_id"),
+        ):
+            with self.subTest(overrides=overrides), self.assertRaisesRegex(
+                src.MetadataError, message
+            ):
+                self.prior_grant(12, **overrides)
+
+        valid = self.prior_grant(12)
+        same = src.PriorUlGrantObservationV1(
+            observation=valid.observation,
+            mcs_table=src.UL_MCS_TABLE_ID,
+            harq_round=0,
+            new_data_indicator=1,
+            grant_identity="ue-dci-grant:10",
+            scheduler_policy_id=src.UL_MCS_POLICY_ID,
+            selection_rule_id=src.UL_MCS_SELECTION_RULE_ID,
+        )
+        self.assertEqual(valid.canonical_sha256(), same.canonical_sha256())
+        self.assertEqual(
+            valid.to_canonical_dict()["record_type"],
+            "prior_ul_grant_observation_v1",
+        )
+
+    def test_prior_ul_mcs_wire_domain_and_normalization_are_exact(self) -> None:
+        self.assertEqual(src.UL_MCS_TABLE_ID, 0)
+        self.assertEqual(src.UL_MCS_INDEX_MIN, 0)
+        self.assertEqual(src.UL_MCS_INDEX_MAX, 28)
+        self.assertEqual(src.UL_MCS_POLICY_ID, "SCENESENSE_MCS_POLICY=sinr")
+
+        for raw, expected in ((0, 0.0), (28, 1.0)):
+            with self.subTest(raw=raw):
+                observation = self.prior_grant(raw)
+                vector = src.build_policy_features(
+                    self.guarded(self.state(mcs=observation), self.boundary()),
+                    self.scaling(),
+                )
+                self.assertEqual(
+                    vector.as_dict()["prior_ul_mcs_normalized"], expected
+                )
+
+        for raw in (-1, 29, 12.0):
+            with self.subTest(raw=raw), self.assertRaisesRegex(
+                src.MetadataError, "exact table-0 index"
+            ):
+                self.prior_grant(raw)
+
+        with self.assertRaisesRegex(src.MetadataError, "finite real scalar"):
+            self.observation(
+                src.MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX,
+                True,
+            )
 
     def test_backlog_must_be_available_before_action(self) -> None:
         post_action_backlog = self.observation(
@@ -429,11 +518,9 @@ class Run4ContractTest(unittest.TestCase):
 
         # UE radio telemetry is intentionally asynchronous and need not share
         # the scene sample sequence.
-        async_snr = self.observation(
-            src.MeasurementKind.UE_DL_SNR_DB, 12.0, sample_seq=99
-        )
+        async_mcs = self.prior_grant(12, sample_seq=99)
         self.assertTrue(
-            self.guarded(self.state(snr=async_snr), self.boundary()).is_guarded
+            self.guarded(self.state(mcs=async_mcs), self.boundary()).is_guarded
         )
 
     # ------------------------------------------------------------------
@@ -635,6 +722,10 @@ class Run4ContractTest(unittest.TestCase):
         values = self.transition_inputs()
         transition = src.build_transition(**values)  # type: ignore[arg-type]
         self.assertTrue(transition.is_attested)
+        self.assertEqual(
+            transition.to_canonical_dict()["record_type"],
+            "semi_markov_transition_v2",
+        )
         self.assertEqual(transition.duration, 2)
         self.assertEqual(transition.elapsed_virtual_ns, 150_000_000)
         self.assertAlmostEqual(transition.discount, 0.99**2)
@@ -815,28 +906,43 @@ class Run4ContractTest(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def test_all_semantic_surfaces_are_versioned_and_hashed(self) -> None:
-        for schema_id, version, digest in (
-            (src.SCHEMA_ID, src.SCHEMA_VERSION, src.SCHEMA_SHA256),
+        for schema_id, version, digest, expected_suffix in (
+            (src.SCHEMA_ID, src.SCHEMA_VERSION, src.SCHEMA_SHA256, "_v2"),
             (
                 src.FEATURE_SCHEMA_ID,
                 src.FEATURE_SCHEMA_VERSION,
                 src.FEATURE_SCHEMA_SHA256,
+                "_v2",
             ),
             (
                 src.REWARD_SCHEMA_ID,
                 src.REWARD_SCHEMA_VERSION,
                 src.REWARD_SCHEMA_SHA256,
+                "_v1",
             ),
             (
                 src.TRANSITION_SCHEMA_ID,
                 src.TRANSITION_SCHEMA_VERSION,
                 src.TRANSITION_SCHEMA_SHA256,
+                "_v2",
             ),
         ):
-            self.assertTrue(schema_id.endswith("_v1"))
-            self.assertEqual(version, 1)
+            self.assertTrue(schema_id.endswith(expected_suffix))
+            self.assertEqual(version, int(expected_suffix.removeprefix("_v")))
             self.assertEqual(len(digest), 64)
             int(digest, 16)
+
+        changed_records = (
+            self.freshness(),
+            self.scaling(),
+            self.state(),
+            self.guarded(),
+            src.build_policy_features(self.guarded(), self.scaling()),
+        )
+        for record in changed_records:
+            self.assertTrue(
+                record.to_canonical_dict()["record_type"].endswith("_v2")
+            )
 
     def test_import_has_no_filesystem_rng_socket_or_process_side_effect(self) -> None:
         with mock.patch.object(

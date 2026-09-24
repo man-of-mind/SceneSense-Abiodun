@@ -85,7 +85,7 @@ def _gate(*, bins: int = 4, samples: int = 2) -> CoverageGateConfig:
         state_thresholds=(
             _state_threshold("scene_si", lower=-1000.0, upper=10000.0),
             _state_threshold("scene_p40", lower=-1.0, upper=2.0),
-            _state_threshold("ue_dl_snr_db", lower=-1000.0, upper=1000.0),
+            _state_threshold("prior_ul_mcs_index", lower=-1.0, upper=29.0),
             _state_threshold("rlc_backlog_bytes", lower=-1.0, upper=1e9),
         ),
         outcome_thresholds=(
@@ -133,11 +133,13 @@ def _observation(
     values = {
         "scene_si": 10.0 + state_ordinal,
         "scene_p40": 0.2 + (state_ordinal % 11) / 20.0,
-        "ue_dl_snr_db": -10.0 + (state_ordinal % 19),
+        "prior_ul_mcs_index": state_ordinal % 29,
         "rlc_backlog_bytes": 100.0 + 37.0 * state_ordinal,
     }
     if constant_feature is not None:
-        values[constant_feature] = 0.25
+        values[constant_feature] = (
+            10 if constant_feature == "prior_ul_mcs_index" else 0.25
+        )
     if saturated_feature == "scene_p40":
         values[saturated_feature] = 0.0
     if nonfinite_feature is not None:
@@ -275,11 +277,17 @@ class StratifiedScheduleTests(unittest.TestCase):
 
 
 class ObservationContractTests(unittest.TestCase):
+    def test_changed_coverage_gate_has_v2_record_identity(self) -> None:
+        self.assertEqual(
+            _gate().to_canonical_dict()["record"],
+            "run4_exploration_coverage_gate_v2",
+        )
+
     def test_only_required_state_and_previous_outcome_are_accepted(self) -> None:
         raw = {
             "scene_si": 12.0,
             "scene_p40": 0.4,
-            "ue_dl_snr_db": 9.0,
+            "prior_ul_mcs_index": 9,
             "rlc_backlog_bytes": 1200,
             "previous": {
                 "mode_id": 2,
@@ -307,11 +315,35 @@ class ObservationContractTests(unittest.TestCase):
         observation = CoverageObservation(
             scene_si=math.nan,
             scene_p40=0.2,
-            ue_dl_snr_db=5.0,
+            prior_ul_mcs_index=5,
             rlc_backlog_bytes=0,
             previous=None,
         )
         self.assertTrue(math.isnan(observation.scene_si))
+
+    def test_prior_ul_mcs_requires_an_exact_table_zero_index(self) -> None:
+        for raw in (0, 28):
+            with self.subTest(raw=raw):
+                observation = CoverageObservation(
+                    scene_si=1.0,
+                    scene_p40=0.2,
+                    prior_ul_mcs_index=raw,
+                    rlc_backlog_bytes=0,
+                    previous=None,
+                )
+                self.assertEqual(observation.prior_ul_mcs_index, raw)
+
+        for raw in (-1, 29, 12.0, True):
+            with self.subTest(raw=raw), self.assertRaisesRegex(
+                CoverageRecordError, "exact table-0 index"
+            ):
+                CoverageObservation(
+                    scene_si=1.0,
+                    scene_p40=0.2,
+                    prior_ul_mcs_index=raw,  # type: ignore[arg-type]
+                    rlc_backlog_bytes=0,
+                    previous=None,
+                )
 
     def test_malformed_previous_outcome_semantics_are_rejected(self) -> None:
         common = {"mode_id": 0, "q_e4": 100}
@@ -409,7 +441,7 @@ class FeedbackCoverageGateTests(unittest.TestCase):
                 observation=CoverageObservation(
                     scene_si=1,
                     scene_p40=0.2,
-                    ue_dl_snr_db=3,
+                    prior_ul_mcs_index=3,
                     rlc_backlog_bytes=4,
                     previous=None,
                 ),
@@ -422,13 +454,13 @@ class FeedbackCoverageGateTests(unittest.TestCase):
             )
 
     def test_constant_saturated_and_nonfinite_state_evidence_refuses_gradient(self) -> None:
-        constant = _filled_ledger(constant_feature="ue_dl_snr_db").report()
+        constant = _filled_ledger(constant_feature="prior_ul_mcs_index").report()
         self.assertFalse(constant.gradient_start_allowed)
         self.assertTrue(
-            any("ue_dl_snr_db unique count" in item for item in constant.failures)
+            any("prior_ul_mcs_index unique count" in item for item in constant.failures)
         )
         self.assertTrue(
-            any("mode 0 ue_dl_snr_db" in item for item in constant.failures)
+            any("mode 0 prior_ul_mcs_index" in item for item in constant.failures)
         )
 
         saturated_gate = _gate()
@@ -505,7 +537,7 @@ class ActorBehaviorDiagnosticsTests(unittest.TestCase):
             observation = CoverageObservation(
                 scene_si=float(index),
                 scene_p40=float(index) / 20.0,
-                ue_dl_snr_db=float(index - 8),
+                prior_ul_mcs_index=index,
                 rlc_backlog_bytes=float(index * 1000),
                 previous=None,
             )
@@ -529,7 +561,7 @@ class ActorBehaviorDiagnosticsTests(unittest.TestCase):
         self.assertEqual(diagnostics.outer_q_bin_fraction, 1.0)
         self.assertEqual(
             {item.feature_name for item in diagnostics.feature_associations},
-            {"scene_si", "scene_p40", "ue_dl_snr_db", "rlc_backlog_bytes"},
+            {"scene_si", "scene_p40", "prior_ul_mcs_index", "rlc_backlog_bytes"},
         )
         # Constant q makes the q correlation undefined rather than fabricating zero.
         self.assertTrue(

@@ -47,7 +47,7 @@ The compact observation audited here contains:
 
 - current scene SI;
 - current radar P40;
-- current UE downlink SNR;
+- latest strictly prior UE-decoded round-0 UL MCS;
 - current UE RLC backlog;
 - previous mode and executed q;
 - previous success/failure;
@@ -109,8 +109,8 @@ The report and gate cover:
 - current per-mode/q-bin counts;
 - previous-action per-mode and per-mode/q-bin counts;
 - prior-outcome presence, successes, and failures;
-- finite count, distinct count, span, and boundary saturation for SI, P40, UE
-  downlink SNR, and RLC backlog;
+- finite count, distinct count, span, and boundary saturation for SI, P40,
+  prior UL MCS, and RLC backlog;
 - the same state-variation checks within every mode, so global variation cannot
   conceal a mode seen in only one state regime; and
 - finite count, distinct count, and span for successful previous quality and
@@ -184,8 +184,8 @@ The fixed grid must check all of the following:
    and low/high-bin fractions from stochastic training decisions.  The upper q
    bin must be represented; an outer-bin total alone is insufficient because
    it can hide low-boundary collapse.
-3. **Controlled SNR/backlog response.**  Starting from fixed observed states,
-   perturb UE downlink SNR and RLC backlog only within preregistered observed or
+3. **Controlled MCS/backlog response.**  Starting from fixed observed states,
+   perturb prior UL MCS and RLC backlog only within preregistered observed or
    calibrated support while holding SI, P40, and the previous outcome fixed.
    Record mode probabilities and every conditional q head, plus the
    deterministic evaluation action.  This reveals whether the actor ignores
@@ -206,9 +206,9 @@ do not continue to 1,500 updates merely because losses are finite.
 This utility does not:
 
 - choose q-bin counts, warm-up length, or scientific gate thresholds;
-- add MCS, grant, TBS, network-profile identity, age, validity, or raw reward to
-  the actor state;
+- add grant, TBS, network-profile identity, age, validity, or raw reward to the
+  actor state beyond the registered prior-UL-MCS feature;
 - turn held transmissions into policy decisions;
-- claim that UE downlink SNR is direct uplink SNR;
+- claim that UL MCS is an unquantized or instantaneous SNR measurement;
 - implement entropy/alpha tuning; or
 - start training or any live service.

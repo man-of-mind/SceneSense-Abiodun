@@ -30,12 +30,16 @@ from rl_agent.splitfusion_hybrid_sac_v1.action_contract import (
     Q_E4_MIN,
     Q_E4_SCALE,
 )
+from rl_agent.splitfusion_hybrid_sac_run4_v1.run4_contract import (
+    UL_MCS_INDEX_MAX,
+    UL_MCS_INDEX_MIN,
+)
 
 
 REQUIRED_STATE_FEATURES: Tuple[str, ...] = (
     "scene_si",
     "scene_p40",
-    "ue_dl_snr_db",
+    "prior_ul_mcs_index",
     "rlc_backlog_bytes",
 )
 REQUIRED_OUTCOME_METRICS: Tuple[str, ...] = (
@@ -452,14 +456,24 @@ class CoverageObservation:
 
     scene_si: float
     scene_p40: float
-    ue_dl_snr_db: float
+    prior_ul_mcs_index: int
     rlc_backlog_bytes: float
     previous: Optional[PreviousDecisionObservation]
 
     def __post_init__(self) -> None:
         # Non-finite values are retained so the gate can report and refuse
         # them, rather than making missing/invalid telemetry disappear.
-        for name in REQUIRED_STATE_FEATURES:
+        if (
+            type(self.prior_ul_mcs_index) is not int
+            or not UL_MCS_INDEX_MIN
+            <= self.prior_ul_mcs_index
+            <= UL_MCS_INDEX_MAX
+        ):
+            raise CoverageRecordError(
+                "prior_ul_mcs_index must be an exact table-0 index in "
+                f"[{UL_MCS_INDEX_MIN},{UL_MCS_INDEX_MAX}]"
+            )
+        for name in ("scene_si", "scene_p40", "rlc_backlog_bytes"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, numbers.Real):
                 raise CoverageRecordError(f"{name} must be a real number")
@@ -504,7 +518,7 @@ class CoverageObservation:
         return cls(
             scene_si=value["scene_si"],
             scene_p40=value["scene_p40"],
-            ue_dl_snr_db=value["ue_dl_snr_db"],
+            prior_ul_mcs_index=value["prior_ul_mcs_index"],
             rlc_backlog_bytes=value["rlc_backlog_bytes"],
             previous=previous,
         )
@@ -648,7 +662,7 @@ class CoverageGateConfig:
                 for item in sorted(self.outcome_thresholds, key=lambda item: item.name)
             ],
             "preregistration_id": self.preregistration_id,
-            "record": "run4_exploration_coverage_gate_v1",
+            "record": "run4_exploration_coverage_gate_v2",
             "state_thresholds": [
                 item.to_canonical_dict()
                 for item in sorted(self.state_thresholds, key=lambda item: item.name)

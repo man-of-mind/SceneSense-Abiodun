@@ -11,7 +11,7 @@ The order is immutable:
 
 1. `camera_si_scaled`
 2. `radar_p40`
-3. `ue_dl_snr_scaled`
+3. `prior_ul_mcs_normalized`
 4. `pre_action_rlc_backlog_log1p_scaled`
 5. twelve previous-joint-mode one-hot values, mode 0 through mode 11
 6. `prev_q_normalized`
@@ -20,12 +20,12 @@ The order is immutable:
 9. `prev_present`
 10. `prev_success`
 
-Camera SI, UE downlink SNR, and `log1p(backlog)` scaling parameters have no
-production defaults. A versioned `EmpiricalScalingV1`, including its evidence
-hash, must be supplied before vectorization. `radar_p40` is already the frozen
-unitless `[0,1]` proximity descriptor. Previous `q` is normalized by the frozen
-wire maximum, and successful previous latency is normalized by the 170 ms
-reward deadline.
+Camera SI and `log1p(backlog)` scaling parameters have no production defaults.
+A versioned `EmpiricalScalingV2`, including its evidence hash, must be supplied
+before vectorization. `radar_p40` is already the frozen unitless `[0,1]`
+proximity descriptor. The prior UL MCS is normalized over the registered table-0
+wire domain `[0,28]`. Previous `q` is normalized by the frozen wire maximum,
+and successful previous latency is normalized by the 170 ms reward deadline.
 
 At episode genesis, all previous-decision fields are zero and
 `prev_present=0`. After success, the exact previous action, quality, and latency
@@ -44,13 +44,13 @@ prev_quality_qperc - 0.25 * prev_latency_normalized
 and for a present registered failure/timeout it is exactly `-1`. Adding the
 same value again would be redundant.
 
-MCS, TBS, grants, network profile, gNB PUSCH SNR, measurement age, validity,
-timestamps, frame identifiers, FPS, and current/future outcomes are not actor
-features.
+TBS, grants other than the registered prior-MCS value, network profile, gNB
+PUSCH SNR, measurement age, validity, timestamps, frame identifiers, FPS, and
+current/future outcomes are not actor features.
 
 ## External causal guard
 
-Every camera, radar, UE-SNR, and RLC observation carries typed sample identity,
+Every camera, radar, UE-MCS, and RLC observation carries typed sample identity,
 source, source timestamp, availability timestamp, clock domain, semantic kind,
 observer, link direction, and validity. A versioned, evidence-hashed freshness
 policy is also mandatory. Its production limits remain unresolved until they
@@ -66,11 +66,15 @@ on one clock, checks same-session/same-UE identity, checks freshness, and checks
 the expected measurement semantics. In particular:
 
 - camera SI and radar P40 must carry the exact same current-scene
-  `SampleIdentity`; UE SNR and RLC samples may remain asynchronous;
-- `ue_dl_snr` must be measured at the UE on the downlink;
-- gNB-received uplink PUSCH SNR cannot occupy that slot;
+  `SampleIdentity`; UE MCS and RLC samples may remain asynchronous;
+- `prior_ul_mcs` must be the latest strictly prior, UE-decoded, round-0/new-data
+  UL DCI MCS under table 0 and the registered SINR-driven scheduler; the typed
+  grant evidence hash includes table, HARQ round, NDI, grant identity,
+  scheduler policy, and the strict-prior selection rule;
+- gNB-received uplink PUSCH SNR, UE downlink SNR, and retransmission-grant MCS
+  cannot occupy that slot;
 - RLC backlog must be the UE's pre-action uplink queue value;
-- missing or stale SNR/backlog raises `ExternalFallbackRequired`;
+- missing or stale MCS/backlog raises `ExternalFallbackRequired`;
 - missing values are never zero-filled. A valid measured backlog of zero remains
   distinguishable from a missing backlog.
 

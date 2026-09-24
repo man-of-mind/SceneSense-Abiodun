@@ -7,7 +7,9 @@ replay buffer, trainer, live adapter, or evidence collector.
 The policy sees exactly 21 numeric features.  Source timestamps, availability,
 validity, freshness and identity are mandatory causal metadata, but are checked
 by :func:`guard_state_for_action` outside the actor and never appended to the
-feature vector.  Missing or stale measurements raise
+feature vector.  The radio feature is the latest strictly prior, UE-decoded,
+round-0 UL MCS selected by the registered SINR-driven gNB scheduler.  Missing
+or stale measurements raise
 :class:`ExternalFallbackRequired`; they are never represented by numeric zero.
 
 Importing this module reads no files and starts no runtime component.  The only
@@ -66,6 +68,11 @@ __all__ = [
     "REWARD_DEADLINE_NS",
     "REWARD_LATENCY_WEIGHT",
     "REGISTERED_FAILURE_REWARD",
+    "UL_MCS_TABLE_ID",
+    "UL_MCS_INDEX_MIN",
+    "UL_MCS_INDEX_MAX",
+    "UL_MCS_POLICY_ID",
+    "UL_MCS_SELECTION_RULE_ID",
     "TRANSMIT_CADENCE_HZ",
     "TRANSMIT_PERIOD_NS",
     "TRAINING_EVIDENCE_CLASS",
@@ -80,12 +87,13 @@ __all__ = [
     "MeasurementMetadataV1",
     "ScalarObservationV1",
     "DecisionBoundaryV1",
-    "FreshnessPolicyV1",
-    "EmpiricalScalingV1",
+    "PriorUlGrantObservationV1",
+    "FreshnessPolicyV2",
+    "EmpiricalScalingV2",
     "PreviousOutcomeV1",
-    "PolicyStateV1",
-    "GuardedPolicyStateV1",
-    "PolicyFeatureVectorV1",
+    "PolicyStateV2",
+    "GuardedPolicyStateV2",
+    "PolicyFeatureVectorV2",
     "guard_state_for_action",
     "build_policy_features",
     # reward
@@ -99,7 +107,7 @@ __all__ = [
     "EpisodeBoundary",
     "HoldTensorV1",
     "ActionHoldV1",
-    "SemiMarkovTransitionV1",
+    "SemiMarkovTransitionV2",
     "build_transition",
 ]
 
@@ -260,7 +268,7 @@ class _CanonicalRecord:
 POLICY_FEATURE_ORDER: Tuple[str, ...] = (
     "camera_si_scaled",
     "radar_p40",
-    "ue_dl_snr_scaled",
+    "prior_ul_mcs_normalized",
     "pre_action_rlc_backlog_log1p_scaled",
     *(f"prev_joint_mode_{index}_one_hot" for index in range(EXPECTED_MODE_COUNT)),
     "prev_q_normalized",
@@ -280,7 +288,6 @@ FORBIDDEN_POLICY_FEATURE_TERMS: Tuple[str, ...] = (
     "valid",
     "source",
     "identity",
-    "mcs",
     "tbs",
     "grant",
     "network_profile",
@@ -298,9 +305,18 @@ REWARD_DEADLINE_NS = 170_000_000
 REWARD_LATENCY_WEIGHT = 0.25
 REGISTERED_FAILURE_REWARD = -1.0
 
+# The local SINR-driven scheduler's lookup accepts only TS 38.214 table 0 and
+# emits indices 0..28.  The runtime adapter must construct the observation
+# from the latest strictly prior UE-decoded round-0/new-data UL DCI grant.
+UL_MCS_TABLE_ID = 0
+UL_MCS_INDEX_MIN = 0
+UL_MCS_INDEX_MAX = 28
+UL_MCS_POLICY_ID = "SCENESENSE_MCS_POLICY=sinr"
+UL_MCS_SELECTION_RULE_ID = "LATEST_STRICTLY_PRIOR_UE_UL_DCI_ROUND0"
+
 TRANSMIT_CADENCE_HZ = 10
 TRANSMIT_PERIOD_NS = 1_000_000_000 // TRANSMIT_CADENCE_HZ
-TRAINING_EVIDENCE_CLASS = "SEMI_EMPIRICAL_RUN4_TRAINING_CONTRACT_V1"
+TRAINING_EVIDENCE_CLASS = "SEMI_EMPIRICAL_RUN4_TRAINING_CONTRACT_V2"
 LIVE_EVIDENCE_STATUS = "NOT_ESTABLISHED_BY_THIS_CONTRACT"
 
 
@@ -324,8 +340,8 @@ def assert_policy_feature_schema() -> None:
 
 assert_policy_feature_schema()
 
-FEATURE_SCHEMA_ID = "splitfusion_run4_policy_features_v1"
-FEATURE_SCHEMA_VERSION = 1
+FEATURE_SCHEMA_ID = "splitfusion_run4_policy_features_v2"
+FEATURE_SCHEMA_VERSION = 2
 FEATURE_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": FEATURE_SCHEMA_ID,
@@ -351,8 +367,9 @@ FEATURE_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
         ),
         "forbidden_feature_terms": FORBIDDEN_POLICY_FEATURE_TERMS,
         "scaling": (
-            "camera, UE-DL-SNR and log1p-backlog parameters are constructor-"
-            "bound empirical inputs with no production defaults"
+            "camera and log1p-backlog parameters are constructor-bound "
+            "empirical inputs with no production defaults; UL MCS uses the "
+            "registered table-0 wire range [0,28]"
         ),
     }
 )
@@ -386,8 +403,8 @@ REWARD_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
 )
 REWARD_SCHEMA_SHA256 = canonical_sha256(REWARD_SCHEMA_DESCRIPTOR)
 
-TRANSITION_SCHEMA_ID = "splitfusion_run4_semi_markov_transition_v1"
-TRANSITION_SCHEMA_VERSION = 1
+TRANSITION_SCHEMA_ID = "splitfusion_run4_semi_markov_transition_v2"
+TRANSITION_SCHEMA_VERSION = 2
 TRANSITION_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": TRANSITION_SCHEMA_ID,
@@ -432,8 +449,8 @@ TRANSITION_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
 )
 TRANSITION_SCHEMA_SHA256 = canonical_sha256(TRANSITION_SCHEMA_DESCRIPTOR)
 
-SCHEMA_ID = "splitfusion_hybrid_sac_run4_contract_v1"
-SCHEMA_VERSION = 1
+SCHEMA_ID = "splitfusion_hybrid_sac_run4_contract_v2"
+SCHEMA_VERSION = 2
 SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
     {
         "schema_id": SCHEMA_ID,
@@ -456,10 +473,11 @@ SCHEMA_SHA256 = canonical_sha256(SCHEMA_DESCRIPTOR)
 class MeasurementKind(str, Enum):
     CAMERA_SI = "CAMERA_SI"
     RADAR_P40 = "RADAR_P40"
+    UE_PRIOR_NEW_DATA_UL_MCS_INDEX = "UE_PRIOR_NEW_DATA_UL_MCS_INDEX"
     UE_DL_SNR_DB = "UE_DL_SNR_DB"
     UE_PRE_ACTION_RLC_BACKLOG_BYTES = "UE_PRE_ACTION_RLC_BACKLOG_BYTES"
-    # Defined only to make the opposite-link rejection explicit.  This metric
-    # is diagnostic/privileged and cannot fill the UE-DL-SNR state slot.
+    # Diagnostic-only physical measurements.  Neither can fill the causal
+    # UE-decoded UL-MCS state slot.
     GNB_UL_PUSCH_SNR_DB = "GNB_UL_PUSCH_SNR_DB"
 
 
@@ -611,6 +629,92 @@ class ScalarObservationV1(_CanonicalRecord):
 
 
 @dataclass(frozen=True, slots=True)
+class PriorUlGrantObservationV1(_CanonicalRecord):
+    """UE-decoded prior new-data UL grant used by the policy.
+
+    This wrapper makes the scheduler/table/HARQ semantics part of the hashed
+    state evidence.  A valid sample must be a table-0, round-0 UL MCS index.
+    A missing sample remains explicitly missing; MCS 0 is never its sentinel.
+    """
+
+    observation: ScalarObservationV1
+    mcs_table: int
+    harq_round: Optional[int]
+    new_data_indicator: Optional[int]
+    grant_identity: Optional[str]
+    scheduler_policy_id: str
+    selection_rule_id: str
+
+    RECORD_TYPE = "prior_ul_grant_observation_v1"
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.observation, ScalarObservationV1):
+            raise MetadataError("observation must be ScalarObservationV1")
+        metadata = self.observation.metadata
+        if (
+            metadata.kind is not MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX
+            or metadata.observer is not Observer.UE
+            or metadata.link_direction is not LinkDirection.UPLINK
+        ):
+            raise MetadataError(
+                "prior UL grant must be UE-observed uplink MCS evidence"
+            )
+        if type(self.mcs_table) is not int or self.mcs_table != UL_MCS_TABLE_ID:
+            raise MetadataError(
+                f"mcs_table must be exactly {UL_MCS_TABLE_ID}"
+            )
+        if self.scheduler_policy_id != UL_MCS_POLICY_ID:
+            raise MetadataError(
+                f"scheduler_policy_id must be exactly {UL_MCS_POLICY_ID!r}"
+            )
+        if self.selection_rule_id != UL_MCS_SELECTION_RULE_ID:
+            raise MetadataError(
+                f"selection_rule_id must be exactly "
+                f"{UL_MCS_SELECTION_RULE_ID!r}"
+            )
+        if metadata.valid:
+            if type(self.harq_round) is not int or self.harq_round != 0:
+                raise MetadataError(
+                    "a valid prior policy MCS must come from HARQ round 0"
+                )
+            if (
+                type(self.new_data_indicator) is not int
+                or self.new_data_indicator not in (0, 1)
+            ):
+                raise MetadataError(
+                    "a valid prior policy MCS requires NDI exactly 0 or 1"
+                )
+            _non_empty_str(self.grant_identity, "grant_identity", MetadataError)
+            mcs = self.observation.value
+            if (
+                type(mcs) is not int
+                or not UL_MCS_INDEX_MIN <= mcs <= UL_MCS_INDEX_MAX
+            ):
+                raise MetadataError(
+                    "prior UL MCS must be an exact table-0 index in [0, 28]"
+                )
+        elif (
+            self.harq_round is not None
+            or self.new_data_indicator is not None
+            or self.grant_identity is not None
+        ):
+            raise MetadataError(
+                "a missing prior UL grant must omit round, NDI and identity"
+            )
+
+    def _payload(self) -> Dict[str, Any]:
+        return {
+            "harq_round": self.harq_round,
+            "grant_identity": self.grant_identity,
+            "mcs_table": self.mcs_table,
+            "new_data_indicator": self.new_data_indicator,
+            "observation": self.observation.to_canonical_dict(),
+            "scheduler_policy_id": self.scheduler_policy_id,
+            "selection_rule_id": self.selection_rule_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class DecisionBoundaryV1(_CanonicalRecord):
     identity: DecisionIdentityV1
     state_commit_timestamp_ns: int
@@ -649,7 +753,7 @@ class DecisionBoundaryV1(_CanonicalRecord):
 
 
 @dataclass(frozen=True, slots=True)
-class FreshnessPolicyV1(_CanonicalRecord):
+class FreshnessPolicyV2(_CanonicalRecord):
     """Explicit caller binding; this module invents no production age limits."""
 
     policy_id: str
@@ -657,10 +761,10 @@ class FreshnessPolicyV1(_CanonicalRecord):
     evidence_sha256: str
     camera_si_max_age_ns: int
     radar_p40_max_age_ns: int
-    ue_dl_snr_max_age_ns: int
+    prior_ul_mcs_max_age_ns: int
     pre_action_rlc_backlog_max_age_ns: int
 
-    RECORD_TYPE = "freshness_policy_v1"
+    RECORD_TYPE = "freshness_policy_v2"
 
     def __post_init__(self) -> None:
         _non_empty_str(self.policy_id, "policy_id", MetadataError)
@@ -669,7 +773,7 @@ class FreshnessPolicyV1(_CanonicalRecord):
         for name in (
             "camera_si_max_age_ns",
             "radar_p40_max_age_ns",
-            "ue_dl_snr_max_age_ns",
+            "prior_ul_mcs_max_age_ns",
             "pre_action_rlc_backlog_max_age_ns",
         ):
             _positive_int(getattr(self, name), name, MetadataError)
@@ -679,7 +783,9 @@ class FreshnessPolicyV1(_CanonicalRecord):
             return {
                 MeasurementKind.CAMERA_SI: self.camera_si_max_age_ns,
                 MeasurementKind.RADAR_P40: self.radar_p40_max_age_ns,
-                MeasurementKind.UE_DL_SNR_DB: self.ue_dl_snr_max_age_ns,
+                MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX: (
+                    self.prior_ul_mcs_max_age_ns
+                ),
                 MeasurementKind.UE_PRE_ACTION_RLC_BACKLOG_BYTES: (
                     self.pre_action_rlc_backlog_max_age_ns
                 ),
@@ -697,12 +803,12 @@ class FreshnessPolicyV1(_CanonicalRecord):
                 self.pre_action_rlc_backlog_max_age_ns
             ),
             "radar_p40_max_age_ns": self.radar_p40_max_age_ns,
-            "ue_dl_snr_max_age_ns": self.ue_dl_snr_max_age_ns,
+            "prior_ul_mcs_max_age_ns": self.prior_ul_mcs_max_age_ns,
         }
 
 
 @dataclass(frozen=True, slots=True)
-class EmpiricalScalingV1(_CanonicalRecord):
+class EmpiricalScalingV2(_CanonicalRecord):
     """Empirical normalization supplied by a versioned fit, with no defaults."""
 
     scaling_id: str
@@ -710,21 +816,17 @@ class EmpiricalScalingV1(_CanonicalRecord):
     evidence_sha256: str
     camera_si_center: float
     camera_si_scale: float
-    ue_dl_snr_center_db: float
-    ue_dl_snr_scale_db: float
     backlog_log1p_scale: float
 
-    RECORD_TYPE = "empirical_scaling_v1"
+    RECORD_TYPE = "empirical_scaling_v2"
 
     def __post_init__(self) -> None:
         _non_empty_str(self.scaling_id, "scaling_id", ScalingError)
         _positive_int(self.scaling_version, "scaling_version", ScalingError)
         _sha256_hex(self.evidence_sha256, "evidence_sha256", ScalingError)
         _finite_float(self.camera_si_center, "camera_si_center", ScalingError)
-        _finite_float(self.ue_dl_snr_center_db, "ue_dl_snr_center_db", ScalingError)
         for name in (
             "camera_si_scale",
-            "ue_dl_snr_scale_db",
             "backlog_log1p_scale",
         ):
             value = _finite_float(getattr(self, name), name, ScalingError)
@@ -739,8 +841,6 @@ class EmpiricalScalingV1(_CanonicalRecord):
             "evidence_sha256": self.evidence_sha256,
             "scaling_id": self.scaling_id,
             "scaling_version": self.scaling_version,
-            "ue_dl_snr_center_db": float(self.ue_dl_snr_center_db),
-            "ue_dl_snr_scale_db": float(self.ue_dl_snr_scale_db),
         }
 
 
@@ -1152,27 +1252,26 @@ class PreviousOutcomeV1(_CanonicalRecord):
 
 
 @dataclass(frozen=True, slots=True)
-class PolicyStateV1(_CanonicalRecord):
+class PolicyStateV2(_CanonicalRecord):
     identity: DecisionIdentityV1
     camera_si: ScalarObservationV1
     radar_p40: ScalarObservationV1
-    ue_dl_snr: ScalarObservationV1
+    prior_ul_mcs: PriorUlGrantObservationV1
     pre_action_rlc_backlog: ScalarObservationV1
     previous: Optional[PreviousOutcomeV1]
 
-    RECORD_TYPE = "policy_state_v1"
+    RECORD_TYPE = "policy_state_v2"
 
     def __post_init__(self) -> None:
         if not isinstance(self.identity, DecisionIdentityV1):
             raise MetadataError("identity must be DecisionIdentityV1")
-        for name in (
-            "camera_si",
-            "radar_p40",
-            "ue_dl_snr",
-            "pre_action_rlc_backlog",
-        ):
+        for name in ("camera_si", "radar_p40", "pre_action_rlc_backlog"):
             if not isinstance(getattr(self, name), ScalarObservationV1):
                 raise MetadataError(f"{name} must be ScalarObservationV1")
+        if not isinstance(self.prior_ul_mcs, PriorUlGrantObservationV1):
+            raise MetadataError(
+                "prior_ul_mcs must be PriorUlGrantObservationV1"
+            )
         if self.previous is not None:
             if not isinstance(self.previous, PreviousOutcomeV1):
                 raise MetadataError("previous must be PreviousOutcomeV1 or None")
@@ -1198,7 +1297,7 @@ class PolicyStateV1(_CanonicalRecord):
                 None if self.previous is None else self.previous.to_canonical_dict()
             ),
             "radar_p40": self.radar_p40.to_canonical_dict(),
-            "ue_dl_snr": self.ue_dl_snr.to_canonical_dict(),
+            "prior_ul_mcs": self.prior_ul_mcs.to_canonical_dict(),
         }
 
 
@@ -1216,10 +1315,10 @@ _EXPECTED_MEASUREMENT_SEMANTICS: Mapping[
             Observer.SCENE_PIPELINE,
             LinkDirection.NOT_APPLICABLE,
         ),
-        "ue_dl_snr": (
-            MeasurementKind.UE_DL_SNR_DB,
+        "prior_ul_mcs": (
+            MeasurementKind.UE_PRIOR_NEW_DATA_UL_MCS_INDEX,
             Observer.UE,
-            LinkDirection.DOWNLINK,
+            LinkDirection.UPLINK,
         ),
         "pre_action_rlc_backlog": (
             MeasurementKind.UE_PRE_ACTION_RLC_BACKLOG_BYTES,
@@ -1231,18 +1330,18 @@ _EXPECTED_MEASUREMENT_SEMANTICS: Mapping[
 
 
 @dataclass(frozen=True, slots=True)
-class GuardedPolicyStateV1(_CanonicalRecord):
-    state: PolicyStateV1
+class GuardedPolicyStateV2(_CanonicalRecord):
+    state: PolicyStateV2
     boundary: DecisionBoundaryV1
     freshness_policy_sha256: str
     observation_ages_ns: Tuple[int, int, int, int]
     _attestation: Any = field(default=None, compare=False, repr=False)
 
-    RECORD_TYPE = "guarded_policy_state_v1"
+    RECORD_TYPE = "guarded_policy_state_v2"
 
     def __post_init__(self) -> None:
-        if not isinstance(self.state, PolicyStateV1):
-            raise MetadataError("state must be PolicyStateV1")
+        if not isinstance(self.state, PolicyStateV2):
+            raise MetadataError("state must be PolicyStateV2")
         if not isinstance(self.boundary, DecisionBoundaryV1):
             raise MetadataError("boundary must be DecisionBoundaryV1")
         _sha256_hex(
@@ -1288,17 +1387,17 @@ class GuardedPolicyStateV1(_CanonicalRecord):
 
 
 def guard_state_for_action(
-    state: PolicyStateV1,
+    state: PolicyStateV2,
     boundary: DecisionBoundaryV1,
-    freshness: FreshnessPolicyV1,
-) -> GuardedPolicyStateV1:
+    freshness: FreshnessPolicyV2,
+) -> GuardedPolicyStateV2:
     """Admit a causal, valid and fresh state or demand an external fallback."""
-    if not isinstance(state, PolicyStateV1):
-        raise MetadataError("state must be PolicyStateV1")
+    if not isinstance(state, PolicyStateV2):
+        raise MetadataError("state must be PolicyStateV2")
     if not isinstance(boundary, DecisionBoundaryV1):
         raise MetadataError("boundary must be DecisionBoundaryV1")
-    if not isinstance(freshness, FreshnessPolicyV1):
-        raise MetadataError("freshness must be FreshnessPolicyV1")
+    if not isinstance(freshness, FreshnessPolicyV2):
+        raise MetadataError("freshness must be FreshnessPolicyV2")
     if state.identity != boundary.identity:
         raise ExternalFallbackRequired("state/boundary decision identity mismatch")
 
@@ -1306,10 +1405,13 @@ def guard_state_for_action(
     for slot_name in (
         "camera_si",
         "radar_p40",
-        "ue_dl_snr",
+        "prior_ul_mcs",
         "pre_action_rlc_backlog",
     ):
-        observation = getattr(state, slot_name)
+        value = getattr(state, slot_name)
+        observation = (
+            value.observation if slot_name == "prior_ul_mcs" else value
+        )
         metadata = observation.metadata
         expected_kind, expected_observer, expected_direction = (
             _EXPECTED_MEASUREMENT_SEMANTICS[slot_name]
@@ -1365,13 +1467,16 @@ def guard_state_for_action(
 
     camera = float(state.camera_si.value)
     radar = float(state.radar_p40.value)
-    snr = float(state.ue_dl_snr.value)
+    mcs_raw = state.prior_ul_mcs.observation.value
     backlog_raw = state.pre_action_rlc_backlog.value
     if camera < 0.0:
         raise ExternalFallbackRequired("camera_si cannot be negative")
     if not 0.0 <= radar <= 1.0:
         raise ExternalFallbackRequired("radar_p40 must lie in [0, 1]")
-    _finite_float(snr, "ue_dl_snr", ExternalFallbackRequired)
+    if type(mcs_raw) is not int or not UL_MCS_INDEX_MIN <= mcs_raw <= UL_MCS_INDEX_MAX:
+        raise ExternalFallbackRequired(
+            "prior_ul_mcs must be an exact table-0 MCS index in [0, 28]"
+        )
     if type(backlog_raw) is not int or backlog_raw < 0:
         raise ExternalFallbackRequired(
             "pre_action_rlc_backlog must be an exact non-negative byte count"
@@ -1387,7 +1492,7 @@ def guard_state_for_action(
                 "previous outcome was unavailable when state was committed"
             )
 
-    candidate = GuardedPolicyStateV1(
+    candidate = GuardedPolicyStateV2(
         state=state,
         boundary=boundary,
         freshness_policy_sha256=freshness.canonical_sha256(),
@@ -1397,13 +1502,13 @@ def guard_state_for_action(
 
 
 @dataclass(frozen=True, slots=True)
-class PolicyFeatureVectorV1(_CanonicalRecord):
+class PolicyFeatureVectorV2(_CanonicalRecord):
     values: Tuple[float, ...]
     guarded_state_sha256: str
     empirical_scaling_sha256: str
     _attestation: Any = field(default=None, compare=False, repr=False)
 
-    RECORD_TYPE = "policy_feature_vector_v1"
+    RECORD_TYPE = "policy_feature_vector_v2"
 
     def __post_init__(self) -> None:
         if type(self.values) is not tuple or len(self.values) != POLICY_FEATURE_COUNT:
@@ -1467,15 +1572,15 @@ class PolicyFeatureVectorV1(_CanonicalRecord):
 
 
 def build_policy_features(
-    guarded: GuardedPolicyStateV1,
-    scaling: EmpiricalScalingV1,
-) -> PolicyFeatureVectorV1:
+    guarded: GuardedPolicyStateV2,
+    scaling: EmpiricalScalingV2,
+) -> PolicyFeatureVectorV2:
     """Build the exact actor vector after the external freshness guard passes."""
-    if not isinstance(guarded, GuardedPolicyStateV1):
-        raise ScalingError("guarded must be GuardedPolicyStateV1")
+    if not isinstance(guarded, GuardedPolicyStateV2):
+        raise ScalingError("guarded must be GuardedPolicyStateV2")
     guarded.require_guarded()
-    if not isinstance(scaling, EmpiricalScalingV1):
-        raise ScalingError("scaling must be EmpiricalScalingV1")
+    if not isinstance(scaling, EmpiricalScalingV2):
+        raise ScalingError("scaling must be EmpiricalScalingV2")
 
     state = guarded.state
     named: Dict[str, float] = {
@@ -1484,9 +1589,9 @@ def build_policy_features(
             / float(scaling.camera_si_scale)
         ),
         "radar_p40": float(state.radar_p40.value),
-        "ue_dl_snr_scaled": (
-            (float(state.ue_dl_snr.value) - float(scaling.ue_dl_snr_center_db))
-            / float(scaling.ue_dl_snr_scale_db)
+        "prior_ul_mcs_normalized": (
+            (int(state.prior_ul_mcs.observation.value) - UL_MCS_INDEX_MIN)
+            / float(UL_MCS_INDEX_MAX - UL_MCS_INDEX_MIN)
         ),
         "pre_action_rlc_backlog_log1p_scaled": (
             math.log1p(int(state.pre_action_rlc_backlog.value))
@@ -1524,7 +1629,7 @@ def build_policy_features(
     if set(named) != set(POLICY_FEATURE_ORDER):  # pragma: no cover - invariant
         raise ScalingError("internal feature allow-list mismatch")
     values = tuple(float(named[name]) for name in POLICY_FEATURE_ORDER)
-    candidate = PolicyFeatureVectorV1(
+    candidate = PolicyFeatureVectorV2(
         values=values,
         guarded_state_sha256=guarded.canonical_sha256(),
         empirical_scaling_sha256=scaling.canonical_sha256(),
@@ -1658,14 +1763,14 @@ class ActionHoldV1(_CanonicalRecord):
 
 
 @dataclass(frozen=True, slots=True)
-class SemiMarkovTransitionV1(_CanonicalRecord):
-    state: GuardedPolicyStateV1
-    state_features: PolicyFeatureVectorV1
+class SemiMarkovTransitionV2(_CanonicalRecord):
+    state: GuardedPolicyStateV2
+    state_features: PolicyFeatureVectorV2
     action: ExecutedActionIdentity
     hold: ActionHoldV1
     reward_resolution: RewardResolutionV1
-    next_state: Optional[GuardedPolicyStateV1]
-    next_state_features: Optional[PolicyFeatureVectorV1]
+    next_state: Optional[GuardedPolicyStateV2]
+    next_state_features: Optional[PolicyFeatureVectorV2]
     episode_boundary: EpisodeBoundary
     duration: int
     cycle_end_timestamp_ns: int
@@ -1674,13 +1779,13 @@ class SemiMarkovTransitionV1(_CanonicalRecord):
     discount: float
     _attestation: Any = field(default=None, compare=False, repr=False)
 
-    RECORD_TYPE = "semi_markov_transition_v1"
+    RECORD_TYPE = "semi_markov_transition_v2"
 
     def __post_init__(self) -> None:
-        if not isinstance(self.state, GuardedPolicyStateV1):
-            raise TransitionError("state must be GuardedPolicyStateV1")
-        if not isinstance(self.state_features, PolicyFeatureVectorV1):
-            raise TransitionError("state_features must be PolicyFeatureVectorV1")
+        if not isinstance(self.state, GuardedPolicyStateV2):
+            raise TransitionError("state must be GuardedPolicyStateV2")
+        if not isinstance(self.state_features, PolicyFeatureVectorV2):
+            raise TransitionError("state_features must be PolicyFeatureVectorV2")
         _action(self.action, "action", TransitionError)
         if not isinstance(self.hold, ActionHoldV1):
             raise TransitionError("hold must be ActionHoldV1")
@@ -1689,13 +1794,13 @@ class SemiMarkovTransitionV1(_CanonicalRecord):
         if not isinstance(self.episode_boundary, EpisodeBoundary):
             raise TransitionError("episode_boundary must be EpisodeBoundary")
         if self.episode_boundary is EpisodeBoundary.CONTINUES:
-            if not isinstance(self.next_state, GuardedPolicyStateV1):
+            if not isinstance(self.next_state, GuardedPolicyStateV2):
                 raise TransitionError(
-                    "CONTINUES requires next_state=GuardedPolicyStateV1"
+                    "CONTINUES requires next_state=GuardedPolicyStateV2"
                 )
-            if not isinstance(self.next_state_features, PolicyFeatureVectorV1):
+            if not isinstance(self.next_state_features, PolicyFeatureVectorV2):
                 raise TransitionError(
-                    "CONTINUES requires next_state_features=PolicyFeatureVectorV1"
+                    "CONTINUES requires next_state_features=PolicyFeatureVectorV2"
                 )
         elif self.next_state is not None or self.next_state_features is not None:
             raise TransitionError(
@@ -1797,31 +1902,31 @@ class SemiMarkovTransitionV1(_CanonicalRecord):
 
 def build_transition(
     *,
-    state: GuardedPolicyStateV1,
-    state_features: PolicyFeatureVectorV1,
+    state: GuardedPolicyStateV2,
+    state_features: PolicyFeatureVectorV2,
     action: ExecutedActionIdentity,
     hold: ActionHoldV1,
     reward_resolution: RewardResolutionV1,
-    next_state: Optional[GuardedPolicyStateV1],
-    next_state_features: Optional[PolicyFeatureVectorV1],
+    next_state: Optional[GuardedPolicyStateV2],
+    next_state_features: Optional[PolicyFeatureVectorV2],
     episode_boundary: EpisodeBoundary,
     duration: int,
     cycle_end_timestamp_ns: int,
     elapsed_virtual_ns: int,
     gamma: float,
     discount: float,
-) -> SemiMarkovTransitionV1:
+) -> SemiMarkovTransitionV2:
     """Validate and bind one real decision-to-feedback/timeout successor.
 
     ``discount`` is supplied by the caller and checked against
     ``gamma ** duration`` before storage.  The function intentionally makes no
     assertion that the two states' scene samples are adjacent frames.
     """
-    if not isinstance(state, GuardedPolicyStateV1):
-        raise TransitionError("state must be GuardedPolicyStateV1")
+    if not isinstance(state, GuardedPolicyStateV2):
+        raise TransitionError("state must be GuardedPolicyStateV2")
     state.require_guarded()
-    if not isinstance(state_features, PolicyFeatureVectorV1):
-        raise TransitionError("state_features must be PolicyFeatureVectorV1")
+    if not isinstance(state_features, PolicyFeatureVectorV2):
+        raise TransitionError("state_features must be PolicyFeatureVectorV2")
     state_features.require_attested()
     if not isinstance(episode_boundary, EpisodeBoundary):
         raise TransitionError("episode_boundary must be EpisodeBoundary")
@@ -1862,10 +1967,10 @@ def build_transition(
         raise TransitionError("cycle end cannot precede feedback/timeout closure")
 
     if episode_boundary is EpisodeBoundary.CONTINUES:
-        if not isinstance(next_state, GuardedPolicyStateV1):
+        if not isinstance(next_state, GuardedPolicyStateV2):
             raise TransitionError("CONTINUES requires a real next_state")
         next_state.require_guarded()
-        if not isinstance(next_state_features, PolicyFeatureVectorV1):
+        if not isinstance(next_state_features, PolicyFeatureVectorV2):
             raise TransitionError("CONTINUES requires next_state_features")
         next_state_features.require_attested()
         if next_state.boundary.clock_domain != state.boundary.clock_domain:
@@ -1938,7 +2043,7 @@ def build_transition(
             f"expected {expected_discount!r}, got {discount_value!r}"
         )
 
-    candidate = SemiMarkovTransitionV1(
+    candidate = SemiMarkovTransitionV2(
         state=state,
         state_features=state_features,
         action=action,
