@@ -69,6 +69,20 @@ PROBE_PAYLOAD_BYTES = 3_568_326
 # execution-identity gate.
 PROBE_OFFERED_MBPS = 285.46608
 
+# Capacity-qualification-only retry amendment. The production scientific
+# sender remains frozen at 60,000 payload bytes/chunk.
+PROBE_CHUNK_PAYLOAD_BYTES = 1_200
+SSBURST_HEADER_BYTES = 24
+UDP_HEADER_BYTES = 8
+IPV4_HEADER_BYTES = 20
+PATH_MTU_BYTES = 1_500
+PRODUCTION_SCIENTIFIC_CHUNK_BYTES = 60_000
+PROBE_CHUNKS_PER_FRAME = math.ceil(
+    PROBE_PAYLOAD_BYTES / PROBE_CHUNK_PAYLOAD_BYTES)
+PROBE_LAST_CHUNK_PAYLOAD_BYTES = (
+    PROBE_PAYLOAD_BYTES - (PROBE_CHUNKS_PER_FRAME - 1)
+    * PROBE_CHUNK_PAYLOAD_BYTES)
+
 SETTLE_S = 3.0
 MEASURE_S = 10.0
 SAMPLE_PERIOD_S = 0.1
@@ -96,6 +110,55 @@ EXPECTED_STAGE_RUNTIME_S = 320.0
 
 class CapacityQualificationError(RuntimeError):
     """Raised when the stage cannot produce a usable capacity boundary."""
+
+
+def probe_packetization_identity() -> dict[str, Any]:
+    """Exact capacity-only packetization, independent of production chunks."""
+
+    udp_payload = SSBURST_HEADER_BYTES + PROBE_CHUNK_PAYLOAD_BYTES
+    ipv4_packet = IPV4_HEADER_BYTES + UDP_HEADER_BYTES + udp_payload
+    return {
+        "scope": "CAPACITY_QUALIFICATION_ONLY",
+        "frame_payload_bytes": PROBE_PAYLOAD_BYTES,
+        "chunk_payload_bytes": PROBE_CHUNK_PAYLOAD_BYTES,
+        "chunks_per_frame": PROBE_CHUNKS_PER_FRAME,
+        "last_chunk_payload_bytes": PROBE_LAST_CHUNK_PAYLOAD_BYTES,
+        "ssburst_header_bytes": SSBURST_HEADER_BYTES,
+        "full_udp_payload_bytes": udp_payload,
+        "udp_header_bytes": UDP_HEADER_BYTES,
+        "ipv4_header_bytes": IPV4_HEADER_BYTES,
+        "full_ipv4_packet_bytes": ipv4_packet,
+        "path_mtu_bytes": PATH_MTU_BYTES,
+        "mtu_safe_without_ipv4_fragmentation": ipv4_packet <= PATH_MTU_BYTES,
+        "capacity_sink_chunk_bound": "DYNAMIC_EXACT_EXPECTED_COUNT",
+        "production_scientific_chunk_bytes":
+            PRODUCTION_SCIENTIFIC_CHUNK_BYTES,
+        "production_scientific_transport_unchanged": True,
+    }
+
+
+def verify_probe_packetization(
+    value: Mapping[str, Any], *, production_chunk_bytes: int,
+    ssburst_header_bytes: int,
+) -> dict[str, Any]:
+    """Fail closed unless config/runtime retain the exact retry amendment."""
+
+    expected = probe_packetization_identity()
+    if dict(value) != expected:
+        raise CapacityQualificationError(
+            "capacity probe packetization differs from the registered "
+            f"MTU-safe identity: observed={dict(value)!r}, expected={expected!r}")
+    if production_chunk_bytes != PRODUCTION_SCIENTIFIC_CHUNK_BYTES:
+        raise CapacityQualificationError(
+            "production scientific CHUNK_BYTES changed while applying the "
+            "capacity-only packetization amendment")
+    if ssburst_header_bytes != SSBURST_HEADER_BYTES:
+        raise CapacityQualificationError(
+            "SSBURST header size drifted from the packetization identity")
+    if not expected["mtu_safe_without_ipv4_fragmentation"]:
+        raise CapacityQualificationError(
+            "registered capacity datagram no longer fits the IPv4 path MTU")
+    return expected
 
 
 @dataclass(frozen=True)
@@ -562,6 +625,7 @@ def stage_plan() -> dict[str, Any]:
             "payload_bytes": PROBE_PAYLOAD_BYTES,
             "offered_mbps": PROBE_OFFERED_MBPS,
             "role": "SATURATING_PROBE_NEVER_A_TIER",
+            "packetization": probe_packetization_identity(),
         },
         "settle_s": SETTLE_S, "measure_s": MEASURE_S,
         "sample_period_s": SAMPLE_PERIOD_S,

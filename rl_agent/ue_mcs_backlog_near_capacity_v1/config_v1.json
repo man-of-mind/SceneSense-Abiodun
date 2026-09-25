@@ -181,7 +181,24 @@
       "profile_id": "split_noae_uint8_q0000",
       "payload_bytes": 3568326,
       "offered_mbps": 285.46608,
-      "role": "SATURATING_PROBE_NEVER_A_TIER"
+      "role": "SATURATING_PROBE_NEVER_A_TIER",
+      "packetization": {
+        "scope": "CAPACITY_QUALIFICATION_ONLY",
+        "frame_payload_bytes": 3568326,
+        "chunk_payload_bytes": 1200,
+        "chunks_per_frame": 2974,
+        "last_chunk_payload_bytes": 726,
+        "ssburst_header_bytes": 24,
+        "full_udp_payload_bytes": 1224,
+        "udp_header_bytes": 8,
+        "ipv4_header_bytes": 20,
+        "full_ipv4_packet_bytes": 1252,
+        "path_mtu_bytes": 1500,
+        "mtu_safe_without_ipv4_fragmentation": true,
+        "capacity_sink_chunk_bound": "DYNAMIC_EXACT_EXPECTED_COUNT",
+        "production_scientific_chunk_bytes": 60000,
+        "production_scientific_transport_unchanged": true
+      }
     },
     "service_measurement": {
       "primary": "EXT_DN_UNIQUE_SSBURST_APPLICATION_PAYLOAD_BYTES_PER_FIXED_100MS_MONOTONIC_WINDOW",

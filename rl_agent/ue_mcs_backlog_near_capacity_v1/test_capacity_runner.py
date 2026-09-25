@@ -143,6 +143,27 @@ class CapacityAuditTests(unittest.TestCase):
         self.assertEqual(probe["action_id"], CQ.PROBE_ACTION_ID)
         self.assertEqual(probe["offered_mbps"], 285.46608)
 
+    def test_capacity_packetization_is_mtu_safe_and_production_is_unchanged(self):
+        identity = CQ.probe_packetization_identity()
+        self.assertEqual(identity["frame_payload_bytes"], 3_568_326)
+        self.assertEqual(identity["chunk_payload_bytes"], 1_200)
+        self.assertEqual(identity["chunks_per_frame"], 2_974)
+        self.assertGreater(identity["chunks_per_frame"],
+                           U3.MAX_CHUNKS_PER_FRAME_LIMIT)
+        self.assertEqual(identity["last_chunk_payload_bytes"], 726)
+        self.assertEqual(identity["full_ipv4_packet_bytes"], 1_252)
+        self.assertLessEqual(identity["full_ipv4_packet_bytes"],
+                             identity["path_mtu_bytes"])
+        self.assertEqual(identity["production_scientific_chunk_bytes"], 60_000)
+
+    def test_capacity_packetization_drift_is_refused(self):
+        value = CQ.probe_packetization_identity()
+        value["chunk_payload_bytes"] = 1_201
+        with self.assertRaisesRegex(CQ.CapacityQualificationError,
+                                    "packetization differs"):
+            CQ.verify_probe_packetization(
+                value, production_chunk_bytes=60_000,
+                ssburst_header_bytes=U3.HEADER.size)
 
 class SinkAccountingTests(unittest.TestCase):
     @staticmethod
@@ -153,24 +174,68 @@ class SinkAccountingTests(unittest.TestCase):
     def test_unique_payload_is_binned_and_duplicate_is_not(self):
         sink = R.SinkAccounting(
             epoch_ns=1_000_000_000, duration_bins=3,
-            expected_frames=3, expected_chunks=2)
-        data = self.datagram(0, 0, 2, b"abcd")
+            expected_frames=3, expected_chunks=CQ.PROBE_CHUNKS_PER_FRAME,
+            expected_frame_payload_bytes=CQ.PROBE_PAYLOAD_BYTES,
+            expected_chunk_payload_bytes=CQ.PROBE_CHUNK_PAYLOAD_BYTES)
+        data = self.datagram(
+            0, 0, CQ.PROBE_CHUNKS_PER_FRAME,
+            b"x" * CQ.PROBE_CHUNK_PAYLOAD_BYTES)
         first = sink.ingest(data, monotonic_ns=1_010_000_000)
         duplicate = sink.ingest(data, monotonic_ns=1_020_000_000)
         self.assertEqual(first["status"], "ACCEPTED_UNIQUE")
         self.assertEqual(duplicate["status"], "DUPLICATE")
-        self.assertEqual(sink.summary()["payload_bytes_per_100ms_bin"], [4, 0, 0])
+        self.assertEqual(sink.summary()["payload_bytes_per_100ms_bin"],
+                         [CQ.PROBE_CHUNK_PAYLOAD_BYTES, 0, 0])
 
     def test_malformed_foreign_and_header_exclusion(self):
         sink = R.SinkAccounting(
-            epoch_ns=0, duration_bins=2, expected_frames=1, expected_chunks=1)
+            epoch_ns=0, duration_bins=2, expected_frames=1,
+            expected_chunks=CQ.PROBE_CHUNKS_PER_FRAME,
+            expected_frame_payload_bytes=CQ.PROBE_PAYLOAD_BYTES,
+            expected_chunk_payload_bytes=CQ.PROBE_CHUNK_PAYLOAD_BYTES)
         sink.ingest(b"short", monotonic_ns=1)
-        sink.ingest(self.datagram(2, 0, 1, b"x"), monotonic_ns=2)
-        sink.ingest(self.datagram(0, 0, 1, b"payload"), monotonic_ns=3)
+        sink.ingest(self.datagram(
+            2, 0, CQ.PROBE_CHUNKS_PER_FRAME,
+            b"x" * CQ.PROBE_CHUNK_PAYLOAD_BYTES), monotonic_ns=2)
+        sink.ingest(self.datagram(
+            0, 0, CQ.PROBE_CHUNKS_PER_FRAME,
+            b"x" * CQ.PROBE_CHUNK_PAYLOAD_BYTES), monotonic_ns=3)
         summary = sink.summary()
         self.assertEqual(summary["malformed_datagrams"], 1)
         self.assertEqual(summary["outside_registered_probe"], 1)
-        self.assertEqual(summary["payload_bytes_per_100ms_bin"], [7, 0])
+        self.assertEqual(summary["payload_bytes_per_100ms_bin"],
+                         [CQ.PROBE_CHUNK_PAYLOAD_BYTES, 0])
+
+    def test_custom_capacity_sink_accepts_chunk_indexes_above_1024(self):
+        sink = R.SinkAccounting(
+            epoch_ns=0, duration_bins=2, expected_frames=1,
+            expected_chunks=CQ.PROBE_CHUNKS_PER_FRAME,
+            expected_frame_payload_bytes=CQ.PROBE_PAYLOAD_BYTES,
+            expected_chunk_payload_bytes=CQ.PROBE_CHUNK_PAYLOAD_BYTES)
+        high = sink.ingest(self.datagram(
+            0, 1_024, CQ.PROBE_CHUNKS_PER_FRAME,
+            b"x" * CQ.PROBE_CHUNK_PAYLOAD_BYTES), monotonic_ns=1)
+        tail = sink.ingest(self.datagram(
+            0, CQ.PROBE_CHUNKS_PER_FRAME - 1, CQ.PROBE_CHUNKS_PER_FRAME,
+            b"x" * CQ.PROBE_LAST_CHUNK_PAYLOAD_BYTES), monotonic_ns=2)
+        self.assertEqual(high["status"], "ACCEPTED_UNIQUE")
+        self.assertEqual(tail["status"], "ACCEPTED_UNIQUE")
+        summary = sink.summary()
+        self.assertEqual(summary["accepted_unique_chunks"], 2)
+        self.assertEqual(summary["packetization_mismatch_datagrams"], 0)
+        self.assertEqual(summary["payload_bytes_per_100ms_bin"][0], 1_926)
+
+    def test_custom_capacity_sink_rejects_payload_size_drift(self):
+        sink = R.SinkAccounting(
+            epoch_ns=0, duration_bins=1, expected_frames=1,
+            expected_chunks=CQ.PROBE_CHUNKS_PER_FRAME,
+            expected_frame_payload_bytes=CQ.PROBE_PAYLOAD_BYTES,
+            expected_chunk_payload_bytes=CQ.PROBE_CHUNK_PAYLOAD_BYTES)
+        event = sink.ingest(self.datagram(
+            0, 0, CQ.PROBE_CHUNKS_PER_FRAME,
+            b"x" * (CQ.PROBE_CHUNK_PAYLOAD_BYTES - 1)), monotonic_ns=1)
+        self.assertEqual(event["status"], "PACKETIZATION_MISMATCH")
+        self.assertEqual(sink.summary()["packetization_mismatch_datagrams"], 1)
 
 
 class TelemetryAnalysisTests(unittest.TestCase):
@@ -331,6 +396,7 @@ class EvidenceBindingTests(unittest.TestCase):
         self.assertTrue(audit["qualified"], audit["problems"])
         tiers = CQ.select_tiers(85.0, repo_root=ROOT)
         records = []
+        packetization = CQ.probe_packetization_identity()
         for measured in points:
             payload_per_bin = int(round(
                 samples[measured.label][0] * CQ.SAMPLE_PERIOD_S * 1e6 / 8.0))
@@ -345,9 +411,31 @@ class EvidenceBindingTests(unittest.TestCase):
                           "read_back_noise_power_db": -4.0},
                 "capacity_point": measured.to_json(),
                 "service_mbps_samples": samples[measured.label],
-                "sink": {"payload_bytes_per_100ms_bin":
-                         [0] * R.SETTLE_BINS
-                         + [payload_per_bin] * R.MEASURE_BINS},
+                "packetization": copy.deepcopy(packetization),
+                "sender": {
+                    "frames": R.POINT_FRAMES,
+                    "payload_bytes": CQ.PROBE_PAYLOAD_BYTES,
+                    "chunk_bytes": CQ.PROBE_CHUNK_PAYLOAD_BYTES,
+                    "chunks_per_frame": R.PROBE_CHUNKS,
+                    "packetization": copy.deepcopy(packetization),
+                    "chunks_handed_to_socket":
+                        R.POINT_FRAMES * R.PROBE_CHUNKS,
+                    "chunks_dropped_by_socket": 0,
+                    "unexpected_socket_errors": 0,
+                },
+                "sink": {
+                    "clean_duration_complete": True,
+                    "expected_frames": R.POINT_FRAMES,
+                    "expected_chunks_per_frame": R.PROBE_CHUNKS,
+                    "header_bytes_excluded": U3.HEADER.size,
+                    "packetization": copy.deepcopy(packetization),
+                    "malformed_datagrams": 0,
+                    "packetization_mismatch_datagrams": 0,
+                    "outside_registered_probe": 0,
+                    "payload_bytes_per_100ms_bin":
+                        [0] * R.SETTLE_BINS
+                        + [payload_per_bin] * R.MEASURE_BINS,
+                },
                 "achieved_pusch_snr_db": {
                     "values": achieved_values,
                     "samples": len(achieved_values),
@@ -385,6 +473,7 @@ class EvidenceBindingTests(unittest.TestCase):
                 "EXT_DN_UNIQUE_SSBURST_APPLICATION_PAYLOAD_BYTES_PER_FIXED_100MS_MONOTONIC_WINDOW",
             "pusch_tb_is_primary": False,
             "probe_identity": CQ.verify_probe_action(ROOT),
+            "probe_packetization": copy.deepcopy(packetization),
             "container_images": self._container_images(),
             "initial_drain": {
                 "drained": True,
@@ -514,6 +603,29 @@ class EvidenceBindingTests(unittest.TestCase):
             with self.assertRaisesRegex(R.CapacityRunError, "summary does not reproduce"):
                 R.verify_bound_capacity_result(result)
 
+    def test_resealed_top_packetization_tamper_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = self._make_bound_result(root)
+            payload = json.loads(result.read_text())
+            payload["probe_packetization"]["chunk_payload_bytes"] = 1_201
+            result.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            self._reseal(root)
+            with self.assertRaisesRegex(R.CapacityRunError, "packetization"):
+                R.verify_bound_capacity_result(result)
+
+    def test_resealed_point_packetization_tamper_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            result = self._make_bound_result(root)
+            payload = json.loads(result.read_text())
+            payload["points"][0]["sink"]["expected_chunks_per_frame"] = 1_024
+            result.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            self._reseal(root)
+            with self.assertRaisesRegex(R.CapacityRunError,
+                                        "sink packetization summary"):
+                R.verify_bound_capacity_result(result)
+
     def test_manifest_path_traversal_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -550,6 +662,8 @@ class EvidenceBindingTests(unittest.TestCase):
         files = self.inventory["repo_files"]
         for required in (
                 "rl_agent/ue_mcs_backlog_near_capacity_v1/capacity_runner.py",
+                "rl_agent/ue_mcs_backlog_near_capacity_v1/"
+                "CAPACITY_RETRY_AMENDMENT_MTU_SAFE_V1.md",
                 "rl_agent/ue_n3_structured_udp_receiver.py",
                 "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
                 "OAI/oai-cn5g/docker-compose.yaml",
@@ -647,6 +761,13 @@ class RegisteredConfigTests(unittest.TestCase):
         self.assertEqual(set(qualification["subprocess_timeouts_s"]), {
             "launcher", "process_probe", "docker_inspect", "core_down",
             "ttracer_extract", "signal_command", "route_probe"})
+        packetization = qualification["probe"]["packetization"]
+        self.assertEqual(packetization, CQ.probe_packetization_identity())
+        self.assertEqual(R.C.CHUNK_BYTES, 60_000)
+        self.assertEqual(packetization["chunks_per_frame"], 2_974)
+        self.assertGreater(packetization["chunks_per_frame"],
+                           U3.MAX_CHUNKS_PER_FRAME_LIMIT)
+        self.assertTrue(packetization["mtu_safe_without_ipv4_fragmentation"])
 
     def test_stage_plan_exposes_registered_gates(self):
         plan = CQ.stage_plan()

@@ -61,7 +61,7 @@ SETTLE_BINS = int(round(CQ.SETTLE_S / CQ.SAMPLE_PERIOD_S))
 MEASURE_BINS = int(round(CQ.MEASURE_S / CQ.SAMPLE_PERIOD_S))
 POINT_BINS = SETTLE_BINS + MEASURE_BINS
 POINT_FRAMES = POINT_BINS
-PROBE_CHUNKS = math.ceil(CQ.PROBE_PAYLOAD_BYTES / C.CHUNK_BYTES)
+PROBE_CHUNKS = CQ.PROBE_CHUNKS_PER_FRAME
 
 RLC_BUFFER_FIELDS = (
     "time", "rnti", "ue_id", "frame", "slot", "lcid", "lcgid",
@@ -109,6 +109,8 @@ def write_json_create(path: Path, value: Any) -> None:
 TRANSITIVE_REPO_SOURCES: tuple[str, ...] = (
     "rl_agent/ue_mcs_backlog_near_capacity_v1/capacity_runner.py",
     "rl_agent/ue_mcs_backlog_near_capacity_v1/capacity_qualification.py",
+    "rl_agent/ue_mcs_backlog_near_capacity_v1/"
+    "CAPACITY_RETRY_AMENDMENT_MTU_SAFE_V1.md",
     "rl_agent/ue_mcs_backlog_near_capacity_v1/config_v1.json",
     "rl_agent/ue_mcs_backlog_near_capacity_v1/runner.py",
     "rl_agent/ue_mcs_backlog_near_capacity_v1/contract.py",
@@ -170,6 +172,34 @@ def require_inventory_unchanged(
             current["inventory_sha256"], "verified": True}
 
 
+def runtime_packetization_identity(
+    *, frame_payload_bytes: int, chunk_payload_bytes: int,
+) -> dict[str, Any]:
+    """Describe what sender/sink actually execute, without hiding drift."""
+
+    chunks = math.ceil(frame_payload_bytes / chunk_payload_bytes)
+    tail = frame_payload_bytes - (chunks - 1) * chunk_payload_bytes
+    udp_payload = U3.HEADER.size + chunk_payload_bytes
+    ipv4_packet = CQ.IPV4_HEADER_BYTES + CQ.UDP_HEADER_BYTES + udp_payload
+    return {
+        "scope": "CAPACITY_QUALIFICATION_ONLY",
+        "frame_payload_bytes": frame_payload_bytes,
+        "chunk_payload_bytes": chunk_payload_bytes,
+        "chunks_per_frame": chunks,
+        "last_chunk_payload_bytes": tail,
+        "ssburst_header_bytes": U3.HEADER.size,
+        "full_udp_payload_bytes": udp_payload,
+        "udp_header_bytes": CQ.UDP_HEADER_BYTES,
+        "ipv4_header_bytes": CQ.IPV4_HEADER_BYTES,
+        "full_ipv4_packet_bytes": ipv4_packet,
+        "path_mtu_bytes": CQ.PATH_MTU_BYTES,
+        "mtu_safe_without_ipv4_fragmentation": ipv4_packet <= CQ.PATH_MTU_BYTES,
+        "capacity_sink_chunk_bound": "DYNAMIC_EXACT_EXPECTED_COUNT",
+        "production_scientific_chunk_bytes": C.CHUNK_BYTES,
+        "production_scientific_transport_unchanged": True,
+    }
+
+
 @dataclass
 class SinkAccounting:
     """Exact unique-payload accounting on fixed monotonic 100-ms bins."""
@@ -178,13 +208,23 @@ class SinkAccounting:
     duration_bins: int
     expected_frames: int
     expected_chunks: int
+    expected_frame_payload_bytes: int
+    expected_chunk_payload_bytes: int
 
     def __post_init__(self) -> None:
+        self.packetization = runtime_packetization_identity(
+            frame_payload_bytes=self.expected_frame_payload_bytes,
+            chunk_payload_bytes=self.expected_chunk_payload_bytes)
+        require(self.expected_chunks == self.packetization["chunks_per_frame"],
+                "capacity sink expected chunk count does not derive from payload")
+        require(self.expected_chunks < U3.UINT32_LIMIT,
+                "capacity sink chunk count does not fit SSBURST uint32")
         self.payload_bytes_per_bin = [0] * self.duration_bins
         self.seen: set[tuple[int, int]] = set()
         self.accepted_unique = 0
         self.duplicate = 0
         self.malformed = 0
+        self.packetization_mismatch = 0
         self.outside = 0
         self.pre_epoch = 0
         self.post_window = 0
@@ -210,6 +250,15 @@ class SinkAccounting:
                 or not 0 <= header.frame_index < self.expected_frames):
             self.outside += 1
             return {**event, "status": "OUTSIDE_REGISTERED_PROBE"}
+        payload_bytes = len(data) - U3.HEADER.size
+        expected_payload = (
+            self.packetization["last_chunk_payload_bytes"]
+            if header.chunk_index == self.expected_chunks - 1
+            else self.expected_chunk_payload_bytes)
+        if payload_bytes != expected_payload:
+            self.packetization_mismatch += 1
+            return {**event, "status": "PACKETIZATION_MISMATCH",
+                    "expected_payload_bytes": expected_payload}
         key = (header.frame_index, header.chunk_index)
         if key in self.seen:
             self.duplicate += 1
@@ -223,7 +272,6 @@ class SinkAccounting:
         if index >= self.duration_bins:
             self.post_window += 1
             return {**event, "status": "UNIQUE_AFTER_WINDOW"}
-        payload_bytes = len(data) - U3.HEADER.size
         self.payload_bytes_per_bin[int(index)] += payload_bytes
         self.accepted_unique += 1
         return {**event, "status": "ACCEPTED_UNIQUE", "bin_index": int(index)}
@@ -239,6 +287,8 @@ class SinkAccounting:
             "accepted_unique_chunks": self.accepted_unique,
             "duplicate_chunks": self.duplicate,
             "malformed_datagrams": self.malformed,
+            "packetization_mismatch_datagrams": self.packetization_mismatch,
+            "packetization": self.packetization,
             "outside_registered_probe": self.outside,
             "unique_pre_epoch": self.pre_epoch,
             "unique_after_window": self.post_window,
@@ -264,6 +314,8 @@ def sink_main(args: argparse.Namespace) -> int:
         duration_bins=args.duration_bins,
         expected_frames=args.expected_frames,
         expected_chunks=args.expected_chunks,
+        expected_frame_payload_bytes=args.expected_frame_payload_bytes,
+        expected_chunk_payload_bytes=args.expected_chunk_payload_bytes,
     )
     for path in (args.events_jsonl, args.summary_json, args.ready_json):
         if Path(path).exists():
@@ -378,6 +430,9 @@ def sender_main(args: argparse.Namespace) -> int:
         "payload_sha256": hashlib.sha256(payload).hexdigest(),
         "chunk_bytes": args.chunk_bytes,
         "chunks_per_frame": len(spans),
+        "packetization": runtime_packetization_identity(
+            frame_payload_bytes=args.payload_bytes,
+            chunk_payload_bytes=args.chunk_bytes),
         "chunks_handed_to_socket": sum(row["chunks_handed_to_socket"] for row in rows),
         "chunks_dropped_by_socket": sum(row["chunks_dropped_by_socket"] for row in rows),
         "unexpected_socket_errors": unexpected_errors,
@@ -759,6 +814,12 @@ def verify_bound_capacity_result(path: Path) -> dict[str, Any]:
     require(result.get("probe_identity") == probe,
             "capacity result does not bind the current largest eligible probe action")
     config = _json_object(DEFAULT_CONFIG, label="registered config")
+    expected_packetization = CQ.verify_probe_packetization(
+        config["capacity_qualification"]["probe"]["packetization"],
+        production_chunk_bytes=C.CHUNK_BYTES,
+        ssburst_header_bytes=U3.HEADER.size)
+    require(result.get("probe_packetization") == expected_packetization,
+            "capacity result does not bind the registered probe packetization")
     expected_containers = tuple(config["radio"]["core_containers"])
     _validate_container_image_bindings(
         result.get("container_images"), expected_names=expected_containers)
@@ -785,6 +846,25 @@ def verify_bound_capacity_result(path: Path) -> dict[str, Any]:
                 and prime.get("read_back_noise_power_db")
                     == point.commanded_noise_power_db,
                 f"{point.label}: commanded/read-back RF state does not reproduce")
+        require(record.get("packetization") == expected_packetization,
+                f"{point.label}: point packetization does not reproduce")
+        sender = record.get("sender")
+        require(type(sender) is dict
+                and sender.get("frames") == POINT_FRAMES
+                and sender.get("payload_bytes") == CQ.PROBE_PAYLOAD_BYTES
+                and sender.get("chunk_bytes") == CQ.PROBE_CHUNK_PAYLOAD_BYTES
+                and sender.get("chunks_per_frame") == PROBE_CHUNKS
+                and sender.get("packetization") == expected_packetization
+                and sender.get("unexpected_socket_errors") == 0,
+                f"{point.label}: sender packetization summary is invalid")
+        require(type(sender.get("chunks_handed_to_socket")) is int
+                and type(sender.get("chunks_dropped_by_socket")) is int
+                and sender["chunks_handed_to_socket"] >= 0
+                and sender["chunks_dropped_by_socket"] >= 0
+                and sender["chunks_handed_to_socket"]
+                    + sender["chunks_dropped_by_socket"]
+                    == POINT_FRAMES * PROBE_CHUNKS,
+                f"{point.label}: sender datagram accounting is invalid")
         labels.append(point.label)
         samples = record.get("service_mbps_samples")
         require(type(samples) is list and len(samples) == point.samples,
@@ -794,6 +874,15 @@ def verify_bound_capacity_result(path: Path) -> dict[str, Any]:
                 f"{point.label}: retained service samples are invalid")
         sink = record.get("sink")
         require(type(sink) is dict, f"{point.label}: retained sink record is absent")
+        require(sink.get("clean_duration_complete") is True
+                and sink.get("expected_frames") == POINT_FRAMES
+                and sink.get("expected_chunks_per_frame") == PROBE_CHUNKS
+                and sink.get("header_bytes_excluded") == U3.HEADER.size
+                and sink.get("packetization") == expected_packetization
+                and sink.get("malformed_datagrams") == 0
+                and sink.get("packetization_mismatch_datagrams") == 0
+                and sink.get("outside_registered_probe") == 0,
+                f"{point.label}: sink packetization summary is invalid")
         payload_bins = sink.get("payload_bytes_per_100ms_bin")
         require(type(payload_bins) is list and len(payload_bins) >= POINT_BINS
                 and all(type(value) is int and value >= 0 for value in payload_bins),
@@ -949,6 +1038,7 @@ class Runner(NR.Runner):
         self.container_images: dict[str, Any] = {}
         self.initial_drain: dict[str, Any] = {}
         self.probe_identity: dict[str, Any] = {}
+        self.probe_packetization: dict[str, Any] = {}
 
     def _timeout(self, name: str) -> float:
         raw = self.config["capacity_qualification"]["subprocess_timeouts_s"][name]
@@ -1184,6 +1274,13 @@ class Runner(NR.Runner):
         C.assert_catalog_digests(ROOT)
         self.probe_identity = CQ.verify_probe_action(ROOT)
         registered = self.config["capacity_qualification"]
+        self.probe_packetization = CQ.verify_probe_packetization(
+            registered["probe"]["packetization"],
+            production_chunk_bytes=C.CHUNK_BYTES,
+            ssburst_header_bytes=U3.HEADER.size)
+        require(PROBE_CHUNKS > U3.MAX_CHUNKS_PER_FRAME_LIMIT,
+                "capacity retry no longer exercises the custom >1024-chunk sink")
+
         require(int(registered["min_pusch_snr_samples"]) == CQ.MIN_PUSCH_SNR_SAMPLES,
                 "configured PUSCH sample gate differs from preregistration")
         require(float(registered["max_achieved_target_snr_error_db"])
@@ -1205,6 +1302,7 @@ class Runner(NR.Runner):
             "core_before": core, "ran_cold": True, "carla_absent": True,
             "cuda_or_model_started_by_stage": False,
             "probe_identity": self.probe_identity,
+            "probe_packetization": self.probe_packetization,
             "subprocess_timeouts_s": dict(registered["subprocess_timeouts_s"]),
         }
         write_json_create(self.out("preflight.json"), record)
@@ -1445,6 +1543,10 @@ class Runner(NR.Runner):
              "--duration-bins", str(duration_bins),
              "--expected-frames", str(POINT_FRAMES),
              "--expected-chunks", str(PROBE_CHUNKS),
+             "--expected-frame-payload-bytes",
+             str(CQ.PROBE_PAYLOAD_BYTES),
+             "--expected-chunk-payload-bytes",
+             str(CQ.PROBE_CHUNK_PAYLOAD_BYTES),
              "--receive-buffer-bytes",
              str(self.config["traffic"]["receive_buffer_bytes"]),
              "--events-jsonl", str(events), "--summary-json", str(receiver_summary),
@@ -1465,7 +1567,7 @@ class Runner(NR.Runner):
              "--port", str(port), "--epoch-monotonic-ns", str(epoch_ns),
              "--frames", str(POINT_FRAMES),
              "--payload-bytes", str(CQ.PROBE_PAYLOAD_BYTES),
-             "--chunk-bytes", str(C.CHUNK_BYTES),
+             "--chunk-bytes", str(CQ.PROBE_CHUNK_PAYLOAD_BYTES),
              "--expected-chunks", str(PROBE_CHUNKS),
              "--payload-seed", str(2026092404 + index),
              "--send-buffer-bytes", str(self.config["traffic"]["send_buffer_bytes"]),
@@ -1502,12 +1604,31 @@ class Runner(NR.Runner):
         sink_summary = json.loads(session["receiver_summary"].read_text())
         require(sender_summary["frames"] == POINT_FRAMES,
                 f"{label}: sender emitted {sender_summary['frames']} frames")
+        require(sender_summary.get("payload_bytes") == CQ.PROBE_PAYLOAD_BYTES
+                and sender_summary.get("chunk_bytes")
+                    == CQ.PROBE_CHUNK_PAYLOAD_BYTES
+                and sender_summary.get("chunks_per_frame") == PROBE_CHUNKS
+                and sender_summary.get("packetization")
+                    == self.probe_packetization,
+                f"{label}: sender packetization differs from registered retry")
+        expected_datagrams = POINT_FRAMES * PROBE_CHUNKS
+        require(sender_summary.get("chunks_handed_to_socket", 0)
+                + sender_summary.get("chunks_dropped_by_socket", 0)
+                == expected_datagrams,
+                f"{label}: sender datagram accounting is incomplete")
         require(sender_summary["unexpected_socket_errors"] == 0,
                 f"{label}: sender reported unexpected socket error")
         require(sink_summary["clean_duration_complete"],
                 f"{label}: sink did not finish its bounded duration")
+        require(sink_summary.get("expected_frames") == POINT_FRAMES
+                and sink_summary.get("expected_chunks_per_frame") == PROBE_CHUNKS
+                and sink_summary.get("header_bytes_excluded") == U3.HEADER.size
+                and sink_summary.get("packetization") == self.probe_packetization,
+                f"{label}: sink packetization differs from registered retry")
         require(sink_summary["malformed_datagrams"] == 0,
                 f"{label}: malformed SSBURST datagrams observed")
+        require(sink_summary.get("packetization_mismatch_datagrams") == 0,
+                f"{label}: sink observed a packetization mismatch")
         require(sink_summary["outside_registered_probe"] == 0,
                 f"{label}: datagram outside registered probe identity")
         telemetry = self.telemetry_snapshot()
@@ -1542,6 +1663,7 @@ class Runner(NR.Runner):
         record = {
             "label": label, "target_snr_db": target_snr_db,
             "prime": prime, "epoch_monotonic_ns": epoch_ns,
+            "packetization": dict(self.probe_packetization),
             "sender": sender_summary, "sink": sink_summary,
             "capacity_point": point.to_json(), "service_mbps_samples": samples,
             "corroboration": corroboration,
@@ -1662,6 +1784,7 @@ class Runner(NR.Runner):
                 "100MS_MONOTONIC_WINDOW"),
             "pusch_tb_is_primary": False,
             "probe_identity": dict(self.probe_identity),
+            "probe_packetization": dict(self.probe_packetization),
             "container_images": dict(self.container_images),
             "initial_drain": dict(self.initial_drain),
             "audit": dict(audit),
@@ -1841,6 +1964,10 @@ def build_parser() -> argparse.ArgumentParser:
     sink.add_argument("--duration-bins", type=_positive_int, required=True)
     sink.add_argument("--expected-frames", type=_positive_int, required=True)
     sink.add_argument("--expected-chunks", type=_positive_int, required=True)
+    sink.add_argument("--expected-frame-payload-bytes", type=_positive_int,
+                      required=True)
+    sink.add_argument("--expected-chunk-payload-bytes", type=_positive_int,
+                      required=True)
     sink.add_argument("--receive-buffer-bytes", type=_positive_int, required=True)
     sink.add_argument("--events-jsonl", type=Path, required=True)
     sink.add_argument("--summary-json", type=Path, required=True)
