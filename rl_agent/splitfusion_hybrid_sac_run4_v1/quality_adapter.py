@@ -28,6 +28,7 @@ from typing import Any, Dict, Tuple
 
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import held_payload
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import scientific_basis
 from rl_agent.splitfusion_hybrid_sac_v1.empirical_quality_surface import (
     EXACT_GRID_ROW_EVIDENCE,
     MODELED_SAME_FRAME_EVIDENCE,
@@ -260,6 +261,7 @@ class QualityPayloadAdapterBindingV1:
     corrected_p40_snapshot_sha256: str
     held_provider_binding_sha256: str
     held_inventory_sha256: str
+    scientific_basis_sha256: str
 
     def __post_init__(self) -> None:
         for item in fields(self):
@@ -527,6 +529,12 @@ class Run4QualityPayloadAdapterV1:
             raise QualityAdapterBindingError(
                 "held and reward payloads do not share the selection file"
             )
+        if surface.binding.reward_spec_file_sha256 != (
+            scientific_basis.QUALITY_SOURCE_FILE_SHA256
+        ):
+            raise QualityAdapterBindingError(
+                "quality surface does not carry the Run-4-approved Q_perc source"
+            )
         self._surface = surface
         self._held_provider = held_provider
         self.binding = QualityPayloadAdapterBindingV1(
@@ -537,9 +545,18 @@ class Run4QualityPayloadAdapterV1:
             corrected_p40_snapshot_sha256=surface.binding.corrected_p40_snapshot_sha256,
             held_provider_binding_sha256=held_provider.binding_sha256,
             held_inventory_sha256=held_provider.inventory_sha256,
+            scientific_basis_sha256=(
+                scientific_basis.SCIENTIFIC_BASIS_SHA256
+            ),
         )
 
     def _revalidate_bindings(self) -> None:
+        if self.binding.scientific_basis_sha256 != (
+            scientific_basis.SCIENTIFIC_BASIS_SHA256
+        ):
+            raise QualityAdapterBindingError(
+                "Run-4 scientific-basis binding changed after construction"
+            )
         current_surface = surface_binding_sha256(self._surface.binding)
         if current_surface != self.binding.surface_binding_sha256:
             raise QualityAdapterBindingError("surface binding changed after construction")

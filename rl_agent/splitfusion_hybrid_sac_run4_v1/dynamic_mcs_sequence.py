@@ -211,6 +211,14 @@ class SequencePartition(str, Enum):
     INTERNAL_VALIDATION = "INTERNAL_VALIDATION"
 
 
+def _transition_int(value: Any, name: str, *, minimum: int = 0) -> int:
+    if type(value) is not int or value < minimum:
+        raise CausalSelectionError(
+            f"{name} must be an exact int >= {minimum}"
+        )
+    return value
+
+
 def _canonical_bytes(value: Any) -> bytes:
     try:
         return json.dumps(
@@ -616,16 +624,45 @@ def predeclare_segment_plans(manifest: Mapping[str, Any]) -> Tuple[FrozenSegment
 @dataclass(frozen=True, slots=True)
 class DynamicMcsTransitionV1:
     segment_identity_sha256: str
+    duration: int
     current: CausalMcsObservationV1
     successor: CausalMcsObservationV1
+    successor_action_open_timestamp_ns: int
 
     def __post_init__(self) -> None:
-        if self.successor.decision_ordinal != self.current.decision_ordinal + 1:
-            raise CausalSelectionError("MCS transition must advance one decision")
-        if self.successor.decision_timestamp_ns - self.current.decision_timestamp_ns != (
-            DECISION_PERIOD_NS
-        ):
-            raise CausalSelectionError("MCS transition must follow the frozen grid")
+        duration = _transition_int(
+            self.duration,
+            "duration",
+            minimum=contract.MINIMUM_HOLD_TENSORS,
+        )
+        successor_open = _transition_int(
+            self.successor_action_open_timestamp_ns,
+            "successor_action_open_timestamp_ns",
+        )
+        expected_ordinal = self.current.decision_ordinal + duration
+        if self.successor.decision_ordinal != expected_ordinal:
+            raise CausalSelectionError(
+                "MCS successor ordinal must advance by the exact transmitted-"
+                "tensor duration"
+            )
+        expected_timestamp = (
+            self.current.decision_timestamp_ns + duration * DECISION_PERIOD_NS
+        )
+        if successor_open != expected_timestamp:
+            raise CausalSelectionError(
+                "successor action-open timestamp is incompatible with duration "
+                "and the frozen 10-Hz grid"
+            )
+        if self.successor.decision_timestamp_ns != successor_open:
+            raise CausalSelectionError(
+                "MCS successor must be sampled at the real successor action-open "
+                "timestamp"
+            )
+        # Missing or stale MCS is an external-fallback condition. Refuse the
+        # learning transition here rather than letting an invalid value reach
+        # policy-state construction or be silently encoded as zero.
+        self.current.policy_feature_dict()
+        self.successor.policy_feature_dict()
 
     def policy_values(self) -> Tuple[int, int]:
         return (
@@ -648,21 +685,47 @@ class DynamicMcsSegmentV1:
         if tuple(item.decision_ordinal for item in self.observations) != expected:
             raise CausalSelectionError("segment decision ordinals are not contiguous")
 
-    def transition_at(self, offset: int) -> DynamicMcsTransitionV1:
-        _exact_int(offset, "offset")
-        if offset >= len(self.observations) - 1:
+    def transition_at(
+        self,
+        offset: int,
+        *,
+        duration: int,
+        successor_action_open_timestamp_ns: int,
+    ) -> DynamicMcsTransitionV1:
+        """Bind one feedback-gated successor at its real action-open time.
+
+        ``duration`` is the exact number of 10-Hz tensors transmitted under
+        the current action. It is deliberately not treated as one decision:
+        a two-tensor hold advances the retained MCS trace by 200 ms. The
+        caller must also supply the real successor action-open timestamp so a
+        cadence or duration mismatch fails closed instead of slowing the
+        exogenous channel trace.
+        """
+        _transition_int(offset, "offset")
+        exact_duration = _transition_int(
+            duration,
+            "duration",
+            minimum=contract.MINIMUM_HOLD_TENSORS,
+        )
+        successor_open = _transition_int(
+            successor_action_open_timestamp_ns,
+            "successor_action_open_timestamp_ns",
+        )
+        successor_offset = offset + exact_duration
+        if offset >= len(self.observations) or successor_offset >= len(
+            self.observations
+        ):
             raise SegmentBoundaryResetRequired(
-                "segment terminal has no successor; reset before the next segment"
+                "duration-selected successor lies outside this frozen segment; "
+                "reset instead of crossing a split or profile boundary"
             )
         return DynamicMcsTransitionV1(
             segment_identity_sha256=self.plan.segment_identity_sha256,
+            duration=exact_duration,
             current=self.observations[offset],
-            successor=self.observations[offset + 1],
+            successor=self.observations[successor_offset],
+            successor_action_open_timestamp_ns=successor_open,
         )
-
-    @property
-    def transitions(self) -> Tuple[DynamicMcsTransitionV1, ...]:
-        return tuple(self.transition_at(i) for i in range(len(self.observations) - 1))
 
 
 @dataclass(frozen=True, slots=True)

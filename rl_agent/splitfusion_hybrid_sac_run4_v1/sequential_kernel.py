@@ -59,12 +59,15 @@ __all__ = [
     "KernelAuthorizationV1",
     "verify_kernel_prerequisites",
     "KernelDecisionInputV1",
+    "PredictionPayloadV1",
+    "PredictionRequestV1",
     "FeedbackLatencyBreakdownV1",
     "EmpiricalStepPredictionV1",
     "KernelStepResultV1",
     "KernelCheckpointV1",
     "Run4SequentialRadioQueueKernelV1",
     "REGISTERED_KERNEL_PREREQUISITES_SHA256",
+    "TIMEOUT_RESOLUTION_ELAPSED_NS",
 ]
 
 
@@ -78,6 +81,35 @@ ACCEPTED_ANALYSIS_VERDICT = "ACCEPTED_FOR_RUN4_SEQUENTIAL_KERNEL"
 # turn the current structural implementation into calibrated training evidence
 # by supplying plausible-looking hashes.
 REGISTERED_KERNEL_PREREQUISITES_SHA256: Optional[str] = None
+
+# SUCCESS uses the inclusive interval ``elapsed <= REWARD_DEADLINE_NS``.  The
+# first representable timeout instant is therefore exactly one nanosecond
+# later.  A timeout prediction is required to close at this instant rather
+# than waiting for an eventually delivered ACK.
+TIMEOUT_RESOLUTION_ELAPSED_NS = contract.REWARD_DEADLINE_NS + 1
+
+
+class _PredictionRequestAttestation:
+    """Module-private proof that a request came from a validated decision."""
+
+    __slots__ = ("binding", "nonce")
+
+    def __init__(self, binding: str, nonce: object) -> None:
+        self.binding = binding
+        self.nonce = nonce
+
+
+_PREDICTION_REQUEST_NONCE = object()
+
+
+def _valid_prediction_request_attestation(
+    attestation: object, binding: str
+) -> bool:
+    return (
+        type(attestation) is _PredictionRequestAttestation
+        and attestation.nonce is _PREDICTION_REQUEST_NONCE
+        and attestation.binding == binding
+    )
 
 
 class SequentialKernelError(ValueError):
@@ -857,6 +889,49 @@ class KernelDecisionInputV1:
             ),
         )
 
+    @property
+    def prediction_request_sha256(self) -> str:
+        """Digest of only the causal inputs exposed to the fitted model.
+
+        This digest intentionally does not depend on ``q_perc``, the policy
+        scene, CARLA sample/frame identities, or either quality/held selection
+        record.  Payload values and their evidence *classes* are sufficient
+        for the radio/queue prediction; provenance-bearing scene identities
+        stay on the decision side of the boundary.
+        """
+
+        reward_payload = PredictionPayloadV1.from_tensor(
+            self.reward_tensor.tensor
+        )
+        held_payloads = tuple(
+            PredictionPayloadV1.from_tensor(item.tensor)
+            for item in self.held_tensors
+        )
+        return canonical_sha256(
+            _record(
+                "prediction_request_v1",
+                PredictionRequestV1._payload_from_parts(
+                    identity=self.identity,
+                    current_radio_state_sha256=(
+                        self.current_radio_state_sha256
+                    ),
+                    action=self.action,
+                    reward_payload=reward_payload,
+                    held_payloads=held_payloads,
+                    calibration_partition=self.calibration_partition,
+                ),
+            )
+        )
+
+    def to_prediction_request(
+        self, current_radio_state: RadioQueueStateV1
+    ) -> "PredictionRequestV1":
+        """Issue the only request record a prediction provider may receive."""
+
+        return PredictionRequestV1.from_decision(
+            decision=self, current_radio_state=current_radio_state
+        )
+
     def to_dict(self) -> Dict[str, Any]:
         hold = self.hold
         return {
@@ -879,6 +954,204 @@ class KernelDecisionInputV1:
     @property
     def canonical_sha256(self) -> str:
         return canonical_sha256(_record("kernel_decision_input_v1", self.to_dict()))
+
+
+@dataclass(frozen=True, slots=True)
+class PredictionPayloadV1:
+    """One ordered payload descriptor with all scene identity removed."""
+
+    offered_payload_bytes: float
+    payload_evidence_class: contract.PayloadEvidenceClass
+
+    def __post_init__(self) -> None:
+        payload = _finite(self.offered_payload_bytes, "offered_payload_bytes")
+        if payload < 0.0:
+            raise PredictionViolation("offered_payload_bytes must be >= 0")
+        if not isinstance(
+            self.payload_evidence_class, contract.PayloadEvidenceClass
+        ):
+            raise PredictionViolation(
+                "payload_evidence_class must be PayloadEvidenceClass"
+            )
+        if (
+            self.payload_evidence_class
+            is contract.PayloadEvidenceClass.MEASURED_EXACT_ACTION_NODE
+            and type(self.offered_payload_bytes) is not int
+        ):
+            raise PredictionViolation(
+                "measured prediction payload must remain an exact int"
+            )
+
+    @classmethod
+    def from_tensor(cls, tensor: contract.HoldTensorV1) -> "PredictionPayloadV1":
+        if type(tensor) is not contract.HoldTensorV1:
+            raise PredictionViolation("prediction payload source must be HoldTensorV1")
+        return cls(
+            offered_payload_bytes=tensor.offered_payload_bytes,
+            payload_evidence_class=tensor.payload_evidence_class,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "offered_payload_bytes": self.offered_payload_bytes,
+            "payload_evidence_class": self.payload_evidence_class.value,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class PredictionRequestV1:
+    """Causal, sanitized input to one empirical radio/queue prediction.
+
+    The provider receives the exact prior UE MCS and pre-enqueue RLC backlog,
+    including their observation provenance, plus the executed action and the
+    ordered reward/held payload sizes.  It does *not* receive perception
+    quality, the hidden channel-profile label, policy-scene values, CARLA
+    sample/frame identities, or any future terminal/outcome.
+
+    Construction is attested and is only issued by
+    :meth:`KernelDecisionInputV1.to_prediction_request` after the supplied
+    state is proven to be the exact state whose digest the decision carries.
+    """
+
+    identity: contract.DecisionIdentityV1
+    current_radio_state: RadioQueueStateV1
+    action: ExecutedActionIdentity
+    reward_payload: PredictionPayloadV1
+    held_payloads: Tuple[PredictionPayloadV1, ...]
+    calibration_partition: KernelCalibrationPartition
+    _attestation: Any = field(default=None, compare=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if type(self.identity) is not contract.DecisionIdentityV1:
+            raise PredictionViolation("request identity must be DecisionIdentityV1")
+        if type(self.current_radio_state) is not RadioQueueStateV1:
+            raise PredictionViolation(
+                "request current_radio_state must be RadioQueueStateV1"
+            )
+        if (
+            self.current_radio_state.session_uuid,
+            self.current_radio_state.ue_id,
+            self.current_radio_state.decision_seq,
+        ) != (
+            self.identity.session_uuid,
+            self.identity.ue_id,
+            self.identity.decision_seq,
+        ):
+            raise SequenceViolation("request state belongs to another decision")
+        if type(self.action) is not ExecutedActionIdentity:
+            raise PredictionViolation("request action must be ExecutedActionIdentity")
+        self.action.require_reconciled()
+        if type(self.reward_payload) is not PredictionPayloadV1:
+            raise PredictionViolation(
+                "request reward_payload must be PredictionPayloadV1"
+            )
+        if type(self.held_payloads) is not tuple or not self.held_payloads:
+            raise PredictionViolation("request held_payloads must be nonempty")
+        if any(type(item) is not PredictionPayloadV1 for item in self.held_payloads):
+            raise PredictionViolation("request contains a foreign held payload")
+        if not isinstance(self.calibration_partition, KernelCalibrationPartition):
+            raise PredictionViolation("request calibration partition is invalid")
+        if self._attestation is not None and not (
+            _valid_prediction_request_attestation(
+                self._attestation, self._binding()
+            )
+        ):
+            raise PredictionViolation(
+                "prediction-request attestation does not bind to this request"
+            )
+
+    @staticmethod
+    def _payload_from_parts(
+        *,
+        identity: contract.DecisionIdentityV1,
+        current_radio_state_sha256: str,
+        action: ExecutedActionIdentity,
+        reward_payload: PredictionPayloadV1,
+        held_payloads: Tuple[PredictionPayloadV1, ...],
+        calibration_partition: KernelCalibrationPartition,
+    ) -> Dict[str, Any]:
+        return {
+            "action_sha256": action.canonical_sha256(),
+            "calibration_partition": calibration_partition.value,
+            "current_radio_state_sha256": current_radio_state_sha256,
+            "held_payloads": [item.to_dict() for item in held_payloads],
+            "identity": identity.to_canonical_dict(),
+            "reward_payload": reward_payload.to_dict(),
+        }
+
+    def _payload(self) -> Dict[str, Any]:
+        return self._payload_from_parts(
+            identity=self.identity,
+            current_radio_state_sha256=self.current_radio_state.canonical_sha256,
+            action=self.action,
+            reward_payload=self.reward_payload,
+            held_payloads=self.held_payloads,
+            calibration_partition=self.calibration_partition,
+        )
+
+    def _binding(self) -> str:
+        return canonical_sha256(_record("prediction_request_v1", self._payload()))
+
+    @classmethod
+    def from_decision(
+        cls,
+        *,
+        decision: KernelDecisionInputV1,
+        current_radio_state: RadioQueueStateV1,
+    ) -> "PredictionRequestV1":
+        if type(decision) is not KernelDecisionInputV1:
+            raise PredictionViolation("request source must be KernelDecisionInputV1")
+        if type(current_radio_state) is not RadioQueueStateV1:
+            raise PredictionViolation("request state must be RadioQueueStateV1")
+        if (
+            current_radio_state.canonical_sha256
+            != decision.current_radio_state_sha256
+        ):
+            raise SequenceViolation(
+                "prediction request was given a different current radio/queue state"
+            )
+        candidate = cls(
+            identity=decision.identity,
+            current_radio_state=current_radio_state,
+            action=decision.action,
+            reward_payload=PredictionPayloadV1.from_tensor(
+                decision.reward_tensor.tensor
+            ),
+            held_payloads=tuple(
+                PredictionPayloadV1.from_tensor(item.tensor)
+                for item in decision.held_tensors
+            ),
+            calibration_partition=decision.calibration_partition,
+        )
+        object.__setattr__(
+            candidate,
+            "_attestation",
+            _PredictionRequestAttestation(
+                candidate._binding(), _PREDICTION_REQUEST_NONCE
+            ),
+        )
+        return candidate
+
+    def require_attested(self) -> None:
+        if not _valid_prediction_request_attestation(
+            self._attestation, self._binding()
+        ):
+            raise PredictionViolation(
+                "prediction request must be derived from its exact decision"
+            )
+
+    def to_dict(self) -> Dict[str, Any]:
+        self.require_attested()
+        return self._payload()
+
+    @property
+    def canonical_sha256(self) -> str:
+        self.require_attested()
+        return self._binding()
+
+    @property
+    def held_offered_payload_bytes(self) -> float:
+        return sum(item.offered_payload_bytes for item in self.held_payloads)
 
 
 @dataclass(frozen=True, slots=True)
@@ -947,7 +1220,7 @@ class FeedbackLatencyBreakdownV1:
 class EmpiricalStepPredictionV1:
     """Caller-bound output of the future fitted model; never actor input."""
 
-    decision_input_sha256: str
+    prediction_request_sha256: str
     kernel_provenance_sha256: str
     fitted_model_sha256: str
     calibration_partition: KernelCalibrationPartition
@@ -960,7 +1233,7 @@ class EmpiricalStepPredictionV1:
 
     def __post_init__(self) -> None:
         for name in (
-            "decision_input_sha256",
+            "prediction_request_sha256",
             "kernel_provenance_sha256",
             "fitted_model_sha256",
             "source_row_sha256",
@@ -985,23 +1258,35 @@ class EmpiricalStepPredictionV1:
                 raise PredictionViolation(
                     "terminal elapsed time must equal the frame-level latency sum"
                 )
+            if elapsed > contract.REWARD_DEADLINE_NS:
+                raise PredictionViolation(
+                    "DELIVERED_FEEDBACK after the inclusive 170-ms deadline "
+                    "is late-orphan evidence, not a cycle terminal"
+                )
         elif self.latency is not None:
             raise PredictionViolation(
                 "failed/timeout predictions must not fabricate a complete "
                 "feedback latency breakdown"
             )
-        if (
-            self.terminal_kind is KernelTerminalKind.TIMEOUT
-            and elapsed <= contract.REWARD_DEADLINE_NS
+        if self.terminal_kind is KernelTerminalKind.TIMEOUT and (
+            elapsed != TIMEOUT_RESOLUTION_ELAPSED_NS
         ):
             raise PredictionViolation(
-                "TIMEOUT must occur strictly after the inclusive 170-ms deadline"
+                "TIMEOUT must close at the first nanosecond strictly after "
+                "the inclusive 170-ms deadline"
+            )
+        if (
+            self.terminal_kind is not KernelTerminalKind.TIMEOUT
+            and elapsed > contract.REWARD_DEADLINE_NS
+        ):
+            raise PredictionViolation(
+                "a non-timeout terminal cannot arrive after timeout closure"
             )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "calibration_partition": self.calibration_partition.value,
-            "decision_input_sha256": self.decision_input_sha256,
+            "prediction_request_sha256": self.prediction_request_sha256,
             "fitted_model_sha256": self.fitted_model_sha256,
             "kernel_provenance_sha256": self.kernel_provenance_sha256,
             "latency": None if self.latency is None else self.latency.to_dict(),
@@ -1263,8 +1548,13 @@ class Run4SequentialRadioQueueKernelV1:
     ) -> None:
         if type(prediction) is not EmpiricalStepPredictionV1:
             raise PredictionViolation("prediction must be EmpiricalStepPredictionV1")
-        if prediction.decision_input_sha256 != decision.canonical_sha256:
-            raise PredictionViolation("prediction belongs to another decision")
+        if (
+            prediction.prediction_request_sha256
+            != decision.prediction_request_sha256
+        ):
+            raise PredictionViolation(
+                "prediction belongs to another causal prediction request"
+            )
         if prediction.kernel_provenance_sha256 != (
             self._prerequisites.provenance.canonical_sha256
         ):

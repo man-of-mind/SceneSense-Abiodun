@@ -60,7 +60,13 @@ class _MeasuredStateStager:
                 raise AssertionError("a continuation requires the exact outcome")
             # These are the fixture's measured times.  The runner supplies
             # only the causal lower bound; it does not prescribe action-open.
-            commit_ns = minimum_state_commit_timestamp_ns + 5_000_000
+            nominal_commit_ns = (
+                1_200_000_000 + (identity.decision_seq - 1) * 200_000_000
+            )
+            commit_ns = max(
+                minimum_state_commit_timestamp_ns + 5_000_000,
+                nominal_commit_ns,
+            )
         open_ns = commit_ns + 7_000_000
         source_ns = commit_ns - 3_000_000
         available_ns = commit_ns - 1_000_000
@@ -128,16 +134,17 @@ class _HeldAwarePredictionProvider:
         self.held_payloads: list[float] = []
 
     def predict(
-        self, decision: sequential_kernel.KernelDecisionInputV1
+        self, request: sequential_kernel.PredictionRequestV1
     ) -> sequential_kernel.EmpiricalStepPredictionV1:
-        held_payload = decision.hold.held_offered_payload_bytes
+        request.require_attested()
+        held_payload = request.held_offered_payload_bytes
         self.held_payloads.append(held_payload)
-        sequence = decision.identity.decision_seq
+        sequence = request.identity.decision_seq
         next_backlog = min(9_000_000, 100 + int(held_payload // 10))
         next_mcs = 7 if sequence % 2 == 0 else 12
         next_state = sequential_kernel.RadioQueueStateV1(
-            session_uuid=decision.identity.session_uuid,
-            ue_id=decision.identity.ue_id,
+            session_uuid=request.identity.session_uuid,
+            ue_id=request.identity.ue_id,
             decision_seq=sequence + 1,
             prior_ul_mcs=sequential_kernel.IntegerObservationV1(
                 value=next_mcs,
@@ -155,7 +162,7 @@ class _HeldAwarePredictionProvider:
         if sequence == 1:
             kind = sequential_kernel.KernelTerminalKind.TIMEOUT
             latency = None
-            elapsed = contract.REWARD_DEADLINE_NS + 1
+            elapsed = sequential_kernel.TIMEOUT_RESOLUTION_ELAPSED_NS
         else:
             kind = sequential_kernel.KernelTerminalKind.DELIVERED_FEEDBACK
             provenance = self.prerequisites.provenance
@@ -181,12 +188,12 @@ class _HeldAwarePredictionProvider:
             elapsed = latency.full_feedback_ns
         self.count += 1
         return sequential_kernel.EmpiricalStepPredictionV1(
-            decision_input_sha256=decision.canonical_sha256,
+            prediction_request_sha256=request.canonical_sha256,
             kernel_provenance_sha256=(
                 self.prerequisites.provenance.canonical_sha256
             ),
             fitted_model_sha256=self.prerequisites.fitted_model_sha256,
-            calibration_partition=decision.calibration_partition,
+            calibration_partition=request.calibration_partition,
             source_cell_id="fit-a",
             terminal_kind=kind,
             terminal_elapsed_ns=elapsed,
@@ -220,6 +227,24 @@ class _SubstitutingStateStager(_MeasuredStateStager):
             ),
         )
         return replace(staged, radio_state=substituted_radio)
+
+
+class _EarlySuccessorStateStager(_MeasuredStateStager):
+    """Adversary opening the next action one nanosecond before hold closure."""
+
+    def stage(self, **kwargs):
+        staged = super().stage(**kwargs)
+        if staged.identity.decision_seq == 0:
+            return staged
+        return replace(
+            staged,
+            boundary=replace(
+                staged.boundary,
+                action_open_timestamp_ns=(
+                    staged.boundary.action_open_timestamp_ns - 1
+                ),
+            ),
+        )
 
 
 class PersistentRunnerTest(unittest.TestCase):
@@ -554,6 +579,11 @@ class PersistentRunnerTest(unittest.TestCase):
         after_success = runner.current_features
         self.assertEqual(first.decision.identity.decision_seq, 0)
         self.assertEqual(first.decision.hold.duration, 2)
+        self.assertEqual(first.transition.elapsed_virtual_ns, 200_000_000)
+        self.assertEqual(
+            first.successor_staged.boundary.action_open_timestamp_ns,
+            first.decision.action_open_timestamp_ns + 200_000_000,
+        )
         self.assertEqual(
             tuple(item.reward_requested for item in first.decision.hold.tensors),
             (True, False),
@@ -600,6 +630,17 @@ class PersistentRunnerTest(unittest.TestCase):
         self.assertEqual(runner.trainer.update_count, 0)
         after = self._parameters(runner.model_bundle)
         self.assertTrue(all(torch.equal(x, y) for x, y in zip(before, after)))
+
+    def test_successor_cannot_open_before_two_tensor_hold_closes(self) -> None:
+        runner = self.factory()
+        runner.start(session_uuid=SESSION, ue_id=UE_ID)
+        runner.state_stager = _EarlySuccessorStateStager()
+        with self.assertRaisesRegex(
+            src.RunnerStateError, "action-open precedes.*hold cadence"
+        ):
+            runner.step()
+        self.assertTrue(runner._faulted)
+        self.assertEqual(len(runner.replay_buffer), 0)
 
     def test_checkpoint_resume_is_exact_and_deterministic(self) -> None:
         uninterrupted = self.factory()

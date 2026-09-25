@@ -91,10 +91,6 @@ class DynamicMcsSequenceTests(unittest.TestCase):
                 item.source_identity_sha256 for item in validation.observations
             }
             self.assertFalse(fit_sources & validation_sources)
-            self.assertEqual(len(fit.transitions), len(fit.observations) - 1)
-            self.assertEqual(
-                len(validation.transitions), len(validation.observations) - 1
-            )
 
     def test_segment_plan_is_frozen_from_manifest_without_reading_csv(self) -> None:
         root = Path(__file__).resolve().parents[2]
@@ -214,13 +210,200 @@ class DynamicMcsSequenceTests(unittest.TestCase):
         self.assertIsNone(second.mcs_index)
         self.assertIs(second.validity, subject.McsValidity.STALE)
 
+    def test_duration_two_advances_trace_by_two_hundred_ms(self) -> None:
+        segment = self.evidence.segments[0]
+        transition = segment.transition_at(
+            0,
+            duration=2,
+            successor_action_open_timestamp_ns=(
+                segment.observations[0].decision_timestamp_ns
+                + 2 * subject.DECISION_PERIOD_NS
+            ),
+        )
+        current, successor = transition.policy_values()
+        self.assertEqual(current, segment.observations[0].mcs_index)
+        self.assertEqual(successor, segment.observations[2].mcs_index)
+        self.assertEqual(transition.duration, 2)
+        self.assertEqual(
+            transition.successor.decision_timestamp_ns
+            - transition.current.decision_timestamp_ns,
+            200_000_000,
+        )
+
+    def test_variable_duration_selects_exact_successor_grid_point(self) -> None:
+        segment = self.evidence.segments[0]
+        for duration in (2, 3, 7):
+            with self.subTest(duration=duration):
+                transition = segment.transition_at(
+                    4,
+                    duration=duration,
+                    successor_action_open_timestamp_ns=(
+                        segment.observations[4].decision_timestamp_ns
+                        + duration * subject.DECISION_PERIOD_NS
+                    ),
+                )
+                self.assertEqual(
+                    transition.successor,
+                    segment.observations[4 + duration],
+                )
+                self.assertEqual(
+                    transition.successor.decision_ordinal
+                    - transition.current.decision_ordinal,
+                    duration,
+                )
+
+    def test_duration_and_real_successor_timestamp_must_agree(self) -> None:
+        segment = self.evidence.segments[0]
+        current_timestamp = segment.observations[0].decision_timestamp_ns
+        for wrong_timestamp in (
+            current_timestamp + subject.DECISION_PERIOD_NS,
+            current_timestamp + 3 * subject.DECISION_PERIOD_NS,
+        ):
+            with self.subTest(wrong_timestamp=wrong_timestamp):
+                with self.assertRaisesRegex(
+                    subject.CausalSelectionError,
+                    "successor action-open timestamp",
+                ):
+                    segment.transition_at(
+                        0,
+                        duration=2,
+                        successor_action_open_timestamp_ns=wrong_timestamp,
+                    )
+
+    def test_duration_one_is_not_a_run4_feedback_gated_hold(self) -> None:
+        segment = self.evidence.segments[0]
+        with self.assertRaisesRegex(subject.CausalSelectionError, "duration"):
+            segment.transition_at(
+                0,
+                duration=1,
+                successor_action_open_timestamp_ns=(
+                    segment.observations[0].decision_timestamp_ns
+                    + subject.DECISION_PERIOD_NS
+                ),
+            )
+
+    def test_duration_cannot_cross_fit_validation_or_profile_boundary(self) -> None:
+        for profile in subject.EXPECTED_PROFILE_TRACE_IDS:
+            fit = self.evidence.segment(profile, subject.SequencePartition.FIT)
+            current = fit.observations[-2]
+            # The source contains a validation observation 200 ms later, but
+            # it is deliberately unreachable from the fit segment.
+            with self.assertRaisesRegex(
+                subject.SegmentBoundaryResetRequired,
+                "split or profile boundary",
+            ):
+                fit.transition_at(
+                    len(fit.observations) - 2,
+                    duration=2,
+                    successor_action_open_timestamp_ns=(
+                        current.decision_timestamp_ns
+                        + 2 * subject.DECISION_PERIOD_NS
+                    ),
+                )
+
+    def test_strictly_prior_selection_remains_causal_at_duration_successor(
+        self,
+    ) -> None:
+        base = 1_000_000_000
+        grants = (
+            _grant(base + 50_000_000, 4, 1),
+            _grant(base + 200_000_000, 9, 2),
+            _grant(base + 250_000_000, 12, 3),
+            _grant(base + 300_000_000, 20, 4),
+        )
+        observations = tuple(
+            subject.select_latest_strictly_prior_mcs(
+                grants,
+                decision_ordinal=ordinal,
+                decision_timestamp_ns=base + ordinal * subject.DECISION_PERIOD_NS,
+                maximum_age_ns=200_000_000,
+            )
+            for ordinal in (1, 2, 3)
+        )
+        plan = subject.FrozenSegmentPlanV1(
+            source_profile_id="SYNTHETIC_CAUSAL_TEST",
+            source_trace_id="SYNTHETIC_CAUSAL_TEST",
+            partition=subject.SequencePartition.FIT,
+            first_decision_ordinal=1,
+            last_decision_ordinal=3,
+            first_decision_timestamp_ns=base + subject.DECISION_PERIOD_NS,
+            last_decision_timestamp_ns=base + 3 * subject.DECISION_PERIOD_NS,
+            segment_identity_sha256="a" * 64,
+        )
+        segment = subject.DynamicMcsSegmentV1(
+            plan=plan,
+            observations=observations,
+        )
+        transition = segment.transition_at(
+            0,
+            duration=2,
+            successor_action_open_timestamp_ns=(
+                base + 3 * subject.DECISION_PERIOD_NS
+            ),
+        )
+        # The grant stamped exactly at the successor action-open boundary is
+        # future information and is not visible; the 250-ms grant is selected.
+        self.assertEqual(transition.successor.mcs_index, 12)
+        self.assertEqual(
+            transition.successor.source_timestamp_ns,
+            base + 250_000_000,
+        )
+        self.assertLess(
+            transition.successor.source_timestamp_ns,
+            transition.successor_action_open_timestamp_ns,
+        )
+
+    def test_missing_or_stale_successor_refuses_transition(self) -> None:
+        base = 2_000_000_000
+        grant = _grant(base + 50_000_000, 7, 1)
+        observations = tuple(
+            subject.select_latest_strictly_prior_mcs(
+                (grant,),
+                decision_ordinal=ordinal,
+                decision_timestamp_ns=base + ordinal * subject.DECISION_PERIOD_NS,
+                maximum_age_ns=75_000_000,
+            )
+            for ordinal in (1, 2, 3)
+        )
+        self.assertIs(observations[2].validity, subject.McsValidity.STALE)
+        plan = subject.FrozenSegmentPlanV1(
+            source_profile_id="SYNTHETIC_STALE_TEST",
+            source_trace_id="SYNTHETIC_STALE_TEST",
+            partition=subject.SequencePartition.FIT,
+            first_decision_ordinal=1,
+            last_decision_ordinal=3,
+            first_decision_timestamp_ns=base + subject.DECISION_PERIOD_NS,
+            last_decision_timestamp_ns=base + 3 * subject.DECISION_PERIOD_NS,
+            segment_identity_sha256="b" * 64,
+        )
+        segment = subject.DynamicMcsSegmentV1(
+            plan=plan,
+            observations=observations,
+        )
+        with self.assertRaisesRegex(
+            subject.CausalSelectionError,
+            "external fallback",
+        ):
+            segment.transition_at(
+                0,
+                duration=2,
+                successor_action_open_timestamp_ns=(
+                    base + 3 * subject.DECISION_PERIOD_NS
+                ),
+            )
+
     def test_terminal_transition_requires_reset(self) -> None:
         segment = self.evidence.segments[0]
-        current, successor = segment.transition_at(0).policy_values()
-        self.assertEqual(current, segment.observations[0].mcs_index)
-        self.assertEqual(successor, segment.observations[1].mcs_index)
+        current = segment.observations[-2]
         with self.assertRaises(subject.SegmentBoundaryResetRequired):
-            segment.transition_at(len(segment.observations) - 1)
+            segment.transition_at(
+                len(segment.observations) - 2,
+                duration=2,
+                successor_action_open_timestamp_ns=(
+                    current.decision_timestamp_ns
+                    + 2 * subject.DECISION_PERIOD_NS
+                ),
+            )
 
     def test_production_stays_fail_closed(self) -> None:
         self.assertIsNone(

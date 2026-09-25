@@ -97,7 +97,7 @@ class EmpiricalPredictionProvider(Protocol):
     def binding_sha256(self) -> str: ...
 
     def predict(
-        self, decision: sequential_kernel.KernelDecisionInputV1
+        self, request: sequential_kernel.PredictionRequestV1
     ) -> sequential_kernel.EmpiricalStepPredictionV1: ...
 
     def state_dict(self) -> Any: ...
@@ -355,8 +355,13 @@ class RunnerStepJournalV1:
             raise RunnerCheckpointError("foreign transition in journal")
         self.transition.require_attested()
         _digest(self.environment_transition_sha256, "environment_transition_sha256")
-        if self.decision.canonical_sha256 != self.prediction.decision_input_sha256:
-            raise RunnerCheckpointError("decision/prediction digest mismatch")
+        if (
+            self.decision.prediction_request_sha256
+            != self.prediction.prediction_request_sha256
+        ):
+            raise RunnerCheckpointError(
+                "decision/prediction-request digest mismatch"
+            )
         if self.transition.canonical_sha256() != self.environment_transition_sha256:
             raise RunnerCheckpointError("environment/transition digest mismatch")
         if self.transition.state.state.identity != self.decision.identity:
@@ -771,6 +776,7 @@ class _RunnerCore:
                 radio_state=radio,
                 previous=None,
                 minimum_state_commit_timestamp_ns=0,
+                minimum_action_open_timestamp_ns=0,
             )
             self.state_provider.stage_decision(staged)
             bundle = self.environment.reset(session_uuid=session_uuid, ue_id=ue_id)
@@ -796,9 +802,18 @@ class _RunnerCore:
         radio_state: sequential_kernel.RadioQueueStateV1,
         previous: Optional[contract.PreviousOutcomeV1],
         minimum_state_commit_timestamp_ns: int,
+        minimum_action_open_timestamp_ns: int,
     ) -> None:
         """Close the stager join over every exact caller-supplied input."""
 
+        minimum_commit = _exact_int(
+            minimum_state_commit_timestamp_ns,
+            "minimum_state_commit_timestamp_ns",
+        )
+        minimum_action_open = _exact_int(
+            minimum_action_open_timestamp_ns,
+            "minimum_action_open_timestamp_ns",
+        )
         if type(staged) is not production_state_provider.StagedDecisionInputsV1:
             raise RunnerStateError("state stager returned a foreign record")
         expected_previous = (
@@ -812,10 +827,12 @@ class _RunnerCore:
             raise RunnerStateError("state stager substituted radio/queue state")
         if staged.expected_previous_sha256 != expected_previous:
             raise RunnerStateError("state stager substituted previous outcome")
-        if staged.boundary.state_commit_timestamp_ns < (
-            minimum_state_commit_timestamp_ns
-        ):
+        if staged.boundary.state_commit_timestamp_ns < minimum_commit:
             raise RunnerStateError("state stager committed before causal lower bound")
+        if staged.boundary.action_open_timestamp_ns < minimum_action_open:
+            raise RunnerStateError(
+                "successor action-open precedes the completed action-hold cadence"
+            )
 
     def _execution(self, mode_id: int, q_e4: int) -> ExecutedActionIdentity:
         executable = self._catalog.resolve(
@@ -927,6 +944,27 @@ class _RunnerCore:
     ) -> RunnerStepJournalV1:
         current = self.environment.current_state
         step_result = self._adapter.prepare(decision, prediction)
+        resolution = contract.resolve_reward(step_result.reward_event)
+        previous = contract.PreviousOutcomeV1.from_resolution(resolution)
+        successor_identity = contract.DecisionIdentityV1(
+            decision.identity.session_uuid,
+            decision.identity.ue_id,
+            decision.identity.decision_seq + 1,
+        )
+        self._validate_staged_inputs(
+            staged=successor_staged,
+            identity=successor_identity,
+            scene_draw=successor_staged.scene_draw,
+            radio_state=step_result.next_radio_state,
+            previous=previous,
+            minimum_state_commit_timestamp_ns=(
+                resolution.resolution_timestamp_ns
+            ),
+            minimum_action_open_timestamp_ns=(
+                current.state.boundary.action_open_timestamp_ns
+                + step_result.hold.duration * contract.TRANSMIT_PERIOD_NS
+            ),
+        )
         self.state_provider.stage_decision(successor_staged)
         diagnostic = self.environment.step(decision.action)
         if type(diagnostic) is not environment.SyntheticMechanicsCycleV1:
@@ -988,7 +1026,10 @@ class _RunnerCore:
                 clock_domain=current.state.boundary.clock_domain,
                 calibration_partition=sequential_kernel.KernelCalibrationPartition.FIT,
             )
-            prediction = self.prediction_provider.predict(decision)
+            prediction_request = decision.to_prediction_request(
+                self.kernel.current_state
+            )
+            prediction = self.prediction_provider.predict(prediction_request)
             if type(prediction) is not sequential_kernel.EmpiricalStepPredictionV1:
                 raise RunnerStateError("prediction provider returned foreign record")
             step_result = self._adapter.prepare(decision, prediction)
@@ -1014,6 +1055,10 @@ class _RunnerCore:
                 previous=previous,
                 minimum_state_commit_timestamp_ns=(
                     resolution.resolution_timestamp_ns
+                ),
+                minimum_action_open_timestamp_ns=(
+                    current.state.boundary.action_open_timestamp_ns
+                    + step_result.hold.duration * contract.TRANSMIT_PERIOD_NS
                 ),
             )
             self.state_provider.stage_decision(successor)

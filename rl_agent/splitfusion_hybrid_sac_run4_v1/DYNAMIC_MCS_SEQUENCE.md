@@ -43,9 +43,10 @@ cannot borrow a warm-up or previous-profile grant.
 The split is constructed from manifest timestamps before either MCS CSV is
 opened. Fit and validation are contiguous but have separate segment
 identities and no reused selected grant identity. A transition is emitted
-only between adjacent decisions inside one segment. The terminal decision
-requires an explicit reset; no transition crosses a split or profile
-boundary.
+only when its successor remains inside the same segment. The successor is not
+implicitly the adjacent 100-ms sample: it is selected at the exact next
+action-open time implied by the transmitted-tensor hold. The terminal region
+requires an explicit reset; no transition crosses a split or profile boundary.
 
 ## Causal use
 
@@ -59,12 +60,27 @@ value is forward-filled.
 The sequence supplies only:
 
 ```text
-current prior_ul_mcs_index -> next prior_ul_mcs_index
+current prior_ul_mcs_index
+    -- exact hold duration and real successor action-open timestamp -->
+successor prior_ul_mcs_index
 ```
+
+For example, an action held across two tensors at the registered 10-Hz
+transmit cadence advances the retained MCS trace by 200 ms, not 100 ms.
+`transition_at` therefore requires both the exact transmitted-tensor
+`duration` and the caller's successor action-open timestamp. The timestamp
+must equal `current + duration * 100 ms`, and the selected observation must
+sit at that exact grid point. A mismatch is rejected instead of silently
+slowing channel evolution relative to the semi-Markov decision cycle.
 
 MCS evolution is exogenous. It is never conditioned on backlog, payload,
 mode, q, reward or action. Hidden profile/trace identities remain evidence
 metadata and are absent from the policy-feature dictionary.
+
+Missing or stale MCS at either endpoint refuses the transition and requires
+the registered external fallback; neither case is encoded as numeric zero or
+forward-filled. If the duration-selected successor would enter the validation
+split, another profile, or the end of the trace, the caller must reset.
 
 ## Scope limitation
 

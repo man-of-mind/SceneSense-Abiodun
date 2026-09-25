@@ -16,6 +16,7 @@ from unittest import mock
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import held_payload
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import quality_adapter as adapter
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import scientific_basis
 from rl_agent.splitfusion_hybrid_sac_v1 import action_contract
 from rl_agent.splitfusion_hybrid_sac_v1.corrected_p40_sidecar import (
     load_exact_corrected_p40_sidecar,
@@ -146,6 +147,29 @@ class Run4QualityPayloadAdapterTests(unittest.TestCase):
         return ExecutedActionIdentity.from_executable_action(
             executable, cls.catalog
         )
+
+    def test_binding_includes_reviewed_quality_scientific_basis(self) -> None:
+        self.assertEqual(
+            self.bridge.binding.scientific_basis_sha256,
+            scientific_basis.SCIENTIFIC_BASIS_SHA256,
+        )
+        original = self.bridge.binding
+        object.__setattr__(
+            self.bridge,
+            "binding",
+            replace(original, scientific_basis_sha256=_digest("changed-basis")),
+        )
+        try:
+            with self.assertRaisesRegex(
+                adapter.QualityAdapterBindingError, "scientific-basis"
+            ):
+                self.bridge.reward_tensor(
+                    selection=self.selection,
+                    action=self.action(),
+                    tensor_seq=9,
+                )
+        finally:
+            object.__setattr__(self.bridge, "binding", original)
 
     @staticmethod
     def counter(ordinal: int = 1) -> held_payload.HeldSelectionCounterV1:

@@ -419,7 +419,8 @@ TRANSITION_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
         "successor": "next real policy decision, not a fixed image step",
         "action_hold": (
             "one action governs the reward tensor and every subsequently held "
-            "tensor until closure"
+            "tensor until closure; tensor k is transmitted at nominal offset "
+            "k * period from action-open"
         ),
         "minimum_transmitted_tensors": MINIMUM_HOLD_TENSORS,
         "nominal_transmit_cadence_hz": TRANSMIT_CADENCE_HZ,
@@ -430,7 +431,9 @@ TRANSITION_SCHEMA_DESCRIPTOR: Mapping[str, Any] = _deep_freeze(
         ),
         "duration": (
             "exact positive transmitted-tensor count plus exact positive elapsed "
-            "virtual time; no scene-frame adjacency is asserted"
+            "virtual time; duration d requires the next decision/cycle boundary "
+            "no earlier than d complete transmit periods after action-open; no "
+            "scene-frame adjacency is asserted"
         ),
         "discount": "caller supplies gamma and stored gamma**duration",
         "episode_boundary": (
@@ -2031,7 +2034,12 @@ def build_transition(
         raise TransitionError(
             "elapsed_virtual_ns must equal cycle_end minus action open"
         )
-    minimum_cadence_span = (exact_duration - 1) * TRANSMIT_PERIOD_NS
+    # Tensor 0 is transmitted at action-open, tensors 1..d-1 follow at the
+    # nominal cadence, and the *next* policy decision owns the next cadence
+    # slot.  Therefore a d-tensor hold occupies d complete periods.  Using
+    # (d - 1) periods here would allow a two-tensor action opened at t to be
+    # replaced at t+100 ms, the same instant its held tensor is transmitted.
+    minimum_cadence_span = exact_duration * TRANSMIT_PERIOD_NS
     if exact_elapsed < minimum_cadence_span:
         raise TransitionError(
             "elapsed virtual time is incompatible with duration at the "

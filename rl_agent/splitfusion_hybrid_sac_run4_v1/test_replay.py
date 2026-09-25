@@ -313,8 +313,7 @@ class Fixture:
             tensors=tensors,
         )
         elapsed = max(
-            150_000_000,
-            (duration - 1) * 100_000_000 + 10_000_000,
+            duration * contract.TRANSMIT_PERIOD_NS,
             resolution_latency_ns + 20_000_000,
         )
         cycle_end = opened + elapsed

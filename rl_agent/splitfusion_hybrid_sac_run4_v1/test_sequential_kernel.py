@@ -258,6 +258,7 @@ class Run4SequentialKernelTests(unittest.TestCase):
         *,
         partition: src.KernelCalibrationPartition = src.KernelCalibrationPartition.FIT,
         payload: int = 1_000,
+        quality: float = 0.7,
         current_radio_state: src.RadioQueueStateV1 | None = None,
     ) -> src.KernelDecisionInputV1:
         if current_radio_state is None:
@@ -270,7 +271,9 @@ class Run4SequentialKernelTests(unittest.TestCase):
             identity=contract.DecisionIdentityV1(SESSION, UE_ID, sequence),
             current_radio_state_sha256=current_radio_state.canonical_sha256,
             action=cls.action,
-            reward_tensor=cls.reward_tensor(sequence, payload=payload),
+            reward_tensor=cls.reward_tensor(
+                sequence, payload=payload, quality=quality
+            ),
             held_tensors=(cls.held_tensor(sequence),),
             action_open_timestamp_ns=1_000_000_000 + sequence * 200_000_000,
             clock_domain=CLOCK,
@@ -300,6 +303,7 @@ class Run4SequentialKernelTests(unittest.TestCase):
         cls,
         decision: src.KernelDecisionInputV1,
         *,
+        current_radio_state: src.RadioQueueStateV1 | None = None,
         terminal: src.KernelTerminalKind = src.KernelTerminalKind.DELIVERED_FEEDBACK,
         latency: src.FeedbackLatencyBreakdownV1 | None = None,
         source_cell_id: str = "fit-a",
@@ -307,17 +311,24 @@ class Run4SequentialKernelTests(unittest.TestCase):
         next_backlog: int | None = 100,
     ) -> src.EmpiricalStepPredictionV1:
         prereq = cls.prerequisites()
+        if current_radio_state is None:
+            current_radio_state = (
+                cls.state(0)
+                if decision.identity.decision_seq == 0
+                else cls.state(decision.identity.decision_seq, mcs=7, backlog=100)
+            )
+        request = decision.to_prediction_request(current_radio_state)
         if terminal is src.KernelTerminalKind.DELIVERED_FEEDBACK:
             breakdown = cls.latency() if latency is None else latency
             elapsed = breakdown.full_feedback_ns
         elif terminal is src.KernelTerminalKind.TIMEOUT:
             breakdown = None
-            elapsed = contract.REWARD_DEADLINE_NS + 1
+            elapsed = src.TIMEOUT_RESOLUTION_ELAPSED_NS
         else:
             breakdown = None
             elapsed = 50_000_000
         return src.EmpiricalStepPredictionV1(
-            decision_input_sha256=decision.canonical_sha256,
+            prediction_request_sha256=request.canonical_sha256,
             kernel_provenance_sha256=prereq.provenance.canonical_sha256,
             fitted_model_sha256=prereq.fitted_model_sha256,
             calibration_partition=decision.calibration_partition,
@@ -484,17 +495,11 @@ class Run4SequentialKernelTests(unittest.TestCase):
         self.assertEqual(kernel.current_state.decision_seq, 1)
         self.assertFalse(result.replay_export_allowed)
 
-    def test_delivered_after_deadline_resolves_as_timeout(self) -> None:
-        kernel = self.kernel()
+    def test_delivered_after_deadline_is_structurally_rejected(self) -> None:
         decision = self.decision(0)
         latency = self.latency(feature_uplink_ns=120_000_001)
-        prediction = self.prediction(decision, latency=latency)
-        result = kernel.advance(decision=decision, prediction=prediction)
-        self.assertGreater(result.latency.full_feedback_ns, 170_000_000)
-        resolution = contract.resolve_reward(result.reward_event)
-        self.assertEqual(resolution.terminal, contract.RewardTerminal.TIMEOUT)
-        self.assertEqual(resolution.reward, -1.0)
-        self.assertIsNone(resolution.latency_ms)
+        with self.assertRaisesRegex(src.PredictionViolation, "late-orphan"):
+            self.prediction(decision, latency=latency)
 
     def test_timeout_must_be_strictly_after_inclusive_boundary(self) -> None:
         decision = self.decision(0)
@@ -503,6 +508,30 @@ class Run4SequentialKernelTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(src.PredictionViolation, "strictly after"):
             replace(prediction, terminal_elapsed_ns=contract.REWARD_DEADLINE_NS)
+
+    def test_timeout_closes_at_first_representable_instant_not_late_ack(self) -> None:
+        kernel = self.kernel()
+        decision = self.decision(0)
+        prediction = self.prediction(
+            decision, terminal=src.KernelTerminalKind.TIMEOUT
+        )
+        self.assertEqual(
+            prediction.terminal_elapsed_ns,
+            contract.REWARD_DEADLINE_NS + 1,
+        )
+        with self.assertRaisesRegex(src.PredictionViolation, "first nanosecond"):
+            replace(
+                prediction,
+                terminal_elapsed_ns=contract.REWARD_DEADLINE_NS + 2,
+            )
+        result = kernel.advance(decision=decision, prediction=prediction)
+        self.assertEqual(
+            result.cycle_end_timestamp_ns,
+            decision.action_open_timestamp_ns + contract.REWARD_DEADLINE_NS + 1,
+        )
+        resolution = contract.resolve_reward(result.reward_event)
+        self.assertEqual(resolution.terminal, contract.RewardTerminal.TIMEOUT)
+        self.assertEqual(resolution.reward, -1.0)
 
     def test_registered_delivery_failure_carries_no_quality_or_latency(self) -> None:
         kernel = self.kernel()
@@ -553,9 +582,9 @@ class Run4SequentialKernelTests(unittest.TestCase):
         kernel = self.kernel()
         decision = self.decision(0)
         prediction = replace(
-            self.prediction(decision), decision_input_sha256=_d("1")
+            self.prediction(decision), prediction_request_sha256=_d("1")
         )
-        with self.assertRaisesRegex(src.PredictionViolation, "another decision"):
+        with self.assertRaisesRegex(src.PredictionViolation, "another causal"):
             kernel.advance(decision=decision, prediction=prediction)
 
     def test_decision_and_prediction_cannot_be_reused_across_radio_states(self) -> None:
@@ -564,7 +593,9 @@ class Run4SequentialKernelTests(unittest.TestCase):
         source_state = self.state(0, mcs=0, backlog=0)
         other_state = self.state(0, mcs=12, backlog=5_000)
         decision = self.decision(0, current_radio_state=source_state)
-        prediction = self.prediction(decision)
+        prediction = self.prediction(
+            decision, current_radio_state=source_state
+        )
         other_kernel = src.Run4SequentialRadioQueueKernelV1(
             prerequisites=prerequisites,
             authorization=authorization,
@@ -665,7 +696,9 @@ class Run4SequentialKernelTests(unittest.TestCase):
         next_decision = self.decision(
             1, current_radio_state=kernel.current_state
         )
-        next_prediction = self.prediction(next_decision)
+        next_prediction = self.prediction(
+            next_decision, current_radio_state=kernel.current_state
+        )
         with self.assertRaisesRegex(src.SupportViolation, "external fallback"):
             kernel.advance(decision=next_decision, prediction=next_prediction)
 
@@ -746,6 +779,103 @@ class Run4SequentialKernelTests(unittest.TestCase):
             tuple(contract.POLICY_FEATURE_ORDER),
             tuple(contract.POLICY_FEATURE_ORDER),
         )
+
+    def test_prediction_request_exposes_exact_state_and_ordered_payloads(self) -> None:
+        state = self.state(0, mcs=12, backlog=4_321)
+        decision = self.decision(0, current_radio_state=state)
+        request = decision.to_prediction_request(state)
+        self.assertEqual(request.current_radio_state, state)
+        self.assertEqual(request.current_radio_state.prior_ul_mcs.value, 12)
+        self.assertEqual(
+            request.current_radio_state.prior_ul_mcs.provenance_sha256,
+            state.prior_ul_mcs.provenance_sha256,
+        )
+        self.assertEqual(
+            request.current_radio_state.pre_enqueue_backlog_bytes.value,
+            4_321,
+        )
+        self.assertEqual(request.action, decision.action)
+        self.assertEqual(
+            request.reward_payload.offered_payload_bytes,
+            decision.reward_tensor.tensor.offered_payload_bytes,
+        )
+        self.assertEqual(
+            tuple(item.offered_payload_bytes for item in request.held_payloads),
+            tuple(
+                item.tensor.offered_payload_bytes
+                for item in decision.held_tensors
+            ),
+        )
+        alternate_state = self.state(0, mcs=0, backlog=0)
+        alternate = self.decision(0, current_radio_state=alternate_state)
+        alternate_request = alternate.to_prediction_request(alternate_state)
+        self.assertNotEqual(
+            request.canonical_sha256, alternate_request.canonical_sha256
+        )
+
+    def test_prediction_request_excludes_quality_scene_and_frame_identity(self) -> None:
+        state = self.state(0, mcs=7, backlog=100)
+        low_quality = self.decision(
+            0, quality=0.2, current_radio_state=state
+        )
+        high_quality = self.decision(
+            0, quality=0.9, current_radio_state=state
+        )
+        low_request = low_quality.to_prediction_request(state)
+        high_request = high_quality.to_prediction_request(state)
+        # Perception quality changes the reward-side decision evidence but not
+        # the radio/queue model's causal inputs.
+        self.assertNotEqual(
+            low_quality.canonical_sha256, high_quality.canonical_sha256
+        )
+        self.assertEqual(
+            low_request.canonical_sha256, high_request.canonical_sha256
+        )
+        serialized_names = " ".join(low_request.to_dict()).lower()
+        public_fields = " ".join(
+            item.name
+            for item in fields(src.PredictionRequestV1)
+            if not item.name.startswith("_")
+        ).lower()
+        for forbidden in (
+            "q_perc",
+            "quality",
+            "scene",
+            "frame",
+            "sample",
+            "outcome",
+            "terminal",
+        ):
+            self.assertNotIn(forbidden, serialized_names)
+            self.assertNotIn(forbidden, public_fields)
+
+    def test_prediction_request_is_attested_and_tamper_evident(self) -> None:
+        state = self.state(0, mcs=7, backlog=100)
+        decision = self.decision(0, current_radio_state=state)
+        request = decision.to_prediction_request(state)
+        self.assertEqual(
+            request.canonical_sha256,
+            decision.prediction_request_sha256,
+        )
+        with self.assertRaisesRegex(src.PredictionViolation, "attestation"):
+            replace(
+                request,
+                current_radio_state=self.state(0, mcs=12, backlog=5_000),
+            )
+        unattested = src.PredictionRequestV1(
+            identity=request.identity,
+            current_radio_state=request.current_radio_state,
+            action=request.action,
+            reward_payload=request.reward_payload,
+            held_payloads=request.held_payloads,
+            calibration_partition=request.calibration_partition,
+        )
+        with self.assertRaisesRegex(src.PredictionViolation, "derived"):
+            _ = unattested.canonical_sha256
+        with self.assertRaisesRegex(src.SequenceViolation, "different current"):
+            decision.to_prediction_request(
+                self.state(0, mcs=12, backlog=5_000)
+            )
 
     def test_fit_and_validation_cells_must_be_disjoint(self) -> None:
         with self.assertRaisesRegex(src.EvidenceBindingError, "overlap"):

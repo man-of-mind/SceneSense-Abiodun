@@ -265,19 +265,20 @@ class Run4ContractTest(unittest.TestCase):
         resolution: src.RewardResolutionV1,
         *,
         sample_seq: int = 7,
+        action_ns: int = 1_260_000_000,
     ) -> tuple[src.GuardedPolicyStateV2, src.PolicyFeatureVectorV2]:
         previous = src.PreviousOutcomeV1.from_resolution(resolution)
         next_state = self.state(
             sequence=1,
             previous=previous,
-            source_ns=1_170_000_000,
-            available_ns=1_180_000_000,
+            source_ns=action_ns - 40_000_000,
+            available_ns=action_ns - 30_000_000,
             sample_seq=sample_seq,
         )
         next_boundary = self.boundary(
             sequence=1,
-            commit_ns=1_200_000_000,
-            action_ns=1_210_000_000,
+            commit_ns=action_ns - 10_000_000,
+            action_ns=action_ns,
         )
         guarded = self.guarded(next_state, next_boundary)
         return guarded, src.build_policy_features(guarded, self.scaling())
@@ -720,8 +721,8 @@ class Run4ContractTest(unittest.TestCase):
             next_state_features=next_features,
             episode_boundary=src.EpisodeBoundary.CONTINUES,
             duration=2,
-            cycle_end_timestamp_ns=1_210_000_000,
-            elapsed_virtual_ns=150_000_000,
+            cycle_end_timestamp_ns=1_260_000_000,
+            elapsed_virtual_ns=200_000_000,
             gamma=0.99,
             discount=0.99**2,
         )
@@ -735,7 +736,7 @@ class Run4ContractTest(unittest.TestCase):
             "semi_markov_transition_v2",
         )
         self.assertEqual(transition.duration, 2)
-        self.assertEqual(transition.elapsed_virtual_ns, 150_000_000)
+        self.assertEqual(transition.elapsed_virtual_ns, 200_000_000)
         self.assertAlmostEqual(transition.discount, 0.99**2)
         self.assertTrue(transition.bootstrap_allowed)
         self.assertEqual(transition.bootstrap_discount, 0.99**2)
@@ -768,7 +769,7 @@ class Run4ContractTest(unittest.TestCase):
 
         with self.assertRaisesRegex(src.TransitionError, "must equal cycle_end"):
             src.build_transition(  # type: ignore[arg-type]
-                **dict(values, elapsed_virtual_ns=149_000_000)
+                **dict(values, elapsed_virtual_ns=199_999_999)
             )
 
         with self.assertRaisesRegex(src.TransitionError, "cannot precede"):
@@ -803,6 +804,75 @@ class Run4ContractTest(unittest.TestCase):
                 )
             )
 
+    def test_duration_two_requires_two_complete_cadence_periods(self) -> None:
+        values = self.transition_inputs()
+        resolution = values["reward_resolution"]
+        early_next_state, early_next_features = self.successor(
+            resolution,  # type: ignore[arg-type]
+            action_ns=1_259_999_999,
+        )
+        with self.assertRaisesRegex(src.TransitionError, "10-Hz hold cadence"):
+            src.build_transition(  # type: ignore[arg-type]
+                **dict(
+                    values,
+                    next_state=early_next_state,
+                    next_state_features=early_next_features,
+                    cycle_end_timestamp_ns=1_259_999_999,
+                    elapsed_virtual_ns=199_999_999,
+                )
+            )
+
+        accepted = src.build_transition(**values)  # type: ignore[arg-type]
+        self.assertEqual(accepted.elapsed_virtual_ns, 200_000_000)
+        self.assertEqual(
+            accepted.next_state.boundary.action_open_timestamp_ns,
+            accepted.cycle_end_timestamp_ns,
+        )
+        self.assertEqual(
+            accepted.next_state.state.previous.reward_resolution_sha256,
+            accepted.reward_resolution.canonical_sha256(),
+        )
+
+    def test_variable_duration_occupies_one_period_per_transmitted_tensor(self) -> None:
+        values = self.transition_inputs()
+        action = values["action"]
+        three_tensor_hold = self.hold(
+            action=action,  # type: ignore[arg-type]
+            tensors=(
+                self.hold_tensor(20, 1000, True),
+                self.hold_tensor(21, 600, False),
+                self.hold_tensor(22, 500, False),
+            ),
+        )
+        common = dict(
+            values,
+            hold=three_tensor_hold,
+            episode_boundary=src.EpisodeBoundary.TRUNCATED,
+            next_state=None,
+            next_state_features=None,
+            duration=3,
+            discount=0.99**3,
+        )
+        with self.assertRaisesRegex(src.TransitionError, "10-Hz hold cadence"):
+            src.build_transition(  # type: ignore[arg-type]
+                **dict(
+                    common,
+                    cycle_end_timestamp_ns=1_359_999_999,
+                    elapsed_virtual_ns=299_999_999,
+                )
+            )
+        accepted = src.build_transition(  # type: ignore[arg-type]
+            **dict(
+                common,
+                cycle_end_timestamp_ns=1_360_000_000,
+                elapsed_virtual_ns=300_000_000,
+            )
+        )
+        self.assertEqual(
+            (accepted.duration, accepted.elapsed_virtual_ns),
+            (3, 300_000_000),
+        )
+
     def test_transition_does_not_claim_scene_frame_contiguity(self) -> None:
         # Current samples use sample_seq=10; successor samples deliberately use
         # 7.  Exact successor status comes from decision identity/outcome, not
@@ -824,8 +894,8 @@ class Run4ContractTest(unittest.TestCase):
                 episode_boundary=src.EpisodeBoundary.TRUNCATED,
                 next_state=None,
                 next_state_features=None,
-                cycle_end_timestamp_ns=1_160_000_000,
-                elapsed_virtual_ns=100_000_000,
+                cycle_end_timestamp_ns=1_260_000_000,
+                elapsed_virtual_ns=200_000_000,
             )
         )
         self.assertTrue(truncated.truncated)
@@ -840,8 +910,8 @@ class Run4ContractTest(unittest.TestCase):
                 episode_boundary=src.EpisodeBoundary.TERMINATED,
                 next_state=None,
                 next_state_features=None,
-                cycle_end_timestamp_ns=1_160_000_000,
-                elapsed_virtual_ns=100_000_000,
+                cycle_end_timestamp_ns=1_260_000_000,
+                elapsed_virtual_ns=200_000_000,
             )
         )
         self.assertTrue(terminated.terminated)
@@ -866,8 +936,8 @@ class Run4ContractTest(unittest.TestCase):
         )
         next_boundary = self.boundary(
             sequence=1,
-            commit_ns=1_240_000_000,
-            action_ns=1_250_000_000,
+            commit_ns=1_250_000_000,
+            action_ns=1_260_000_000,
         )
         next_guarded = self.guarded(next_raw, next_boundary)
         next_features = src.build_policy_features(next_guarded, self.scaling())
@@ -882,8 +952,8 @@ class Run4ContractTest(unittest.TestCase):
             next_state_features=next_features,
             episode_boundary=src.EpisodeBoundary.CONTINUES,
             duration=2,
-            cycle_end_timestamp_ns=1_250_000_000,
-            elapsed_virtual_ns=190_000_000,
+            cycle_end_timestamp_ns=1_260_000_000,
+            elapsed_virtual_ns=200_000_000,
             gamma=0.99,
             discount=0.99**2,
         )
