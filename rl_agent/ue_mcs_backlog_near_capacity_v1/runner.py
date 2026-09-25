@@ -62,10 +62,25 @@ class Runner(V3R.Runner):
     """Run-3 instrumentation, Run-4 radio, campaign plan and failure policy."""
 
     def __init__(self, config_path: Path, output_dir: Path) -> None:
-        super().__init__(config_path, output_dir)
-        # The Run-3 base reads actuator anchors from its own config key. Rebind
-        # to the registered Phase-14a 273PRB/4D5U mapping, never the 106 PRB one.
+        # Do not call the Run-3 constructor: it unconditionally reads the
+        # legacy ``existing_measured_anchors`` key before this subclass can
+        # replace it.  Initialise the inherited lifecycle state explicitly
+        # from the target-radio config, then bind only the reviewed Phase-14a
+        # 273PRB/4D5U anchors.  This avoids adding a second alias key whose two
+        # copies could drift silently.
+        self.config_path = config_path
+        self.config = json.loads(config_path.read_text())
+        self.output_dir = output_dir
+        self.processes: list[n2.ManagedProcess] = []
+        self.telnet = None
+        self.live_pusch = None
+        self.model_index: int | None = None
+        self.ue_ip: str | None = None
         self.anchors = RB.anchors_for_interpolation()
+        self.edge_host: str | None = None
+        self.edge_pid: int | None = None
+        self.aborted = False
+        self.notes: list[str] = []
         self.radio_state_dir: Path | None = None
         self.verifications: list[dict[str, Any]] = []
         self.tiers: tuple[C.LoadTier, ...] = ()

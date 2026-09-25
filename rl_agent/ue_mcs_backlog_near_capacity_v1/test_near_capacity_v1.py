@@ -22,6 +22,7 @@ from rl_agent.ue_mcs_backlog_near_capacity_v1 import capacity_qualification as C
 from rl_agent.ue_mcs_backlog_near_capacity_v1 import contract as C
 from rl_agent.ue_mcs_backlog_near_capacity_v1 import protected_evidence as PE
 from rl_agent.ue_mcs_backlog_near_capacity_v1 import radio_binding as RB
+from rl_agent.ue_mcs_backlog_near_capacity_v1 import runner as R
 
 ROOT = Path(__file__).resolve().parents[2]
 PORTS = {"low": 5401, "medium": 5402, "high": 5403}
@@ -71,6 +72,20 @@ class CatalogAuthorityTests(unittest.TestCase):
         self.assertEqual(len(actions), 72)
         for action in actions:
             self.assertEqual(len(action["checkpoint_sha256"]), 64)
+
+
+class TargetRadioRunnerConstructionTests(unittest.TestCase):
+    def test_constructor_never_requires_or_imports_legacy_anchor_key(self):
+        config_path = Path(R.__file__).resolve().parent / "config_v1.json"
+        config = json.loads(config_path.read_text())
+        self.assertNotIn("existing_measured_anchors", config["actuator"])
+        with tempfile.TemporaryDirectory() as temp:
+            runner = R.Runner(config_path, Path(temp) / "new-output")
+        self.assertEqual(runner.anchors, RB.anchors_for_interpolation())
+        self.assertEqual(
+            runner.config["radio"]["profile_id"], RB.RADIO_PROFILE_ID
+        )
+        self.assertEqual(runner.processes, [])
 
 
 class TierRuleTests(unittest.TestCase):
