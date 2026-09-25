@@ -1,0 +1,57 @@
+{
+  "acceptance_checks": {
+    "finite_brier_and_nll": true,
+    "source_and_counts_close_exactly": true,
+    "top1_strictly_beats_persistence": true
+  },
+  "accepted_for_offline_run4_mcs_dynamics": true,
+  "causal_scope": {
+    "action_payload_backlog_reward_are_not_model_inputs": true,
+    "duration_tensors": 2,
+    "fit_only_model_construction": true,
+    "hidden_profile_is_not_a_model_input": true,
+    "validation_is_not_used_for_fit_or_hyperparameter_selection": true
+  },
+  "evidence_class": "HELD_OUT_INTERNAL_MCS_DYNAMICS_QUALIFICATION_NOT_DEPLOYMENT",
+  "fit_transition_count": 416,
+  "limitations": [
+    "internal validation uses held-out contiguous portions of one realization per dynamic profile",
+    "this qualifies the initial offline MCS generator, not unseen-channel generalization",
+    "live missing or stale UE MCS still requires the external fallback"
+  ],
+  "model_binding_sha256": "20988f77b3439b46dece7fe02255a39125b01e83d161ddcc772f2a99c63148eb",
+  "production_or_deployment_authorized": false,
+  "schema": "splitfusion.run4.mcs_transition_acceptance.v1",
+  "source_evidence_sha256": "7ec3edd93c67c5938188de8a24b838b5330970e357229b8a9e3eaa5000c796d5",
+  "validation_metrics": {
+    "brier_mean": 0.7846465921103687,
+    "evidence_class": "MODEL_DERIVED_FROM_TARGET_RADIO_FIT_MCS_TRANSITIONS",
+    "fit_transitions": 416,
+    "mean_negative_log_likelihood": 2.3763783549215733,
+    "model_binding_sha256": "20988f77b3439b46dece7fe02255a39125b01e83d161ddcc772f2a99c63148eb",
+    "persistence_accuracy": 0.2784090909090909,
+    "top1_accuracy": 0.4147727272727273,
+    "validation_current_states": [
+      9,
+      10,
+      11,
+      12,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27
+    ],
+    "validation_transitions": 176
+  },
+  "validation_transition_count": 176
+}

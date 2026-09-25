@@ -1,0 +1,21 @@
+{
+  "result": {
+    "path": "MCS_TRANSITION_ACCEPTANCE.json",
+    "sha256": "2a96b27d13b816dfdafe3c6369589d436a0a37fec5234320739e7acef9240be2"
+  },
+  "schema": "splitfusion.run4.mcs_transition_acceptance_manifest.v1",
+  "sources": {
+    "acceptance": {
+      "path": "rl_agent/splitfusion_hybrid_sac_run4_v1/mcs_transition_acceptance.py",
+      "sha256": "0400fe4f864a98e484cde3bef37ae2738e8aabd194479539e72e19936355c61f"
+    },
+    "evidence_loader": {
+      "path": "rl_agent/splitfusion_hybrid_sac_run4_v1/dynamic_mcs_273prb_evidence.py",
+      "sha256": "eb3b61efbd131835a6342aeddd0d253d124a189727d117b5f82f23ac400d3959"
+    },
+    "provider": {
+      "path": "rl_agent/splitfusion_hybrid_sac_run4_v1/mcs_transition_provider.py",
+      "sha256": "5b50480e76b9b0083276fba1e31a365135ba43946201500cfed8e14a7f9a8a73"
+    }
+  }
+}
