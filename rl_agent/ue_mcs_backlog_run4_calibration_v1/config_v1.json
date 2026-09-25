@@ -1,0 +1,73 @@
+{
+  "schema": "scenesense.ue_mcs_backlog_run4_calibration_config.v1",
+  "package_id": "ue_mcs_backlog_run4_calibration_v1",
+  "claim_boundary": "BOUNDED_PHYSICAL_QUEUE_CALIBRATION_FOR_OFFLINE_RUN4_MODELING_NOT_POLICY_VALIDATION_NOT_PERCEPTION_ENDORSEMENT",
+  "base_runtime": {
+    "config_relative_path": "rl_agent/ue_mcs_backlog_near_capacity_v1/config_v1.json",
+    "config_sha256": "65fb3d1d3a92c53a6db40c3ba7dc6b4f74b3447428d28d5c6ada0aeb69773659",
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1"
+  },
+  "robust_amendment": {
+    "relative_path": "rl_agent/ue_mcs_backlog_robust_bracket_v1/sealed/PROSPECTIVE_CAPACITY_AMENDMENT.json",
+    "amendment_sha256": "fa6ef35816c61442aa7c287c31652d06f09fb1c0f8f914d467200629114c6bf0",
+    "manifest_sha256": "bc739a5c4350680738121371df8751e1f30b18ba502170dae1a1c4a8c8ea8ec5",
+    "terminal_sha256": "ef9c36aacf6cef310e793828265939ef0a2a2a4208e4c8278b04bf7a67a77dd1",
+    "status": "PHYSICAL_CAPACITY_INTERVAL_ADOPTED_FOR_PROSPECTIVE_DOWNSTREAM_DESIGN_ONLY__ORIGINAL_CAPACITY_QUALIFICATION_REFUSED__ORIGINAL_TIER_SELECTION_NOT_QUALIFIED"
+  },
+  "actions": {
+    "family": "AE64",
+    "quantizer": "UINT8",
+    "low": {"action_id": 40, "payload_bytes": 126237, "offered_mbps": 10.09896},
+    "medium": {"action_id": 39, "payload_bytes": 374264, "offered_mbps": 29.94112},
+    "high": {"action_id": 38, "payload_bytes": 619563, "offered_mbps": 49.56504},
+    "perception_endorsement": false,
+    "byte_only_queue_design": true
+  },
+  "packetization": {
+    "application_chunk_bytes": 1200,
+    "ssburst_header_bytes": 24,
+    "udp_header_bytes": 8,
+    "ipv4_header_bytes": 20,
+    "path_mtu_bytes": 1500,
+    "full_ipv4_packet_bytes": 1252,
+    "mtu_safe_without_ipv4_fragmentation": true
+  },
+  "design": {
+    "fps": 10.0,
+    "frames_per_block": 150,
+    "blocks_per_cell": 3,
+    "frames_per_cell": 450,
+    "profiles": ["FAVORABLE_STABLE", "ADVERSE_STABLE"],
+    "fit_permutations": [["low", "medium", "high"], ["medium", "high", "low"], ["high", "low", "medium"]],
+    "validation_permutations": [["high", "medium", "low"], ["low", "high", "medium"], ["medium", "low", "high"]],
+    "cell_order_seed": 2026092401,
+    "payload_seed": 2026092401,
+    "future_epoch_lead_s": 0.02,
+    "sender_arm_timeout_s": 10.0,
+    "sample_period_s": 0.1,
+    "expected_cells": 12,
+    "expected_decisions": 5400
+  },
+  "paths": {
+    "output_root": "rl_agent/experiments/ue_mcs_backlog_run4_calibration_v1"
+  },
+  "authorization": {
+    "schema": "scenesense.ue_mcs_backlog_run4_calibration_authorization.v1",
+    "stage": "run4_physical_queue_calibration",
+    "token": "AUTHORIZE_RUN4_PHYSICAL_QUEUE_CALIBRATION",
+    "maximum_grant_lifetime_seconds": 21600,
+    "consumption_directory": ".authorization_consumed"
+  },
+  "failure_policy": {
+    "empty_ttracer_is_failure": true,
+    "sender_socket_drop_is_failure": true,
+    "sender_schema_mismatch_is_failure": true,
+    "sender_schedule_lag_over_one_period_is_failure": true,
+    "receiver_schema_mismatch_is_failure": true,
+    "actuator_skip_or_clamp_is_failure": true,
+    "restore_or_teardown_note_is_failure": true,
+    "non_cold_final_state_is_failure": true,
+    "cell_retry_in_place_allowed": false,
+    "live_launch_in_unit_tests_allowed": false
+  }
+}
