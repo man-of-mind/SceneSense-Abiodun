@@ -8,11 +8,12 @@ verifier binds real, disjoint validation-calibration cells, fit-validation
 scenes, an accepted sequential-kernel identity and a pre-launch runtime
 budget.
 
-The directional learning gates intentionally have no invented effect-size
-threshold.  They ask only whether a metric moved in the preregistered direction
-on the fixed panel.  Such gates are labelled ``HYPOTHESIS_DIAGNOSTIC`` and must
-be accompanied by confidence/report artifacts; passing them is a bounded
-continuation decision, not a convergence or deployment claim.
+The learning gates compare the policy with a fit-selected fixed comparator and
+with an exact fixed-panel oracle.  Paired confidence intervals must exclude
+zero: an arbitrarily small numerical improvement is not enough.  A declared
+95% dominant-mode ceiling is an engineering collapse sentinel, not a claim
+that healthy policies must use every mode.  Passing remains only a bounded
+continuation decision, never a convergence or deployment claim.
 """
 
 from __future__ import annotations
@@ -22,10 +23,12 @@ import json
 import math
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from rl_agent.splitfusion_hybrid_sac_v1.action_contract import (
     EXPECTED_MODE_COUNT,
+    Q_E4_MAX,
+    Q_MAX,
 )
 
 __all__ = [
@@ -34,6 +37,7 @@ __all__ = [
     "FROZEN_CONFIG",
     "FROZEN_GATE_SPECS",
     "PREREGISTRATION_SHA256",
+    "PAIRED_INTERVAL_SPEC_SHA256",
     "REGISTERED_COMPOSITE_VERIFIER_MANIFEST_SHA256",
     "SENSITIVITY_FEATURES",
     "SmokePreregistrationError",
@@ -47,6 +51,7 @@ __all__ = [
     "DiagnosticPanelManifestV1",
     "CompositeVerifierEvidenceV1",
     "SensitivityDiagnosticV1",
+    "CheckpointDiagnosticV1",
     "SmokeDiagnosticsV1",
     "GateResultV1",
     "SmokeAssessmentV1",
@@ -230,6 +235,10 @@ class SmokeConfigV1(_CanonicalRecord):
     initial_smoke_seed: int
     checkpoint_updates: Tuple[int, ...]
     smoke_stop_update: int
+    paired_confidence_level: float
+    paired_bootstrap_resamples: int
+    paired_bootstrap_seed: int
+    max_dominant_mode_fraction: float
 
     RECORD_TYPE = "run4_smoke_config_v1"
 
@@ -248,6 +257,19 @@ class SmokeConfigV1(_CanonicalRecord):
         if not 0.0 < self.polyak_tau <= 1.0:
             raise SmokePreregistrationError("polyak_tau must lie in (0,1]")
         for name in (
+            "paired_confidence_level",
+            "max_dominant_mode_fraction",
+        ):
+            _positive_float(getattr(self, name), name)
+        if not 0.0 < self.paired_confidence_level < 1.0:
+            raise SmokePreregistrationError(
+                "paired_confidence_level must lie in (0,1)"
+            )
+        if not 0.0 < self.max_dominant_mode_fraction < 1.0:
+            raise SmokePreregistrationError(
+                "max_dominant_mode_fraction must lie in (0,1)"
+            )
+        for name in (
             "batch_size",
             "replay_capacity",
             "warmup_mode_count",
@@ -257,8 +279,10 @@ class SmokeConfigV1(_CanonicalRecord):
             "environment_transitions_per_update",
             "torch_intraop_threads",
             "smoke_stop_update",
+            "paired_bootstrap_resamples",
         ):
             _exact_int(getattr(self, name), name, minimum=1)
+        _exact_int(self.paired_bootstrap_seed, "paired_bootstrap_seed")
         if self.warmup_mode_count != EXPECTED_MODE_COUNT:
             raise SmokePreregistrationError(
                 f"warmup must cover all {EXPECTED_MODE_COUNT} modes"
@@ -323,6 +347,10 @@ class SmokeConfigV1(_CanonicalRecord):
             ),
             "gamma_per_tensor": self.gamma_per_tensor,
             "initial_smoke_seed": self.initial_smoke_seed,
+            "max_dominant_mode_fraction": self.max_dominant_mode_fraction,
+            "paired_bootstrap_resamples": self.paired_bootstrap_resamples,
+            "paired_bootstrap_seed": self.paired_bootstrap_seed,
+            "paired_confidence_level": self.paired_confidence_level,
             "polyak_tau": self.polyak_tau,
             "replay_capacity": self.replay_capacity,
             "seed_order": list(self.seed_order),
@@ -384,6 +412,21 @@ FROZEN_CONFIG = SmokeConfigV1(
     initial_smoke_seed=17,
     checkpoint_updates=(0, 100, 250, 500, 1500, 10000),
     smoke_stop_update=500,
+    paired_confidence_level=0.95,
+    paired_bootstrap_resamples=10_000,
+    paired_bootstrap_seed=17,
+    max_dominant_mode_fraction=0.95,
+)
+
+
+PAIRED_INTERVAL_SPEC_SHA256 = _canonical_sha256(
+    {
+        "confidence_level": FROZEN_CONFIG.paired_confidence_level,
+        "method": "cluster_percentile_bootstrap_of_paired_context_differences",
+        "replicates": FROZEN_CONFIG.paired_bootstrap_resamples,
+        "resampling_unit": "verifier_bound_context_group_id",
+        "seed": FROZEN_CONFIG.paired_bootstrap_seed,
+    }
 )
 
 
@@ -404,29 +447,19 @@ FROZEN_GATE_SPECS: Tuple[GateSpecV1, ...] = (
         "all parameters, optimizer states, losses, targets and diagnostics are finite",
     ),
     GateSpecV1(
-        "critic_rank_direction",
+        "policy_reward_beats_fixed_comparator",
         GateClassification.HYPOTHESIS_DIAGNOSTIC,
-        "fixed-panel critic rank correlation at update 500 exceeds update 0",
+        "at update 500, mean policy reward exceeds the fit-selected fixed comparator and the paired 95% confidence interval excludes zero",
     ),
     GateSpecV1(
-        "action_regret_direction",
+        "oracle_gap_reduction",
         GateClassification.HYPOTHESIS_DIAGNOSTIC,
-        "fixed-panel action regret at update 500 is below update 0",
+        "the update-0 to update-500 reduction in exact-oracle reward gap is positive and its paired 95% confidence interval excludes zero",
     ),
     GateSpecV1(
-        "no_widest_support_mode_pinning",
+        "no_near_total_mode_collapse",
         GateClassification.HYPOTHESIS_DIAGNOSTIC,
-        "no widest-support mode is the deterministic choice for every panel context",
-    ),
-    GateSpecV1(
-        "continuous_q_regret_direction",
-        GateClassification.HYPOTHESIS_DIAGNOSTIC,
-        "fixed-panel continuous-q regret at update 500 is below update 0",
-    ),
-    GateSpecV1(
-        "controlled_state_sensitivity",
-        GateClassification.HYPOTHESIS_DIAGNOSTIC,
-        "controlled pairs show a nonzero, confidence-reported response to each registered feature",
+        "the update-500 dominant deterministic mode fraction is at most the preregistered 0.95 engineering ceiling",
     ),
     GateSpecV1(
         "checkpoint_resume_bit_identity",
@@ -448,6 +481,7 @@ PREREGISTRATION_SHA256 = _canonical_sha256(
     {
         "config": FROZEN_CONFIG.to_canonical_dict(),
         "gates": [item.to_canonical_dict() for item in FROZEN_GATE_SPECS],
+        "paired_interval_spec_sha256": PAIRED_INTERVAL_SPEC_SHA256,
         "record_type": "run4_smoke_preregistration_bundle_v1",
         "schema_id": SCHEMA_ID,
         "schema_version": SCHEMA_VERSION,
@@ -465,8 +499,14 @@ class DiagnosticPanelManifestV1(_CanonicalRecord):
     fit_validation_scenes_sha256: str
     ordered_context_ids: Tuple[str, ...]
     ordered_context_rows_sha256: str
+    ordered_context_group_ids: Tuple[str, ...]
+    ordered_context_groups_sha256: str
     queue_kernel_binding_sha256: str
     widest_support_mode_ids: Tuple[int, ...]
+    fixed_comparator_mode_id: int
+    fixed_comparator_q_e4: int
+    fixed_comparator_fit_selection_sha256: str
+    exact_oracle_evaluator_sha256: str
     predeclared_runtime_limit_seconds: float
     runtime_budget_registration_sha256: str
 
@@ -479,11 +519,27 @@ class DiagnosticPanelManifestV1(_CanonicalRecord):
         )
         _string_tuple(self.fit_validation_scene_ids, "fit_validation_scene_ids")
         _string_tuple(self.ordered_context_ids, "ordered_context_ids")
+        if (
+            type(self.ordered_context_group_ids) is not tuple
+            or len(self.ordered_context_group_ids) != len(self.ordered_context_ids)
+        ):
+            raise SmokePreregistrationError(
+                "ordered_context_group_ids must align one-for-one with contexts"
+            )
+        for group_id in self.ordered_context_group_ids:
+            _text(group_id, "ordered_context_group_id")
+        if len(set(self.ordered_context_group_ids)) < 2:
+            raise SmokePreregistrationError(
+                "paired inference requires at least two independent context groups"
+            )
         for name in (
             "validation_calibration_cells_sha256",
             "fit_validation_scenes_sha256",
             "ordered_context_rows_sha256",
+            "ordered_context_groups_sha256",
             "queue_kernel_binding_sha256",
+            "fixed_comparator_fit_selection_sha256",
+            "exact_oracle_evaluator_sha256",
             "runtime_budget_registration_sha256",
         ):
             _digest(getattr(self, name), name)
@@ -505,6 +561,20 @@ class DiagnosticPanelManifestV1(_CanonicalRecord):
             raise SmokePreregistrationError(
                 "widest_support_mode_ids contains duplicates"
             )
+        if (
+            type(self.fixed_comparator_mode_id) is not int
+            or not 0 <= self.fixed_comparator_mode_id < EXPECTED_MODE_COUNT
+        ):
+            raise SmokePreregistrationError(
+                "fixed_comparator_mode_id is outside the registered mode range"
+            )
+        if (
+            type(self.fixed_comparator_q_e4) is not int
+            or not 0 <= self.fixed_comparator_q_e4 <= Q_E4_MAX
+        ):
+            raise SmokePreregistrationError(
+                "fixed_comparator_q_e4 is outside the executable wire range"
+            )
         _positive_float(
             self.predeclared_runtime_limit_seconds,
             "predeclared_runtime_limit_seconds",
@@ -515,8 +585,18 @@ class DiagnosticPanelManifestV1(_CanonicalRecord):
             "fit_validation_scene_ids": list(self.fit_validation_scene_ids),
             "fit_validation_scene_partition": "FIT_VALIDATION_ONLY",
             "fit_validation_scenes_sha256": self.fit_validation_scenes_sha256,
+            "fixed_comparator_fit_selection_partition": "FIT_ONLY",
+            "fixed_comparator_fit_selection_sha256": (
+                self.fixed_comparator_fit_selection_sha256
+            ),
+            "fixed_comparator_mode_id": self.fixed_comparator_mode_id,
+            "fixed_comparator_q_e4": self.fixed_comparator_q_e4,
+            "exact_oracle_evaluator_sha256": self.exact_oracle_evaluator_sha256,
             "ordered_context_ids": list(self.ordered_context_ids),
+            "ordered_context_group_ids": list(self.ordered_context_group_ids),
+            "ordered_context_groups_sha256": self.ordered_context_groups_sha256,
             "ordered_context_rows_sha256": self.ordered_context_rows_sha256,
+            "paired_interval_spec_sha256": PAIRED_INTERVAL_SPEC_SHA256,
             "predeclared_runtime_limit_seconds": (
                 self.predeclared_runtime_limit_seconds
             ),
@@ -548,6 +628,9 @@ class CompositeVerifierEvidenceV1(_CanonicalRecord):
     fabricated_row_count: int
     kernel_binding_verified: bool
     identities_and_digests_verified: bool
+    fixed_comparator_fit_only_verified: bool
+    exact_oracle_verified: bool
+    paired_interval_spec_verified: bool
     evidence_class: EvidenceClass = EvidenceClass.VERIFIED_COMPOSITE
 
     RECORD_TYPE = "run4_smoke_composite_verifier_evidence_v1"
@@ -565,6 +648,9 @@ class CompositeVerifierEvidenceV1(_CanonicalRecord):
             "ordered_contexts_deterministic",
             "kernel_binding_verified",
             "identities_and_digests_verified",
+            "fixed_comparator_fit_only_verified",
+            "exact_oracle_verified",
+            "paired_interval_spec_verified",
         ):
             _strict_bool(getattr(self, name), name)
         _exact_int(self.observed_row_count, "observed_row_count", minimum=1)
@@ -591,6 +677,14 @@ class CompositeVerifierEvidenceV1(_CanonicalRecord):
             raise PanelBindingError("queue-kernel binding is not verified")
         if not self.identities_and_digests_verified:
             raise PanelBindingError("panel identities/digests are not verified")
+        if not self.fixed_comparator_fit_only_verified:
+            raise PanelBindingError(
+                "fixed comparator was not verified as selected from fit only"
+            )
+        if not self.exact_oracle_verified:
+            raise PanelBindingError("exact hybrid-action oracle is not verified")
+        if not self.paired_interval_spec_verified:
+            raise PanelBindingError("paired interval method is not verified")
 
     def _payload(self) -> Dict[str, Any]:
         return {
@@ -602,12 +696,17 @@ class CompositeVerifierEvidenceV1(_CanonicalRecord):
             ),
             "evidence_class": self.evidence_class.value,
             "fabricated_row_count": self.fabricated_row_count,
+            "fixed_comparator_fit_only_verified": (
+                self.fixed_comparator_fit_only_verified
+            ),
+            "exact_oracle_verified": self.exact_oracle_verified,
             "identities_and_digests_verified": (
                 self.identities_and_digests_verified
             ),
             "kernel_binding_verified": self.kernel_binding_verified,
             "observed_row_count": self.observed_row_count,
             "ordered_contexts_deterministic": self.ordered_contexts_deterministic,
+            "paired_interval_spec_verified": self.paired_interval_spec_verified,
             "panel": self.panel.to_canonical_dict(),
             "scenes_disjoint_from_fit": self.scenes_disjoint_from_fit,
         }
@@ -767,26 +866,206 @@ class SensitivityDiagnosticV1(_CanonicalRecord):
         }
 
 
+def _metric_close(left: float, right: float) -> bool:
+    return math.isclose(left, right, rel_tol=1e-10, abs_tol=1e-12)
+
+
+@dataclass(frozen=True, slots=True)
+class CheckpointDiagnosticV1(_CanonicalRecord):
+    """One deterministic-policy evaluation on the fixed held panel.
+
+    Regret decomposition is defined on the same per-context reward table:
+    ``total = discrete_mode + continuous_q``.  The exact oracle enumerates the
+    registered hybrid action support; it is not selected from the validation
+    panel.  ``q`` statistics use executed ``q_e4 / 10000`` values.
+    """
+
+    update: int
+    panel_context_count: int
+    expected_policy_reward: float
+    fixed_comparator_reward: float
+    oracle_reward: float
+    oracle_gap: float
+    deadline_miss_rate: float
+    fixed_comparator_deadline_miss_rate: float
+    mean_action_qperc: float
+    successful_feedback_latency_p50_ms: float
+    successful_feedback_latency_p95_ms: float
+    critic_rank_correlation: float
+    deterministic_mode_counts: Tuple[int, ...]
+    q_mean: float
+    q_std: float
+    q_support_boundary_hit_rate: float
+    total_regret: float
+    discrete_mode_regret: float
+    continuous_q_regret: float
+    context_rows_sha256: str
+
+    RECORD_TYPE = "run4_smoke_checkpoint_diagnostic_v1"
+
+    def __post_init__(self) -> None:
+        _exact_int(self.update, "update")
+        if self.update not in FROZEN_CONFIG.smoke_checkpoint_updates:
+            raise DiagnosticError("checkpoint update is outside 0/100/250/500")
+        _exact_int(self.panel_context_count, "panel_context_count", minimum=1)
+        scalar_names = (
+            "expected_policy_reward",
+            "fixed_comparator_reward",
+            "oracle_reward",
+            "oracle_gap",
+            "deadline_miss_rate",
+            "fixed_comparator_deadline_miss_rate",
+            "mean_action_qperc",
+            "successful_feedback_latency_p50_ms",
+            "successful_feedback_latency_p95_ms",
+            "critic_rank_correlation",
+            "q_mean",
+            "q_std",
+            "q_support_boundary_hit_rate",
+            "total_regret",
+            "discrete_mode_regret",
+            "continuous_q_regret",
+        )
+        for name in scalar_names:
+            _finite(getattr(self, name), name)
+        for name in (
+            "deadline_miss_rate",
+            "fixed_comparator_deadline_miss_rate",
+            "mean_action_qperc",
+            "q_support_boundary_hit_rate",
+        ):
+            if not 0.0 <= getattr(self, name) <= 1.0:
+                raise DiagnosticError(f"{name} must lie in [0,1]")
+        if not -1.0 <= self.critic_rank_correlation <= 1.0:
+            raise DiagnosticError("critic_rank_correlation must lie in [-1,1]")
+        if (
+            self.successful_feedback_latency_p50_ms < 0.0
+            or self.successful_feedback_latency_p95_ms
+            < self.successful_feedback_latency_p50_ms
+        ):
+            raise DiagnosticError("latency percentiles must satisfy 0 <= P50 <= P95")
+        if not 0.0 <= self.q_mean <= Q_MAX:
+            raise DiagnosticError("q_mean is outside the executable q range")
+        if not 0.0 <= self.q_std <= Q_MAX / 2.0:
+            raise DiagnosticError("q_std exceeds the bound for q in [0,Q_MAX]")
+        for name in (
+            "oracle_gap",
+            "total_regret",
+            "discrete_mode_regret",
+            "continuous_q_regret",
+        ):
+            if getattr(self, name) < 0.0:
+                raise DiagnosticError(f"{name} cannot be negative")
+        if self.expected_policy_reward > self.oracle_reward + 1e-12:
+            raise DiagnosticError("policy reward cannot exceed exact-oracle reward")
+        if self.fixed_comparator_reward > self.oracle_reward + 1e-12:
+            raise DiagnosticError("fixed comparator cannot exceed exact-oracle reward")
+        if not _metric_close(
+            self.oracle_gap,
+            self.oracle_reward - self.expected_policy_reward,
+        ):
+            raise DiagnosticError("oracle_gap contradicts oracle minus policy reward")
+        if not _metric_close(self.total_regret, self.oracle_gap):
+            raise DiagnosticError("total_regret must equal exact-oracle reward gap")
+        if not _metric_close(
+            self.total_regret,
+            self.discrete_mode_regret + self.continuous_q_regret,
+        ):
+            raise DiagnosticError(
+                "discrete and continuous regret must add to total regret"
+            )
+        if (
+            type(self.deterministic_mode_counts) is not tuple
+            or len(self.deterministic_mode_counts) != EXPECTED_MODE_COUNT
+        ):
+            raise DiagnosticError(
+                f"deterministic_mode_counts must contain {EXPECTED_MODE_COUNT} values"
+            )
+        for count in self.deterministic_mode_counts:
+            _exact_int(count, "deterministic mode count")
+        if sum(self.deterministic_mode_counts) != self.panel_context_count:
+            raise DiagnosticError("deterministic mode counts do not cover the panel")
+        _digest(self.context_rows_sha256, "context_rows_sha256")
+
+    @property
+    def dominant_mode_fraction(self) -> float:
+        return max(self.deterministic_mode_counts) / self.panel_context_count
+
+    @property
+    def mode_entropy_nats(self) -> float:
+        probabilities = (
+            count / self.panel_context_count
+            for count in self.deterministic_mode_counts
+            if count > 0
+        )
+        return -sum(probability * math.log(probability) for probability in probabilities)
+
+    def _payload(self) -> Dict[str, Any]:
+        return {
+            "context_rows_sha256": self.context_rows_sha256,
+            "continuous_q_regret": self.continuous_q_regret,
+            "critic_rank_correlation": self.critic_rank_correlation,
+            "deadline_miss_rate": self.deadline_miss_rate,
+            "deadline_miss_rate_population": "all ordered panel contexts",
+            "deterministic_mode_counts": list(self.deterministic_mode_counts),
+            "discrete_mode_regret": self.discrete_mode_regret,
+            "dominant_mode_fraction": self.dominant_mode_fraction,
+            "expected_policy_reward": self.expected_policy_reward,
+            "fixed_comparator_deadline_miss_rate": (
+                self.fixed_comparator_deadline_miss_rate
+            ),
+            "fixed_comparator_reward": self.fixed_comparator_reward,
+            "mean_action_qperc": self.mean_action_qperc,
+            "mean_action_qperc_population": "all ordered panel contexts",
+            "mode_entropy_nats": self.mode_entropy_nats,
+            "oracle_gap": self.oracle_gap,
+            "oracle_reward": self.oracle_reward,
+            "q_mean": self.q_mean,
+            "q_statistic_units": "executed_q_e4_div_10000",
+            "q_std": self.q_std,
+            "q_support_boundary_definition": (
+                "executed q_e4 equals either registered support endpoint for its mode"
+            ),
+            "q_support_boundary_hit_rate": self.q_support_boundary_hit_rate,
+            "regret_decomposition_definition": (
+                "continuous_q = best-q reward within policy-selected mode minus "
+                "policy reward; discrete_mode = exact-oracle reward minus that "
+                "best-within-selected-mode reward"
+            ),
+            "reward_statistic": "arithmetic mean over exact ordered panel contexts",
+            "successful_feedback_latency_p50_ms": (
+                self.successful_feedback_latency_p50_ms
+            ),
+            "successful_feedback_latency_p95_ms": (
+                self.successful_feedback_latency_p95_ms
+            ),
+            "successful_feedback_latency_population": (
+                "registered-success contexts only; deadline_miss_rate reports the "
+                "full population and must be shown alongside these percentiles"
+            ),
+            "total_regret": self.total_regret,
+            "update": self.update,
+        }
+
+
 @dataclass(frozen=True, slots=True)
 class SmokeDiagnosticsV1(_CanonicalRecord):
-    """Metrics required at the prospective 500-update stop."""
+    """Complete fixed-panel metrics required at the 500-update stop."""
 
     preregistration_sha256: str
     panel_sha256: str
     seed: int
-    evaluated_checkpoint_updates: Tuple[int, ...]
+    checkpoint_diagnostics: Tuple[CheckpointDiagnosticV1, ...]
     observed_mode_q_bins: Tuple[Tuple[int, int], ...]
     registered_success_count: int
     registered_failure_count: int
     all_numerics_finite: bool
-    critic_rank_correlation_update0: float
-    critic_rank_correlation_update500: float
-    action_regret_update0: float
-    action_regret_update500: float
-    continuous_q_regret_update0: float
-    continuous_q_regret_update500: float
-    deterministic_mode_counts: Tuple[int, ...]
-    panel_context_count: int
+    policy_minus_fixed_ci_lower: float
+    policy_minus_fixed_ci_upper: float
+    oracle_gap_reduction_ci_lower: float
+    oracle_gap_reduction_ci_upper: float
+    paired_confidence_level: float
+    paired_interval_spec_sha256: str
     sensitivity_diagnostics: Tuple[SensitivityDiagnosticV1, ...]
     checkpoint_resume_from_update: int
     checkpoint_resume_bit_identical: bool
@@ -800,11 +1079,28 @@ class SmokeDiagnosticsV1(_CanonicalRecord):
         _digest(self.preregistration_sha256, "preregistration_sha256")
         _digest(self.panel_sha256, "panel_sha256")
         _exact_int(self.seed, "seed")
-        if type(self.evaluated_checkpoint_updates) is not tuple:
-            raise DiagnosticError("evaluated checkpoints must be a tuple")
-        if self.evaluated_checkpoint_updates != FROZEN_CONFIG.smoke_checkpoint_updates:
+        if (
+            type(self.checkpoint_diagnostics) is not tuple
+            or any(type(item) is not CheckpointDiagnosticV1 for item in self.checkpoint_diagnostics)
+            or tuple(item.update for item in self.checkpoint_diagnostics)
+            != FROZEN_CONFIG.smoke_checkpoint_updates
+        ):
             raise DiagnosticError(
-                "smoke diagnostics must contain checkpoints 0/100/250/500"
+                "checkpoint diagnostics must contain ordered updates 0/100/250/500"
+            )
+        contexts = {item.panel_context_count for item in self.checkpoint_diagnostics}
+        row_digests = {item.context_rows_sha256 for item in self.checkpoint_diagnostics}
+        if len(contexts) != 1 or len(row_digests) != 1:
+            raise DiagnosticError("all checkpoints must evaluate the same exact panel rows")
+        fixed_rewards = {item.fixed_comparator_reward for item in self.checkpoint_diagnostics}
+        fixed_misses = {
+            item.fixed_comparator_deadline_miss_rate
+            for item in self.checkpoint_diagnostics
+        }
+        oracle_rewards = {item.oracle_reward for item in self.checkpoint_diagnostics}
+        if len(fixed_rewards) != 1 or len(fixed_misses) != 1 or len(oracle_rewards) != 1:
+            raise DiagnosticError(
+                "fixed comparator and exact oracle must be checkpoint-invariant"
             )
         if type(self.observed_mode_q_bins) is not tuple:
             raise DiagnosticError("observed_mode_q_bins must be a tuple")
@@ -824,42 +1120,47 @@ class SmokeDiagnosticsV1(_CanonicalRecord):
         _exact_int(self.registered_failure_count, "registered_failure_count")
         _strict_bool(self.all_numerics_finite, "all_numerics_finite")
         for name in (
-            "critic_rank_correlation_update0",
-            "critic_rank_correlation_update500",
-            "action_regret_update0",
-            "action_regret_update500",
-            "continuous_q_regret_update0",
-            "continuous_q_regret_update500",
+            "policy_minus_fixed_ci_lower",
+            "policy_minus_fixed_ci_upper",
+            "oracle_gap_reduction_ci_lower",
+            "oracle_gap_reduction_ci_upper",
+            "paired_confidence_level",
             "runtime_seconds",
         ):
             _finite(getattr(self, name), name)
-        for name in (
-            "critic_rank_correlation_update0",
-            "critic_rank_correlation_update500",
-        ):
-            if not -1.0 <= getattr(self, name) <= 1.0:
-                raise DiagnosticError(f"{name} must lie in [-1,1]")
-        for name in (
-            "action_regret_update0",
-            "action_regret_update500",
-            "continuous_q_regret_update0",
-            "continuous_q_regret_update500",
-            "runtime_seconds",
-        ):
-            if getattr(self, name) < 0.0:
-                raise DiagnosticError(f"{name} cannot be negative")
-        if (
-            type(self.deterministic_mode_counts) is not tuple
-            or len(self.deterministic_mode_counts) != EXPECTED_MODE_COUNT
+        if self.policy_minus_fixed_ci_lower > self.policy_minus_fixed_ci_upper:
+            raise DiagnosticError("policy-minus-fixed confidence interval is reversed")
+        if self.oracle_gap_reduction_ci_lower > self.oracle_gap_reduction_ci_upper:
+            raise DiagnosticError("oracle-gap-reduction confidence interval is reversed")
+        if self.paired_confidence_level != FROZEN_CONFIG.paired_confidence_level:
+            raise DiagnosticError("paired confidence level differs from preregistration")
+        _digest(self.paired_interval_spec_sha256, "paired_interval_spec_sha256")
+        if self.paired_interval_spec_sha256 != PAIRED_INTERVAL_SPEC_SHA256:
+            raise DiagnosticError("paired interval method differs from preregistration")
+        update0 = self.checkpoint(0)
+        update500 = self.checkpoint(500)
+        fixed_advantage = (
+            update500.expected_policy_reward - update500.fixed_comparator_reward
+        )
+        oracle_gap_reduction = update0.oracle_gap - update500.oracle_gap
+        if not (
+            self.policy_minus_fixed_ci_lower
+            <= fixed_advantage
+            <= self.policy_minus_fixed_ci_upper
         ):
             raise DiagnosticError(
-                f"deterministic_mode_counts must contain {EXPECTED_MODE_COUNT} values"
+                "policy-minus-fixed estimate lies outside its confidence interval"
             )
-        for count in self.deterministic_mode_counts:
-            _exact_int(count, "deterministic mode count")
-        _exact_int(self.panel_context_count, "panel_context_count", minimum=1)
-        if sum(self.deterministic_mode_counts) != self.panel_context_count:
-            raise DiagnosticError("deterministic mode counts do not cover the panel")
+        if not (
+            self.oracle_gap_reduction_ci_lower
+            <= oracle_gap_reduction
+            <= self.oracle_gap_reduction_ci_upper
+        ):
+            raise DiagnosticError(
+                "oracle-gap-reduction estimate lies outside its confidence interval"
+            )
+        if self.runtime_seconds < 0.0:
+            raise DiagnosticError("runtime_seconds cannot be negative")
         if (
             type(self.sensitivity_diagnostics) is not tuple
             or len(self.sensitivity_diagnostics) != len(SENSITIVITY_FEATURES)
@@ -886,34 +1187,40 @@ class SmokeDiagnosticsV1(_CanonicalRecord):
         _digest(self.checkpoint_manifest_sha256, "checkpoint_manifest_sha256")
         _digest(self.diagnostic_report_sha256, "diagnostic_report_sha256")
 
+    @property
+    def panel_context_count(self) -> int:
+        return self.checkpoint_diagnostics[0].panel_context_count
+
+    @property
+    def evaluated_checkpoint_updates(self) -> Tuple[int, ...]:
+        return tuple(item.update for item in self.checkpoint_diagnostics)
+
+    def checkpoint(self, update: int) -> CheckpointDiagnosticV1:
+        for item in self.checkpoint_diagnostics:
+            if item.update == update:
+                return item
+        raise DiagnosticError(f"checkpoint {update} is not present")
+
     def _payload(self) -> Dict[str, Any]:
         return {
-            "action_regret_update0": self.action_regret_update0,
-            "action_regret_update500": self.action_regret_update500,
             "all_numerics_finite": self.all_numerics_finite,
-            "checkpoint_manifest_sha256": self.checkpoint_manifest_sha256,
-            "checkpoint_resume_bit_identical": (
-                self.checkpoint_resume_bit_identical
-            ),
-            "checkpoint_resume_from_update": self.checkpoint_resume_from_update,
-            "continuous_q_regret_update0": self.continuous_q_regret_update0,
-            "continuous_q_regret_update500": self.continuous_q_regret_update500,
-            "critic_rank_correlation_update0": (
-                self.critic_rank_correlation_update0
-            ),
-            "critic_rank_correlation_update500": (
-                self.critic_rank_correlation_update500
-            ),
-            "deterministic_mode_counts": list(self.deterministic_mode_counts),
-            "diagnostic_report_sha256": self.diagnostic_report_sha256,
-            "evaluated_checkpoint_updates": list(
-                self.evaluated_checkpoint_updates
-            ),
-            "observed_mode_q_bins": [
-                list(pair) for pair in self.observed_mode_q_bins
+            "checkpoint_diagnostics": [
+                item.to_canonical_dict() for item in self.checkpoint_diagnostics
             ],
+            "checkpoint_manifest_sha256": self.checkpoint_manifest_sha256,
+            "checkpoint_resume_bit_identical": self.checkpoint_resume_bit_identical,
+            "checkpoint_resume_from_update": self.checkpoint_resume_from_update,
+            "diagnostic_report_sha256": self.diagnostic_report_sha256,
+            "evaluated_checkpoint_updates": list(self.evaluated_checkpoint_updates),
+            "observed_mode_q_bins": [list(pair) for pair in self.observed_mode_q_bins],
+            "oracle_gap_reduction_ci_lower": self.oracle_gap_reduction_ci_lower,
+            "oracle_gap_reduction_ci_upper": self.oracle_gap_reduction_ci_upper,
+            "paired_confidence_level": self.paired_confidence_level,
+            "paired_interval_spec_sha256": self.paired_interval_spec_sha256,
             "panel_context_count": self.panel_context_count,
             "panel_sha256": self.panel_sha256,
+            "policy_minus_fixed_ci_lower": self.policy_minus_fixed_ci_lower,
+            "policy_minus_fixed_ci_upper": self.policy_minus_fixed_ci_upper,
             "preregistration_sha256": self.preregistration_sha256,
             "registered_failure_count": self.registered_failure_count,
             "registered_success_count": self.registered_success_count,
@@ -926,6 +1233,9 @@ class SmokeDiagnosticsV1(_CanonicalRecord):
                     key=lambda item: item.feature_name,
                 )
             ],
+            "sensitivity_interpretation": (
+                "diagnostic_only; never a continuation gate"
+            ),
         }
 
 
@@ -1037,25 +1347,19 @@ def _gate_results(
         diagnostics.registered_success_count > 0
         and diagnostics.registered_failure_count > 0
     )
-    rank_improved = (
-        diagnostics.critic_rank_correlation_update500
-        > diagnostics.critic_rank_correlation_update0
+    update0 = diagnostics.checkpoint(0)
+    update500 = diagnostics.checkpoint(500)
+    policy_beats_fixed = (
+        update500.expected_policy_reward > update500.fixed_comparator_reward
+        and diagnostics.policy_minus_fixed_ci_lower > 0.0
     )
-    action_regret_improved = (
-        diagnostics.action_regret_update500 < diagnostics.action_regret_update0
+    oracle_gap_reduced = (
+        update500.oracle_gap < update0.oracle_gap
+        and diagnostics.oracle_gap_reduction_ci_lower > 0.0
     )
-    widest_pinned = any(
-        diagnostics.deterministic_mode_counts[mode_id]
-        == diagnostics.panel_context_count
-        for mode_id in panel.widest_support_mode_ids
-    )
-    continuous_improved = (
-        diagnostics.continuous_q_regret_update500
-        < diagnostics.continuous_q_regret_update0
-    )
-    sensitivity_pass = all(
-        item.supports_nonzero_response
-        for item in diagnostics.sensitivity_diagnostics
+    no_near_total_mode_collapse = (
+        update500.dominant_mode_fraction
+        <= FROZEN_CONFIG.max_dominant_mode_fraction
     )
     runtime_pass = (
         diagnostics.runtime_seconds <= panel.predeclared_runtime_limit_seconds
@@ -1065,11 +1369,9 @@ def _gate_results(
         coverage,
         successes_and_failures,
         diagnostics.all_numerics_finite,
-        rank_improved,
-        action_regret_improved,
-        not widest_pinned,
-        continuous_improved,
-        sensitivity_pass,
+        policy_beats_fixed,
+        oracle_gap_reduced,
+        no_near_total_mode_collapse,
         diagnostics.checkpoint_resume_bit_identical,
         runtime_pass,
     )
@@ -1079,26 +1381,20 @@ def _gate_results(
         f"success={diagnostics.registered_success_count}, "
         f"failure={diagnostics.registered_failure_count}",
         f"all_numerics_finite={diagnostics.all_numerics_finite}",
-        "Spearman rank direction: "
-        f"{diagnostics.critic_rank_correlation_update0} -> "
-        f"{diagnostics.critic_rank_correlation_update500}",
-        "action regret direction: "
-        f"{diagnostics.action_regret_update0} -> "
-        f"{diagnostics.action_regret_update500}",
-        "widest-support deterministic counts="
-        + repr(
-            {
-                mode_id: diagnostics.deterministic_mode_counts[mode_id]
-                for mode_id in panel.widest_support_mode_ids
-            }
-        )
-        + f" / {diagnostics.panel_context_count}",
-        "continuous-q regret direction: "
-        f"{diagnostics.continuous_q_regret_update0} -> "
-        f"{diagnostics.continuous_q_regret_update500}",
-        "controlled sensitivity passed for "
-        f"{sum(item.supports_nonzero_response for item in diagnostics.sensitivity_diagnostics)}"
-        f"/{len(SENSITIVITY_FEATURES)} registered inputs",
+        "update-500 policy minus fit-selected fixed comparator="
+        f"{update500.expected_policy_reward - update500.fixed_comparator_reward}; "
+        f"paired {diagnostics.paired_confidence_level:.0%} CI="
+        f"[{diagnostics.policy_minus_fixed_ci_lower}, "
+        f"{diagnostics.policy_minus_fixed_ci_upper}]",
+        "exact-oracle gap update 0 -> 500: "
+        f"{update0.oracle_gap} -> {update500.oracle_gap}; reduction paired "
+        f"{diagnostics.paired_confidence_level:.0%} CI="
+        f"[{diagnostics.oracle_gap_reduction_ci_lower}, "
+        f"{diagnostics.oracle_gap_reduction_ci_upper}]",
+        "update-500 dominant-mode fraction="
+        f"{update500.dominant_mode_fraction} <= preregistered "
+        f"{FROZEN_CONFIG.max_dominant_mode_fraction}; mode entropy="
+        f"{update500.mode_entropy_nats} nats",
         "resume at update 250 is bit-identical="
         f"{diagnostics.checkpoint_resume_bit_identical}",
         f"runtime={diagnostics.runtime_seconds}s <= preregistered "
@@ -1159,4 +1455,3 @@ def _assess_test_only_smoke(
         all_gates_pass=all(item.passed for item in results),
         continuation_authorized=False,
     )
-
