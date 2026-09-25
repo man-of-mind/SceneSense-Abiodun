@@ -65,6 +65,68 @@ class DurableCheckpointIoTest(unittest.TestCase):
         self.assertEqual(loaded.transition_sha256, source.transition.canonical_sha256())
         loaded.decision.action.require_reconciled()
 
+    def test_legacy_latency_checkpoint_fields_are_refused(self) -> None:
+        latency = self.checkpoint.journal[0].prediction.latency
+        self.assertIsNotNone(latency)
+        encoded = src._encode(latency)
+        for current, legacy in (
+            ("edge_pre_model_ns", "edge_decompression_ns"),
+            (
+                "post_model_feedback_preparation_ns",
+                "quality_evaluation_ns",
+            ),
+        ):
+            legacy_record = {
+                "__dataclass__": encoded["__dataclass__"],
+                "fields": dict(encoded["fields"]),
+            }
+            legacy_record["fields"][legacy] = legacy_record["fields"].pop(
+                current
+            )
+            with self.subTest(legacy=legacy):
+                with self.assertRaisesRegex(
+                    src.CheckpointReadError,
+                    "field set differs for FeedbackLatencyBreakdownV1",
+                ):
+                    src._decode(legacy_record)
+
+    def test_complete_legacy_v1_latency_checkpoint_is_refused(self) -> None:
+        latency = self.checkpoint.journal[0].prediction.latency
+        self.assertIsNotNone(latency)
+        legacy_record = src._encode(latency)
+        legacy_fields = dict(legacy_record["fields"])
+        for current, legacy in (
+            ("edge_pre_model_ns", "edge_decompression_ns"),
+            (
+                "post_model_feedback_preparation_ns",
+                "quality_evaluation_ns",
+            ),
+            (
+                "feature_uplink_evidence_sha256",
+                "feature_transport_evidence_sha256",
+            ),
+            ("model_tail_evidence_sha256", "tail_evidence_sha256"),
+            (
+                "post_model_feedback_preparation_evidence_sha256",
+                "quality_evaluation_evidence_sha256",
+            ),
+            (
+                "feedback_downlink_evidence_sha256",
+                "feedback_ack_evidence_sha256",
+            ),
+        ):
+            legacy_fields[legacy] = legacy_fields.pop(current)
+        legacy_fields.pop("edge_pre_model_evidence_sha256")
+        legacy_record = {
+            "__dataclass__": legacy_record["__dataclass__"],
+            "fields": legacy_fields,
+        }
+        with self.assertRaisesRegex(
+            src.CheckpointReadError,
+            "field set differs for FeedbackLatencyBreakdownV1",
+        ):
+            src._decode(legacy_record)
+
     def test_safe_material_loads_in_fresh_process(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             artifact = self._write(Path(directory))

@@ -1,9 +1,12 @@
 # Run-4 minimal state, reward, and transition contract
 
-Status: provisional v1 implementation contract. This is a pure, semi-empirical
-training interface. It does not claim that UE telemetry has passed live
-deployment qualification, and it does not implement a network model, scheduler,
-replay buffer, trainer, training run, or runtime adapter.
+Status: provisional Run-4 semi-empirical training contract. The state, reward,
+hybrid actor/critics, replay buffer, trainer, causal decision-cycle kernel,
+exploration gate, and persistent-runner mechanics are implemented and tested.
+Production training remains fail-closed until the exact 273-PRB calibration,
+state scaling/freshness limits, fitted queue/latency model, composite verifier,
+and smoke diagnostic panel are measured, accepted, and hash-bound. Nothing in
+this document claims live-deployment qualification.
 
 ## Actor state: exactly 21 values
 
@@ -104,6 +107,31 @@ infrastructure fault or evaluator fault:
 A delivered result at 170.001 ms is a timeout; one at exactly 170.000 ms is a
 success. There is no admission-probability, switch, payload, or aggression term.
 
+Successful feedback is decomposed into exactly six contiguous frame-level
+intervals; component percentiles are never added to synthesize a frame:
+
+1. `ue_action_path_ns`: action open to first feature-datagram send. It includes
+   7-channel concatenation, front inference, AE/quantization, compression, and
+   datagram construction; sensor callback/preparation precedes the reward clock.
+2. `feature_uplink_ns`: first feature-datagram send to complete edge reassembly.
+   It includes the remaining UE send loop, radio path, and reassembly.
+3. `edge_pre_model_ns`: complete edge reassembly to model dispatch. It includes
+   latest-only scheduler wait, decompression, unpack/dequantization, AE decode,
+   and input reconstruction.
+4. `model_tail_ns`: model dispatch to model-ready completion.
+5. `post_model_feedback_preparation_ns`: model ready to the actual compact
+   feedback socket-send call. It includes required post-processing, p025
+   filtering, serialization, evaluator/ground-truth wait and scoring, feedback
+   encoding, and local send preparation.
+6. `feedback_downlink_ns`: feedback socket-send call to UE receipt.
+
+Map service follows the feedback boundary and is outside this reward clock. Each
+stage carries a separate evidence binding, even when one qualified artifact
+proves more than one stage. A missing boundary makes a success row ineligible;
+it is never zero-filled. Legacy `edge_decompression_ns` and
+`quality_evaluation_ns` records are incompatible with this schema because those
+labels described only sub-operations, not the complete registered intervals.
+
 The approximately 200 ms sensor-start-to-feedback system path is a separately
 logged diagnostic. It is not substituted for the 170 ms action-open reward
 clock and is not an actor feature.
@@ -133,8 +161,9 @@ cycle_end_timestamp - current_action_open_timestamp
 
 For a continuing transition, `cycle_end_timestamp` must equal the next real
 decision's action-open timestamp on the same clock. It cannot precede the
-current reward closure, and it must span at least `(duration - 1) * 100 ms` for
-the nominal 10 Hz hold cadence. This is a semi-Markov decision-cycle timing
+current reward closure. A hold of duration `d` occupies `d` complete nominal
+transmission periods, so the successor action cannot open earlier than
+`current_action_open + d * 100 ms`. This is a semi-Markov decision-cycle timing
 binding, not a claim that scene frames are contiguous.
 
 The caller supplies `gamma`, the exact duration, and the stored discount. The

@@ -163,20 +163,27 @@ class _HeldAwarePredictionProvider:
             latency = sequential_kernel.FeedbackLatencyBreakdownV1(
                 ue_action_path_ns=20_000_000,
                 feature_uplink_ns=50_000_000,
-                edge_decompression_ns=10_000_000,
+                edge_pre_model_ns=10_000_000,
                 model_tail_ns=20_000_000,
-                quality_evaluation_ns=3_000_000,
+                post_model_feedback_preparation_ns=3_000_000,
                 feedback_downlink_ns=5_000_000,
                 ue_action_path_evidence_sha256=(
                     provenance.ue_action_path_latency_evidence_sha256
                 ),
-                feature_transport_evidence_sha256=provenance.transport_fit_sha256,
-                tail_evidence_sha256=provenance.tail_latency_evidence_sha256,
-                quality_evaluation_evidence_sha256=(
-                    provenance.quality_evaluation_latency_evidence_sha256
+                feature_uplink_evidence_sha256=(
+                    provenance.feature_uplink_latency_evidence_sha256
                 ),
-                feedback_ack_evidence_sha256=(
-                    provenance.feedback_ack_latency_evidence_sha256
+                edge_pre_model_evidence_sha256=(
+                    provenance.edge_pre_model_latency_evidence_sha256
+                ),
+                model_tail_evidence_sha256=(
+                    provenance.model_tail_latency_evidence_sha256
+                ),
+                post_model_feedback_preparation_evidence_sha256=(
+                    provenance.post_model_feedback_preparation_latency_evidence_sha256
+                ),
+                feedback_downlink_evidence_sha256=(
+                    provenance.feedback_downlink_latency_evidence_sha256
                 ),
             )
             elapsed = latency.full_feedback_ns
@@ -318,9 +325,9 @@ class PersistentRunnerTest(unittest.TestCase):
             latency=sequential_kernel.LatencySupportV1(
                 ue_action_path_ns=interval,
                 feature_uplink_ns=interval,
-                edge_decompression_ns=interval,
+                edge_pre_model_ns=interval,
                 model_tail_ns=interval,
-                quality_evaluation_ns=interval,
+                post_model_feedback_preparation_ns=interval,
                 feedback_downlink_ns=interval,
             ),
             maximum_hold_tensors=2,
@@ -352,12 +359,15 @@ class PersistentRunnerTest(unittest.TestCase):
             corrected_analysis_verdict=(
                 sequential_kernel.ACCEPTED_ANALYSIS_VERDICT
             ),
-            transport_fit_sha256=_d("transport-fit"),
+            feature_uplink_latency_evidence_sha256=_d("transport-fit"),
             queue_transition_fit_sha256=_d("queue-fit"),
             ue_action_path_latency_evidence_sha256=_d("ue-path-latency"),
-            tail_latency_evidence_sha256=_d("tail-latency"),
-            quality_evaluation_latency_evidence_sha256=_d("quality-latency"),
-            feedback_ack_latency_evidence_sha256=_d("feedback-latency"),
+            edge_pre_model_latency_evidence_sha256=_d("edge-pre-model-latency"),
+            model_tail_latency_evidence_sha256=_d("tail-latency"),
+            post_model_feedback_preparation_latency_evidence_sha256=(
+                _d("quality-latency")
+            ),
+            feedback_downlink_latency_evidence_sha256=_d("feedback-latency"),
             quality_feedback_report_sha256=_d("quality-report"),
             quality_feedback_manifest_sha256=_d("quality-manifest"),
             quality_adapter_binding_sha256=adapter.canonical_sha256,

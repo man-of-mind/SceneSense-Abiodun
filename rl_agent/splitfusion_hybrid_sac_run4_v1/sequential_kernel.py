@@ -14,10 +14,13 @@ table.  Production authorization remains fail-closed until the reviewed
 prerequisite digest is registered below.
 
 The 170-ms reward clock begins at action open.  Successful feedback latency is
-the exact sum of six per-step components.  Network transport (feature uplink
-and compact-feedback return) stays separate from measured non-network work
-(UE action path, decompression, tail inference and CARLA quality evaluation).
-Percentiles are never added to manufacture an end-to-end sample.
+the exact sum of six contiguous per-frame intervals: UE action path, feature
+uplink, edge pre-model work, model-tail inference, post-model feedback
+preparation and feedback downlink.  The boundaries are first feature-datagram
+send, complete edge reassembly, model dispatch, model-ready, feedback send and
+UE feedback receipt.  Sensor callback/preparation precedes this clock;
+post-feedback map service follows it.  Percentiles are never added to
+manufacture an end-to-end sample.
 
 Importing this module performs no I/O and launches no runtime component.
 """
@@ -74,8 +77,8 @@ __all__ = [
 ]
 
 
-SCHEMA_ID = "splitfusion_run4_sequential_radio_queue_kernel_v1"
-SCHEMA_VERSION = 1
+SCHEMA_ID = "splitfusion_run4_sequential_radio_queue_kernel_v2"
+SCHEMA_VERSION = 2
 CORRECTED_ANALYSIS_GENERATION = 2
 ACCEPTED_ANALYSIS_VERDICT = "ACCEPTED_FOR_RUN4_SEQUENTIAL_KERNEL"
 
@@ -404,13 +407,19 @@ class FitValidationSplitV1:
 
 @dataclass(frozen=True, slots=True)
 class LatencySupportV1:
-    """Frame-level component supports from separately pinned evidence."""
+    """Supports for six contiguous action-open-to-feedback intervals.
+
+    The boundaries, in order, are action open, first feature-datagram send,
+    complete edge reassembly, model dispatch, model-ready, compact-feedback
+    socket send and UE feedback receipt. Sensor preparation precedes these
+    intervals and map service follows them.
+    """
 
     ue_action_path_ns: NumericSupportV1
     feature_uplink_ns: NumericSupportV1
-    edge_decompression_ns: NumericSupportV1
+    edge_pre_model_ns: NumericSupportV1
     model_tail_ns: NumericSupportV1
-    quality_evaluation_ns: NumericSupportV1
+    post_model_feedback_preparation_ns: NumericSupportV1
     feedback_downlink_ns: NumericSupportV1
 
     def __post_init__(self) -> None:
@@ -534,12 +543,13 @@ class KernelProvenanceBindingV1:
     corrected_analysis_v2_sha256: str
     corrected_decisions_v2_sha256: str
     corrected_analysis_verdict: str
-    transport_fit_sha256: str
+    feature_uplink_latency_evidence_sha256: str
     queue_transition_fit_sha256: str
     ue_action_path_latency_evidence_sha256: str
-    tail_latency_evidence_sha256: str
-    quality_evaluation_latency_evidence_sha256: str
-    feedback_ack_latency_evidence_sha256: str
+    edge_pre_model_latency_evidence_sha256: str
+    model_tail_latency_evidence_sha256: str
+    post_model_feedback_preparation_latency_evidence_sha256: str
+    feedback_downlink_latency_evidence_sha256: str
     quality_feedback_report_sha256: str
     quality_feedback_manifest_sha256: str
     quality_adapter_binding_sha256: str
@@ -557,12 +567,13 @@ class KernelProvenanceBindingV1:
             "raw_decisions_sha256",
             "corrected_analysis_v2_sha256",
             "corrected_decisions_v2_sha256",
-            "transport_fit_sha256",
+            "feature_uplink_latency_evidence_sha256",
             "queue_transition_fit_sha256",
             "ue_action_path_latency_evidence_sha256",
-            "tail_latency_evidence_sha256",
-            "quality_evaluation_latency_evidence_sha256",
-            "feedback_ack_latency_evidence_sha256",
+            "edge_pre_model_latency_evidence_sha256",
+            "model_tail_latency_evidence_sha256",
+            "post_model_feedback_preparation_latency_evidence_sha256",
+            "feedback_downlink_latency_evidence_sha256",
             "quality_feedback_report_sha256",
             "quality_feedback_manifest_sha256",
             "quality_adapter_binding_sha256",
@@ -1265,36 +1276,50 @@ class PredictionRequestV1:
 
 @dataclass(frozen=True, slots=True)
 class FeedbackLatencyBreakdownV1:
-    """One exact frame-level action-open-to-feedback decomposition."""
+    """One exact six-stage action-open-to-feedback decomposition.
+
+    ``edge_pre_model_ns`` spans complete edge reassembly to model dispatch. It
+    includes any latest-only scheduler wait plus decompression, unpacking,
+    dequantization, AE decode and input reconstruction. The distinct
+    ``model_tail_ns`` interval ends when model output is ready.
+
+    ``post_model_feedback_preparation_ns`` then spans model-ready to the actual
+    compact-feedback socket send call. It includes required post-processing,
+    p025 filtering, serialization, evaluator/ground-truth wait and scoring,
+    feedback encoding, and local send preparation. ``feedback_downlink_ns``
+    covers only that send call to UE receipt.
+    """
 
     ue_action_path_ns: int
     feature_uplink_ns: int
-    edge_decompression_ns: int
+    edge_pre_model_ns: int
     model_tail_ns: int
-    quality_evaluation_ns: int
+    post_model_feedback_preparation_ns: int
     feedback_downlink_ns: int
     ue_action_path_evidence_sha256: str
-    feature_transport_evidence_sha256: str
-    tail_evidence_sha256: str
-    quality_evaluation_evidence_sha256: str
-    feedback_ack_evidence_sha256: str
+    feature_uplink_evidence_sha256: str
+    edge_pre_model_evidence_sha256: str
+    model_tail_evidence_sha256: str
+    post_model_feedback_preparation_evidence_sha256: str
+    feedback_downlink_evidence_sha256: str
 
     def __post_init__(self) -> None:
         for name in (
             "ue_action_path_ns",
             "feature_uplink_ns",
-            "edge_decompression_ns",
+            "edge_pre_model_ns",
             "model_tail_ns",
-            "quality_evaluation_ns",
+            "post_model_feedback_preparation_ns",
             "feedback_downlink_ns",
         ):
             _exact_int(getattr(self, name), name)
         for name in (
             "ue_action_path_evidence_sha256",
-            "feature_transport_evidence_sha256",
-            "tail_evidence_sha256",
-            "quality_evaluation_evidence_sha256",
-            "feedback_ack_evidence_sha256",
+            "feature_uplink_evidence_sha256",
+            "edge_pre_model_evidence_sha256",
+            "model_tail_evidence_sha256",
+            "post_model_feedback_preparation_evidence_sha256",
+            "feedback_downlink_evidence_sha256",
         ):
             _digest(getattr(self, name), name)
 
@@ -1306,9 +1331,9 @@ class FeedbackLatencyBreakdownV1:
     def non_network_ns(self) -> int:
         return (
             self.ue_action_path_ns
-            + self.edge_decompression_ns
+            + self.edge_pre_model_ns
             + self.model_tail_ns
-            + self.quality_evaluation_ns
+            + self.post_model_feedback_preparation_ns
         )
 
     @property
@@ -1823,9 +1848,9 @@ class Run4SequentialRadioQueueKernelV1:
             for name in (
                 "ue_action_path_ns",
                 "feature_uplink_ns",
-                "edge_decompression_ns",
+                "edge_pre_model_ns",
                 "model_tail_ns",
-                "quality_evaluation_ns",
+                "post_model_feedback_preparation_ns",
                 "feedback_downlink_ns",
             ):
                 getattr(support.latency, name).require(
@@ -1836,22 +1861,28 @@ class Run4SequentialRadioQueueKernelV1:
                 binding.ue_action_path_latency_evidence_sha256
             ):
                 raise EvidenceBindingError("UE action-path evidence drifted")
-            if latency.feature_transport_evidence_sha256 != (
-                binding.transport_fit_sha256
+            if latency.feature_uplink_evidence_sha256 != (
+                binding.feature_uplink_latency_evidence_sha256
             ):
-                raise EvidenceBindingError("feature transport evidence drifted")
-            if latency.tail_evidence_sha256 != (
-                binding.tail_latency_evidence_sha256
+                raise EvidenceBindingError("feature-uplink evidence drifted")
+            if latency.edge_pre_model_evidence_sha256 != (
+                binding.edge_pre_model_latency_evidence_sha256
             ):
-                raise EvidenceBindingError("tail latency evidence drifted")
-            if latency.quality_evaluation_evidence_sha256 != (
-                binding.quality_evaluation_latency_evidence_sha256
+                raise EvidenceBindingError("edge-pre-model evidence drifted")
+            if latency.model_tail_evidence_sha256 != (
+                binding.model_tail_latency_evidence_sha256
             ):
-                raise EvidenceBindingError("quality-evaluation evidence drifted")
-            if latency.feedback_ack_evidence_sha256 != (
-                binding.feedback_ack_latency_evidence_sha256
+                raise EvidenceBindingError("model-tail evidence drifted")
+            if latency.post_model_feedback_preparation_evidence_sha256 != (
+                binding.post_model_feedback_preparation_latency_evidence_sha256
             ):
-                raise EvidenceBindingError("feedback-ACK evidence drifted")
+                raise EvidenceBindingError(
+                    "post-model-feedback-preparation evidence drifted"
+                )
+            if latency.feedback_downlink_evidence_sha256 != (
+                binding.feedback_downlink_latency_evidence_sha256
+            ):
+                raise EvidenceBindingError("feedback-downlink evidence drifted")
 
     @staticmethod
     def _reward_kind(terminal: KernelTerminalKind) -> contract.RewardEventKind:

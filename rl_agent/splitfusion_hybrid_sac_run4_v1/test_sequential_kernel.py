@@ -49,9 +49,11 @@ class Run4SequentialKernelTests(unittest.TestCase):
         latency = src.LatencySupportV1(
             ue_action_path_ns=src.NumericSupportV1(0, 200_000_000),
             feature_uplink_ns=src.NumericSupportV1(0, 200_000_000),
-            edge_decompression_ns=src.NumericSupportV1(0, 200_000_000),
+            edge_pre_model_ns=src.NumericSupportV1(0, 200_000_000),
             model_tail_ns=src.NumericSupportV1(0, 200_000_000),
-            quality_evaluation_ns=src.NumericSupportV1(0, 200_000_000),
+            post_model_feedback_preparation_ns=src.NumericSupportV1(
+                0, 200_000_000
+            ),
             feedback_downlink_ns=src.NumericSupportV1(0, 200_000_000),
         )
         split = src.FitValidationSplitV1(
@@ -83,12 +85,15 @@ class Run4SequentialKernelTests(unittest.TestCase):
             corrected_analysis_v2_sha256=_d("5"),
             corrected_decisions_v2_sha256=_d("6"),
             corrected_analysis_verdict=src.ACCEPTED_ANALYSIS_VERDICT,
-            transport_fit_sha256=_d("7"),
+            feature_uplink_latency_evidence_sha256=_d("7"),
             queue_transition_fit_sha256=_d("8"),
             ue_action_path_latency_evidence_sha256=_d("e"),
-            tail_latency_evidence_sha256=_d("9"),
-            quality_evaluation_latency_evidence_sha256=_d("a"),
-            feedback_ack_latency_evidence_sha256=_d("b"),
+            edge_pre_model_latency_evidence_sha256=_d("8"),
+            model_tail_latency_evidence_sha256=_d("9"),
+            post_model_feedback_preparation_latency_evidence_sha256=(
+                _d("a")
+            ),
+            feedback_downlink_latency_evidence_sha256=_d("b"),
             quality_feedback_report_sha256=_d("a"),
             quality_feedback_manifest_sha256=_d("b"),
             quality_adapter_binding_sha256=_d("c"),
@@ -287,15 +292,16 @@ class Run4SequentialKernelTests(unittest.TestCase):
         return src.FeedbackLatencyBreakdownV1(
             ue_action_path_ns=20_000_000,
             feature_uplink_ns=feature_uplink_ns,
-            edge_decompression_ns=10_000_000,
+            edge_pre_model_ns=10_000_000,
             model_tail_ns=20_000_000,
-            quality_evaluation_ns=3_000_000,
+            post_model_feedback_preparation_ns=3_000_000,
             feedback_downlink_ns=5_000_000,
             ue_action_path_evidence_sha256=_d("e"),
-            feature_transport_evidence_sha256=_d("7"),
-            tail_evidence_sha256=_d("9"),
-            quality_evaluation_evidence_sha256=_d("a"),
-            feedback_ack_evidence_sha256=_d("b"),
+            feature_uplink_evidence_sha256=_d("7"),
+            edge_pre_model_evidence_sha256=_d("8"),
+            model_tail_evidence_sha256=_d("9"),
+            post_model_feedback_preparation_evidence_sha256=_d("a"),
+            feedback_downlink_evidence_sha256=_d("b"),
         )
 
     @classmethod
@@ -463,6 +469,164 @@ class Run4SequentialKernelTests(unittest.TestCase):
         guarded = contract.guard_state_for_action(state, boundary, freshness)
         return contract.build_policy_features(guarded, scaling)
 
+    def test_latency_schema_v2_uses_only_exact_six_stage_names(self) -> None:
+        self.assertEqual(
+            src.SCHEMA_ID, "splitfusion_run4_sequential_radio_queue_kernel_v2"
+        )
+        self.assertEqual(src.SCHEMA_VERSION, 2)
+        duration_names = {
+            "ue_action_path_ns",
+            "feature_uplink_ns",
+            "edge_pre_model_ns",
+            "model_tail_ns",
+            "post_model_feedback_preparation_ns",
+            "feedback_downlink_ns",
+        }
+        self.assertEqual(set(self.support().latency.to_dict()), duration_names)
+        breakdown = self.latency().to_dict()
+        self.assertTrue(duration_names.issubset(breakdown))
+        serialized = " ".join((*self.support().latency.to_dict(), *breakdown))
+        self.assertNotIn("edge_decompression", serialized)
+        self.assertNotIn("quality_evaluation", serialized)
+
+    def test_legacy_latency_constructor_keys_are_refused(self) -> None:
+        support = self.support().latency
+        support_kwargs = {
+            item.name: getattr(support, item.name) for item in fields(support)
+        }
+        for current, legacy in (
+            ("edge_pre_model_ns", "edge_decompression_ns"),
+            (
+                "post_model_feedback_preparation_ns",
+                "quality_evaluation_ns",
+            ),
+        ):
+            legacy_kwargs = dict(support_kwargs)
+            legacy_kwargs[legacy] = legacy_kwargs.pop(current)
+            with self.subTest(record="support", legacy=legacy):
+                with self.assertRaisesRegex(TypeError, legacy):
+                    src.LatencySupportV1(**legacy_kwargs)
+
+        breakdown = self.latency()
+        breakdown_kwargs = {
+            item.name: getattr(breakdown, item.name)
+            for item in fields(breakdown)
+        }
+        for current, legacy in (
+            ("edge_pre_model_ns", "edge_decompression_ns"),
+            (
+                "post_model_feedback_preparation_ns",
+                "quality_evaluation_ns",
+            ),
+            (
+                "edge_pre_model_evidence_sha256",
+                "edge_decompression_evidence_sha256",
+            ),
+            (
+                "post_model_feedback_preparation_evidence_sha256",
+                "quality_evaluation_evidence_sha256",
+            ),
+        ):
+            legacy_kwargs = dict(breakdown_kwargs)
+            legacy_kwargs[legacy] = legacy_kwargs.pop(current)
+            with self.subTest(record="breakdown", legacy=legacy):
+                with self.assertRaisesRegex(TypeError, legacy):
+                    src.FeedbackLatencyBreakdownV1(**legacy_kwargs)
+
+        provenance = self.prerequisites().provenance
+        provenance_kwargs = {
+            item.name: getattr(provenance, item.name)
+            for item in fields(provenance)
+        }
+        for current, legacy in (
+            (
+                "edge_pre_model_latency_evidence_sha256",
+                "edge_decompression_latency_evidence_sha256",
+            ),
+            (
+                "post_model_feedback_preparation_latency_evidence_sha256",
+                "quality_evaluation_latency_evidence_sha256",
+            ),
+        ):
+            legacy_kwargs = dict(provenance_kwargs)
+            legacy_kwargs[legacy] = legacy_kwargs.pop(current)
+            with self.subTest(record="provenance", legacy=legacy):
+                with self.assertRaisesRegex(TypeError, legacy):
+                    src.KernelProvenanceBindingV1(**legacy_kwargs)
+
+    def test_complete_legacy_v1_latency_records_are_refused(self) -> None:
+        breakdown = self.latency()
+        legacy_breakdown = {
+            item.name: getattr(breakdown, item.name)
+            for item in fields(breakdown)
+        }
+        for current, legacy in (
+            ("edge_pre_model_ns", "edge_decompression_ns"),
+            (
+                "post_model_feedback_preparation_ns",
+                "quality_evaluation_ns",
+            ),
+            (
+                "feature_uplink_evidence_sha256",
+                "feature_transport_evidence_sha256",
+            ),
+            ("model_tail_evidence_sha256", "tail_evidence_sha256"),
+            (
+                "post_model_feedback_preparation_evidence_sha256",
+                "quality_evaluation_evidence_sha256",
+            ),
+            (
+                "feedback_downlink_evidence_sha256",
+                "feedback_ack_evidence_sha256",
+            ),
+        ):
+            legacy_breakdown[legacy] = legacy_breakdown.pop(current)
+        legacy_breakdown.pop("edge_pre_model_evidence_sha256")
+        with self.assertRaisesRegex(TypeError, "edge_decompression_ns"):
+            src.FeedbackLatencyBreakdownV1(**legacy_breakdown)
+
+        provenance = self.prerequisites().provenance
+        legacy_provenance = {
+            item.name: getattr(provenance, item.name)
+            for item in fields(provenance)
+        }
+        for current, legacy in (
+            (
+                "feature_uplink_latency_evidence_sha256",
+                "transport_fit_sha256",
+            ),
+            (
+                "model_tail_latency_evidence_sha256",
+                "tail_latency_evidence_sha256",
+            ),
+            (
+                "post_model_feedback_preparation_latency_evidence_sha256",
+                "quality_evaluation_latency_evidence_sha256",
+            ),
+            (
+                "feedback_downlink_latency_evidence_sha256",
+                "feedback_ack_latency_evidence_sha256",
+            ),
+        ):
+            legacy_provenance[legacy] = legacy_provenance.pop(current)
+        legacy_provenance.pop("edge_pre_model_latency_evidence_sha256")
+        with self.assertRaisesRegex(TypeError, "transport_fit_sha256"):
+            src.KernelProvenanceBindingV1(**legacy_provenance)
+
+    def test_six_stage_sum_has_no_omission_or_overlap(self) -> None:
+        breakdown = replace(
+            self.latency(),
+            ue_action_path_ns=1,
+            feature_uplink_ns=2,
+            edge_pre_model_ns=4,
+            model_tail_ns=8,
+            post_model_feedback_preparation_ns=16,
+            feedback_downlink_ns=32,
+        )
+        self.assertEqual(breakdown.transport_ns, 34)
+        self.assertEqual(breakdown.non_network_ns, 29)
+        self.assertEqual(breakdown.full_feedback_ns, 63)
+
     def test_production_verifier_is_fail_closed_until_v2_is_registered(self) -> None:
         self.assertIsNone(src.REGISTERED_KERNEL_PREREQUISITES_SHA256)
         with self.assertRaises(src.CorrectedEvidenceUnavailable):
@@ -575,15 +739,32 @@ class Run4SequentialKernelTests(unittest.TestCase):
             kernel.advance(decision=decision, prediction=prediction)
         self.assertEqual(kernel.checkpoint().canonical_sha256, before)
 
-    def test_latency_evidence_sources_cannot_be_conflated(self) -> None:
-        kernel = self.kernel()
-        decision = self.decision(0)
-        latency = replace(
-            self.latency(), feature_transport_evidence_sha256=_d("8")
+    def test_each_latency_evidence_source_is_checked_transactionally(self) -> None:
+        cases = (
+            ("ue_action_path_evidence_sha256", "UE action-path"),
+            ("feature_uplink_evidence_sha256", "feature-uplink"),
+            ("edge_pre_model_evidence_sha256", "edge-pre-model"),
+            ("model_tail_evidence_sha256", "model-tail"),
+            (
+                "post_model_feedback_preparation_evidence_sha256",
+                "post-model-feedback-preparation",
+            ),
+            ("feedback_downlink_evidence_sha256", "feedback-downlink"),
         )
-        prediction = self.prediction(decision, latency=latency)
-        with self.assertRaisesRegex(src.EvidenceBindingError, "transport"):
-            kernel.advance(decision=decision, prediction=prediction)
+        for evidence_field, message in cases:
+            with self.subTest(evidence_field=evidence_field):
+                kernel = self.kernel()
+                before = kernel.checkpoint().canonical_sha256
+                decision = self.decision(0)
+                latency = replace(
+                    self.latency(), **{evidence_field: _d("0")}
+                )
+                prediction = self.prediction(decision, latency=latency)
+                with self.assertRaisesRegex(src.EvidenceBindingError, message):
+                    kernel.advance(decision=decision, prediction=prediction)
+                self.assertEqual(
+                    kernel.checkpoint().canonical_sha256, before
+                )
 
     def test_prediction_must_bind_to_exact_decision(self) -> None:
         kernel = self.kernel()
