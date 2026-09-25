@@ -1,0 +1,34 @@
+{
+  "schema": "scenesense.ue_dynamic_mcs_273prb.v1",
+  "contract_id": "ue_dynamic_mcs_273prb_v1",
+  "claim_boundary": "TWO_REGISTERED_DYNAMIC_PROFILE_UE_DECODED_PRIOR_UL_MCS_SEQUENCE_UNDER_OAI_N78_100MHZ_273PRB_4D5U_V1_FOR_RUN4_OFFLINE_FIT_AND_INTERNAL_VALIDATION_ONLY_NOT_A_GENERALIZATION_OR_DEPLOYMENT_CLAIM",
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "profiles": [
+    "MID_VARIABLE",
+    "FADE_RECOVERY"
+  ],
+  "frames_per_profile": 300,
+  "sample_period_ms": 100,
+  "fit_indices_inclusive": [0, 209],
+  "internal_validation_indices_inclusive": [210, 299],
+  "action_hold_duration_tensors": 2,
+  "duration_aware_successor_ms": 200,
+  "mcs_max_age_ms": 200,
+  "probe": {
+    "action_id": 68,
+    "profile_id": "split_ae32_uint4_q5000",
+    "payload_bytes": 129707,
+    "chunks_per_frame": 3,
+    "offered_mbps": 10.37656,
+    "role": "MCS_OBSERVABILITY_PROBE_NOT_A_POLICY_ACTION_LABEL"
+  },
+  "execution_token": "AUTHORIZE_RUN4_DYNAMIC_MCS_273PRB_CAPTURE_V1",
+  "expected_live_runtime": {
+    "registered_profile_replay_seconds": 60,
+    "registered_warmup_seconds": 8,
+    "registered_sender_start_lead_seconds": 4,
+    "registered_receiver_tail_seconds": 10,
+    "expected_total_minutes_including_two_fresh_ran_lifecycles_and_extraction": "8-12",
+    "operator_outer_timeout_seconds": 1800
+  }
+}
