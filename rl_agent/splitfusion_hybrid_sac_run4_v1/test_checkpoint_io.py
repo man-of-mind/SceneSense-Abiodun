@@ -90,6 +90,23 @@ class DurableCheckpointIoTest(unittest.TestCase):
                 ):
                     src._decode(legacy_record)
 
+    def test_complete_v2_latency_checkpoint_is_refused(self) -> None:
+        latency = self.checkpoint.journal[0].prediction.latency
+        self.assertIsNotNone(latency)
+        encoded = src._encode(latency)
+        v2_fields = dict(encoded["fields"])
+        v2_fields.pop("action_open_to_feedback_ns")
+        v2_fields.pop("action_open_to_feedback_evidence_sha256")
+        v2_record = {
+            "__dataclass__": encoded["__dataclass__"],
+            "fields": v2_fields,
+        }
+        with self.assertRaisesRegex(
+            src.CheckpointReadError,
+            "field set differs for FeedbackLatencyBreakdownV1",
+        ):
+            src._decode(v2_record)
+
     def test_complete_legacy_v1_latency_checkpoint_is_refused(self) -> None:
         latency = self.checkpoint.journal[0].prediction.latency
         self.assertIsNotNone(latency)

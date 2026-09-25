@@ -107,8 +107,13 @@ infrastructure fault or evaluator fault:
 A delivered result at 170.001 ms is a timeout; one at exactly 170.000 ms is a
 success. There is no admission-probability, switch, payload, or aggression term.
 
-Successful feedback is decomposed into exactly six contiguous frame-level
-intervals; component percentiles are never added to synthesize a frame:
+Every successful row must carry a direct, same-frame
+`action_open_to_feedback_ns` measurement, its own evidence digest, and fitted
+numeric support. This authoritative total alone drives the reward and the
+inclusive 170 ms deadline. It is never reconstructed from component
+percentiles or independently sampled stages.
+
+The following exact six-stage decomposition is optional diagnostic evidence:
 
 1. `ue_action_path_ns`: action open to first feature-datagram send. It includes
    7-channel concatenation, front inference, AE/quantization, compression, and
@@ -125,12 +130,19 @@ intervals; component percentiles are never added to synthesize a frame:
    encoding, and local send preparation.
 6. `feedback_downlink_ns`: feedback socket-send call to UE receipt.
 
-Map service follows the feedback boundary and is outside this reward clock. Each
-stage carries a separate evidence binding, even when one qualified artifact
-proves more than one stage. A missing boundary makes a success row ineligible;
-it is never zero-filled. Legacy `edge_decompression_ns` and
-`quality_evaluation_ns` records are incompatible with this schema because those
-labels described only sub-operations, not the complete registered intervals.
+When that diagnostic exists, all six nonnegative components, all six separate
+supports, and all six evidence digests must exist together. The registered
+boundary order makes the components contiguous, and their exact integer sum
+must equal the authoritative total. A missing boundary makes only the
+decomposition absent; it does not invalidate an independently bound total.
+Absence is represented as absent/`None`, never as six fabricated zeros. Map
+service follows the feedback boundary and is outside this reward clock.
+
+Durable sequential-kernel v2 latency records are incompatible with v3 because
+they lack the mandatory total and total-evidence fields. Legacy
+`edge_decompression_ns` and `quality_evaluation_ns` records are also
+incompatible because those labels described only sub-operations, not the
+complete registered intervals.
 
 The approximately 200 ms sensor-start-to-feedback system path is a separately
 logged diagnostic. It is not substituted for the 170 ms action-open reward

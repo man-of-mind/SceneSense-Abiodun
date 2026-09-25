@@ -13,14 +13,14 @@ an accepted generation-2 analysis and a separately pinned corrected decision
 table.  Production authorization remains fail-closed until the reviewed
 prerequisite digest is registered below.
 
-The 170-ms reward clock begins at action open.  Successful feedback latency is
-the exact sum of six contiguous per-frame intervals: UE action path, feature
-uplink, edge pre-model work, model-tail inference, post-model feedback
-preparation and feedback downlink.  The boundaries are first feature-datagram
-send, complete edge reassembly, model dispatch, model-ready, feedback send and
-UE feedback receipt.  Sensor callback/preparation precedes this clock;
-post-feedback map service follows it.  Percentiles are never added to
-manufacture an end-to-end sample.
+The 170-ms reward clock begins at action open.  Its authoritative latency is a
+direct same-frame action-open-to-feedback measurement with its own evidence
+binding and fitted support.  An exact six-stage decomposition may accompany a
+row as diagnostic evidence, but is never required or synthesized to decide the
+reward.  When present, those intervals are contiguous, independently bound and
+must sum exactly to the authoritative total.  Sensor callback/preparation
+precedes this clock; post-feedback map service follows it.  Percentiles are
+never added to manufacture an end-to-end sample.
 
 Importing this module performs no I/O and launches no runtime component.
 """
@@ -77,8 +77,8 @@ __all__ = [
 ]
 
 
-SCHEMA_ID = "splitfusion_run4_sequential_radio_queue_kernel_v2"
-SCHEMA_VERSION = 2
+SCHEMA_ID = "splitfusion_run4_sequential_radio_queue_kernel_v3"
+SCHEMA_VERSION = 3
 CORRECTED_ANALYSIS_GENERATION = 2
 ACCEPTED_ANALYSIS_VERDICT = "ACCEPTED_FOR_RUN4_SEQUENTIAL_KERNEL"
 
@@ -93,6 +93,24 @@ REGISTERED_KERNEL_PREREQUISITES_SHA256: Optional[str] = None
 # later.  A timeout prediction is required to close at this instant rather
 # than waiting for an eventually delivered ACK.
 TIMEOUT_RESOLUTION_ELAPSED_NS = contract.REWARD_DEADLINE_NS + 1
+
+_DIAGNOSTIC_LATENCY_STAGE_NAMES = (
+    "ue_action_path_ns",
+    "feature_uplink_ns",
+    "edge_pre_model_ns",
+    "model_tail_ns",
+    "post_model_feedback_preparation_ns",
+    "feedback_downlink_ns",
+)
+
+_DIAGNOSTIC_LATENCY_EVIDENCE_NAMES = (
+    "ue_action_path_evidence_sha256",
+    "feature_uplink_evidence_sha256",
+    "edge_pre_model_evidence_sha256",
+    "model_tail_evidence_sha256",
+    "post_model_feedback_preparation_evidence_sha256",
+    "feedback_downlink_evidence_sha256",
+)
 
 
 class _PredictionRequestAttestation:
@@ -407,30 +425,54 @@ class FitValidationSplitV1:
 
 @dataclass(frozen=True, slots=True)
 class LatencySupportV1:
-    """Supports for six contiguous action-open-to-feedback intervals.
+    """Mandatory total support plus an optional six-stage diagnostic support.
 
-    The boundaries, in order, are action open, first feature-datagram send,
-    complete edge reassembly, model dispatch, model-ready, compact-feedback
-    socket send and UE feedback receipt. Sensor preparation precedes these
-    intervals and map service follows them.
+    The authoritative same-frame total is always required. Diagnostic stage
+    supports are all present or all absent; an absent decomposition is never
+    represented by zero-valued supports.
     """
 
-    ue_action_path_ns: NumericSupportV1
-    feature_uplink_ns: NumericSupportV1
-    edge_pre_model_ns: NumericSupportV1
-    model_tail_ns: NumericSupportV1
-    post_model_feedback_preparation_ns: NumericSupportV1
-    feedback_downlink_ns: NumericSupportV1
+    action_open_to_feedback_ns: NumericSupportV1
+    ue_action_path_ns: Optional[NumericSupportV1]
+    feature_uplink_ns: Optional[NumericSupportV1]
+    edge_pre_model_ns: Optional[NumericSupportV1]
+    model_tail_ns: Optional[NumericSupportV1]
+    post_model_feedback_preparation_ns: Optional[NumericSupportV1]
+    feedback_downlink_ns: Optional[NumericSupportV1]
 
     def __post_init__(self) -> None:
-        for name in self.__dataclass_fields__:
-            if type(getattr(self, name)) is not NumericSupportV1:
-                raise SupportViolation(f"{name} must be NumericSupportV1")
+        if type(self.action_open_to_feedback_ns) is not NumericSupportV1:
+            raise SupportViolation(
+                "action_open_to_feedback_ns must be NumericSupportV1"
+            )
+        diagnostic = tuple(
+            getattr(self, name) for name in _DIAGNOSTIC_LATENCY_STAGE_NAMES
+        )
+        if any(value is not None for value in diagnostic) and not all(
+            type(value) is NumericSupportV1 for value in diagnostic
+        ):
+            raise SupportViolation(
+                "diagnostic latency supports must be all present or all absent"
+            )
+
+    @property
+    def has_diagnostic_breakdown(self) -> bool:
+        return self.ue_action_path_ns is not None
 
     def to_dict(self) -> Dict[str, Any]:
+        diagnostic = (
+            {
+                name: getattr(self, name).to_dict()
+                for name in _DIAGNOSTIC_LATENCY_STAGE_NAMES
+            }
+            if self.has_diagnostic_breakdown
+            else None
+        )
         return {
-            name: getattr(self, name).to_dict()
-            for name in self.__dataclass_fields__
+            "action_open_to_feedback_ns": (
+                self.action_open_to_feedback_ns.to_dict()
+            ),
+            "diagnostic_breakdown": diagnostic,
         }
 
 
@@ -543,13 +585,14 @@ class KernelProvenanceBindingV1:
     corrected_analysis_v2_sha256: str
     corrected_decisions_v2_sha256: str
     corrected_analysis_verdict: str
-    feature_uplink_latency_evidence_sha256: str
+    action_open_to_feedback_latency_evidence_sha256: str
+    feature_uplink_latency_evidence_sha256: Optional[str]
     queue_transition_fit_sha256: str
-    ue_action_path_latency_evidence_sha256: str
-    edge_pre_model_latency_evidence_sha256: str
-    model_tail_latency_evidence_sha256: str
-    post_model_feedback_preparation_latency_evidence_sha256: str
-    feedback_downlink_latency_evidence_sha256: str
+    ue_action_path_latency_evidence_sha256: Optional[str]
+    edge_pre_model_latency_evidence_sha256: Optional[str]
+    model_tail_latency_evidence_sha256: Optional[str]
+    post_model_feedback_preparation_latency_evidence_sha256: Optional[str]
+    feedback_downlink_latency_evidence_sha256: Optional[str]
     quality_feedback_report_sha256: str
     quality_feedback_manifest_sha256: str
     quality_adapter_binding_sha256: str
@@ -567,13 +610,8 @@ class KernelProvenanceBindingV1:
             "raw_decisions_sha256",
             "corrected_analysis_v2_sha256",
             "corrected_decisions_v2_sha256",
-            "feature_uplink_latency_evidence_sha256",
+            "action_open_to_feedback_latency_evidence_sha256",
             "queue_transition_fit_sha256",
-            "ue_action_path_latency_evidence_sha256",
-            "edge_pre_model_latency_evidence_sha256",
-            "model_tail_latency_evidence_sha256",
-            "post_model_feedback_preparation_latency_evidence_sha256",
-            "feedback_downlink_latency_evidence_sha256",
             "quality_feedback_report_sha256",
             "quality_feedback_manifest_sha256",
             "quality_adapter_binding_sha256",
@@ -584,6 +622,28 @@ class KernelProvenanceBindingV1:
             "support_sha256",
         ):
             _digest(getattr(self, name), name)
+        diagnostic = tuple(
+            getattr(self, name)
+            for name in (
+                "ue_action_path_latency_evidence_sha256",
+                "feature_uplink_latency_evidence_sha256",
+                "edge_pre_model_latency_evidence_sha256",
+                "model_tail_latency_evidence_sha256",
+                "post_model_feedback_preparation_latency_evidence_sha256",
+                "feedback_downlink_latency_evidence_sha256",
+            )
+        )
+        if any(value is not None for value in diagnostic) and not all(
+            value is not None for value in diagnostic
+        ):
+            raise EvidenceBindingError(
+                "diagnostic latency evidence digests must be all present or "
+                "all absent"
+            )
+        for index, value in enumerate(diagnostic):
+            if value is not None:
+                _digest(value, _DIAGNOSTIC_LATENCY_EVIDENCE_NAMES[index])
+
         if self.corrected_analysis_generation != CORRECTED_ANALYSIS_GENERATION:
             raise EvidenceBindingError(
                 "only corrected generation-2 analysis is eligible; "
@@ -595,6 +655,10 @@ class KernelProvenanceBindingV1:
             )
         if self.actor_feature_schema_sha256 != contract.FEATURE_SCHEMA_SHA256:
             raise EvidenceBindingError("actor feature schema binding drifted")
+
+    @property
+    def has_diagnostic_breakdown(self) -> bool:
+        return self.ue_action_path_latency_evidence_sha256 is not None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -639,6 +703,12 @@ class KernelVerifierPrerequisitesV1:
             raise EvidenceBindingError("support must be KernelSupportV1")
         if self.provenance.support_sha256 != self.support.canonical_sha256:
             raise EvidenceBindingError("provenance/support digest mismatch")
+        if self.support.latency.has_diagnostic_breakdown != (
+            self.provenance.has_diagnostic_breakdown
+        ):
+            raise EvidenceBindingError(
+                "diagnostic latency support/provenance availability differs"
+            )
         for name in (
             "fit_report_sha256",
             "validation_report_sha256",
@@ -1276,59 +1346,92 @@ class PredictionRequestV1:
 
 @dataclass(frozen=True, slots=True)
 class FeedbackLatencyBreakdownV1:
-    """One exact six-stage action-open-to-feedback decomposition.
+    """Authoritative total latency with an optional diagnostic decomposition.
 
-    ``edge_pre_model_ns`` spans complete edge reassembly to model dispatch. It
-    includes any latest-only scheduler wait plus decompression, unpacking,
-    dequantization, AE decode and input reconstruction. The distinct
-    ``model_tail_ns`` interval ends when model output is ready.
+    ``action_open_to_feedback_ns`` is the required, independently measured
+    same-frame total used for reward and deadline handling. The six stage
+    values and their six evidence bindings are an all-or-none diagnostic.
+    Their fixed order defines contiguous boundaries from action open through
+    UE feedback receipt, and their exact sum must equal the total.
 
-    ``post_model_feedback_preparation_ns`` then spans model-ready to the actual
-    compact-feedback socket send call. It includes required post-processing,
-    p025 filtering, serialization, evaluator/ground-truth wait and scoring,
-    feedback encoding, and local send preparation. ``feedback_downlink_ns``
-    covers only that send call to UE receipt.
+    Absence is represented only by ``None``. No missing stage is fabricated or
+    zero-filled. The historic class name is retained so durable v2 records are
+    rejected by their field set rather than being silently reinterpreted.
     """
 
-    ue_action_path_ns: int
-    feature_uplink_ns: int
-    edge_pre_model_ns: int
-    model_tail_ns: int
-    post_model_feedback_preparation_ns: int
-    feedback_downlink_ns: int
-    ue_action_path_evidence_sha256: str
-    feature_uplink_evidence_sha256: str
-    edge_pre_model_evidence_sha256: str
-    model_tail_evidence_sha256: str
-    post_model_feedback_preparation_evidence_sha256: str
-    feedback_downlink_evidence_sha256: str
+    action_open_to_feedback_ns: int
+    action_open_to_feedback_evidence_sha256: str
+    ue_action_path_ns: Optional[int]
+    feature_uplink_ns: Optional[int]
+    edge_pre_model_ns: Optional[int]
+    model_tail_ns: Optional[int]
+    post_model_feedback_preparation_ns: Optional[int]
+    feedback_downlink_ns: Optional[int]
+    ue_action_path_evidence_sha256: Optional[str]
+    feature_uplink_evidence_sha256: Optional[str]
+    edge_pre_model_evidence_sha256: Optional[str]
+    model_tail_evidence_sha256: Optional[str]
+    post_model_feedback_preparation_evidence_sha256: Optional[str]
+    feedback_downlink_evidence_sha256: Optional[str]
 
     def __post_init__(self) -> None:
-        for name in (
-            "ue_action_path_ns",
-            "feature_uplink_ns",
-            "edge_pre_model_ns",
-            "model_tail_ns",
-            "post_model_feedback_preparation_ns",
-            "feedback_downlink_ns",
+        total = _exact_int(
+            self.action_open_to_feedback_ns,
+            "action_open_to_feedback_ns",
+            minimum=1,
+        )
+        _digest(
+            self.action_open_to_feedback_evidence_sha256,
+            "action_open_to_feedback_evidence_sha256",
+        )
+        stages = tuple(
+            getattr(self, name) for name in _DIAGNOSTIC_LATENCY_STAGE_NAMES
+        )
+        evidence = tuple(
+            getattr(self, name) for name in _DIAGNOSTIC_LATENCY_EVIDENCE_NAMES
+        )
+        diagnostic_present = any(
+            value is not None for value in (*stages, *evidence)
+        )
+        if diagnostic_present and not (
+            all(value is not None for value in stages)
+            and all(value is not None for value in evidence)
         ):
-            _exact_int(getattr(self, name), name)
-        for name in (
-            "ue_action_path_evidence_sha256",
-            "feature_uplink_evidence_sha256",
-            "edge_pre_model_evidence_sha256",
-            "model_tail_evidence_sha256",
-            "post_model_feedback_preparation_evidence_sha256",
-            "feedback_downlink_evidence_sha256",
-        ):
-            _digest(getattr(self, name), name)
+            raise PredictionViolation(
+                "diagnostic latency components and evidence must be all present "
+                "or all absent"
+            )
+        if diagnostic_present:
+            for index, value in enumerate(stages):
+                _exact_int(value, _DIAGNOSTIC_LATENCY_STAGE_NAMES[index])
+            for index, value in enumerate(evidence):
+                _digest(value, _DIAGNOSTIC_LATENCY_EVIDENCE_NAMES[index])
+            if sum(stages) != total:
+                raise PredictionViolation(
+                    "diagnostic latency components must sum exactly to the "
+                    "authoritative action-open-to-feedback total"
+                )
 
     @property
-    def transport_ns(self) -> int:
+    def has_diagnostic_breakdown(self) -> bool:
+        return self.ue_action_path_ns is not None
+
+    @property
+    def transport_ns(self) -> Optional[int]:
+        if not self.has_diagnostic_breakdown:
+            return None
+        assert self.feature_uplink_ns is not None
+        assert self.feedback_downlink_ns is not None
         return self.feature_uplink_ns + self.feedback_downlink_ns
 
     @property
-    def non_network_ns(self) -> int:
+    def non_network_ns(self) -> Optional[int]:
+        if not self.has_diagnostic_breakdown:
+            return None
+        assert self.ue_action_path_ns is not None
+        assert self.edge_pre_model_ns is not None
+        assert self.model_tail_ns is not None
+        assert self.post_model_feedback_preparation_ns is not None
         return (
             self.ue_action_path_ns
             + self.edge_pre_model_ns
@@ -1338,15 +1441,37 @@ class FeedbackLatencyBreakdownV1:
 
     @property
     def full_feedback_ns(self) -> int:
-        return self.transport_ns + self.non_network_ns
+        """Compatibility name for the independently measured total."""
+
+        return self.action_open_to_feedback_ns
+
+    @property
+    def diagnostic_sum_ns(self) -> Optional[int]:
+        if not self.has_diagnostic_breakdown:
+            return None
+        return sum(
+            getattr(self, name) for name in _DIAGNOSTIC_LATENCY_STAGE_NAMES
+        )
 
     def to_dict(self) -> Dict[str, Any]:
+        diagnostic = None
+        if self.has_diagnostic_breakdown:
+            diagnostic = {
+                name: getattr(self, name)
+                for name in (
+                    *_DIAGNOSTIC_LATENCY_STAGE_NAMES,
+                    *_DIAGNOSTIC_LATENCY_EVIDENCE_NAMES,
+                )
+            } | {
+                "non_network_ns": self.non_network_ns,
+                "transport_ns": self.transport_ns,
+            }
         return {
-            name: getattr(self, name) for name in self.__dataclass_fields__
-        } | {
-            "full_feedback_ns": self.full_feedback_ns,
-            "non_network_ns": self.non_network_ns,
-            "transport_ns": self.transport_ns,
+            "action_open_to_feedback_evidence_sha256": (
+                self.action_open_to_feedback_evidence_sha256
+            ),
+            "action_open_to_feedback_ns": self.action_open_to_feedback_ns,
+            "diagnostic_breakdown": diagnostic,
         }
 
 
@@ -1426,21 +1551,22 @@ class EmpiricalModelForecastV1:
         if self.terminal_kind is KernelTerminalKind.DELIVERED_FEEDBACK:
             if type(self.latency) is not FeedbackLatencyBreakdownV1:
                 raise PredictionViolation(
-                    "delivered feedback requires an exact latency breakdown"
+                    "delivered feedback requires authoritative total-latency evidence"
                 )
-            if elapsed != self.latency.full_feedback_ns:
+            if elapsed != self.latency.action_open_to_feedback_ns:
                 raise PredictionViolation(
-                    "terminal elapsed time must equal the frame-level latency sum"
+                    "terminal elapsed time must equal the authoritative "
+                    "action-open-to-feedback total"
                 )
-            if elapsed > contract.REWARD_DEADLINE_NS:
+            if self.latency.action_open_to_feedback_ns > contract.REWARD_DEADLINE_NS:
                 raise PredictionViolation(
                     "DELIVERED_FEEDBACK after the inclusive 170-ms deadline "
                     "is late-orphan evidence, not a cycle terminal"
                 )
         elif self.latency is not None:
             raise PredictionViolation(
-                "failed/timeout forecasts must not fabricate a complete "
-                "feedback latency breakdown"
+                "failed/timeout forecasts must not carry successful-feedback "
+                "latency evidence"
             )
         if self.terminal_kind is KernelTerminalKind.TIMEOUT and (
             elapsed != TIMEOUT_RESOLUTION_ELAPSED_NS
@@ -1514,21 +1640,22 @@ class EmpiricalStepPredictionV1:
         if self.terminal_kind is KernelTerminalKind.DELIVERED_FEEDBACK:
             if type(self.latency) is not FeedbackLatencyBreakdownV1:
                 raise PredictionViolation(
-                    "delivered feedback requires an exact latency breakdown"
+                    "delivered feedback requires authoritative total-latency evidence"
                 )
-            if elapsed != self.latency.full_feedback_ns:
+            if elapsed != self.latency.action_open_to_feedback_ns:
                 raise PredictionViolation(
-                    "terminal elapsed time must equal the frame-level latency sum"
+                    "terminal elapsed time must equal the authoritative "
+                    "action-open-to-feedback total"
                 )
-            if elapsed > contract.REWARD_DEADLINE_NS:
+            if self.latency.action_open_to_feedback_ns > contract.REWARD_DEADLINE_NS:
                 raise PredictionViolation(
                     "DELIVERED_FEEDBACK after the inclusive 170-ms deadline "
                     "is late-orphan evidence, not a cycle terminal"
                 )
         elif self.latency is not None:
             raise PredictionViolation(
-                "failed/timeout predictions must not fabricate a complete "
-                "feedback latency breakdown"
+                "failed/timeout predictions must not carry successful-feedback "
+                "latency evidence"
             )
         if self.terminal_kind is KernelTerminalKind.TIMEOUT and (
             elapsed != TIMEOUT_RESOLUTION_ELAPSED_NS
@@ -1845,44 +1972,69 @@ class Run4SequentialRadioQueueKernelV1:
         support.require_next_state_if_present(next_state)
         latency = prediction.latency
         if latency is not None:
-            for name in (
-                "ue_action_path_ns",
-                "feature_uplink_ns",
-                "edge_pre_model_ns",
-                "model_tail_ns",
-                "post_model_feedback_preparation_ns",
-                "feedback_downlink_ns",
-            ):
-                getattr(support.latency, name).require(
-                    getattr(latency, name), name
-                )
             binding = self._prerequisites.provenance
-            if latency.ue_action_path_evidence_sha256 != (
-                binding.ue_action_path_latency_evidence_sha256
-            ):
-                raise EvidenceBindingError("UE action-path evidence drifted")
-            if latency.feature_uplink_evidence_sha256 != (
-                binding.feature_uplink_latency_evidence_sha256
-            ):
-                raise EvidenceBindingError("feature-uplink evidence drifted")
-            if latency.edge_pre_model_evidence_sha256 != (
-                binding.edge_pre_model_latency_evidence_sha256
-            ):
-                raise EvidenceBindingError("edge-pre-model evidence drifted")
-            if latency.model_tail_evidence_sha256 != (
-                binding.model_tail_latency_evidence_sha256
-            ):
-                raise EvidenceBindingError("model-tail evidence drifted")
-            if latency.post_model_feedback_preparation_evidence_sha256 != (
-                binding.post_model_feedback_preparation_latency_evidence_sha256
+            support.latency.action_open_to_feedback_ns.require(
+                latency.action_open_to_feedback_ns,
+                "action_open_to_feedback_ns",
+            )
+            if latency.action_open_to_feedback_evidence_sha256 != (
+                binding.action_open_to_feedback_latency_evidence_sha256
             ):
                 raise EvidenceBindingError(
-                    "post-model-feedback-preparation evidence drifted"
+                    "action-open-to-feedback evidence drifted"
                 )
-            if latency.feedback_downlink_evidence_sha256 != (
-                binding.feedback_downlink_latency_evidence_sha256
-            ):
-                raise EvidenceBindingError("feedback-downlink evidence drifted")
+            if latency.has_diagnostic_breakdown:
+                if not support.latency.has_diagnostic_breakdown:
+                    raise SupportViolation(
+                        "diagnostic latency has no registered stage supports"
+                    )
+                if not binding.has_diagnostic_breakdown:
+                    raise EvidenceBindingError(
+                        "diagnostic latency has no registered stage evidence"
+                    )
+                for name in _DIAGNOSTIC_LATENCY_STAGE_NAMES:
+                    stage_support = getattr(support.latency, name)
+                    stage_value = getattr(latency, name)
+                    assert type(stage_support) is NumericSupportV1
+                    assert type(stage_value) is int
+                    stage_support.require(stage_value, name)
+                evidence_pairs = (
+                    (
+                        "ue_action_path_evidence_sha256",
+                        "ue_action_path_latency_evidence_sha256",
+                        "UE action-path",
+                    ),
+                    (
+                        "feature_uplink_evidence_sha256",
+                        "feature_uplink_latency_evidence_sha256",
+                        "feature-uplink",
+                    ),
+                    (
+                        "edge_pre_model_evidence_sha256",
+                        "edge_pre_model_latency_evidence_sha256",
+                        "edge-pre-model",
+                    ),
+                    (
+                        "model_tail_evidence_sha256",
+                        "model_tail_latency_evidence_sha256",
+                        "model-tail",
+                    ),
+                    (
+                        "post_model_feedback_preparation_evidence_sha256",
+                        "post_model_feedback_preparation_latency_evidence_sha256",
+                        "post-model-feedback-preparation",
+                    ),
+                    (
+                        "feedback_downlink_evidence_sha256",
+                        "feedback_downlink_latency_evidence_sha256",
+                        "feedback-downlink",
+                    ),
+                )
+                for observed_name, expected_name, label in evidence_pairs:
+                    if getattr(latency, observed_name) != getattr(
+                        binding, expected_name
+                    ):
+                        raise EvidenceBindingError(f"{label} evidence drifted")
 
     @staticmethod
     def _reward_kind(terminal: KernelTerminalKind) -> contract.RewardEventKind:
@@ -1909,11 +2061,18 @@ class Run4SequentialRadioQueueKernelV1:
 
         self._validate_decision(decision)
         self._validate_prediction(decision, prediction)
-        resolution_ns = (
-            decision.action_open_timestamp_ns + prediction.terminal_elapsed_ns
-        )
         delivered = (
             prediction.terminal_kind is KernelTerminalKind.DELIVERED_FEEDBACK
+        )
+        if delivered:
+            assert type(prediction.latency) is FeedbackLatencyBreakdownV1
+            resolution_elapsed_ns = (
+                prediction.latency.action_open_to_feedback_ns
+            )
+        else:
+            resolution_elapsed_ns = prediction.terminal_elapsed_ns
+        resolution_ns = (
+            decision.action_open_timestamp_ns + resolution_elapsed_ns
         )
         event = contract.RewardEventV1(
             identity=decision.identity,

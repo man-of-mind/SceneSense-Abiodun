@@ -47,6 +47,7 @@ class Run4SequentialKernelTests(unittest.TestCase):
     @staticmethod
     def support() -> src.KernelSupportV1:
         latency = src.LatencySupportV1(
+            action_open_to_feedback_ns=src.NumericSupportV1(1, 200_000_000),
             ue_action_path_ns=src.NumericSupportV1(0, 200_000_000),
             feature_uplink_ns=src.NumericSupportV1(0, 200_000_000),
             edge_pre_model_ns=src.NumericSupportV1(0, 200_000_000),
@@ -85,6 +86,7 @@ class Run4SequentialKernelTests(unittest.TestCase):
             corrected_analysis_v2_sha256=_d("5"),
             corrected_decisions_v2_sha256=_d("6"),
             corrected_analysis_verdict=src.ACCEPTED_ANALYSIS_VERDICT,
+            action_open_to_feedback_latency_evidence_sha256=_d("0"),
             feature_uplink_latency_evidence_sha256=_d("7"),
             queue_transition_fit_sha256=_d("8"),
             ue_action_path_latency_evidence_sha256=_d("e"),
@@ -290,6 +292,8 @@ class Run4SequentialKernelTests(unittest.TestCase):
         *, feature_uplink_ns: int = 50_000_000
     ) -> src.FeedbackLatencyBreakdownV1:
         return src.FeedbackLatencyBreakdownV1(
+            action_open_to_feedback_ns=58_000_000 + feature_uplink_ns,
+            action_open_to_feedback_evidence_sha256=_d("0"),
             ue_action_path_ns=20_000_000,
             feature_uplink_ns=feature_uplink_ns,
             edge_pre_model_ns=10_000_000,
@@ -302,6 +306,27 @@ class Run4SequentialKernelTests(unittest.TestCase):
             model_tail_evidence_sha256=_d("9"),
             post_model_feedback_preparation_evidence_sha256=_d("a"),
             feedback_downlink_evidence_sha256=_d("b"),
+        )
+
+    @classmethod
+    def total_only_latency(
+        cls, *, total_ns: int = 108_000_000
+    ) -> src.FeedbackLatencyBreakdownV1:
+        return replace(
+            cls.latency(),
+            action_open_to_feedback_ns=total_ns,
+            ue_action_path_ns=None,
+            feature_uplink_ns=None,
+            edge_pre_model_ns=None,
+            model_tail_ns=None,
+            post_model_feedback_preparation_ns=None,
+            feedback_downlink_ns=None,
+            ue_action_path_evidence_sha256=None,
+            feature_uplink_evidence_sha256=None,
+            edge_pre_model_evidence_sha256=None,
+            model_tail_evidence_sha256=None,
+            post_model_feedback_preparation_evidence_sha256=None,
+            feedback_downlink_evidence_sha256=None,
         )
 
     @classmethod
@@ -326,7 +351,7 @@ class Run4SequentialKernelTests(unittest.TestCase):
         request = decision.to_prediction_request(current_radio_state)
         if terminal is src.KernelTerminalKind.DELIVERED_FEEDBACK:
             breakdown = cls.latency() if latency is None else latency
-            elapsed = breakdown.full_feedback_ns
+            elapsed = breakdown.action_open_to_feedback_ns
         elif terminal is src.KernelTerminalKind.TIMEOUT:
             breakdown = None
             elapsed = src.TIMEOUT_RESOLUTION_ELAPSED_NS
@@ -469,11 +494,11 @@ class Run4SequentialKernelTests(unittest.TestCase):
         guarded = contract.guard_state_for_action(state, boundary, freshness)
         return contract.build_policy_features(guarded, scaling)
 
-    def test_latency_schema_v2_uses_only_exact_six_stage_names(self) -> None:
+    def test_latency_schema_v3_separates_total_from_optional_diagnostics(self) -> None:
         self.assertEqual(
-            src.SCHEMA_ID, "splitfusion_run4_sequential_radio_queue_kernel_v2"
+            src.SCHEMA_ID, "splitfusion_run4_sequential_radio_queue_kernel_v3"
         )
-        self.assertEqual(src.SCHEMA_VERSION, 2)
+        self.assertEqual(src.SCHEMA_VERSION, 3)
         duration_names = {
             "ue_action_path_ns",
             "feature_uplink_ns",
@@ -482,10 +507,16 @@ class Run4SequentialKernelTests(unittest.TestCase):
             "post_model_feedback_preparation_ns",
             "feedback_downlink_ns",
         }
-        self.assertEqual(set(self.support().latency.to_dict()), duration_names)
+        support = self.support().latency.to_dict()
+        self.assertEqual(
+            set(support),
+            {"action_open_to_feedback_ns", "diagnostic_breakdown"},
+        )
+        self.assertEqual(set(support["diagnostic_breakdown"]), duration_names)
         breakdown = self.latency().to_dict()
-        self.assertTrue(duration_names.issubset(breakdown))
-        serialized = " ".join((*self.support().latency.to_dict(), *breakdown))
+        self.assertEqual(breakdown["action_open_to_feedback_ns"], 108_000_000)
+        self.assertTrue(duration_names.issubset(breakdown["diagnostic_breakdown"]))
+        serialized = repr((support, breakdown))
         self.assertNotIn("edge_decompression", serialized)
         self.assertNotIn("quality_evaluation", serialized)
 
@@ -616,6 +647,7 @@ class Run4SequentialKernelTests(unittest.TestCase):
     def test_six_stage_sum_has_no_omission_or_overlap(self) -> None:
         breakdown = replace(
             self.latency(),
+            action_open_to_feedback_ns=63,
             ue_action_path_ns=1,
             feature_uplink_ns=2,
             edge_pre_model_ns=4,
@@ -625,7 +657,78 @@ class Run4SequentialKernelTests(unittest.TestCase):
         )
         self.assertEqual(breakdown.transport_ns, 34)
         self.assertEqual(breakdown.non_network_ns, 29)
+        self.assertEqual(breakdown.diagnostic_sum_ns, 63)
         self.assertEqual(breakdown.full_feedback_ns, 63)
+
+        with self.assertRaisesRegex(src.PredictionViolation, "sum exactly"):
+            replace(breakdown, action_open_to_feedback_ns=64)
+
+    def test_total_only_latency_is_complete_reward_evidence(self) -> None:
+        latency = self.total_only_latency()
+        self.assertFalse(latency.has_diagnostic_breakdown)
+        self.assertIsNone(latency.transport_ns)
+        self.assertIsNone(latency.non_network_ns)
+        self.assertIsNone(latency.diagnostic_sum_ns)
+        self.assertIsNone(latency.to_dict()["diagnostic_breakdown"])
+
+        kernel = self.kernel()
+        decision = self.decision(0)
+        prediction = self.prediction(decision, latency=latency)
+        result = kernel.advance(decision=decision, prediction=prediction)
+        resolution = contract.resolve_reward(result.reward_event)
+        self.assertEqual(resolution.latency_ms, 108.0)
+        self.assertEqual(
+            result.cycle_end_timestamp_ns,
+            decision.action_open_timestamp_ns + 108_000_000,
+        )
+
+    def test_partial_or_zero_filled_diagnostic_is_refused(self) -> None:
+        with self.assertRaisesRegex(src.PredictionViolation, "all present"):
+            replace(self.total_only_latency(), ue_action_path_ns=0)
+
+    def test_diagnostic_support_and_provenance_are_globally_optional(self) -> None:
+        base = self.prerequisites()
+        total_only_support = replace(
+            base.support,
+            latency=replace(
+                base.support.latency,
+                ue_action_path_ns=None,
+                feature_uplink_ns=None,
+                edge_pre_model_ns=None,
+                model_tail_ns=None,
+                post_model_feedback_preparation_ns=None,
+                feedback_downlink_ns=None,
+            ),
+        )
+        mismatched_provenance = replace(
+            base.provenance,
+            support_sha256=total_only_support.canonical_sha256,
+        )
+        with self.assertRaisesRegex(
+            src.EvidenceBindingError, "availability differs"
+        ):
+            replace(
+                base,
+                support=total_only_support,
+                provenance=mismatched_provenance,
+            )
+
+        total_only_provenance = replace(
+            mismatched_provenance,
+            ue_action_path_latency_evidence_sha256=None,
+            feature_uplink_latency_evidence_sha256=None,
+            edge_pre_model_latency_evidence_sha256=None,
+            model_tail_latency_evidence_sha256=None,
+            post_model_feedback_preparation_latency_evidence_sha256=None,
+            feedback_downlink_latency_evidence_sha256=None,
+        )
+        prerequisites = replace(
+            base,
+            support=total_only_support,
+            provenance=total_only_provenance,
+        )
+        self.assertFalse(prerequisites.support.latency.has_diagnostic_breakdown)
+        self.assertFalse(prerequisites.provenance.has_diagnostic_breakdown)
 
     def test_production_verifier_is_fail_closed_until_v2_is_registered(self) -> None:
         self.assertIsNone(src.REGISTERED_KERNEL_PREREQUISITES_SHA256)
@@ -742,6 +845,10 @@ class Run4SequentialKernelTests(unittest.TestCase):
     def test_each_latency_evidence_source_is_checked_transactionally(self) -> None:
         cases = (
             ("ue_action_path_evidence_sha256", "UE action-path"),
+            (
+                "action_open_to_feedback_evidence_sha256",
+                "action-open-to-feedback",
+            ),
             ("feature_uplink_evidence_sha256", "feature-uplink"),
             ("edge_pre_model_evidence_sha256", "edge-pre-model"),
             ("model_tail_evidence_sha256", "model-tail"),
@@ -757,7 +864,7 @@ class Run4SequentialKernelTests(unittest.TestCase):
                 before = kernel.checkpoint().canonical_sha256
                 decision = self.decision(0)
                 latency = replace(
-                    self.latency(), **{evidence_field: _d("0")}
+                    self.latency(), **{evidence_field: _d("1")}
                 )
                 prediction = self.prediction(decision, latency=latency)
                 with self.assertRaisesRegex(src.EvidenceBindingError, message):

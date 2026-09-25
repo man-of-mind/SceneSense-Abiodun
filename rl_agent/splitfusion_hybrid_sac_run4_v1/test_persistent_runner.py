@@ -161,6 +161,10 @@ class _HeldAwarePredictionProvider:
             kind = sequential_kernel.KernelTerminalKind.DELIVERED_FEEDBACK
             provenance = self.prerequisites.provenance
             latency = sequential_kernel.FeedbackLatencyBreakdownV1(
+                action_open_to_feedback_ns=108_000_000,
+                action_open_to_feedback_evidence_sha256=(
+                    provenance.action_open_to_feedback_latency_evidence_sha256
+                ),
                 ue_action_path_ns=20_000_000,
                 feature_uplink_ns=50_000_000,
                 edge_pre_model_ns=10_000_000,
@@ -186,7 +190,7 @@ class _HeldAwarePredictionProvider:
                     provenance.feedback_downlink_latency_evidence_sha256
                 ),
             )
-            elapsed = latency.full_feedback_ns
+            elapsed = latency.action_open_to_feedback_ns
         self.count += 1
         return sequential_kernel.EmpiricalModelForecastV1(
             model_input_sha256=model_input.canonical_sha256,
@@ -323,6 +327,7 @@ class PersistentRunnerTest(unittest.TestCase):
             ),
             observed_prior_ul_mcs=(7, 9, 12),
             latency=sequential_kernel.LatencySupportV1(
+                action_open_to_feedback_ns=interval,
                 ue_action_path_ns=interval,
                 feature_uplink_ns=interval,
                 edge_pre_model_ns=interval,
@@ -358,6 +363,9 @@ class PersistentRunnerTest(unittest.TestCase):
             corrected_decisions_v2_sha256=_d("corrected-decisions"),
             corrected_analysis_verdict=(
                 sequential_kernel.ACCEPTED_ANALYSIS_VERDICT
+            ),
+            action_open_to_feedback_latency_evidence_sha256=(
+                _d("total-feedback-latency")
             ),
             feature_uplink_latency_evidence_sha256=_d("transport-fit"),
             queue_transition_fit_sha256=_d("queue-fit"),
