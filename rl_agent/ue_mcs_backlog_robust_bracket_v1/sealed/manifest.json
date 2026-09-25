@@ -1,0 +1,14 @@
+{
+  "amendment_sha256": "fa6ef35816c61442aa7c287c31652d06f09fb1c0f8f914d467200629114c6bf0",
+  "candidate_universe_sha256": "b6ea101597883734ae460c8bd2e7c22b6d3b52d58cceb306b1abb13208d42c7d",
+  "files": [
+    {
+      "relative_path": "PROSPECTIVE_CAPACITY_AMENDMENT.json",
+      "sha256": "fa6ef35816c61442aa7c287c31652d06f09fb1c0f8f914d467200629114c6bf0",
+      "size_bytes": 133341
+    }
+  ],
+  "schema": "scenesense.ue_mcs_backlog_robust_bracket_manifest.v1",
+  "source_inventory_sha256": "5c31567492cc0ada13bfe080beba91aef313945720316d786df5afc17026a33f",
+  "status": "PHYSICAL_CAPACITY_INTERVAL_ADOPTED_FOR_PROSPECTIVE_DOWNSTREAM_DESIGN_ONLY__ORIGINAL_CAPACITY_QUALIFICATION_REFUSED__ORIGINAL_TIER_SELECTION_NOT_QUALIFIED"
+}

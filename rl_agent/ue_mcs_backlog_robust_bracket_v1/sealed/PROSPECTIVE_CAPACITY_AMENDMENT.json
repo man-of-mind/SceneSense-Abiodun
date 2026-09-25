@@ -1,0 +1,3371 @@
+{
+  "adoption": {
+    "byte_only_queue_design": true,
+    "catalogue_contract_tier": "EMERGENCY_ONLY",
+    "perception_endorsement": false,
+    "retained_empirical_bootstrap_uncertainty_set": {
+      "interpretation": "RETAINED_EMPIRICAL_BOOTSTRAP_UNCERTAINTY_SET_NOT_POPULATION_CONFIDENCE_INTERVAL",
+      "lower_mbps": 28.512,
+      "point_mbps": 30.576,
+      "population_confidence_interval": false,
+      "retained_from_preserved_attempt": true,
+      "upper_mbps": 31.584
+    },
+    "selected_action_ids": {
+      "high": 38,
+      "low": 40,
+      "medium": 39
+    },
+    "selected_family": "AE64",
+    "selected_offered_mbps": {
+      "high": 49.56504,
+      "low": 10.09896,
+      "medium": 29.94112
+    },
+    "selected_payload_bytes": {
+      "high": 619563,
+      "low": 126237,
+      "medium": 374264
+    },
+    "selected_quantizer": "UINT8"
+  },
+  "catalogue_binding": {
+    "csv_relative_path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.csv",
+    "csv_sha256": "0512cb39982178e8c7c96a65ed26e272b3aa3a5aec0020a8dd9cf1cdb6696fbb",
+    "json_relative_path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json",
+    "json_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3"
+  },
+  "config": {
+    "relative_path": "rl_agent/ue_mcs_backlog_robust_bracket_v1/config_v1.json",
+    "sha256": "00d213d99e19b1569ad57fbce81a2bfff31e9c681b3f67e6ca1cbbea8a269926"
+  },
+  "cuda_used": false,
+  "governance": {
+    "catalogue_contract_tier": "EMERGENCY_ONLY",
+    "caveat": "The selected actions are EMERGENCY_ONLY catalogue entries with failed or incomplete perception-service gates. This byte-only queue design neither qualifies nor endorses their perception behavior.",
+    "live_execution_authorized": false,
+    "original_capacity_qualification_overturned": false,
+    "original_tier_selection_qualified": false,
+    "perception_endorsement": false,
+    "scope": "PROSPECTIVE_DOWNSTREAM_BYTE_ONLY_QUEUE_DESIGN"
+  },
+  "live_execution_performed": false,
+  "network_used": false,
+  "original_capacity_qualification_overturned": false,
+  "original_tier_selection_qualified": false,
+  "package_id": "ue_mcs_backlog_robust_bracket_v1",
+  "preserved_attempt": {
+    "bindings": {
+      "final_cold_state": {
+        "filename": "final_cold_state.json",
+        "sha256": "d062eb00c0d0f5d1fea88ddcec7904ea3412ea554d371fabf6fae9ffab12bda5"
+      },
+      "manifest": {
+        "filename": "manifest.json",
+        "sha256": "8a77f0ff913ffb493cc226313bd2fd221394ce7330041770a0b346bda29d0293"
+      },
+      "refused_terminal": {
+        "filename": "CAPACITY_QUALIFICATION_REFUSED.json",
+        "sha256": "6540cbdd003169f46165df564f533d0303999dd51cc845b2ba6b2ca4778defc7"
+      },
+      "result": {
+        "filename": "CAPACITY_QUALIFICATION_RESULT.json",
+        "sha256": "0f3b1a3e4d8b04da33876b679e966a0ca11080c20ebed039d5fd18bd9cb17a43"
+      }
+    },
+    "old_verifier_rejection_proof": {
+      "exception_type": "CapacityRunError",
+      "original_verifier_modified": false,
+      "reason": "capacity result, manifest and terminal seal must all exist",
+      "rejected": true,
+      "verifier": "rl_agent.ue_mcs_backlog_near_capacity_v1.capacity_runner.verify_bound_capacity_result"
+    },
+    "original_disposition": {
+      "original_capacity_qualification_overturned": false,
+      "original_tier_selection_qualified": false,
+      "qualified": false,
+      "selected_tiers": [],
+      "sole_audit_problem": "tier stability: bootstrap capacity interval changes the deterministic tier triplet",
+      "status": "CAPACITY_QUALIFICATION_REFUSED"
+    },
+    "physical_gates": {
+      "achieved_snr_strictly_ordered": true,
+      "all_manifested_evidence_hashes_verified": true,
+      "backlogged_fraction_by_point": {
+        "p25": 1.0,
+        "p50": 1.0,
+        "p75": 1.0
+      },
+      "corroborating_telemetry_verified": true,
+      "drain_and_quiet_proofs_verified": true,
+      "final_cold_state_verified": true,
+      "monotonic_in_snr": true,
+      "physical_audit_problems": [],
+      "point_gate_count": 3,
+      "point_labels": [
+        "p25",
+        "p50",
+        "p75"
+      ],
+      "primary_service_measurement": "EXT_DN_UNIQUE_SSBURST_APPLICATION_PAYLOAD_BYTES_PER_FIXED_100MS_MONOTONIC_WINDOW",
+      "pusch_tb_is_primary": false,
+      "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+      "sole_nonphysical_audit_problem": "tier stability: bootstrap capacity interval changes the deterministic tier triplet",
+      "source_radio_and_protected_evidence_stages_verified": [
+        "before_point_p25",
+        "before_point_p50",
+        "before_point_p75",
+        "before_preflight",
+        "final_sealing"
+      ],
+      "teardown_verified": true
+    },
+    "relative_path": "rl_agent/experiments/ue_mcs_backlog_near_capacity_capacity_v1/20260925_001332",
+    "retained_empirical_bootstrap_uncertainty_set": {
+      "interpretation": "RETAINED_EMPIRICAL_BOOTSTRAP_UNCERTAINTY_SET_NOT_POPULATION_CONFIDENCE_INTERVAL",
+      "lower_mbps": 28.512,
+      "point_mbps": 30.576,
+      "population_confidence_interval": false,
+      "retained_from_preserved_attempt": true,
+      "upper_mbps": 31.584
+    },
+    "verified": true
+  },
+  "schema": "scenesense.ue_mcs_backlog_robust_bracket_amendment.v1",
+  "scope": "PROSPECTIVE_DOWNSTREAM_BYTE_ONLY_QUEUE_DESIGN",
+  "selector": {
+    "byte_only_queue_design": true,
+    "candidate_universe": [
+      {
+        "action_id": 0,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 285.46608,
+        "payload_bytes": 3568326,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint8_q0000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary anchor",
+        "wire_identity": {
+          "codec_id": 1,
+          "descriptor": {
+            "codec_id": 1,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+              "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQ8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "ca68c98edd44df954cc62338c5ba039b3d4902e7780f422e1ce722d0a395b5be"
+        }
+      },
+      {
+        "action_id": 1,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 201.09856,
+        "payload_bytes": 2513732,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint8_q3000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary anchor",
+        "wire_identity": {
+          "codec_id": 1,
+          "descriptor": {
+            "codec_id": 1,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+              "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQ8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "ca68c98edd44df954cc62338c5ba039b3d4902e7780f422e1ce722d0a395b5be"
+        }
+      },
+      {
+        "action_id": 2,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 143.01264,
+        "payload_bytes": 1787658,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint8_q5000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary anchor",
+        "wire_identity": {
+          "codec_id": 1,
+          "descriptor": {
+            "codec_id": 1,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+              "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQ8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "ca68c98edd44df954cc62338c5ba039b3d4902e7780f422e1ce722d0a395b5be"
+        }
+      },
+      {
+        "action_id": 3,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 85.0552,
+        "payload_bytes": 1063190,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint8_q7000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary anchor",
+        "wire_identity": {
+          "codec_id": 1,
+          "descriptor": {
+            "codec_id": 1,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+              "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQ8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "ca68c98edd44df954cc62338c5ba039b3d4902e7780f422e1ce722d0a395b5be"
+        }
+      },
+      {
+        "action_id": 4,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 27.94496,
+        "payload_bytes": 349312,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_noae_uint8_q9000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "emergency-mode anchor",
+        "wire_identity": {
+          "codec_id": 1,
+          "descriptor": {
+            "codec_id": 1,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+              "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQ8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "ca68c98edd44df954cc62338c5ba039b3d4902e7780f422e1ce722d0a395b5be"
+        }
+      },
+      {
+        "action_id": 5,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 5.69032,
+        "payload_bytes": 71129,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_noae_uint8_q9800",
+        "quantizer": "UINT8",
+        "source_contract_tier": "emergency-mode anchor",
+        "wire_identity": {
+          "codec_id": 1,
+          "descriptor": {
+            "codec_id": 1,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+              "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQ8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "ca68c98edd44df954cc62338c5ba039b3d4902e7780f422e1ce722d0a395b5be"
+        }
+      },
+      {
+        "action_id": 6,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 218.74792,
+        "payload_bytes": 2734349,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": true,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint6_q0000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 7,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 156.44776,
+        "payload_bytes": 1955597,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint6_q3000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 8,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 111.72264,
+        "payload_bytes": 1396533,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint6_q5000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 9,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 66.71808,
+        "payload_bytes": 833976,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint6_q7000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 10,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 22.04088,
+        "payload_bytes": 275511,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_noae_uint6_q9000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 11,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 4.50016,
+        "payload_bytes": 56252,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_noae_uint6_q9800",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 12,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 114.88824,
+        "payload_bytes": 1436103,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": true,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint4_q0000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 13,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 87.7944,
+        "payload_bytes": 1097430,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint4_q3000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 14,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 64.32544,
+        "payload_bytes": 804068,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint4_q5000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 15,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 39.38424,
+        "payload_bytes": 492303,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_noae_uint4_q7000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 16,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 13.2744,
+        "payload_bytes": 165930,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_noae_uint4_q9000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 17,
+        "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+        "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+        "execution_mode": "SPLIT",
+        "family": "noAE",
+        "offered_mbps": 2.78488,
+        "payload_bytes": 34811,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_noae_uint4_q9800",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 18,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 187.63072,
+        "payload_bytes": 2345384,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint8_q0000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary profile",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 19,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 133.88792,
+        "payload_bytes": 1673599,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint8_q3000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary profile",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 20,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 96.7236,
+        "payload_bytes": 1209045,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint8_q5000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary profile",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 21,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 58.64592,
+        "payload_bytes": 733074,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint8_q7000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "primary profile",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 22,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 19.88464,
+        "payload_bytes": 248558,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae128_uint8_q9000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "stress/emergency profile",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 23,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 4.11376,
+        "payload_bytes": 51422,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae128_uint8_q9800",
+        "quantizer": "UINT8",
+        "source_contract_tier": "stress/emergency profile",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 24,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 148.89432,
+        "payload_bytes": 1861179,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint6_q0000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 25,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 107.07312,
+        "payload_bytes": 1338414,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint6_q3000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 26,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 77.19624,
+        "payload_bytes": 964953,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint6_q5000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 27,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 46.7,
+        "payload_bytes": 583750,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint6_q7000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 28,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 15.7872,
+        "payload_bytes": 197340,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae128_uint6_q9000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 29,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 3.2736,
+        "payload_bytes": 40920,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae128_uint6_q9800",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 30,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 70.44536,
+        "payload_bytes": 880567,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint4_q0000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 31,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 54.14608,
+        "payload_bytes": 676826,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint4_q3000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 32,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 39.99832,
+        "payload_bytes": 499979,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint4_q5000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 33,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 24.78376,
+        "payload_bytes": 309797,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae128_uint4_q7000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 34,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 8.60712,
+        "payload_bytes": 107589,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae128_uint4_q9000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 35,
+        "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+        "execution_mode": "SPLIT",
+        "family": "AE128",
+        "offered_mbps": 1.86768,
+        "payload_bytes": 23346,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae128_uint4_q9800",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 36,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 97.28392,
+        "payload_bytes": 1216049,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint8_q0000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 37,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 68.97512,
+        "payload_bytes": 862189,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint8_q3000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 38,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 49.56504,
+        "payload_bytes": 619563,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint8_q5000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 39,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 29.94112,
+        "payload_bytes": 374264,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint8_q7000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 40,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 10.09896,
+        "payload_bytes": 126237,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae64_uint8_q9000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 41,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 2.08816,
+        "payload_bytes": 26102,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae64_uint8_q9800",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 42,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 76.37096,
+        "payload_bytes": 954637,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint6_q0000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 43,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 54.65224,
+        "payload_bytes": 683153,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint6_q3000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 44,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 39.28048,
+        "payload_bytes": 491006,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint6_q5000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 45,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 23.72552,
+        "payload_bytes": 296569,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint6_q7000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 46,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 7.99928,
+        "payload_bytes": 99991,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae64_uint6_q9000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 47,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 1.66136,
+        "payload_bytes": 20767,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae64_uint6_q9800",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 48,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 37.47552,
+        "payload_bytes": 468444,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint4_q0000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 49,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 28.7976,
+        "payload_bytes": 359970,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint4_q3000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 50,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 21.08056,
+        "payload_bytes": 263507,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint4_q5000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 51,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 12.98336,
+        "payload_bytes": 162292,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint4_q7000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 52,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 4.46496,
+        "payload_bytes": 55812,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae64_uint4_q9000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 53,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "offered_mbps": 0.9676,
+        "payload_bytes": 12095,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae64_uint4_q9800",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 54,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 48.17936,
+        "payload_bytes": 602242,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint8_q0000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 55,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 34.27696,
+        "payload_bytes": 428462,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint8_q3000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 56,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 24.674,
+        "payload_bytes": 308425,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint8_q5000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 57,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 14.95304,
+        "payload_bytes": 186913,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint8_q7000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 58,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 5.06808,
+        "payload_bytes": 63351,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae32_uint8_q9000",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 59,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 1.05968,
+        "payload_bytes": 13246,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae32_uint8_q9800",
+        "quantizer": "UINT8",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "action_id": 60,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 37.81304,
+        "payload_bytes": 472663,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint6_q0000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 61,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 27.15384,
+        "payload_bytes": 339423,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint6_q3000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 62,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 19.57656,
+        "payload_bytes": 244707,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint6_q5000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 63,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 11.86432,
+        "payload_bytes": 148304,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint6_q7000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 64,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 4.02032,
+        "payload_bytes": 50254,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae32_uint6_q9000",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 65,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 0.8444,
+        "payload_bytes": 10555,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae32_uint6_q9800",
+        "quantizer": "UINT6",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 66,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 18.40696,
+        "payload_bytes": 230087,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint4_q0000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 67,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 14.136,
+        "payload_bytes": 176700,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint4_q3000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 68,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 10.37656,
+        "payload_bytes": 129707,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint4_q5000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 69,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 6.48696,
+        "payload_bytes": 81087,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae32_uint4_q7000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "FULL_PRESERVATION",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 70,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 2.24872,
+        "payload_bytes": 28109,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae32_uint4_q9000",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      },
+      {
+        "action_id": 71,
+        "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+        "execution_mode": "SPLIT",
+        "family": "AE32",
+        "offered_mbps": 0.49832,
+        "payload_bytes": 6229,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": true,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae32_uint4_q9800",
+        "quantizer": "UINT4",
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "wire_identity": {
+          "codec_id": 3,
+          "descriptor": {
+            "codec_id": 3,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+              "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "HQLB",
+            "version": 1
+          },
+          "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+        }
+      }
+    ],
+    "candidate_universe_sha256": "b6ea101597883734ae460c8bd2e7c22b6d3b52d58cceb306b1abb13208d42c7d",
+    "catalogue_contract_tier": "EMERGENCY_ONLY",
+    "cross_group_mixing_used": false,
+    "eligible_action_count": 72,
+    "feasible_group_count": 2,
+    "group_evaluations": [
+      {
+        "candidate_action_ids": {
+          "high": [
+            42,
+            43,
+            44
+          ],
+          "low": [
+            45,
+            46,
+            47
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+          "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+          "family": "AE64",
+          "quantizer": "UINT6",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "1bbe236ab303b9ef2f861795c6db2bfca48f9eb90596c7c68d0a9b3e7666c947",
+        "member_action_ids": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [],
+          "low": [
+            66,
+            67,
+            68,
+            69,
+            70,
+            71
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+          "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+          "family": "AE32",
+          "quantizer": "UINT4",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "2ec9b6071990926e8f601081502dbb36775447b3a7031e58df81375f6dc80dfb",
+        "member_action_ids": [
+          66,
+          67,
+          68,
+          69,
+          70,
+          71
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            6,
+            7,
+            8,
+            9
+          ],
+          "low": [
+            10,
+            11
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+          "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+          "family": "noAE",
+          "quantizer": "UINT6",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "5fea0314dde93024659f8142182eb11821b0bbb0e2760aae62c5d3666559639e",
+        "member_action_ids": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            60
+          ],
+          "low": [
+            62,
+            63,
+            64,
+            65
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+          "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+          "family": "AE32",
+          "quantizer": "UINT6",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "67786c6df3af0e0dffb3dc8a901c4c1518dc8d7aeec10a5c0daa93eaf7e0fc32",
+        "member_action_ids": [
+          60,
+          61,
+          62,
+          63,
+          64,
+          65
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            18,
+            19,
+            20,
+            21
+          ],
+          "low": [
+            22,
+            23
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+          "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+          "family": "AE128",
+          "quantizer": "UINT8",
+          "wire_identity": {
+            "codec_id": 2,
+            "descriptor": {
+              "codec_id": 2,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+                "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "AE8\\0",
+              "version": 1
+            },
+            "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+          }
+        },
+        "identity_sha256": "80de87b85a68aa3ec9bea03fac5c5349db9d5fd283ce03aa998ae0f1e1afea27",
+        "member_action_ids": [
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            48
+          ],
+          "low": [
+            50,
+            51,
+            52,
+            53
+          ],
+          "medium": [
+            49
+          ]
+        },
+        "feasible": true,
+        "identity": {
+          "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+          "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+          "family": "AE64",
+          "quantizer": "UINT4",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "859c44a340bda88d0a5dd2937f6263439d8741a3152b12b80881d7ee87f3b15d",
+        "member_action_ids": [
+          48,
+          49,
+          50,
+          51,
+          52,
+          53
+        ],
+        "ranking_key": [
+          "1.7784",
+          "2.30464",
+          "5.33088",
+          49,
+          51,
+          48,
+          "859c44a340bda88d0a5dd2937f6263439d8741a3152b12b80881d7ee87f3b15d"
+        ],
+        "selected_action_ids": {
+          "high": 48,
+          "low": 51,
+          "medium": 49
+        }
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            30,
+            31,
+            32
+          ],
+          "low": [
+            33,
+            34,
+            35
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+          "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+          "family": "AE128",
+          "quantizer": "UINT4",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "a078e05acd992eed53596101e87bf0779cf55776f7ede0a38e750b54a8a54d7c",
+        "member_action_ids": [
+          30,
+          31,
+          32,
+          33,
+          34,
+          35
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            12,
+            13,
+            14,
+            15
+          ],
+          "low": [
+            16,
+            17
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+          "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+          "family": "noAE",
+          "quantizer": "UINT4",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "ba7d82c1f145d4eee695bc4d40f8c1904f837bbbfbc8df398709f30043b09573",
+        "member_action_ids": [
+          12,
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            54
+          ],
+          "low": [
+            56,
+            57,
+            58,
+            59
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+          "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+          "family": "AE32",
+          "quantizer": "UINT8",
+          "wire_identity": {
+            "codec_id": 2,
+            "descriptor": {
+              "codec_id": 2,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+                "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "AE8\\0",
+              "version": 1
+            },
+            "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+          }
+        },
+        "identity_sha256": "c29b03704b77bac3b15b58f028b204ae09b3764ad58489a039b8739d5adf226e",
+        "member_action_ids": [
+          54,
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "low": [
+            5
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f",
+          "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+          "family": "noAE",
+          "quantizer": "UINT8",
+          "wire_identity": {
+            "codec_id": 1,
+            "descriptor": {
+              "codec_id": 1,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+                "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQ8\\0",
+              "version": 1
+            },
+            "descriptor_sha256": "ca68c98edd44df954cc62338c5ba039b3d4902e7780f422e1ce722d0a395b5be"
+          }
+        },
+        "identity_sha256": "d4c5c47ee1870fe367d63d627dbbc7a6d570d33dd9f309f469b898da349c5a05",
+        "member_action_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            36,
+            37,
+            38
+          ],
+          "low": [
+            40,
+            41
+          ],
+          "medium": [
+            39
+          ]
+        },
+        "feasible": true,
+        "identity": {
+          "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+          "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+          "family": "AE64",
+          "quantizer": "UINT8",
+          "wire_identity": {
+            "codec_id": 2,
+            "descriptor": {
+              "codec_id": 2,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+                "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "AE8\\0",
+              "version": 1
+            },
+            "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+          }
+        },
+        "identity_sha256": "d976373bf1e7b6d9adf9eb02f04067dc990ff856aaa7062cba31a1578ba3d567",
+        "member_action_ids": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41
+        ],
+        "ranking_key": [
+          "0.63488",
+          "5.18904",
+          "6.75864",
+          39,
+          40,
+          38,
+          "d976373bf1e7b6d9adf9eb02f04067dc990ff856aaa7062cba31a1578ba3d567"
+        ],
+        "selected_action_ids": {
+          "high": 38,
+          "low": 40,
+          "medium": 39
+        }
+      },
+      {
+        "candidate_action_ids": {
+          "high": [
+            24,
+            25,
+            26,
+            27
+          ],
+          "low": [
+            28,
+            29
+          ],
+          "medium": []
+        },
+        "feasible": false,
+        "identity": {
+          "checkpoint_sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+          "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+          "family": "AE128",
+          "quantizer": "UINT6",
+          "wire_identity": {
+            "codec_id": 3,
+            "descriptor": {
+              "codec_id": 3,
+              "codec_source": {
+                "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+                "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+              },
+              "layout": "CURRENT_CELL_MAJOR",
+              "magic_ascii": "HQLB",
+              "version": 1
+            },
+            "descriptor_sha256": "6561ad403f4d7c2012c1cbfdc8a316acb85e427154bd205a6ee0ed91aa9e723d"
+          }
+        },
+        "identity_sha256": "f226452094c82a8fbd128eb217d6a68f28d8e76e02f81c5e683d98e9e2e1ba31",
+        "member_action_ids": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29
+        ],
+        "ranking_key": null,
+        "selected_action_ids": null
+      }
+    ],
+    "identity_group_count": 12,
+    "perception_endorsement": false,
+    "rule": {
+      "cross_group_mixing_allowed": false,
+      "eligibility": {
+        "agent_action_enabled": true,
+        "transport_valid": true
+      },
+      "exterior_margin_fraction": 0.1,
+      "feasible_group_ranking": [
+        "MEDIUM_ABS_DISTANCE_TO_POINT_ASCENDING",
+        "LOW_ABS_DISTANCE_TO_HALF_POINT_ASCENDING",
+        "HIGH_ABS_DISTANCE_TO_1_4_POINT_ASCENDING",
+        "MEDIUM_ACTION_ID_ASCENDING",
+        "LOW_ACTION_ID_ASCENDING",
+        "HIGH_ACTION_ID_ASCENDING",
+        "GROUP_IDENTITY_SHA256_ASCENDING"
+      ],
+      "group_identity_fields": [
+        "family",
+        "quantizer",
+        "checkpoint_sha256",
+        "decoder_identity",
+        "wire_identity_when_available"
+      ],
+      "selection_mode": "ROBUST_EXACT_IDENTITY_GROUP_V1",
+      "target_mbps": {
+        "high": 42.8064,
+        "low": 15.288,
+        "medium": 30.576
+      },
+      "target_ratios_to_point": {
+        "high": 1.4,
+        "low": 0.5,
+        "medium": 1.0
+      },
+      "tier_admissibility": {
+        "high": {
+          "minimum_mbps": 34.7424,
+          "rule": "offered_mbps >= upper_mbps * (1 + margin)"
+        },
+        "low": {
+          "maximum_mbps": 25.6608,
+          "rule": "offered_mbps <= lower_mbps * (1 - margin)"
+        },
+        "medium": {
+          "maximum_mbps": 31.584,
+          "minimum_mbps": 28.512,
+          "rule": "lower_mbps <= offered_mbps <= upper_mbps"
+        }
+      },
+      "wire_identity_policy": "INCLUDE_CODEC_AND_CANONICAL_FULL_WIRE_DESCRIPTOR_WHEN_AVAILABLE",
+      "within_group_action_ranking": [
+        "ABS_DISTANCE_TO_TIER_TARGET_ASCENDING",
+        "ACTION_ID_ASCENDING"
+      ]
+    },
+    "schema": "scenesense.robust_exact_bracket_selection.v1",
+    "selected_action_ids": {
+      "high": 38,
+      "low": 40,
+      "medium": 39
+    },
+    "selected_offered_mbps": {
+      "high": 49.56504,
+      "low": 10.09896,
+      "medium": 29.94112
+    },
+    "selected_payload_bytes": {
+      "high": 619563,
+      "low": 126237,
+      "medium": 374264
+    },
+    "selected_tiers": [
+      {
+        "absolute_target_distance_mbps": 5.18904,
+        "action_id": 40,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "exterior_margin_fraction": 0.6457996632996633,
+        "family": "AE64",
+        "offered_mbps": 10.09896,
+        "payload_bytes": 126237,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": true
+        },
+        "profile_id": "split_ae64_uint8_q9000",
+        "quantizer": "UINT8",
+        "ratio_to_point": 0.3302904238618524,
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "target_mbps": 15.288,
+        "target_ratio_to_point": 0.5,
+        "tier": "low",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "absolute_target_distance_mbps": 0.63488,
+        "action_id": 39,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "family": "AE64",
+        "inside_retained_uncertainty_set": true,
+        "offered_mbps": 29.94112,
+        "payload_bytes": 374264,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": false,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint8_q7000",
+        "quantizer": "UINT8",
+        "ratio_to_point": 0.979236002093145,
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "target_mbps": 30.576,
+        "target_ratio_to_point": 1.0,
+        "tier": "medium",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      },
+      {
+        "absolute_target_distance_mbps": 6.75864,
+        "action_id": 38,
+        "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+        "execution_mode": "SPLIT",
+        "exterior_margin_fraction": 0.5693085106382979,
+        "family": "AE64",
+        "offered_mbps": 49.56504,
+        "payload_bytes": 619563,
+        "perception_capability_caveat": {
+          "absolute_service_ready": false,
+          "localization_requirements_passed": false,
+          "relative_preservation_passed": false,
+          "segmentation_installable": true,
+          "stress_or_emergency_anchor": false
+        },
+        "profile_id": "split_ae64_uint8_q5000",
+        "quantizer": "UINT8",
+        "ratio_to_point": 1.621043956043956,
+        "source_contract_tier": "EMERGENCY_ONLY",
+        "target_mbps": 42.8064,
+        "target_ratio_to_point": 1.4,
+        "tier": "high",
+        "wire_identity": {
+          "codec_id": 2,
+          "descriptor": {
+            "codec_id": 2,
+            "codec_source": {
+              "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+              "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+            },
+            "layout": "CURRENT_CELL_MAJOR",
+            "magic_ascii": "AE8\\0",
+            "version": 1
+          },
+          "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+        }
+      }
+    ],
+    "selection_mode": "ROBUST_EXACT_IDENTITY_GROUP_V1",
+    "uncertainty_set": {
+      "interpretation": "RETAINED_EMPIRICAL_BOOTSTRAP_UNCERTAINTY_SET_NOT_POPULATION_CONFIDENCE_INTERVAL",
+      "lower_mbps": 28.512,
+      "point_mbps": 30.576,
+      "population_confidence_interval": false,
+      "retained_from_preserved_attempt": true,
+      "upper_mbps": 31.584
+    },
+    "winning_group_identity": {
+      "checkpoint_sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+      "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+      "family": "AE64",
+      "quantizer": "UINT8",
+      "wire_identity": {
+        "codec_id": 2,
+        "descriptor": {
+          "codec_id": 2,
+          "codec_source": {
+            "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+            "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+          },
+          "layout": "CURRENT_CELL_MAJOR",
+          "magic_ascii": "AE8\\0",
+          "version": 1
+        },
+        "descriptor_sha256": "b0ec3bd4c2f5d60d381f5f639d8da5f6446524e6764b345c030c8abbd93aa8a5"
+      }
+    },
+    "winning_group_identity_sha256": "d976373bf1e7b6d9adf9eb02f04067dc990ff856aaa7062cba31a1578ba3d567",
+    "winning_ranking_key": [
+      "0.63488",
+      "5.18904",
+      "6.75864",
+      39,
+      40,
+      38,
+      "d976373bf1e7b6d9adf9eb02f04067dc990ff856aaa7062cba31a1578ba3d567"
+    ]
+  },
+  "source_inventory": {
+    "inventory_sha256": "5c31567492cc0ada13bfe080beba91aef313945720316d786df5afc17026a33f",
+    "repo_files": {
+      "rl_agent/ue_mcs_backlog_robust_bracket_v1/PREREGISTRATION.md": {
+        "sha256": "f58447798626e8407575007c297b40aa3a7a83a6ea1ada572ca99656aff74fe9",
+        "size_bytes": 3300
+      },
+      "rl_agent/ue_mcs_backlog_robust_bracket_v1/__init__.py": {
+        "sha256": "3bddfb2724cc2c9195212257cda5e92ceb8412405038dcac5193fefeac904f5c",
+        "size_bytes": 258
+      },
+      "rl_agent/ue_mcs_backlog_robust_bracket_v1/__main__.py": {
+        "sha256": "510f9f00c7d424cbcdc12791fd4050037f9f3907b4bcd0084fa39688986da3a0",
+        "size_bytes": 154
+      },
+      "rl_agent/ue_mcs_backlog_robust_bracket_v1/amendment.py": {
+        "sha256": "e4070eaec1a7110b013dc635aae98df5f2a6a53c22e372f99ecada2706b53ea8",
+        "size_bytes": 47884
+      },
+      "rl_agent/ue_mcs_backlog_robust_bracket_v1/config_v1.json": {
+        "sha256": "00d213d99e19b1569ad57fbce81a2bfff31e9c681b3f67e6ca1cbbea8a269926",
+        "size_bytes": 3301
+      },
+      "rl_agent/ue_mcs_backlog_robust_bracket_v1/selector.py": {
+        "sha256": "5f160872d570fed160533b9bc6a52c4745d4ede938c6910ac438976a469e6db6",
+        "size_bytes": 17741
+      }
+    }
+  },
+  "status": "PHYSICAL_CAPACITY_INTERVAL_ADOPTED_FOR_PROSPECTIVE_DOWNSTREAM_DESIGN_ONLY__ORIGINAL_CAPACITY_QUALIFICATION_REFUSED__ORIGINAL_TIER_SELECTION_NOT_QUALIFIED"
+}

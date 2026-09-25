@@ -1,0 +1,91 @@
+{
+  "schema": "scenesense.ue_mcs_backlog_robust_bracket_config.v1",
+  "package_id": "ue_mcs_backlog_robust_bracket_v1",
+  "status": "PHYSICAL_CAPACITY_INTERVAL_ADOPTED_FOR_PROSPECTIVE_DOWNSTREAM_DESIGN_ONLY__ORIGINAL_CAPACITY_QUALIFICATION_REFUSED__ORIGINAL_TIER_SELECTION_NOT_QUALIFIED",
+  "preserved_attempt": {
+    "relative_path": "rl_agent/experiments/ue_mcs_backlog_near_capacity_capacity_v1/20260925_001332",
+    "result": {
+      "filename": "CAPACITY_QUALIFICATION_RESULT.json",
+      "sha256": "0f3b1a3e4d8b04da33876b679e966a0ca11080c20ebed039d5fd18bd9cb17a43"
+    },
+    "manifest": {
+      "filename": "manifest.json",
+      "sha256": "8a77f0ff913ffb493cc226313bd2fd221394ce7330041770a0b346bda29d0293"
+    },
+    "refused_terminal": {
+      "filename": "CAPACITY_QUALIFICATION_REFUSED.json",
+      "sha256": "6540cbdd003169f46165df564f533d0303999dd51cc845b2ba6b2ca4778defc7"
+    },
+    "final_cold_state": {
+      "filename": "final_cold_state.json",
+      "sha256": "d062eb00c0d0f5d1fea88ddcec7904ea3412ea554d371fabf6fae9ffab12bda5"
+    }
+  },
+  "catalogue": {
+    "json_relative_path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json",
+    "json_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "csv_relative_path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.csv",
+    "csv_sha256": "0512cb39982178e8c7c96a65ed26e272b3aa3a5aec0020a8dd9cf1cdb6696fbb"
+  },
+  "retained_empirical_bootstrap_uncertainty_set_mbps": {
+    "lower": 28.512,
+    "point": 30.576,
+    "upper": 31.584,
+    "interpretation": "RETAINED_EMPIRICAL_BOOTSTRAP_UNCERTAINTY_SET_NOT_POPULATION_CONFIDENCE_INTERVAL"
+  },
+  "selector": {
+    "mode": "ROBUST_EXACT_IDENTITY_GROUP_V1",
+    "group_identity_fields": [
+      "family",
+      "quantizer",
+      "checkpoint_sha256",
+      "decoder_identity",
+      "wire_identity_when_available"
+    ],
+    "cross_group_mixing_allowed": false,
+    "exterior_margin_fraction": 0.1,
+    "target_ratios_to_point": {
+      "low": 0.5,
+      "medium": 1.0,
+      "high": 1.4
+    },
+    "group_ranking": [
+      "MEDIUM_ABS_DISTANCE_TO_POINT_ASCENDING",
+      "LOW_ABS_DISTANCE_TO_HALF_POINT_ASCENDING",
+      "HIGH_ABS_DISTANCE_TO_1_4_POINT_ASCENDING",
+      "MEDIUM_ACTION_ID_ASCENDING",
+      "LOW_ACTION_ID_ASCENDING",
+      "HIGH_ACTION_ID_ASCENDING",
+      "GROUP_IDENTITY_SHA256_ASCENDING"
+    ]
+  },
+  "expected_selection": {
+    "family": "AE64",
+    "quantizer": "UINT8",
+    "action_ids": {
+      "low": 40,
+      "medium": 39,
+      "high": 38
+    },
+    "median_payload_bytes": {
+      "low": 126237,
+      "medium": 374264,
+      "high": 619563
+    },
+    "offered_mbps": {
+      "low": 10.09896,
+      "medium": 29.94112,
+      "high": 49.56504
+    }
+  },
+  "governance": {
+    "scope": "PROSPECTIVE_DOWNSTREAM_BYTE_ONLY_QUEUE_DESIGN",
+    "catalogue_contract_tier": "EMERGENCY_ONLY",
+    "original_capacity_qualification_overturned": false,
+    "original_tier_selection_qualified": false,
+    "live_execution_authorized": false,
+    "perception_endorsement": false,
+    "caveat": "The selected actions are EMERGENCY_ONLY catalogue entries with failed or incomplete perception-service gates. This byte-only queue design neither qualifies nor endorses their perception behavior."
+  }
+}
+

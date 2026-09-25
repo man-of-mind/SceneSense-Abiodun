@@ -1,0 +1,12 @@
+{
+  "amendment_sha256": "fa6ef35816c61442aa7c287c31652d06f09fb1c0f8f914d467200629114c6bf0",
+  "candidate_universe_sha256": "b6ea101597883734ae460c8bd2e7c22b6d3b52d58cceb306b1abb13208d42c7d",
+  "manifest_sha256": "bc739a5c4350680738121371df8751e1f30b18ba502170dae1a1c4a8c8ea8ec5",
+  "preserved_final_cold_state_sha256": "d062eb00c0d0f5d1fea88ddcec7904ea3412ea554d371fabf6fae9ffab12bda5",
+  "preserved_manifest_sha256": "8a77f0ff913ffb493cc226313bd2fd221394ce7330041770a0b346bda29d0293",
+  "preserved_refused_terminal_sha256": "6540cbdd003169f46165df564f533d0303999dd51cc845b2ba6b2ca4778defc7",
+  "preserved_result_sha256": "0f3b1a3e4d8b04da33876b679e966a0ca11080c20ebed039d5fd18bd9cb17a43",
+  "schema": "scenesense.ue_mcs_backlog_robust_bracket_terminal.v1",
+  "source_inventory_sha256": "5c31567492cc0ada13bfe080beba91aef313945720316d786df5afc17026a33f",
+  "status": "PHYSICAL_CAPACITY_INTERVAL_ADOPTED_FOR_PROSPECTIVE_DOWNSTREAM_DESIGN_ONLY__ORIGINAL_CAPACITY_QUALIFICATION_REFUSED__ORIGINAL_TIER_SELECTION_NOT_QUALIFIED"
+}
