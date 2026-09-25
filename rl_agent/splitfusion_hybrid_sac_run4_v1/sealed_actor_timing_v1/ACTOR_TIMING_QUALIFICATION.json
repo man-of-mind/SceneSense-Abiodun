@@ -1,0 +1,81 @@
+{
+  "actor_path": [
+    "GUARDED_21D_FEATURE_TUPLE_READY",
+    "FLOAT32_BATCH1_TENSOR_CONSTRUCTION",
+    "ACTOR_SAMPLE_ALL_12_MODES",
+    "CATEGORICAL_MODE_DRAW",
+    "EXACT_Q_E4_QUANTIZATION",
+    "CATALOG_RESOLUTION",
+    "EXECUTED_ACTION_IDENTITY"
+  ],
+  "clock": "time.perf_counter_ns",
+  "config": {
+    "actor_seed": 17,
+    "batch_size": 1,
+    "iterations": 5000,
+    "mode_rng_seed": 1702,
+    "q_rng_seed": 1701,
+    "threads": 4,
+    "warmup": 100
+  },
+  "evidence_class": "MEASURED_CPU_ENGINEERING_TIMING_NOT_LIVE_E2E",
+  "feature_order": [
+    "camera_si_scaled",
+    "radar_p40",
+    "prior_ul_mcs_normalized",
+    "pre_action_rlc_backlog_log1p_scaled",
+    "prev_joint_mode_0_one_hot",
+    "prev_joint_mode_1_one_hot",
+    "prev_joint_mode_2_one_hot",
+    "prev_joint_mode_3_one_hot",
+    "prev_joint_mode_4_one_hot",
+    "prev_joint_mode_5_one_hot",
+    "prev_joint_mode_6_one_hot",
+    "prev_joint_mode_7_one_hot",
+    "prev_joint_mode_8_one_hot",
+    "prev_joint_mode_9_one_hot",
+    "prev_joint_mode_10_one_hot",
+    "prev_joint_mode_11_one_hot",
+    "prev_q_normalized",
+    "prev_quality_qperc",
+    "prev_latency_normalized",
+    "prev_present",
+    "prev_success"
+  ],
+  "limitations": [
+    "CPU engineering microbenchmark, not a live end-to-end frame",
+    "fixed architecture and initialization; later trained weights use the same operations",
+    "dispatch stops at executed action identity"
+  ],
+  "mode_counts": [
+    403,
+    404,
+    409,
+    367,
+    401,
+    467,
+    408,
+    455,
+    390,
+    423,
+    425,
+    448
+  ],
+  "modeled_actor_reserve_ns": 1000000,
+  "representative_state_count": 3,
+  "reserve_rule": "MAX_OF_1MS_AND_MEASURED_P99",
+  "runtime": {
+    "cuda_initialized_after": false,
+    "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12",
+    "torch": "2.10.0.dev20251114+cu128"
+  },
+  "schema": "splitfusion.run4.actor_timing_qualification.v1",
+  "timing_ns": {
+    "max": 3127550,
+    "mean": 551640.8498,
+    "p50": 546113,
+    "p95": 581896,
+    "p99": 595475
+  }
+}
