@@ -746,6 +746,34 @@ class ModeledCompositeOfflineTransitionV1:
                 "modeled offline transition is absent, forged, or stale"
             )
 
+    def _sealed_transition_for_modeled_replay(
+        self, expected_modeled_binding_sha256: str
+    ) -> contract.SemiMarkovTransitionV2:
+        """Package-private hand-off to the dedicated modeled replay only.
+
+        This is deliberately not a general export.  It first revalidates the
+        wrapper and enclosed transition, then requires the caller's exact
+        modeled-composite binding digest.  Production replay continues to see
+        only the outer wrapper and rejects it by exact type; callers have no
+        public method that turns modeled evidence into a bare transition.
+        """
+
+        self.require_attested()
+        _digest(
+            expected_modeled_binding_sha256,
+            "expected_modeled_binding_sha256",
+        )
+        if expected_modeled_binding_sha256 != self.modeled_binding_sha256:
+            raise BindingError(
+                "modeled replay binding differs from the sealed transition"
+            )
+        self._transition.require_attested()
+        if self._transition.canonical_sha256() != self.transition_sha256:
+            raise ModeledCompositeContractError(
+                "sealed transition digest changed after offline export"
+            )
+        return self._transition
+
     @property
     def terminal(self) -> contract.RewardTerminal:
         self.require_attested()
