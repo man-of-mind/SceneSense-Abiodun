@@ -421,6 +421,7 @@ def resolved_source_hashes(repo_root: Path) -> dict[str, str]:
             "rl_agent/ue_mcs_backlog_near_capacity_v1/contract.py",
             "rl_agent/ue_mcs_backlog_near_capacity_v1/radio_binding.py",
             "rl_agent/ue_mcs_backlog_near_capacity_v1/capacity_qualification.py",
+            "rl_agent/ue_mcs_backlog_near_capacity_v1/capacity_runner.py",
             "rl_agent/ue_mcs_backlog_near_capacity_v1/analysis_spec.py",
             "rl_agent/ue_mcs_backlog_near_capacity_v1/authorization.py",
             "rl_agent/ue_mcs_backlog_near_capacity_v1/runner.py",

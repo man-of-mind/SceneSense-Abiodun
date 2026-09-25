@@ -158,6 +158,8 @@ class CapacityStageGateTests(unittest.TestCase):
 
     def point(self, label, snr, p50, samples=200, backlogged=0.95):
         return CQ.CapacityPoint(
+            achieved_pusch_snr_db_p50=snr,
+            achieved_pusch_snr_samples=CQ.MIN_PUSCH_SNR_SAMPLES,
             label=label, target_snr_db=snr, commanded_noise_power_db=-5.0,
             service_mbps_p10=p50 * 0.9, service_mbps_p50=p50,
             service_mbps_p90=p50 * 1.1, samples=samples,
@@ -166,7 +168,8 @@ class CapacityStageGateTests(unittest.TestCase):
     def test_a_clean_surface_qualifies(self):
         audit = CQ.audit_points([self.point("p25", 7.827, 80.0),
                                  self.point("p50", 8.608, 85.0),
-                                 self.point("p75", 9.604, 90.0)])
+                                 self.point("p75", 9.604, 90.0)],
+                                boundary_service_samples=[85.0] * 100)
         self.assertTrue(audit["qualified"], audit["problems"])
         self.assertEqual(audit["adverse_capacity_mbps"], 85.0)
 

@@ -109,17 +109,62 @@ Stage `near_capacity_capacity_qualification`, token
 - Three operating points, **held constant**, at the registered `ADVERSE_STABLE`
   trace's own percentiles: **7.827 / 8.608 / 9.604 dB**. This measures a
   capacity surface; it does not replay a profile.
-- A saturating probe — the largest eligible catalogue action (3,568,326 B,
-  285.47 Mbps at 10 fps) — so the queue is certainly backlogged and the measured
-  rate is capacity, not offered load. **The probe is never a tier.**
-- Settle 3 s, measure 10 s, 100 ms sampling. Whole stage ≈ 3–5 minutes.
+- A saturating probe — the largest eligible catalogue action (action 0,
+  `split_noae_uint8_q0000`, 3,568,326 B, **285.46608 Mbps exactly** at 10 fps) —
+  so the queue is certainly backlogged and the measured rate is capacity, not
+  offered load. The runtime re-opens the pinned catalogue and requires all four
+  identities to match. **The probe is never a tier.**
+- The **primary service measurement** is application delivery at ext-DN: exact
+  unique `SSBURST` payload bytes (the 24-byte wire header excluded), de-duplicated
+  by `(frame_id, chunk_id)`, in fixed 100 ms `CLOCK_MONOTONIC` windows. PUSCH
+  transport-block size is **never** the primary capacity measure because grants
+  and retransmissions can count bytes that were not uniquely delivered.
+- `NR_RLC_TX_DEQUEUE`, `NR_RLC_TX_SDU` queue recurrence and
+  `GNB_PDCP_RX_DELIVER` are retained as independent corroboration. They cannot
+  replace or rescale the ext-DN application-goodput samples.
+- Settle 3 s, measure 10 s, 100 ms sampling. Each point gets a separately
+  scheduled probe on a recorded future monotonic epoch. The probe stops after
+  its measurement; before the next target is primed, the runner must observe
+  five consecutive zero-backlog UE RLC samples **after** the latest observed
+  PDCP/RLC ingress and then a 0.5 s observation-stable interval with no new
+  `NR_PDCP_TX_SDU` or `NR_RLC_TX_SDU`. Failure of either the queue-zero or
+  ingress-quiet proof is a hard refusal, so service from one operating point
+  cannot leak into the next. The RAN remains one continuous instance. The
+  bounded worst-case stage budget is 320 s (ordinary completion is expected
+  sooner).
 
 **Stage gates:** every operating point present; ≥60 service samples; ≥80% of
 intervals continuously backlogged (otherwise the probe did not saturate and the
 number is offered load, so the stage **refuses**); positive median service;
-capacity must not fall as SNR rises beyond a 10% tolerance.
+capacity must not fall as SNR rises beyond a 10% tolerance. Every point label is
+unique and exactly one of `p25/p50/p75`; target SNRs must exactly match the
+registered values; all fields must be finite; and `p10 ≤ p50 ≤ p90`. In
+addition, each point needs at least **30 achieved-PUSCH SNR samples**, its
+achieved median must be within **±1.0 dB** of the registered target, and the
+three achieved medians must strictly satisfy `p25 < p50 < p75`. Commanded noise
+alone never qualifies an operating point.
+
+The p50 point's 100 ms service samples also receive a fixed-seed
+(`2026092403`), 2,000-draw, 95% non-parametric median bootstrap. The
+deterministic low/medium/high action triplet selected from the point estimate,
+the lower confidence bound and the upper confidence bound must be identical.
+If sampling uncertainty changes even one action, qualification refuses rather
+than freezing an unstable boundary.
 
 `C_adv` := median service at the **p50** operating point.
+
+**Evidence and lifecycle gates.** The current source inventory is recomputed at
+re-open time and must equal the captured inventory exactly. The manifest is an
+exact, canonical, root-contained inventory: absolute paths, `..`, duplicate
+paths, missing files and unmanifested extra files all refuse. The verifier
+reconstructs all three `CapacityPoint` rows from retained samples, reruns the
+complete audit and deterministic tier rule, and requires exact equality with
+the sealed result. Core containers are bound at runtime to their immutable
+Docker image IDs plus available RepoDigests (not merely mutable compose tags).
+All launcher, Docker, process-probe, signal, route, core-down and T-tracer
+extraction subprocesses have registered positive wall-clock timeouts. The final
+cold-state JSON is create-only and capture additionally requires clean RAN/core
+teardown, successful extraction, no teardown note and no cold-state probe error.
 
 ## 5. Deterministic tier rule — registered before the boundary is measured
 
@@ -139,8 +184,9 @@ strictly increasing payloads, low strictly **below** `C_adv`, high strictly
 — if the catalogue cannot bracket the measured capacity, nothing is frozen and
 the decision returns to Abiodun.
 
-The catalogue spans 0.5–285.47 Mbps across 72 eligible actions, so the rule
-brackets any capacity strictly inside that range; it refuses outside it.
+The catalogue spans approximately 0.5–285.46608 Mbps across 72 eligible
+actions, so the rule brackets any capacity strictly inside that range; it
+refuses outside it.
 
 Each tier's decoder digest is **recorded**, and tiers are deliberately **not**
 required to share one. This experiment loads no model, runs no CUDA and decodes
@@ -211,6 +257,17 @@ widened.
 
   Either alone is insufficient: arrival without PDCP evidence is exactly what a
   host-local shortcut would produce. Failure of either aborts the cell.
+- After the measured receivers are ready, but immediately before the first
+  scientific decision, a separate **target-channel primer** sends 5 × 1,200 B
+  datagrams on port 5411. It is infrastructure only—not an action, transition,
+  reward or measured payload. All five datagrams must reach ext-DN; the UE must
+  retain fresh PDCP ingress and a fresh table-0, round-0 UL grant; and the queue
+  must then show three complete zero-RLC ticks observed after the latest primer
+  PDCP receipt plus a 20 ms ingress-quiet interval. The first decision must
+  follow that drain proof and occur no more than 100 ms after the retained grant
+  receipt. This prevents the first state of a cell from fabricating MCS=0 or
+  inheriting an unrelated old grant while keeping the primer out of the
+  scientific workload.
 - Radio state is read back before and after every cell.
 - Teardown covers our processes **and the launcher's detached, root-owned
   softmodems** — the launcher leaves the RAN up by design, so inheriting Run-3

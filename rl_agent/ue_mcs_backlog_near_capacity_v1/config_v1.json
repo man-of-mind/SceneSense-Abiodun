@@ -123,12 +123,15 @@
     "events": {
       "gnb": [
         "GNB_MAC_PUSCH_POWER_CONTROL",
-        "GNB_MAC_UL_MCS_DECISION"
+        "GNB_MAC_UL_MCS_DECISION",
+        "GNB_PDCP_RX_DELIVER"
       ],
       "ue": [
         "NRUE_MAC_DCI_GRANT",
         "NRUE_MAC_RLC_BUFFER_STATUS",
-        "NR_PDCP_TX_SDU"
+        "NR_PDCP_TX_SDU",
+        "NR_RLC_TX_SDU",
+        "NR_RLC_TX_DEQUEUE"
       ]
     }
   },
@@ -146,7 +149,16 @@
     "udp_probe_payload_bytes": 1200,
     "udp_probe_timeout_s": 10.0,
     "udp_probe_min_received": 1,
-    "udp_probe_requires_pdcp_evidence": true
+    "udp_probe_requires_pdcp_evidence": true,
+    "target_channel_primer": {
+      "port": 5411,
+      "datagrams": 5,
+      "payload_bytes": 1200,
+      "timeout_s": 2.0,
+      "zero_rlc_ticks_required": 3,
+      "ingress_quiet_ms": 20.0,
+      "max_grant_receipt_to_first_decision_ms": 100.0
+    }
   },
   "campaign": {
     "cell_order_seed": 2026092401,
@@ -168,22 +180,52 @@
       "action_id": 0,
       "profile_id": "split_noae_uint8_q0000",
       "payload_bytes": 3568326,
-      "offered_mbps": 285.47,
+      "offered_mbps": 285.46608,
       "role": "SATURATING_PROBE_NEVER_A_TIER"
+    },
+    "service_measurement": {
+      "primary": "EXT_DN_UNIQUE_SSBURST_APPLICATION_PAYLOAD_BYTES_PER_FIXED_100MS_MONOTONIC_WINDOW",
+      "corroboration": [
+        "UE_NR_RLC_TX_DEQUEUE",
+        "UE_NR_RLC_TX_SDU_QUEUE_RECURRENCE",
+        "GNB_PDCP_RX_DELIVER"
+      ],
+      "pusch_tb_is_primary": false,
+      "receiver_port": 5410,
+      "future_epoch_lead_s": 5.0,
+      "receiver_tail_s": 2.0,
+      "drain_timeout_s": 20.0,
+      "drain_zero_consecutive_samples": 5,
+      "drain_quiet_interval_s": 0.5,
+      "drain_poll_s": 0.1
     },
     "settle_s": 3.0,
     "measure_s": 10.0,
     "sample_period_s": 0.1,
     "min_service_samples": 60,
+    "min_pusch_snr_samples": 30,
+    "max_achieved_target_snr_error_db": 1.0,
     "min_backlogged_fraction": 0.8,
     "monotonicity_tolerance": 0.1,
+    "bootstrap_seed": 2026092403,
+    "bootstrap_draws": 2000,
+    "bootstrap_confidence": 0.95,
     "tier_target_ratios": {
       "low": 0.5,
       "medium": 1.0,
       "high": 1.4
     },
     "medium_boundary_tolerance": 0.25,
-    "expected_runtime_s": 219.0,
+    "expected_runtime_s": 320.0,
+    "subprocess_timeouts_s": {
+      "launcher": 180.0,
+      "process_probe": 10.0,
+      "docker_inspect": 15.0,
+      "core_down": 60.0,
+      "ttracer_extract": 180.0,
+      "signal_command": 10.0,
+      "route_probe": 15.0
+    },
     "forbidden_legacy_capacity_mbps": {
       "ADVERSE_STABLE_106PRB_7D2U": 12.05,
       "FAVORABLE_STABLE_106PRB_7D2U": 42.13

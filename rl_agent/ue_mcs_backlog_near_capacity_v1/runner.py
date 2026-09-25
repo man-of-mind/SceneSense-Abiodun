@@ -24,6 +24,7 @@ What is replaced, and why:
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import shlex
@@ -56,6 +57,84 @@ VERIFY_STAGES = ("before_preflight", "before_scientific_cells", "final_sealing")
 
 #: NR_PDCP_TX_SDU field list, as the extractor defines it.
 PDCP_FIELDS = ("time", "mono_sec", "mono_nsec", "ue_id", "rb_id", "sdu_bytes")
+
+DCI_GRANT_FIELDS = V3R.C.DCI_GRANT_HEADER
+RLC_BUFFER_FIELDS = V3R.C.RLC_BUFFER_HEADER
+
+def eligible_primer_grants(
+    rows: Sequence[tuple[int, int, str]], *, after_receipt_ns: int,
+) -> list[dict[str, int]]:
+    """Parse UE-visible table-0 round-0 grants received after the primer."""
+    result: list[dict[str, int]] = []
+    fields = DCI_GRANT_FIELDS
+    for _wall_ns, receipt_ns, line in rows:
+        if receipt_ns <= after_receipt_ns:
+            continue
+        values = line.split(",")
+        if len(values) != len(fields):
+            continue
+        row = dict(zip(fields, values))
+        try:
+            if (
+                row["direction"] == V3R.C.UL_DIRECTION
+                and int(row["mcs_table"]) == 0
+                and int(row["round"]) == V3R.C.NEW_DATA_HARQ_ROUND
+                and int(row["ndi"]) in (0, 1)
+            ):
+                result.append({
+                    "receipt_monotonic_ns": receipt_ns,
+                    "mcs": int(row["mcs"]),
+                    "mcs_table": int(row["mcs_table"]),
+                    "round": int(row["round"]),
+                    "ndi": int(row["ndi"]),
+                })
+        except (KeyError, ValueError):
+            continue
+    return result
+
+
+def trailing_zero_rlc_ticks(
+    rows: Sequence[tuple[int, int, str]], *, after_receipt_ns: int,
+) -> tuple[int, list[dict[str, Any]]]:
+    """Return trailing complete zero-backlog UE MAC ticks.
+
+    Rows sharing the frame/slot/tracer-time identity are one per-LCID tick.
+    The newest group is excluded because its remaining LCIDs may still be in
+    the live CSV pipe.
+    """
+    fields = RLC_BUFFER_FIELDS
+    grouped: dict[tuple[str, str, str], dict[str, Any]] = {}
+    order: list[tuple[str, str, str]] = []
+    for _wall_ns, receipt_ns, line in rows:
+        if receipt_ns <= after_receipt_ns:
+            continue
+        values = line.split(",")
+        if len(values) != len(fields):
+            continue
+        row = dict(zip(fields, values))
+        try:
+            key = (row["time"], row["frame"], row["slot"])
+            if key not in grouped:
+                grouped[key] = {
+                    "receipt_monotonic_ns": receipt_ns,
+                    "total_bytes": 0,
+                    "rows": 0,
+                }
+                order.append(key)
+            grouped[key]["receipt_monotonic_ns"] = max(
+                grouped[key]["receipt_monotonic_ns"], receipt_ns
+            )
+            grouped[key]["total_bytes"] += int(row["bytes_in_buffer"])
+            grouped[key]["rows"] += 1
+        except (KeyError, ValueError):
+            continue
+    complete = [grouped[key] for key in order[:-1]]
+    trailing = 0
+    for tick in reversed(complete):
+        if tick["total_bytes"] != 0:
+            break
+        trailing += 1
+    return trailing, complete
 
 
 class Runner(V3R.Runner):
@@ -301,6 +380,245 @@ class Runner(V3R.Runner):
                 "flight; the traffic did not traverse UE PDCP/RLC")
         return outcome
 
+    def target_channel_primer(self, cell_tag: str, cell_dir: Path) -> dict[str, Any]:
+        """Create one fresh target-channel MCS, then prove the tiny queue drained.
+
+        This executes after the profile command/warm-up and after all measured
+        receivers are ready, but immediately before the tagged sender opens its
+        first decision. The primer uses a separate port and is not a decision.
+        """
+        assert self.ue_ip is not None and self.edge_host is not None
+        config = self.config["traffic"]["target_channel_primer"]
+        port = int(config["port"])
+        count = int(config["datagrams"])
+        size = int(config["payload_bytes"])
+        timeout_s = float(config["timeout_s"])
+        required_zero = int(config["zero_rlc_ticks_required"])
+        quiet_ns = int(float(config["ingress_quiet_ms"]) * 1e6)
+
+        troot = ROOT / self.config["paths"]["t_tracer_dir"]
+        messages = ROOT / self.config["paths"]["t_messages"]
+        relay = int(self.config["telemetry"]["ue_relay_port"])
+        lives = {
+            "dci": n2.LiveCsv(
+                [str(troot / "csv"), "-d", str(messages), "-ip", "127.0.0.1",
+                 "-p", str(relay), "-f", "-s", ",", "-t", "time",
+                 "NRUE_MAC_DCI_GRANT", *DCI_GRANT_FIELDS],
+                cell_dir / "ttracer/ue/primer_dci_live.csv"),
+            "rlc": n2.LiveCsv(
+                [str(troot / "csv"), "-d", str(messages), "-ip", "127.0.0.1",
+                 "-p", str(relay), "-f", "-s", ",", "-t", "time",
+                 "NRUE_MAC_RLC_BUFFER_STATUS", *RLC_BUFFER_FIELDS],
+                cell_dir / "ttracer/ue/primer_rlc_live.csv"),
+            "pdcp": n2.LiveCsv(
+                [str(troot / "csv"), "-d", str(messages), "-ip", "127.0.0.1",
+                 "-p", str(relay), "-f", "-s", ",", "-t", "time",
+                 "NR_PDCP_TX_SDU", *PDCP_FIELDS],
+                cell_dir / "ttracer/ue/primer_pdcp_live.csv"),
+        }
+        ready_path = cell_dir / "target_channel_primer_ready.json"
+        received_path = cell_dir / "target_channel_primer_received.json"
+        sink = self.spawn(
+            f"target_channel_primer_sink_{cell_tag}",
+            ["sudo", "-n", "nsenter", "-t", str(self.edge_pid), "-n",
+             sys.executable, "-c", _PRIMER_SINK_SOURCE,
+             str(port), str(count), f"{timeout_s:.3f}", str(ready_path),
+             str(received_path)],
+            f"cells/{cell_tag}/logs/target_channel_primer_sink.log",
+            root_owned=True,
+        )
+        outcome: dict[str, Any] = {
+            "role": "TARGET_CHANNEL_STATE_PRIMER_NOT_A_SCIENTIFIC_DECISION",
+            "port": port, "datagrams_sent": count, "payload_bytes": size,
+        }
+        try:
+            time.sleep(0.25)
+            require(all(live.process.poll() is None for live in lives.values()),
+                    "a target-channel primer live extractor exited")
+            ready_deadline = time.monotonic() + 5.0
+            while time.monotonic() < ready_deadline and not ready_path.is_file():
+                require(sink.process.poll() is None, "primer sink exited before READY")
+                time.sleep(0.02)
+            require(ready_path.is_file(), "target-channel primer sink did not become ready")
+
+            send_start = time.monotonic_ns()
+            sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                sender.bind((self.ue_ip, 0))
+                payload = b"SCENESENSE_RUN4_TARGET_CHANNEL_PRIMER".ljust(size, b"\0")
+                for _ in range(count):
+                    sender.sendto(payload, (self.edge_host, port))
+                    time.sleep(0.01)
+            finally:
+                sender.close()
+            send_end = time.monotonic_ns()
+
+            try:
+                sink.process.wait(timeout=timeout_s + 2.0)
+            except subprocess.TimeoutExpired:
+                raise RunFailure("target-channel primer sink timed out")
+            received = 0
+            if received_path.is_file():
+                received = int(json.loads(received_path.read_text())["received"])
+            require(received == count,
+                    f"target-channel primer received {received}/{count} datagrams")
+
+            deadline = time.monotonic() + timeout_s
+            grants: list[dict[str, int]] = []
+            pdcp_rows: list[tuple[int, int, str]] = []
+            zero_run = 0
+            retained_ticks: list[dict[str, Any]] = []
+            latest_pdcp_receipt = send_start
+            while time.monotonic() < deadline:
+                grants = eligible_primer_grants(
+                    lives["dci"].snapshot(), after_receipt_ns=send_start)
+                pdcp_rows = [
+                    row for row in lives["pdcp"].snapshot()
+                    if row[1] > send_start
+                ]
+                if pdcp_rows:
+                    latest_pdcp_receipt = max(row[1] for row in pdcp_rows)
+                # A zero tick received before the primer reached UE PDCP says
+                # nothing about whether the primer itself has drained. Count
+                # only complete RLC ticks observed after the latest primer
+                # ingress row. Receipt time is an early live guard only; the
+                # post-extraction join applies the authoritative source-clock
+                # ordering gate.
+                zero_run, retained_ticks = trailing_zero_rlc_ticks(
+                    lives["rlc"].snapshot(),
+                    after_receipt_ns=latest_pdcp_receipt)
+                quiet = time.monotonic_ns() - latest_pdcp_receipt >= quiet_ns
+                if grants and pdcp_rows and zero_run >= required_zero and quiet:
+                    break
+                time.sleep(0.01)
+            require(grants, "primer produced no fresh UE-decoded round-0 UL grant")
+            require(pdcp_rows, "primer produced no UE PDCP ingress evidence")
+            require(zero_run >= required_zero,
+                    f"primer queue did not drain: {zero_run} trailing zero ticks")
+            require(time.monotonic_ns() - latest_pdcp_receipt >= quiet_ns,
+                    "primer queue has not observed its registered ingress-quiet interval")
+            latest = max(grants, key=lambda row: row["receipt_monotonic_ns"])
+            completed = time.monotonic_ns()
+            outcome.update({
+                "send_start_monotonic_ns": send_start,
+                "send_end_monotonic_ns": send_end,
+                "datagrams_received": received,
+                "pdcp_rows_after_send": len(pdcp_rows),
+                "latest_pdcp_receipt_monotonic_ns": latest_pdcp_receipt,
+                "fresh_round0_grants": len(grants),
+                "latest_grant": latest,
+                "trailing_zero_rlc_ticks": zero_run,
+                "zero_rlc_ticks_required": required_zero,
+                "ingress_quiet_ms_required": float(config["ingress_quiet_ms"]),
+                "retained_rlc_ticks": retained_ticks[-10:],
+                "completed_monotonic_ns": completed,
+                "qualified_for_sender_start": True,
+            })
+            (cell_dir / "target_channel_primer.json").write_text(
+                json.dumps(outcome, indent=2) + "\n")
+            return outcome
+        finally:
+            for live in lives.values():
+                live.stop()
+
+    def launch_traffic(self, *, cell_tag: str, cell_id: str,
+                       blocks: Sequence[Mapping[str, Any]], cell_dir: Path,
+                       total_frames: int) -> dict[str, Any]:
+        """Prepare receivers, prime target-channel MCS, then start decisions."""
+        traffic = self.config["traffic"]
+        assert self.ue_ip is not None and self.edge_host is not None
+        duration = (
+            total_frames / C.FPS + float(traffic["receiver_tail_s"])
+            + float(traffic["target_channel_primer"]["timeout_s"])
+        )
+        receivers: list[dict[str, Any]] = []
+        for block in blocks:
+            tag = f"block{block['block_index']}_{block['tier']}"
+            events = cell_dir / f"receiver_{tag}_events.jsonl"
+            summary = cell_dir / f"receiver_{tag}_summary.json"
+            ready = cell_dir / f"receiver_{tag}_ready.json"
+            process = self.spawn(
+                f"receiver_{cell_tag}_{tag}",
+                ["sudo", "-n", "nsenter", "-t", str(self.edge_pid), "-n",
+                 sys.executable, str(self.path(C.PRODUCTION_RECEIVER_RELPATH)),
+                 "--bind-host", "0.0.0.0", "--port", str(block["port"]),
+                 "--events-jsonl", str(events), "--summary-json", str(summary),
+                 "--ready-json", str(ready), "--duration-s", f"{duration:.3f}",
+                 "--expected-frames", str(block["frames"]),
+                 "--expected-chunks-per-frame", str(block["chunks_per_frame"]),
+                 "--max-chunks-per-frame",
+                 str(max(16, int(block["chunks_per_frame"]) * 2)),
+                 "--socket-receive-buffer-bytes",
+                 str(traffic["receive_buffer_bytes"])],
+                f"cells/{cell_tag}/logs/receiver_{tag}.log", root_owned=True)
+            receivers.append({
+                "process": process, "ready": ready,
+                "block_index": int(block["block_index"]),
+                "tier": block["tier"], "events": events, "summary": summary,
+            })
+        deadline = time.monotonic() + 30.0
+        while time.monotonic() < deadline:
+            if all(item["ready"].is_file() for item in receivers):
+                break
+            for item in receivers:
+                require(item["process"].process.poll() is None,
+                        f"receiver {item['tier']} exited before READY")
+            time.sleep(0.2)
+        require(all(item["ready"].is_file() for item in receivers),
+                "not every block receiver reported READY")
+
+        primer = self.target_channel_primer(cell_tag, cell_dir)
+        plan_path = cell_dir / "block_plan.json"
+        plan_path.write_text(json.dumps(list(blocks), indent=2) + "\n")
+        sender_csv = cell_dir / "sender_decisions.csv"
+        sender_summary = cell_dir / "sender_summary.json"
+        sender = self.spawn(
+            f"sender_{cell_tag}",
+            [sys.executable, "-m",
+             "rl_agent.ue_mcs_backlog_calibration_v1.tagged_sender",
+             "--cell-id", cell_id, "--bind-host", self.ue_ip,
+             "--remote-host", self.edge_host, "--block-plan", str(plan_path),
+             "--payload-seed", str(self.config["campaign"]["payload_seed"]),
+             "--chunk-bytes", str(C.CHUNK_BYTES), "--fps", str(C.FPS),
+             "--socket-sendbuf", str(traffic["send_buffer_bytes"]),
+             "--log-csv", str(sender_csv), "--summary-json", str(sender_summary)],
+            f"cells/{cell_tag}/logs/sender.log")
+        return {
+            "receivers": receivers, "sender": sender, "frames": total_frames,
+            "sender_csv": sender_csv, "target_channel_primer": primer,
+        }
+
+    def audit_primer_first_decision(
+        self, sessions: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Early receipt-time gate; exact source-time age is checked offline."""
+        with Path(sessions["sender_csv"]).open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            first = next(reader, None)
+        require(first is not None, "sender decision CSV is empty")
+        first_ns = int(first["decision_monotonic_ns"])
+        primer = sessions["target_channel_primer"]
+        grant_receipt = int(primer["latest_grant"]["receipt_monotonic_ns"])
+        completed = int(primer["completed_monotonic_ns"])
+        gap_ms = (first_ns - grant_receipt) / 1e6
+        completion_gap_ms = (first_ns - completed) / 1e6
+        maximum = float(self.config["traffic"]["target_channel_primer"][
+            "max_grant_receipt_to_first_decision_ms"])
+        require(completion_gap_ms >= 0.0,
+                "first scientific decision preceded primer queue-drain proof")
+        require(0.0 <= gap_ms <= maximum,
+                f"primer grant receipt-to-first-decision gap {gap_ms:.3f} ms "
+                f"is outside [0,{maximum}] ms")
+        return {
+            "first_decision_monotonic_ns": first_ns,
+            "latest_grant_receipt_monotonic_ns": grant_receipt,
+            "grant_receipt_to_first_decision_ms": gap_ms,
+            "primer_complete_to_first_decision_ms": completion_gap_ms,
+            "receipt_time_gate_passed": True,
+            "authoritative_source_time_gate":
+                "DEFERRED_TO_POST_EXTRACTION_CAUSAL_DECISION_JOIN",
+        }
+
     # -- one cell, with the registered failure policy --------------------
     def run_cell(self, cell: C.Cell, profile: Any) -> dict[str, Any]:
         cell_tag = f"{cell.run_index:02d}__{cell.cell_id}"
@@ -357,6 +675,7 @@ class Runner(V3R.Runner):
             sessions = self.launch_traffic(
                 cell_tag=cell_tag, cell_id=cell.cell_id, blocks=blocks,
                 cell_dir=cell_dir, total_frames=C.FRAMES_PER_CELL)
+            record["target_channel_primer"] = sessions["target_channel_primer"]
 
             start = time.monotonic_ns()
             period_ns = int(float(self.config["campaign"]["sample_period_s"]) * 1e9)
@@ -393,6 +712,8 @@ class Runner(V3R.Runner):
                     f"schedule was not met")
 
             self.finish_traffic(sessions)
+            record["primer_first_decision_audit"] = (
+                self.audit_primer_first_decision(sessions))
             record["traffic"] = self.audit_traffic(sessions, cell, cell_dir)
             record["noise_after_cell_db"] = self.read_back_noise()
             record["restored"] = self.restore_clean(cell_dir, command_log)
@@ -511,6 +832,9 @@ class Runner(V3R.Runner):
             require(capacity_result is not None,
                     "no capacity-qualification result was supplied; the tiers are "
                     "not frozen in the contract and cannot be guessed")
+            require(bool(capacity_result.get("binding_verified")),
+                    "capacity result was not opened through its manifest and "
+                    "terminal seals")
             capacity = float(capacity_result["adverse_capacity_mbps"])
             require(bool(capacity_result.get("qualified")),
                     f"capacity qualification did not pass its gates: "
@@ -613,6 +937,29 @@ class Runner(V3R.Runner):
         return 0 if status == STATUS_OK else 1
 
 
+_PRIMER_SINK_SOURCE = """
+import json, socket, sys, time
+from pathlib import Path
+port = int(sys.argv[1])
+count = int(sys.argv[2])
+timeout = float(sys.argv[3])
+ready = Path(sys.argv[4])
+out = Path(sys.argv[5])
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("0.0.0.0", port))
+s.settimeout(0.2)
+ready.write_text(json.dumps({"ready": True, "port": port}) + "\\n")
+received, deadline = 0, time.monotonic() + timeout
+while time.monotonic() < deadline and received < count:
+    try:
+        s.recvfrom(65535)
+        received += 1
+    except socket.timeout:
+        continue
+out.write_text(json.dumps({"received": received, "expected": count}) + "\\n")
+"""
+
 #: Runs inside the ext-DN namespace. Kept inline so the probe needs no extra
 #: file on the edge mount, and writes a ready marker so the sender never races
 #: an unbound socket.
@@ -664,7 +1011,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     capacity_result = None
     if args.capacity_result is not None:
-        capacity_result = json.loads(args.capacity_result.read_text())
+        # Lazy import avoids a module cycle: capacity_runner reuses this
+        # class's proven radio lifecycle, while this scientific entry point
+        # consumes only its cryptographic result verifier.
+        from rl_agent.ue_mcs_backlog_near_capacity_v1.capacity_runner import (
+            verify_bound_capacity_result,
+        )
+        capacity_result = verify_bound_capacity_result(args.capacity_result)
 
     output.mkdir(parents=True, exist_ok=False)
     (output / "lineage.json").write_text(json.dumps(AUTH.lineage_record(
