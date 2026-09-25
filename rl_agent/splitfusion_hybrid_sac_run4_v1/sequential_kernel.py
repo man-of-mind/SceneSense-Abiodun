@@ -60,8 +60,11 @@ __all__ = [
     "verify_kernel_prerequisites",
     "KernelDecisionInputV1",
     "PredictionPayloadV1",
+    "PredictionModelInputV1",
     "PredictionRequestV1",
     "FeedbackLatencyBreakdownV1",
+    "PredictedIntegerObservationV1",
+    "EmpiricalModelForecastV1",
     "EmpiricalStepPredictionV1",
     "KernelStepResultV1",
     "KernelCheckpointV1",
@@ -999,6 +1002,62 @@ class PredictionPayloadV1:
 
 
 @dataclass(frozen=True, slots=True)
+class PredictionModelInputV1:
+    """Feature-only input exposed to the empirical transition model.
+
+    Session/UE/decision identities, source timestamps and calibration split
+    labels are deliberately absent.  They remain in the attested request
+    envelope for joining, but the fitted model can only consume the current
+    measured values, executed action and ordered offered payloads.
+    """
+
+    prior_ul_mcs: int
+    pre_enqueue_backlog_bytes: int
+    action: ExecutedActionIdentity
+    reward_payload: PredictionPayloadV1
+    held_payloads: Tuple[PredictionPayloadV1, ...]
+
+    def __post_init__(self) -> None:
+        mcs = _exact_int(self.prior_ul_mcs, "prior_ul_mcs")
+        if not contract.UL_MCS_INDEX_MIN <= mcs <= contract.UL_MCS_INDEX_MAX:
+            raise SupportViolation("prior UL MCS escaped the registered wire range")
+        _exact_int(
+            self.pre_enqueue_backlog_bytes,
+            "pre_enqueue_backlog_bytes",
+        )
+        if type(self.action) is not ExecutedActionIdentity:
+            raise PredictionViolation(
+                "model input action must be ExecutedActionIdentity"
+            )
+        self.action.require_reconciled()
+        if type(self.reward_payload) is not PredictionPayloadV1:
+            raise PredictionViolation(
+                "model input reward_payload must be PredictionPayloadV1"
+            )
+        if type(self.held_payloads) is not tuple or not self.held_payloads:
+            raise PredictionViolation("model input held_payloads must be nonempty")
+        if any(type(item) is not PredictionPayloadV1 for item in self.held_payloads):
+            raise PredictionViolation("model input contains a foreign held payload")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "action_sha256": self.action.canonical_sha256(),
+            "held_payloads": [item.to_dict() for item in self.held_payloads],
+            "pre_enqueue_backlog_bytes": self.pre_enqueue_backlog_bytes,
+            "prior_ul_mcs": self.prior_ul_mcs,
+            "reward_payload": self.reward_payload.to_dict(),
+        }
+
+    @property
+    def canonical_sha256(self) -> str:
+        return canonical_sha256(_record("prediction_model_input_v1", self.to_dict()))
+
+    @property
+    def held_offered_payload_bytes(self) -> float:
+        return sum(item.offered_payload_bytes for item in self.held_payloads)
+
+
+@dataclass(frozen=True, slots=True)
 class PredictionRequestV1:
     """Causal, sanitized input to one empirical radio/queue prediction.
 
@@ -1150,8 +1209,58 @@ class PredictionRequestV1:
         return self._binding()
 
     @property
+    def model_input(self) -> PredictionModelInputV1:
+        """Return the only record an empirical fitted model may consume."""
+
+        self.require_attested()
+        self.current_radio_state.require_actor_ready()
+        assert self.current_radio_state.prior_ul_mcs.value is not None
+        assert self.current_radio_state.pre_enqueue_backlog_bytes.value is not None
+        return PredictionModelInputV1(
+            prior_ul_mcs=self.current_radio_state.prior_ul_mcs.value,
+            pre_enqueue_backlog_bytes=(
+                self.current_radio_state.pre_enqueue_backlog_bytes.value
+            ),
+            action=self.action,
+            reward_payload=self.reward_payload,
+            held_payloads=self.held_payloads,
+        )
+
+    def bind_forecast(
+        self, forecast: "EmpiricalModelForecastV1"
+    ) -> "EmpiricalStepPredictionV1":
+        """Join identity-free model output to this attested request envelope."""
+
+        self.require_attested()
+        if type(forecast) is not EmpiricalModelForecastV1:
+            raise PredictionViolation("forecast must be EmpiricalModelForecastV1")
+        if forecast.model_input_sha256 != self.model_input.canonical_sha256:
+            raise PredictionViolation("forecast belongs to another model input")
+        sequence = self.identity.decision_seq
+        return EmpiricalStepPredictionV1(
+            prediction_request_sha256=self.canonical_sha256,
+            kernel_provenance_sha256=forecast.kernel_provenance_sha256,
+            fitted_model_sha256=forecast.fitted_model_sha256,
+            calibration_partition=self.calibration_partition,
+            source_cell_id=forecast.source_cell_id,
+            terminal_kind=forecast.terminal_kind,
+            terminal_elapsed_ns=forecast.terminal_elapsed_ns,
+            latency=forecast.latency,
+            next_state=RadioQueueStateV1(
+                session_uuid=self.identity.session_uuid,
+                ue_id=self.identity.ue_id,
+                decision_seq=sequence + 1,
+                prior_ul_mcs=forecast.next_prior_ul_mcs.to_observation(sequence),
+                pre_enqueue_backlog_bytes=(
+                    forecast.next_pre_enqueue_backlog_bytes.to_observation(sequence)
+                ),
+            ),
+            source_row_sha256=forecast.source_row_sha256,
+        )
+
+    @property
     def held_offered_payload_bytes(self) -> float:
-        return sum(item.offered_payload_bytes for item in self.held_payloads)
+        return self.model_input.held_offered_payload_bytes
 
 
 @dataclass(frozen=True, slots=True)
@@ -1214,6 +1323,134 @@ class FeedbackLatencyBreakdownV1:
             "non_network_ns": self.non_network_ns,
             "transport_ns": self.transport_ns,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class PredictedIntegerObservationV1:
+    """Identity-free next integer value returned by the fitted model."""
+
+    value: Optional[int]
+    missing_reason: Optional[str]
+    provenance_sha256: str
+
+    def __post_init__(self) -> None:
+        _digest(self.provenance_sha256, "provenance_sha256")
+        if self.value is None:
+            _text(self.missing_reason, "missing_reason")
+        else:
+            _exact_int(self.value, "value")
+            if self.missing_reason is not None:
+                raise PredictionViolation(
+                    "a present predicted observation cannot carry missing_reason"
+                )
+
+    def to_observation(self, source_decision_seq: int) -> IntegerObservationV1:
+        _exact_int(source_decision_seq, "source_decision_seq")
+        return IntegerObservationV1(
+            value=self.value,
+            missing_reason=self.missing_reason,
+            source_decision_seq=source_decision_seq,
+            provenance_sha256=self.provenance_sha256,
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "missing_reason": self.missing_reason,
+            "provenance_sha256": self.provenance_sha256,
+            "value": self.value,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class EmpiricalModelForecastV1:
+    """Identity-free empirical output, joined by an attested request."""
+
+    model_input_sha256: str
+    kernel_provenance_sha256: str
+    fitted_model_sha256: str
+    source_cell_id: str
+    terminal_kind: KernelTerminalKind
+    terminal_elapsed_ns: int
+    latency: Optional[FeedbackLatencyBreakdownV1]
+    next_prior_ul_mcs: PredictedIntegerObservationV1
+    next_pre_enqueue_backlog_bytes: PredictedIntegerObservationV1
+    source_row_sha256: str
+
+    def __post_init__(self) -> None:
+        for name in (
+            "model_input_sha256",
+            "kernel_provenance_sha256",
+            "fitted_model_sha256",
+            "source_row_sha256",
+        ):
+            _digest(getattr(self, name), name)
+        _text(self.source_cell_id, "source_cell_id")
+        if not isinstance(self.terminal_kind, KernelTerminalKind):
+            raise PredictionViolation("terminal_kind must be KernelTerminalKind")
+        elapsed = _exact_int(
+            self.terminal_elapsed_ns, "terminal_elapsed_ns", minimum=1
+        )
+        if type(self.next_prior_ul_mcs) is not PredictedIntegerObservationV1:
+            raise PredictionViolation("next_prior_ul_mcs has a foreign type")
+        if type(self.next_pre_enqueue_backlog_bytes) is not (
+            PredictedIntegerObservationV1
+        ):
+            raise PredictionViolation(
+                "next_pre_enqueue_backlog_bytes has a foreign type"
+            )
+        if self.terminal_kind is KernelTerminalKind.DELIVERED_FEEDBACK:
+            if type(self.latency) is not FeedbackLatencyBreakdownV1:
+                raise PredictionViolation(
+                    "delivered feedback requires an exact latency breakdown"
+                )
+            if elapsed != self.latency.full_feedback_ns:
+                raise PredictionViolation(
+                    "terminal elapsed time must equal the frame-level latency sum"
+                )
+            if elapsed > contract.REWARD_DEADLINE_NS:
+                raise PredictionViolation(
+                    "DELIVERED_FEEDBACK after the inclusive 170-ms deadline "
+                    "is late-orphan evidence, not a cycle terminal"
+                )
+        elif self.latency is not None:
+            raise PredictionViolation(
+                "failed/timeout forecasts must not fabricate a complete "
+                "feedback latency breakdown"
+            )
+        if self.terminal_kind is KernelTerminalKind.TIMEOUT and (
+            elapsed != TIMEOUT_RESOLUTION_ELAPSED_NS
+        ):
+            raise PredictionViolation(
+                "TIMEOUT must close at the first nanosecond strictly after "
+                "the inclusive 170-ms deadline"
+            )
+        if (
+            self.terminal_kind is not KernelTerminalKind.TIMEOUT
+            and elapsed > contract.REWARD_DEADLINE_NS
+        ):
+            raise PredictionViolation(
+                "a non-timeout terminal cannot arrive after timeout closure"
+            )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "fitted_model_sha256": self.fitted_model_sha256,
+            "kernel_provenance_sha256": self.kernel_provenance_sha256,
+            "latency": None if self.latency is None else self.latency.to_dict(),
+            "model_input_sha256": self.model_input_sha256,
+            "next_pre_enqueue_backlog_bytes": (
+                self.next_pre_enqueue_backlog_bytes.to_dict()
+            ),
+            "next_prior_ul_mcs": self.next_prior_ul_mcs.to_dict(),
+            "source_cell_id": self.source_cell_id,
+            "source_row_sha256": self.source_row_sha256,
+            "terminal_elapsed_ns": self.terminal_elapsed_ns,
+            "terminal_kind": self.terminal_kind.value,
+        }
+
+    @property
+    def canonical_sha256(self) -> str:
+        return canonical_sha256(_record("empirical_model_forecast_v1", self.to_dict()))
 
 
 @dataclass(frozen=True, slots=True)

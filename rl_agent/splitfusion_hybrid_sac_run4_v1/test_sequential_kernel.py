@@ -327,22 +327,29 @@ class Run4SequentialKernelTests(unittest.TestCase):
         else:
             breakdown = None
             elapsed = 50_000_000
-        return src.EmpiricalStepPredictionV1(
-            prediction_request_sha256=request.canonical_sha256,
+        forecast = src.EmpiricalModelForecastV1(
+            model_input_sha256=request.model_input.canonical_sha256,
             kernel_provenance_sha256=prereq.provenance.canonical_sha256,
             fitted_model_sha256=prereq.fitted_model_sha256,
-            calibration_partition=decision.calibration_partition,
             source_cell_id=source_cell_id,
             terminal_kind=terminal,
             terminal_elapsed_ns=elapsed,
             latency=breakdown,
-            next_state=cls.state(
-                decision.identity.decision_seq + 1,
-                mcs=next_mcs,
-                backlog=next_backlog,
+            next_prior_ul_mcs=src.PredictedIntegerObservationV1(
+                value=next_mcs,
+                missing_reason=(None if next_mcs is not None else "MCS_MISSING"),
+                provenance_sha256=_d("1"),
+            ),
+            next_pre_enqueue_backlog_bytes=src.PredictedIntegerObservationV1(
+                value=next_backlog,
+                missing_reason=(
+                    None if next_backlog is not None else "BACKLOG_MISSING"
+                ),
+                provenance_sha256=_d("2"),
             ),
             source_row_sha256=_d("f"),
         )
+        return request.bind_forecast(forecast)
 
     @classmethod
     def kernel(
@@ -696,11 +703,10 @@ class Run4SequentialKernelTests(unittest.TestCase):
         next_decision = self.decision(
             1, current_radio_state=kernel.current_state
         )
-        next_prediction = self.prediction(
-            next_decision, current_radio_state=kernel.current_state
-        )
         with self.assertRaisesRegex(src.SupportViolation, "external fallback"):
-            kernel.advance(decision=next_decision, prediction=next_prediction)
+            _ = next_decision.to_prediction_request(
+                kernel.current_state
+            ).model_input
 
     def test_exact_checkpoint_restore_and_continuation(self) -> None:
         prerequisites = self.prerequisites()
@@ -812,6 +818,8 @@ class Run4SequentialKernelTests(unittest.TestCase):
         self.assertNotEqual(
             request.canonical_sha256, alternate_request.canonical_sha256
         )
+        self.assertEqual(request.model_input.prior_ul_mcs, 12)
+        self.assertEqual(request.model_input.pre_enqueue_backlog_bytes, 4_321)
 
     def test_prediction_request_excludes_quality_scene_and_frame_identity(self) -> None:
         state = self.state(0, mcs=7, backlog=100)
@@ -848,6 +856,93 @@ class Run4SequentialKernelTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, serialized_names)
             self.assertNotIn(forbidden, public_fields)
+
+    def test_empirical_model_input_excludes_identity_partition_and_provenance(self) -> None:
+        state = self.state(0, mcs=7, backlog=100)
+        fit = self.decision(
+            0,
+            partition=src.KernelCalibrationPartition.FIT,
+            current_radio_state=state,
+        ).to_prediction_request(state)
+        validation = self.decision(
+            0,
+            partition=src.KernelCalibrationPartition.VALIDATION,
+            current_radio_state=state,
+        ).to_prediction_request(state)
+        alternate_state = src.RadioQueueStateV1(
+            session_uuid="22222222-2222-4222-8222-222222222222",
+            ue_id="another-ue",
+            decision_seq=19,
+            prior_ul_mcs=src.IntegerObservationV1(
+                value=7,
+                missing_reason=None,
+                source_decision_seq=3,
+                provenance_sha256=_d("8"),
+            ),
+            pre_enqueue_backlog_bytes=src.IntegerObservationV1(
+                value=100,
+                missing_reason=None,
+                source_decision_seq=5,
+                provenance_sha256=_d("9"),
+            ),
+        )
+        alternate_decision = replace(
+            self.decision(0, current_radio_state=state),
+            identity=contract.DecisionIdentityV1(
+                alternate_state.session_uuid,
+                alternate_state.ue_id,
+                alternate_state.decision_seq,
+            ),
+            current_radio_state_sha256=alternate_state.canonical_sha256,
+        )
+        alternate = alternate_decision.to_prediction_request(alternate_state)
+
+        self.assertNotEqual(fit.canonical_sha256, validation.canonical_sha256)
+        self.assertNotEqual(fit.canonical_sha256, alternate.canonical_sha256)
+        self.assertEqual(
+            fit.model_input.canonical_sha256,
+            validation.model_input.canonical_sha256,
+        )
+        self.assertEqual(
+            fit.model_input.canonical_sha256,
+            alternate.model_input.canonical_sha256,
+        )
+        names = " ".join(fit.model_input.to_dict()).lower()
+        public_fields = " ".join(
+            item.name for item in fields(src.PredictionModelInputV1)
+        ).lower()
+        for forbidden in (
+            "identity",
+            "session",
+            "ue_id",
+            "decision_seq",
+            "partition",
+            "profile",
+            "provenance",
+            "source_cell",
+        ):
+            self.assertNotIn(forbidden, names)
+            self.assertNotIn(forbidden, public_fields)
+
+    def test_forecast_is_joined_to_request_identity_outside_model(self) -> None:
+        state = self.state(0, mcs=7, backlog=100)
+        request = self.decision(
+            0, current_radio_state=state
+        ).to_prediction_request(state)
+        prediction = self.prediction(
+            self.decision(0, current_radio_state=state),
+            current_radio_state=state,
+            next_mcs=12,
+            next_backlog=5_000,
+        )
+        self.assertEqual(prediction.prediction_request_sha256, request.canonical_sha256)
+        self.assertEqual(prediction.next_state.session_uuid, SESSION)
+        self.assertEqual(prediction.next_state.ue_id, UE_ID)
+        self.assertEqual(prediction.next_state.decision_seq, 1)
+        self.assertEqual(prediction.next_state.prior_ul_mcs.value, 12)
+        self.assertEqual(
+            prediction.next_state.pre_enqueue_backlog_bytes.value, 5_000
+        )
 
     def test_prediction_request_is_attested_and_tamper_evident(self) -> None:
         state = self.state(0, mcs=7, backlog=100)
