@@ -187,9 +187,29 @@ class Runner(V3R.Runner):
                     break
                 time.sleep(0.5)
             else:
-                subprocess.run(["sudo", "-n", "pkill", "-KILL", "-x", name],
+                # OAI's UE has been observed to ignore SIGINT after a clean
+                # 300-frame capture.  Give it the ordinary graceful process
+                # termination signal before declaring lifecycle failure and
+                # resorting to SIGKILL.  A successful SIGTERM is not a
+                # teardown note; SIGKILL remains a hard evidence-gate failure.
+                subprocess.run(["sudo", "-n", "pkill", "-TERM", "-x", name],
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                notes.append(f"{name} required SIGKILL")
+                term_deadline = time.monotonic() + 10.0
+                while time.monotonic() < term_deadline:
+                    again = subprocess.run(
+                        ["sudo", "-n", "pgrep", "-x", name],
+                        text=True, stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                    )
+                    if again.returncode != 0 or not again.stdout.strip():
+                        break
+                    time.sleep(0.5)
+                else:
+                    subprocess.run(
+                        ["sudo", "-n", "pkill", "-KILL", "-x", name],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    )
+                    notes.append(f"{name} required SIGKILL")
         stale = n2.oai_tunnel_interfaces()
         if stale:
             notes.append(f"stale UE tunnel(s) after teardown: {stale}")

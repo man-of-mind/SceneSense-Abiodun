@@ -908,6 +908,9 @@ class FailurePolicyTests(unittest.TestCase):
         source = inspect.getsource(R.Runner.teardown_ran)
         self.assertIn("nr-softmodem", source)
         self.assertIn("nr-uesoftmodem", source)
+        self.assertLess(source.index('"-INT"'), source.index('"-TERM"'))
+        self.assertLess(source.index('"-TERM"'), source.index('"-KILL"'))
+        self.assertIn('notes.append(f"{name} required SIGKILL")', source)
 
     def test_config_has_no_live_106prb_radio_block(self):
         config = json.loads(
