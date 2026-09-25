@@ -104,6 +104,38 @@ class EmpiricalPredictionProvider(Protocol):
     def load_state_dict(self, state: Any) -> None: ...
 
 
+class ProductionStateProviderFactory(Protocol):
+    """Deferred constructor for one verifier-authorized state provider.
+
+    Production construction uses a factory rather than accepting a caller-
+    supplied instance alongside the test mechanics path.  The returned exact
+    type still carries its module-private authorization attestation and its
+    binding is reconciled against :class:`CompositeRunnerPrerequisitesV1` by
+    :meth:`_RunnerCore._assert_bindings`.
+    """
+
+    def __call__(self) -> production_state_provider.Run4ProductionStateProviderV1:
+        ...
+
+
+class ProductionPredictionProviderFactory(Protocol):
+    """Deferred constructor for an attested empirical predictor."""
+
+    def __call__(self) -> EmpiricalPredictionProvider: ...
+
+
+class ProductionEnvironmentFactory(Protocol):
+    """Constructor for the registered calibrated sequential environment."""
+
+    def __call__(
+        self,
+        *,
+        state_provider: production_state_provider.Run4ProductionStateProviderV1,
+        kernel: "_PreparedKernelAdapter",
+        gamma: float,
+    ) -> environment.Run4SequentialEnvironmentV1: ...
+
+
 def _digest(value: object, name: str) -> str:
     if not isinstance(value, str) or len(value) != 64:
         raise RunnerBindingError(f"{name} must be a SHA-256 hex digest")
@@ -668,6 +700,7 @@ class _RunnerCore:
         decision_q_generator: torch.Generator,
         decision_mode_generator: torch.Generator,
         replay_generator: torch.Generator,
+        environment_factory: Optional[ProductionEnvironmentFactory] = None,
     ) -> None:
         if type(prerequisites) is not CompositeRunnerPrerequisitesV1:
             raise RunnerBindingError("invalid composite prerequisites")
@@ -724,12 +757,53 @@ class _RunnerCore:
         self._replay_generator = replay_generator
         self._catalog = action_contract.load_contract()
         self._adapter = _PreparedKernelAdapter(kernel)
-        self.environment = environment.Run4SequentialEnvironmentV1(
-            state_provider=state_provider,
-            kernel=self._adapter,
-            gamma=replay_buffer.binding.gamma,
-            evidence_class=environment.EnvironmentEvidenceClass.SYNTHETIC_MECHANICS_FIXTURE,
-        )
+        self._environment_factory_injected = environment_factory is not None
+        if environment_factory is None:
+            # This default is intentionally retained only for the private
+            # mechanics harness.  The public production subclass requires an
+            # explicit calibrated factory before it calls this constructor.
+            self.environment = environment.Run4SequentialEnvironmentV1(
+                state_provider=state_provider,
+                kernel=self._adapter,
+                gamma=replay_buffer.binding.gamma,
+                evidence_class=(
+                    environment.EnvironmentEvidenceClass.SYNTHETIC_MECHANICS_FIXTURE
+                ),
+            )
+        else:
+            if not callable(environment_factory):
+                raise RunnerBindingError("environment_factory must be callable")
+            candidate = environment_factory(
+                state_provider=state_provider,
+                kernel=self._adapter,
+                gamma=replay_buffer.binding.gamma,
+            )
+            if type(candidate) is not environment.Run4SequentialEnvironmentV1:
+                raise RunnerBindingError(
+                    "production environment factory returned a foreign type"
+                )
+            if candidate.evidence_class is not (
+                environment.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL
+            ):
+                raise RunnerBindingError(
+                    "production environment factory returned non-calibrated evidence"
+                )
+            # Exact type plus these identity joins prevent a factory from
+            # constructing a separately wired environment and merely handing
+            # it the reviewed calibration label.
+            if candidate._state_provider is not state_provider:  # noqa: SLF001
+                raise RunnerBindingError(
+                    "production environment substituted the state provider"
+                )
+            if candidate._kernel is not self._adapter:  # noqa: SLF001
+                raise RunnerBindingError(
+                    "production environment substituted the kernel adapter"
+                )
+            if candidate._gamma != replay_buffer.binding.gamma:  # noqa: SLF001
+                raise RunnerBindingError(
+                    "production environment substituted gamma"
+                )
+            self.environment = candidate
         self._initial_kernel_checkpoint = kernel.checkpoint()
         self._ledger = self._make_ledger()
         self._session_uuid: Optional[str] = None
@@ -1174,6 +1248,12 @@ class _RunnerCore:
         batch = self.replay_buffer.sample(batch_size, self._replay_generator)
         return self.trainer.update_once(batch)
 
+    def require_gradient_start(self) -> exploration.ExplorationCoverageReport:
+        """Prove warm-up coverage before checkpoint zero or actor collection."""
+
+        self._require_training_authority()
+        return self._ledger.require_gradient_start()
+
     def checkpoint(self) -> PersistentRunnerCheckpointV1:
         if not self.started or self._faulted:
             raise RunnerCheckpointError("checkpoint requires healthy active runner")
@@ -1444,26 +1524,83 @@ class _RunnerCore:
 
 
 class Run4PersistentTrainingRunnerV1(_RunnerCore):
-    """Production entry point, deliberately unreachable before verification."""
+    """Production entry point assembled only from verified component factories.
+
+    The constructor is now structurally capable of reaching :class:`_RunnerCore`
+    once the registered empirical bindings exist.  It still cannot do so in
+    the current tree: ``verify_composite_prerequisites`` and the calibrated
+    environment independently fail closed while their reviewed hashes remain
+    ``None``.
+    """
 
     def __init__(self, **kwargs: Any) -> None:
         authorization = kwargs.get("authorization")
         if type(authorization) is not RunnerAuthorizationV1:
             raise RunnerAuthorizationError("production authorization is required")
         authorization.require_training_eligible()
+
+        environment_factory = kwargs.get("environment_factory")
+        state_provider_factory = kwargs.pop("state_provider_factory", None)
+        prediction_provider_factory = kwargs.pop(
+            "prediction_provider_factory", None
+        )
+        if environment_factory is None or not callable(environment_factory):
+            raise RunnerAuthorizationError(
+                "an explicit calibrated production environment factory is required"
+            )
+        if state_provider_factory is None or not callable(state_provider_factory):
+            raise RunnerAuthorizationError(
+                "an explicit production state-provider factory is required"
+            )
+        if prediction_provider_factory is None or not callable(
+            prediction_provider_factory
+        ):
+            raise RunnerAuthorizationError(
+                "an explicit empirical prediction-provider factory is required"
+            )
+        if "state_provider" in kwargs or "prediction_provider" in kwargs:
+            raise RunnerAuthorizationError(
+                "production providers must be supplied through their factories"
+            )
+
+        state_provider = state_provider_factory()
+        if type(state_provider) is not (
+            production_state_provider.Run4ProductionStateProviderV1
+        ):
+            raise RunnerAuthorizationError(
+                "production state-provider factory returned a foreign type"
+            )
+        state_provider.require_replay_eligible()
+
+        prediction_provider = prediction_provider_factory()
+        require_predictor = getattr(
+            prediction_provider, "require_replay_eligible", None
+        )
+        if not callable(require_predictor):
+            raise RunnerAuthorizationError(
+                "prediction provider lacks replay-eligibility attestation"
+            )
+        require_predictor()
+        _digest(
+            getattr(prediction_provider, "binding_sha256", None),
+            "prediction_provider.binding_sha256",
+        )
+
         if type(kwargs.get("replay_buffer")) is not replay.ReplayBufferV1:
             raise RunnerAuthorizationError("production replay buffer is required")
         if type(kwargs.get("sac_trainer")) is not trainer.Run4HybridSacTrainerV1:
             raise RunnerAuthorizationError("production trainer is required")
-        if not kwargs["state_provider"].replay_export_allowed:
-            raise RunnerAuthorizationError("state provider is not replay eligible")
         if not kwargs["kernel"].replay_export_allowed:
             raise RunnerAuthorizationError("kernel is not replay eligible")
-        # Even a future token must not silently bypass the existing
-        # environment's explicit calibrated-export stop gate.
-        raise RunnerAuthorizationError(
-            "calibrated transition export awaits composite-verifier integration"
-        )
+        kwargs["state_provider"] = state_provider
+        kwargs["prediction_provider"] = prediction_provider
+        super().__init__(**kwargs)
+        if not self._environment_factory_injected or self.environment.evidence_class is not (
+            environment.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL
+        ):
+            raise RunnerAuthorizationError(
+                "production runner did not receive calibrated empirical evidence"
+            )
 
     def _make_ledger(self) -> exploration.ExplorationCoverageLedger:
         return exploration.ExplorationCoverageLedger(
@@ -1485,6 +1622,10 @@ class _TestOnlyPersistentRunnerV1(_RunnerCore):
     """Private mechanics harness; never replay/training eligible."""
 
     def __init__(self, **kwargs: Any) -> None:
+        if kwargs.get("environment_factory") is not None:
+            raise RunnerAuthorizationError(
+                "test mechanics must retain the synthetic environment path"
+            )
         authorization = kwargs.get("authorization")
         if type(authorization) is not RunnerAuthorizationV1:
             raise RunnerAuthorizationError("test authorization is required")
@@ -1541,6 +1682,9 @@ __all__ = [
     "CausalStateStager",
     "CompositeRunnerPrerequisitesV1",
     "EmpiricalPredictionProvider",
+    "ProductionEnvironmentFactory",
+    "ProductionPredictionProviderFactory",
+    "ProductionStateProviderFactory",
     "PersistentRunnerCheckpointV1",
     "PortableJournalReplayRowV1",
     "Run4PersistentTrainingRunnerV1",
