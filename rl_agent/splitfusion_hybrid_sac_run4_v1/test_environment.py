@@ -272,6 +272,46 @@ class EnvironmentTest(unittest.TestCase):
             executable, self.action_contract
         )
 
+    @staticmethod
+    def calibration_binding() -> src.CalibrationBindingV1:
+        return src.CalibrationBindingV1(
+            calibration_id="reviewed-empirical-test-binding",
+            calibration_version=1,
+            evidence_sha256="1" * 64,
+            verifier_report_sha256="2" * 64,
+            kernel_binding_sha256="3" * 64,
+            state_provider_binding_sha256="4" * 64,
+        )
+
+    def calibrated_environment(
+        self,
+        *,
+        provider: FixtureProvider | None = None,
+        kernel: FixtureKernel | None = None,
+    ) -> tuple[
+        src.Run4SequentialEnvironmentV1,
+        FixtureProvider,
+        FixtureKernel,
+        src.CalibrationBindingV1,
+    ]:
+        provider = FixtureProvider() if provider is None else provider
+        kernel = FixtureKernel() if kernel is None else kernel
+        binding = self.calibration_binding()
+        with mock.patch.object(
+            src,
+            "REGISTERED_CALIBRATION_BINDING_SHA256",
+            binding.canonical_sha256(),
+        ):
+            environment = src.Run4SequentialEnvironmentV1(
+                state_provider=provider,
+                kernel=kernel,
+                gamma=0.99,
+                evidence_class=src.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL,
+                calibration_binding=binding,
+            )
+        environment.reset(session_uuid=SESSION, ue_id=UE_ID)
+        return environment, provider, kernel, binding
+
     def environment(
         self,
         provider: FixtureProvider | None = None,
@@ -559,6 +599,149 @@ class EnvironmentTest(unittest.TestCase):
                 evidence_class=src.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL,
                 calibration_binding=binding,
             )
+
+    def test_calibrated_cycle_exports_exact_attested_transition(self) -> None:
+        environment, provider, kernel, binding = self.calibrated_environment()
+        current = environment.current_state
+        action = self.action(mode_id=7, q_e4=7000)
+
+        result = environment.step(action)
+
+        self.assertIs(type(result), src.CalibratedEmpiricalCycleV1)
+        self.assertIs(
+            result.evidence_class,
+            src.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL,
+        )
+        self.assertEqual(
+            result.calibration_binding_sha256, binding.canonical_sha256()
+        )
+        self.assertTrue(result.is_attested)
+        self.assertTrue(result.replay_export_allowed)
+        transition = result.export_for_replay()
+        self.assertIs(type(transition), contract.SemiMarkovTransitionV2)
+        self.assertTrue(transition.is_attested)
+        self.assertEqual(
+            transition.state.canonical_sha256(), current.state.canonical_sha256()
+        )
+        self.assertEqual(
+            transition.state_features.canonical_sha256(),
+            current.features.canonical_sha256(),
+        )
+        self.assertEqual(transition.action, action)
+        assert kernel.last_result is not None
+        self.assertEqual(transition.hold, kernel.last_result.hold)
+        self.assertEqual(
+            transition.reward_resolution.event_sha256,
+            kernel.last_result.reward_event.canonical_sha256(),
+        )
+        self.assertEqual(
+            transition.reward_resolution.action_open_timestamp_ns,
+            current.state.boundary.action_open_timestamp_ns,
+        )
+        self.assertEqual(transition.duration, transition.hold.duration)
+        self.assertEqual(transition.discount, transition.gamma ** transition.duration)
+        self.assertEqual(result.reward_request_flags, (True, False))
+        successor = environment.current_state
+        assert transition.next_state is not None
+        assert transition.next_state_features is not None
+        self.assertEqual(
+            transition.next_state.canonical_sha256(),
+            successor.state.canonical_sha256(),
+        )
+        self.assertEqual(
+            transition.next_state_features.canonical_sha256(),
+            successor.features.canonical_sha256(),
+        )
+        self.assertEqual(
+            transition.cycle_end_timestamp_ns,
+            successor.state.boundary.action_open_timestamp_ns,
+        )
+        previous = contract.PreviousOutcomeV1.from_resolution(
+            transition.reward_resolution
+        )
+        assert transition.next_state.state.previous is not None
+        self.assertEqual(
+            transition.next_state.state.previous.canonical_sha256(),
+            previous.canonical_sha256(),
+        )
+        self.assertEqual(
+            [request.identity.decision_seq for request in provider.requests],
+            [0, 1],
+        )
+
+    def test_calibrated_excluded_fault_never_becomes_learning_data(self) -> None:
+        kernel = FixtureKernel(
+            kind=contract.RewardEventKind.EVALUATOR_FAULT,
+            q_perc=None,
+        )
+        environment, provider, _, _ = self.calibrated_environment(kernel=kernel)
+
+        result = environment.step(self.action())
+
+        self.assertIs(type(result), src.ExcludedCycleV1)
+        self.assertIs(
+            result.evidence_class,
+            src.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL,
+        )
+        self.assertFalse(result.replay_export_allowed)
+        with self.assertRaises(src.SyntheticEvidenceRejected):
+            result.export_for_replay()
+        self.assertTrue(environment.requires_reset)
+        self.assertEqual(len(provider.requests), 1)
+
+    def test_unissued_calibrated_envelope_cannot_export(self) -> None:
+        environment, _, _, _ = self.calibrated_environment()
+        issued = environment.step(self.action())
+        self.assertIs(type(issued), src.CalibratedEmpiricalCycleV1)
+        assert isinstance(issued, src.CalibratedEmpiricalCycleV1)
+        transition = issued.export_for_replay()
+        forged = src.CalibratedEmpiricalCycleV1(
+            evidence_class=src.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL,
+            calibration_binding_sha256=issued.calibration_binding_sha256,
+            kernel_terminal_closure_timestamp_ns=(
+                issued.kernel_terminal_closure_timestamp_ns
+            ),
+            reward_request_flags=issued.reward_request_flags,
+            _transition=transition,
+        )
+
+        self.assertFalse(forged.is_attested)
+        self.assertFalse(forged.replay_export_allowed)
+        with self.assertRaisesRegex(
+            src.CalibrationUnavailableError, "absent, forged, or stale"
+        ):
+            forged.export_for_replay()
+
+    def test_calibrated_envelope_detects_post_issue_transition_tamper(self) -> None:
+        environment, _, _, _ = self.calibrated_environment()
+        result = environment.step(self.action())
+        self.assertIs(type(result), src.CalibratedEmpiricalCycleV1)
+        assert isinstance(result, src.CalibratedEmpiricalCycleV1)
+        transition = result.export_for_replay()
+        object.__setattr__(transition, "discount", 0.5)
+
+        self.assertFalse(result.is_attested)
+        self.assertFalse(result.replay_export_allowed)
+        with self.assertRaises(src.CalibrationUnavailableError):
+            result.export_for_replay()
+
+    def test_calibrated_binding_mismatch_remains_fail_closed(self) -> None:
+        binding = self.calibration_binding()
+        with mock.patch.object(
+            src, "REGISTERED_CALIBRATION_BINDING_SHA256", "f" * 64
+        ):
+            with self.assertRaisesRegex(
+                src.CalibrationUnavailableError, "does not match"
+            ):
+                src.Run4SequentialEnvironmentV1(
+                    state_provider=FixtureProvider(),
+                    kernel=FixtureKernel(),
+                    gamma=0.99,
+                    evidence_class=(
+                        src.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL
+                    ),
+                    calibration_binding=binding,
+                )
 
     def test_kernel_action_mismatch_fails_and_requires_reset(self) -> None:
         environment, _, kernel = self.environment()

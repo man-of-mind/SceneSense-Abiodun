@@ -16,9 +16,13 @@ ways:
   only ``SYNTHETIC_MECHANICS_FIXTURE`` cycles.  Such a cycle is validated with
   :func:`run4_contract.build_transition`, but the transition object is
   immediately discarded.  The returned object contains no bare
-  ``SemiMarkovTransitionV2`` and its export method always raises.
+  ``SemiMarkovTransitionV2`` and its export method always raises; and
+* once a reviewed binding is registered, ``CALIBRATED_EMPIRICAL`` cycles use a
+  separately attested export envelope.  The envelope binds the calibration to
+  the exact contract-issued transition and cannot be constructed by relabeling
+  a synthetic diagnostic.
 
-That second boundary is structural, not a warning label: a mechanics fixture
+Those boundaries are structural, not a warning label: a mechanics fixture
 cannot be handed directly to the production replay buffer.
 """
 
@@ -26,7 +30,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Optional, Protocol, Union
 
@@ -53,6 +57,7 @@ __all__ = [
     "StateProvider",
     "CycleKernel",
     "SyntheticMechanicsCycleV1",
+    "CalibratedEmpiricalCycleV1",
     "ExcludedCycleV1",
     "Run4SequentialEnvironmentV1",
 ]
@@ -92,6 +97,33 @@ class EnvironmentEvidenceClass(str, Enum):
 # unset makes it impossible to relabel a test kernel as calibrated merely by
 # supplying a plausible-looking SHA-256 string.
 REGISTERED_CALIBRATION_BINDING_SHA256: Optional[str] = None
+
+
+def _make_attestation_gate():
+    """Return one module-private issue/verify pair.
+
+    A calibrated replay envelope is authority, not merely a data label.  The
+    sentinel makes it impossible for an external caller to construct an
+    exportable envelope from a valid synthetic transition and a copied digest.
+    """
+
+    sentinel = object()
+
+    def issue(binding: str):
+        return sentinel, binding
+
+    def valid(token: object, binding: str) -> bool:
+        return (
+            type(token) is tuple
+            and len(token) == 2
+            and token[0] is sentinel
+            and token[1] == binding
+        )
+
+    return issue, valid
+
+
+_issue_calibrated_cycle, _valid_calibrated_cycle = _make_attestation_gate()
 
 
 def _non_empty_str(value: object, name: str) -> str:
@@ -381,6 +413,154 @@ class SyntheticMechanicsCycleV1:
 
 
 @dataclass(frozen=True, slots=True)
+class CalibratedEmpiricalCycleV1:
+    """Attested replay envelope for one empirically calibrated cycle.
+
+    The embedded transition is issued only by :func:`contract.build_transition`.
+    A second, module-private attestation binds that transition to the exact
+    reviewed calibration supplied when the environment was constructed.  This
+    extra envelope prevents a synthetic mechanics result from becoming replay
+    eligible through relabeling alone.
+    """
+
+    evidence_class: EnvironmentEvidenceClass
+    calibration_binding_sha256: str
+    kernel_terminal_closure_timestamp_ns: int
+    reward_request_flags: tuple[bool, ...]
+    _transition: contract.SemiMarkovTransitionV2 = field(repr=False, compare=False)
+    _attestation: object = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self.evidence_class is not EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL:
+            raise CalibrationUnavailableError(
+                "calibrated replay envelope must remain labelled empirical"
+            )
+        _sha256(self.calibration_binding_sha256, "calibration_binding_sha256")
+        if type(self._transition) is not contract.SemiMarkovTransitionV2:
+            raise CalibrationUnavailableError(
+                "calibrated envelope requires exactly SemiMarkovTransitionV2"
+            )
+        try:
+            self._transition.require_attested()
+        except contract.TransitionError as exc:
+            raise CalibrationUnavailableError(
+                "calibrated envelope transition is not contract-attested"
+            ) from exc
+        closure = _exact_non_negative_int(
+            self.kernel_terminal_closure_timestamp_ns,
+            "kernel_terminal_closure_timestamp_ns",
+        )
+        transition_end = self._transition.cycle_end_timestamp_ns
+        if self._transition.next_state is None:
+            if transition_end != closure:
+                raise CalibrationUnavailableError(
+                    "a terminal empirical cycle must end at kernel closure"
+                )
+        elif transition_end <= closure:
+            raise CalibrationUnavailableError(
+                "a continuing empirical cycle must end at a measured successor "
+                "action-open strictly after kernel closure"
+            )
+        if type(self.reward_request_flags) is not tuple or any(
+            type(value) is not bool for value in self.reward_request_flags
+        ):
+            raise CalibrationUnavailableError(
+                "reward_request_flags must be an exact tuple of bools"
+            )
+        expected_flags = tuple(
+            tensor.reward_requested for tensor in self._transition.hold.tensors
+        )
+        if self.reward_request_flags != expected_flags:
+            raise CalibrationUnavailableError(
+                "reward request flags differ from the calibrated transition hold"
+            )
+        if self._attestation is not None and not self.is_attested:
+            raise CalibrationUnavailableError(
+                "calibrated replay-envelope attestation is invalid"
+            )
+
+    def _binding(self) -> str:
+        self._transition.require_attested()
+        return canonical_sha256(
+            {
+                "calibration_binding_sha256": self.calibration_binding_sha256,
+                "evidence_class": self.evidence_class.value,
+                "kernel_terminal_closure_timestamp_ns": (
+                    self.kernel_terminal_closure_timestamp_ns
+                ),
+                "reward_request_flags": list(self.reward_request_flags),
+                "schema": "splitfusion_run4_calibrated_cycle_v1",
+                "transition_sha256": self._transition.canonical_sha256(),
+            }
+        )
+
+    @property
+    def is_attested(self) -> bool:
+        try:
+            return _valid_calibrated_cycle(self._attestation, self._binding())
+        except (contract.TransitionError, EnvironmentError):
+            return False
+
+    @property
+    def replay_export_allowed(self) -> bool:
+        return self.is_attested
+
+    def export_for_replay(self) -> contract.SemiMarkovTransitionV2:
+        if not self.is_attested:
+            raise CalibrationUnavailableError(
+                "calibrated replay envelope is absent, forged, or stale"
+            )
+        self._transition.require_attested()
+        return self._transition
+
+    @property
+    def identity(self) -> contract.DecisionIdentityV1:
+        return self._transition.state.state.identity
+
+    @property
+    def terminal(self) -> contract.RewardTerminal:
+        return self._transition.reward_resolution.terminal
+
+    @property
+    def reward(self) -> float:
+        return self._transition.reward
+
+    @property
+    def duration(self) -> int:
+        return self._transition.duration
+
+    @property
+    def action_sha256(self) -> str:
+        return self._transition.action.canonical_sha256()
+
+    @property
+    def hold_sha256(self) -> str:
+        return self._transition.hold.canonical_sha256()
+
+    @property
+    def reward_event_sha256(self) -> str:
+        return self._transition.reward_resolution.event_sha256
+
+    @property
+    def reward_resolution_sha256(self) -> str:
+        return self._transition.reward_resolution.canonical_sha256()
+
+    @property
+    def transition_sha256(self) -> str:
+        return self._transition.canonical_sha256()
+
+    @property
+    def transition_cycle_end_timestamp_ns(self) -> int:
+        return self._transition.cycle_end_timestamp_ns
+
+    @property
+    def next_state_sha256(self) -> Optional[str]:
+        if self._transition.next_state is None:
+            return None
+        return self._transition.next_state.canonical_sha256()
+
+
+@dataclass(frozen=True, slots=True)
 class ExcludedCycleV1:
     """Excluded infrastructure/evaluator fault; never a learning sample."""
 
@@ -399,7 +579,11 @@ class ExcludedCycleV1:
         )
 
 
-CycleResult = Union[SyntheticMechanicsCycleV1, ExcludedCycleV1]
+CycleResult = Union[
+    SyntheticMechanicsCycleV1,
+    CalibratedEmpiricalCycleV1,
+    ExcludedCycleV1,
+]
 
 
 class Run4SequentialEnvironmentV1:
@@ -650,43 +834,57 @@ class Run4SequentialEnvironmentV1:
                 discount=self._gamma ** raw.hold.duration,
             )
 
-            # Calibrated construction is currently refused in __init__.  Keep
-            # this explicit assertion so a future registration change cannot
-            # accidentally expose a bare transition without first defining a
-            # replay verifier envelope.
-            if self._evidence_class is not (
+            reward_request_flags = tuple(
+                tensor.reward_requested for tensor in raw.hold.tensors
+            )
+            if self._evidence_class is (
                 EnvironmentEvidenceClass.SYNTHETIC_MECHANICS_FIXTURE
             ):
-                raise CalibrationUnavailableError(
-                    "calibrated transition export is not implemented; wire it "
-                    "through the production replay verifier before enabling"
+                result: CycleResult = SyntheticMechanicsCycleV1(
+                    evidence_class=self._evidence_class,
+                    identity=current.state.state.identity,
+                    terminal=resolution.terminal,
+                    reward=float(resolution.reward),
+                    duration=raw.hold.duration,
+                    action_sha256=action.canonical_sha256(),
+                    hold_sha256=raw.hold.canonical_sha256(),
+                    reward_resolution_sha256=resolution.canonical_sha256(),
+                    transition_sha256=transition.canonical_sha256(),
+                    kernel_terminal_closure_timestamp_ns=(
+                        raw.cycle_end_timestamp_ns
+                    ),
+                    transition_cycle_end_timestamp_ns=(
+                        transition_cycle_end_timestamp_ns
+                    ),
+                    next_state_sha256=(
+                        None
+                        if next_bundle is None
+                        else next_bundle.state.canonical_sha256()
+                    ),
+                    reward_request_flags=reward_request_flags,
+                )
+            else:
+                calibration_binding = self._calibration_binding
+                if type(calibration_binding) is not CalibrationBindingV1:
+                    raise CalibrationUnavailableError(
+                        "calibrated cycle lost its constructor-verified binding"
+                    )
+                candidate = CalibratedEmpiricalCycleV1(
+                    evidence_class=self._evidence_class,
+                    calibration_binding_sha256=(
+                        calibration_binding.canonical_sha256()
+                    ),
+                    kernel_terminal_closure_timestamp_ns=(
+                        raw.cycle_end_timestamp_ns
+                    ),
+                    reward_request_flags=reward_request_flags,
+                    _transition=transition,
+                )
+                result = replace(
+                    candidate,
+                    _attestation=_issue_calibrated_cycle(candidate._binding()),
                 )
 
-            result = SyntheticMechanicsCycleV1(
-                evidence_class=self._evidence_class,
-                identity=current.state.state.identity,
-                terminal=resolution.terminal,
-                reward=float(resolution.reward),
-                duration=raw.hold.duration,
-                action_sha256=action.canonical_sha256(),
-                hold_sha256=raw.hold.canonical_sha256(),
-                reward_resolution_sha256=resolution.canonical_sha256(),
-                transition_sha256=transition.canonical_sha256(),
-                kernel_terminal_closure_timestamp_ns=(
-                    raw.cycle_end_timestamp_ns
-                ),
-                transition_cycle_end_timestamp_ns=(
-                    transition_cycle_end_timestamp_ns
-                ),
-                next_state_sha256=(
-                    None
-                    if next_bundle is None
-                    else next_bundle.state.canonical_sha256()
-                ),
-                reward_request_flags=tuple(
-                    tensor.reward_requested for tensor in raw.hold.tensors
-                ),
-            )
 
             if next_bundle is None:
                 self._current = None
