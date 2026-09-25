@@ -87,6 +87,10 @@ class TargetRadioRunnerConstructionTests(unittest.TestCase):
         )
         self.assertEqual(runner.processes, [])
 
+    def test_live_pdcp_probe_forces_line_buffer_flush(self):
+        source = inspect.getsource(R.Runner.udp_probe)
+        self.assertIn('"-f", "-s", ",", "-t", "time"', source)
+
 
 class TierRuleTests(unittest.TestCase):
     """The deterministic rule must bracket the measured boundary or refuse."""

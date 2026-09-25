@@ -232,7 +232,8 @@ class Runner(V3R.Runner):
         live = n2.LiveCsv(
             [str(troot / "csv"), "-d", str(msgs), "-ip", "127.0.0.1",
              "-p", str(self.config["telemetry"]["ue_relay_port"]),
-             "-t", "time", "NR_PDCP_TX_SDU", *PDCP_FIELDS],
+             "-f", "-s", ",", "-t", "time",
+             "NR_PDCP_TX_SDU", *PDCP_FIELDS],
             cell_dir / "udp_probe_pdcp.csv")
         try:
             time.sleep(0.5)

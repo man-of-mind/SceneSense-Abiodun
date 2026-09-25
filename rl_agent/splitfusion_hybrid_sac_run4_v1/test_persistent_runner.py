@@ -134,31 +134,25 @@ class _HeldAwarePredictionProvider:
         self.held_payloads: list[float] = []
 
     def predict(
-        self, request: sequential_kernel.PredictionRequestV1
-    ) -> sequential_kernel.EmpiricalStepPredictionV1:
-        request.require_attested()
-        held_payload = request.held_offered_payload_bytes
+        self, model_input: sequential_kernel.PredictionModelInputV1
+    ) -> sequential_kernel.EmpiricalModelForecastV1:
+        if type(model_input) is not sequential_kernel.PredictionModelInputV1:
+            raise TypeError("prediction provider received a foreign model input")
+        held_payload = model_input.held_offered_payload_bytes
         self.held_payloads.append(held_payload)
-        sequence = request.identity.decision_seq
+        sequence = self.count
         next_backlog = min(9_000_000, 100 + int(held_payload // 10))
         next_mcs = 7 if sequence % 2 == 0 else 12
-        next_state = sequential_kernel.RadioQueueStateV1(
-            session_uuid=request.identity.session_uuid,
-            ue_id=request.identity.ue_id,
-            decision_seq=sequence + 1,
-            prior_ul_mcs=sequential_kernel.IntegerObservationV1(
+        next_prior_ul_mcs = sequential_kernel.PredictedIntegerObservationV1(
                 value=next_mcs,
                 missing_reason=None,
-                source_decision_seq=sequence,
                 provenance_sha256=_d(f"mcs-{sequence + 1}"),
-            ),
-            pre_enqueue_backlog_bytes=sequential_kernel.IntegerObservationV1(
+            )
+        next_backlog_observation = sequential_kernel.PredictedIntegerObservationV1(
                 value=next_backlog,
                 missing_reason=None,
-                source_decision_seq=sequence,
                 provenance_sha256=_d(f"backlog-{sequence + 1}"),
-            ),
-        )
+            )
         if sequence == 1:
             kind = sequential_kernel.KernelTerminalKind.TIMEOUT
             latency = None
@@ -187,18 +181,18 @@ class _HeldAwarePredictionProvider:
             )
             elapsed = latency.full_feedback_ns
         self.count += 1
-        return sequential_kernel.EmpiricalStepPredictionV1(
-            prediction_request_sha256=request.canonical_sha256,
+        return sequential_kernel.EmpiricalModelForecastV1(
+            model_input_sha256=model_input.canonical_sha256,
             kernel_provenance_sha256=(
                 self.prerequisites.provenance.canonical_sha256
             ),
             fitted_model_sha256=self.prerequisites.fitted_model_sha256,
-            calibration_partition=request.calibration_partition,
             source_cell_id="fit-a",
             terminal_kind=kind,
             terminal_elapsed_ns=elapsed,
             latency=latency,
-            next_state=next_state,
+            next_prior_ul_mcs=next_prior_ul_mcs,
+            next_pre_enqueue_backlog_bytes=next_backlog_observation,
             source_row_sha256=_d(f"prediction-row-{sequence}"),
         )
 
@@ -660,6 +654,63 @@ class PersistentRunnerTest(unittest.TestCase):
             uninterrupted.checkpoint().checkpoint_sha256,
             restored.checkpoint().checkpoint_sha256,
         )
+
+    def test_public_portable_replay_reissues_transition_attestation(self) -> None:
+        source = self.factory()
+        source.start(session_uuid=SESSION, ue_id=UE_ID)
+        source.step()
+        checkpoint = source.checkpoint()
+        rows = tuple(
+            src.PortableJournalReplayRowV1(
+                decision=row.decision,
+                prediction=row.prediction,
+                successor_staged=row.successor_staged,
+                expected_transition_sha256=row.transition.canonical_sha256(),
+                expected_environment_transition_sha256=(
+                    row.environment_transition_sha256
+                ),
+                expected_journal_sha256=row.canonical_sha256,
+            )
+            for row in checkpoint.journal
+        )
+        receiver = self.factory()
+        reissued = receiver.reissue_portable_journal(
+            runner_binding_sha256=checkpoint.runner_binding_sha256,
+            session_uuid=checkpoint.session_uuid,
+            ue_id=checkpoint.ue_id,
+            genesis_staged=checkpoint.genesis_staged,
+            initial_kernel_checkpoint_sha256=(
+                checkpoint.initial_kernel_checkpoint.canonical_sha256
+            ),
+            rows=rows,
+        )
+        self.assertEqual(
+            tuple(row.canonical_sha256 for row in reissued),
+            tuple(row.canonical_sha256 for row in checkpoint.journal),
+        )
+        self.assertEqual(receiver.transition_digests, source.transition_digests)
+        for row in reissued:
+            row.transition.require_attested()
+
+    def test_public_portable_replay_refuses_digest_before_return(self) -> None:
+        source = self.factory()
+        source.start(session_uuid=SESSION, ue_id=UE_ID)
+        source.step()
+        checkpoint = source.checkpoint()
+        original = checkpoint.journal[0]
+        with self.assertRaisesRegex(
+            src.RunnerCheckpointError, "journal fingerprint mismatch"
+        ):
+            src.PortableJournalReplayRowV1(
+                decision=original.decision,
+                prediction=original.prediction,
+                successor_staged=original.successor_staged,
+                expected_transition_sha256=original.transition.canonical_sha256(),
+                expected_environment_transition_sha256=(
+                    original.environment_transition_sha256
+                ),
+                expected_journal_sha256=_d("wrong-portable-journal"),
+            )
 
     def test_mismatched_checkpoint_binding_fails_without_mutating_source(self) -> None:
         runner = self.factory()

@@ -115,7 +115,7 @@ SOURCE_PINS: Mapping[str, tuple[str, str]] = {
     ),
     "target_radio_runner": (
         "rl_agent/ue_mcs_backlog_near_capacity_v1/runner.py",
-        "f4087899299cf4d1c388062dfd4590ab33f8025444f35f6e5c2e04c65a39d344",
+        "7d18e1fb6b696d9cee53c3f0df4266aad2125ea412ede99b204c7e44f931ca9a",
     ),
     "target_radio_config": (
         "rl_agent/ue_mcs_backlog_near_capacity_v1/config_v1.json",

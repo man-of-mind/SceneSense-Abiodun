@@ -97,8 +97,8 @@ class EmpiricalPredictionProvider(Protocol):
     def binding_sha256(self) -> str: ...
 
     def predict(
-        self, request: sequential_kernel.PredictionRequestV1
-    ) -> sequential_kernel.EmpiricalStepPredictionV1: ...
+        self, model_input: sequential_kernel.PredictionModelInputV1
+    ) -> sequential_kernel.EmpiricalModelForecastV1: ...
 
     def state_dict(self) -> Any: ...
     def load_state_dict(self, state: Any) -> None: ...
@@ -334,6 +334,79 @@ def _authorize_test_only(
     return _issue_authorization(
         prerequisites, RunnerAuthorizationClass.TEST_ONLY_MECHANICS
     )
+
+
+@dataclass(frozen=True, slots=True)
+class PortableJournalReplayRowV1:
+    """Attestation-free inputs for reissuing one durable journal row.
+
+    A portable checkpoint may retain the causal decision, prediction and
+    successor inputs, but it must not persist interpreter-private transition
+    attestations. The expected digests below are comparison targets only;
+    :meth:`_RunnerCore.reissue_portable_journal` rebuilds the transition via
+    the normal validated execution path before accepting any of them.
+    """
+
+    decision: sequential_kernel.KernelDecisionInputV1
+    prediction: sequential_kernel.EmpiricalStepPredictionV1
+    successor_staged: production_state_provider.StagedDecisionInputsV1
+    expected_transition_sha256: str
+    expected_environment_transition_sha256: str
+    expected_journal_sha256: str
+
+    def __post_init__(self) -> None:
+        if type(self.decision) is not sequential_kernel.KernelDecisionInputV1:
+            raise RunnerCheckpointError("portable replay contains foreign decision")
+        if type(self.prediction) is not sequential_kernel.EmpiricalStepPredictionV1:
+            raise RunnerCheckpointError("portable replay contains foreign prediction")
+        if type(self.successor_staged) is not (
+            production_state_provider.StagedDecisionInputsV1
+        ):
+            raise RunnerCheckpointError("portable replay contains foreign successor")
+        self.decision.action.require_reconciled()
+        for name in (
+            "expected_transition_sha256",
+            "expected_environment_transition_sha256",
+            "expected_journal_sha256",
+        ):
+            _digest(getattr(self, name), name)
+        if self.decision.prediction_request_sha256 != (
+            self.prediction.prediction_request_sha256
+        ):
+            raise RunnerCheckpointError(
+                "portable decision/prediction-request digest mismatch"
+            )
+        expected_identity = contract.DecisionIdentityV1(
+            self.decision.identity.session_uuid,
+            self.decision.identity.ue_id,
+            self.decision.identity.decision_seq + 1,
+        )
+        if self.successor_staged.identity != expected_identity:
+            raise RunnerCheckpointError(
+                "portable replay successor identity is not contiguous"
+            )
+        if self.successor_staged.radio_state.canonical_sha256 != (
+            self.prediction.next_state.canonical_sha256
+        ):
+            raise RunnerCheckpointError(
+                "portable replay successor radio state was substituted"
+            )
+        if self.expected_transition_sha256 != (
+            self.expected_environment_transition_sha256
+        ):
+            raise RunnerCheckpointError(
+                "portable replay environment/transition digest mismatch"
+            )
+        observed_journal = canonical_sha256(
+            {
+                "decision": self.decision.canonical_sha256,
+                "prediction": self.prediction.canonical_sha256,
+                "staged": self.successor_staged.canonical_sha256,
+                "transition": self.expected_transition_sha256,
+            }
+        )
+        if observed_journal != self.expected_journal_sha256:
+            raise RunnerCheckpointError("portable replay journal fingerprint mismatch")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1029,9 +1102,12 @@ class _RunnerCore:
             prediction_request = decision.to_prediction_request(
                 self.kernel.current_state
             )
-            prediction = self.prediction_provider.predict(prediction_request)
-            if type(prediction) is not sequential_kernel.EmpiricalStepPredictionV1:
-                raise RunnerStateError("prediction provider returned foreign record")
+            forecast = self.prediction_provider.predict(
+                prediction_request.model_input
+            )
+            if type(forecast) is not sequential_kernel.EmpiricalModelForecastV1:
+                raise RunnerStateError("prediction provider returned foreign forecast")
+            prediction = prediction_request.bind_forecast(forecast)
             step_result = self._adapter.prepare(decision, prediction)
             resolution = contract.resolve_reward(step_result.reward_event)
             previous = contract.PreviousOutcomeV1.from_resolution(resolution)
@@ -1145,6 +1221,115 @@ class _RunnerCore:
                 self.replay_buffer.resident_transition_digests()
             ),
         )
+
+    def reissue_portable_journal(
+        self,
+        *,
+        runner_binding_sha256: str,
+        session_uuid: str,
+        ue_id: str,
+        genesis_staged: production_state_provider.StagedDecisionInputsV1,
+        initial_kernel_checkpoint_sha256: str,
+        rows: Tuple[PortableJournalReplayRowV1, ...],
+    ) -> Tuple[RunnerStepJournalV1, ...]:
+        """Rebuild durable rows through the normal causal execution path.
+
+        This is the public process-boundary seam used by checkpoint I/O. It
+        accepts no transition object and no attestation token. Every returned
+        transition is reconstructed by :meth:`_execute_prebuilt`, re-attested
+        by :func:`run4_contract.build_transition`, inserted into replay, and
+        compared with all three durable digest targets.
+
+        The receiver must be a pristine runner created by the caller's bound
+        factory. Any contradiction permanently faults this disposable
+        receiver; a partially replayed runner is never returned as usable.
+        """
+
+        _digest(runner_binding_sha256, "runner_binding_sha256")
+        _digest(
+            initial_kernel_checkpoint_sha256,
+            "initial_kernel_checkpoint_sha256",
+        )
+        if runner_binding_sha256 != self.runner_binding_sha256:
+            raise RunnerCheckpointError("portable replay/factory binding mismatch")
+        if self.started or self.decision_count or len(self.replay_buffer):
+            raise RunnerCheckpointError("portable replay receiver is not pristine")
+        if self._faulted or self._adapter.pending:
+            raise RunnerCheckpointError("portable replay receiver is not healthy")
+        if type(genesis_staged) is not (
+            production_state_provider.StagedDecisionInputsV1
+        ):
+            raise RunnerCheckpointError("portable replay genesis is foreign")
+        try:
+            parsed_session = str(uuid.UUID(session_uuid))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise RunnerCheckpointError("portable replay session UUID is invalid") from exc
+        if parsed_session != session_uuid:
+            raise RunnerCheckpointError("portable replay session UUID is not canonical")
+        _text(ue_id, "ue_id")
+        if type(rows) is not tuple or any(
+            type(row) is not PortableJournalReplayRowV1 for row in rows
+        ):
+            raise RunnerCheckpointError(
+                "portable replay rows must be an exact tuple of replay records"
+            )
+        if (
+            genesis_staged.identity.session_uuid,
+            genesis_staged.identity.ue_id,
+            genesis_staged.identity.decision_seq,
+        ) != (session_uuid, ue_id, 0):
+            raise RunnerCheckpointError("portable replay genesis identity differs")
+        initial = self.kernel.checkpoint()
+        if initial.canonical_sha256 != initial_kernel_checkpoint_sha256:
+            raise RunnerCheckpointError("portable replay initial kernel differs")
+        if genesis_staged.radio_state.canonical_sha256 != (
+            initial.current_state.canonical_sha256
+        ):
+            raise RunnerCheckpointError("portable replay genesis radio state differs")
+        for index, row in enumerate(rows):
+            identity = row.decision.identity
+            if (
+                identity.session_uuid,
+                identity.ue_id,
+                identity.decision_seq,
+            ) != (session_uuid, ue_id, index):
+                raise RunnerCheckpointError(
+                    "portable replay decision sequence is not contiguous"
+                )
+
+        try:
+            self.state_provider.stage_decision(genesis_staged)
+            self.environment.reset(session_uuid=session_uuid, ue_id=ue_id)
+            self._session_uuid = session_uuid
+            self._ue_id = ue_id
+            self._genesis_staged = genesis_staged
+            for expected in rows:
+                observed = self._execute_prebuilt(
+                    decision=expected.decision,
+                    prediction=expected.prediction,
+                    successor_staged=expected.successor_staged,
+                    record=True,
+                )
+                if observed.transition.canonical_sha256() != (
+                    expected.expected_transition_sha256
+                ):
+                    raise RunnerCheckpointError(
+                        "portable replay transition digest differs"
+                    )
+                if observed.environment_transition_sha256 != (
+                    expected.expected_environment_transition_sha256
+                ):
+                    raise RunnerCheckpointError(
+                        "portable replay environment digest differs"
+                    )
+                if observed.canonical_sha256 != expected.expected_journal_sha256:
+                    raise RunnerCheckpointError(
+                        "portable replay journal digest differs"
+                    )
+            return tuple(self._journal)
+        except Exception:
+            self._faulted = True
+            raise
 
     @classmethod
     def restore(
@@ -1357,6 +1542,7 @@ __all__ = [
     "CompositeRunnerPrerequisitesV1",
     "EmpiricalPredictionProvider",
     "PersistentRunnerCheckpointV1",
+    "PortableJournalReplayRowV1",
     "Run4PersistentTrainingRunnerV1",
     "RunnerAuthorizationError",
     "RunnerBindingError",
