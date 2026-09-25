@@ -52,17 +52,22 @@ ContractError = V3.ContractError
 CONTRACT_ID = "ue_mcs_backlog_near_capacity_v1"
 CONTRACT_VERSION = 1
 CLAIM_BOUNDARY = (
-    "BOUNDED_NEAR_CAPACITY_QUEUE_TRANSITION_CHARACTERIZATION_WITH_BLOCKED_"
-    "VALIDATION_NOT_KERNEL_ACCEPTANCE_AND_NOT_PUBLICATION_EVIDENCE"
+    "BOUNDED_NEAR_CAPACITY_QUEUE_TRANSITION_CHARACTERIZATION_UNDER_"
+    "OAI_N78_100MHZ_273PRB_4D5U_V1_WITH_BLOCKED_VALIDATION_NOT_KERNEL_"
+    "ACCEPTANCE_AND_NOT_PUBLICATION_EVIDENCE"
 )
 
 # --------------------------------------------------------------------------
-# Immutable action authority.
+# Catalogue authority.
 #
-# Bound by *action id* against the frozen catalogue, then cross-checked against
-# independently recorded profile ids, payload sizes, chunk counts and the shared
-# decoder checkpoint.  Any single mismatch refuses the run rather than guessing
-# which side is right.
+# The catalogue digests are pinned. The three *actions* are NOT: Run 4 no
+# longer freezes them here. They are selected by the registered deterministic
+# rule in ``capacity_qualification.select_tiers`` from the adverse-channel
+# capacity measured under the exact 273PRB/4D5U radio.
+#
+# Run 3's 106 PRB / 7D2U capacity figures and actuator anchors are refused, not
+# reused: the radio lock records the legacy mapping as
+# ``CALIBRATED_ON_40MHZ_106PRB_7D2U_DO_NOT_REUSE_AS_100MHZ_EVIDENCE``.
 # --------------------------------------------------------------------------
 
 ACTION_CATALOG_JSON_SHA256 = (
@@ -71,55 +76,38 @@ ACTION_CATALOG_CSV_RELPATH = (
     "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.csv")
 ACTION_CATALOG_CSV_SHA256 = (
     "0512cb39982178e8c7c96a65ed26e272b3aa3a5aec0020a8dd9cf1cdb6696fbb")
-SHARED_CHECKPOINT_SHA256 = (
-    "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271")
 
-#: tier -> (action_id, profile_id, payload_bytes, chunks, offered Mbps @10 fps)
-EXPECTED_TIERS: Mapping[str, dict[str, Any]] = {
-    "low":    {"action_id": 70, "profile_id": "split_ae32_uint4_q9000",
-               "payload_bytes": 28_109,  "chunks": 1, "offered_mbps": 2.25},
-    "medium": {"action_id": 69, "profile_id": "split_ae32_uint4_q7000",
-               "payload_bytes": 81_087,  "chunks": 2, "offered_mbps": 6.49},
-    "high":   {"action_id": 68, "profile_id": "split_ae32_uint4_q5000",
-               "payload_bytes": 129_707, "chunks": 3, "offered_mbps": 10.38},
-}
+#: Each tier's decoder identity is RECORDED, but tiers are deliberately NOT
+#: required to share one. The original Run-4 draft required it only because
+#: actions 68/69/70 happened to share the AE32 decoder. Over the wide payload
+#: range the tier rule must now search, that constraint would exclude most of
+#: the catalogue and could make the boundary unbracketable.
+#:
+#: It is also scientifically unnecessary here: this experiment loads no model,
+#: runs no CUDA and decodes nothing. A tier is a number of bytes on the wire,
+#: so decoder identity cannot confound a queueing, MCS or backlog measurement.
+#: What IS required is that every tier carry a real, catalogue-resolved digest,
+#: so provenance is never blank.
+REQUIRE_SINGLE_SHARED_CHECKPOINT = False
 
-# --------------------------------------------------------------------------
-# Measured capacity anchors.
-#
-# Derived read-only from the Run-3 evidence (``decisions_v2.csv``) by taking
-# service = (payload enqueued - backlog delta) / dt over intervals where the
-# queue was already deep (>2 MB) and below 85% of the 49,984,583 B ceiling, so
-# the UE was continuously backlogged and the measured rate is the *capacity*,
-# not the offered rate.
-#
-# These are pre-registered EXPECTATIONS, not gates.  They are stated in advance
-# precisely so the outcome cannot be rationalised afterwards.
-# --------------------------------------------------------------------------
-
-MEASURED_CAPACITY_MBPS: Mapping[str, dict[str, float]] = {
-    "ADVERSE_STABLE":   {"p10": 10.49, "p50": 12.05, "p90": 22.57, "n": 1200},
-    "FAVORABLE_STABLE": {"p10": 18.11, "p50": 42.13, "p90": 46.50, "n": 998},
-}
-CAPACITY_SOURCE = (
-    "rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015/"
-    "decisions_v2.csv (read-only re-derivation; the protected file is unchanged)")
-
-#: The "~6 Mbps uplink" figure quoted by the Run-3 preregistration is
-#: contradicted by Run-3's own data: FAVORABLE_STABLE sustained a 21.08 Mbps
-#: offered load with median backlog 0 and 0.960 complete reassembly, which a
-#: 6 Mbps link cannot do.  Recorded so no later reader re-derives tier
-#: placement from the stale number.
-SUPERSEDED_CAPACITY_ASSUMPTION_MBPS = 6.0
+ACTIONS_FROZEN_IN_CONTRACT = False
+ACTION_SELECTION_AUTHORITY = (
+    "rl_agent/ue_mcs_backlog_near_capacity_v1/capacity_qualification.py:"
+    "select_tiers (deterministic, applied to the measured adverse capacity)")
 
 
-def expected_load_ratios() -> dict[str, dict[str, float]]:
-    """Offered load as a fraction of each channel's measured P50 capacity."""
-    return {
-        profile: {tier: spec["offered_mbps"] / MEASURED_CAPACITY_MBPS[profile]["p50"]
-                  for tier, spec in EXPECTED_TIERS.items()}
-        for profile in CONTRAST_PROFILE_IDS
-    }
+def assert_catalog_digests(repo_root: Path) -> None:
+    """Refuse on any catalogue drift, before anything is read from it."""
+    for relpath, expected, label in (
+            (ACTION_CATALOG_RELPATH, ACTION_CATALOG_JSON_SHA256, "catalogue JSON"),
+            (ACTION_CATALOG_CSV_RELPATH, ACTION_CATALOG_CSV_SHA256, "catalogue CSV")):
+        path = repo_root / relpath
+        if not path.is_file():
+            raise ContractError(f"{label} missing at {path}")
+        observed = sha256_file(path)
+        if observed != expected:
+            raise ContractError(
+                f"{label} sha256 {observed} != pinned {expected}; refusing")
 
 
 # --------------------------------------------------------------------------
@@ -159,99 +147,64 @@ def permutation_label(order: Sequence[str]) -> str:
 
 @dataclass(frozen=True)
 class LoadTier:
-    """One offered-load tier, pinned to a catalogue action."""
+    """One offered-load tier, bound to a catalogue action by the tier rule."""
 
     tier: str
     action_id: int
     profile_id: str
     payload_bytes: int
-    family: str
-    q_e4: int
     checkpoint_sha256: str
+    offered_mbps: float
+    target_ratio: float
+    achieved_ratio: float
 
     @property
     def chunks_per_frame(self) -> int:
         return max(1, -(-self.payload_bytes // CHUNK_BYTES))
 
-    @property
-    def offered_mbps(self) -> float:
-        return self.payload_bytes * 8 * FPS / 1e6
-
     def to_json(self) -> dict[str, Any]:
         return {
             "tier": self.tier, "action_id": self.action_id,
             "profile_id": self.profile_id, "payload_bytes": self.payload_bytes,
-            "family": self.family, "q_e4": self.q_e4,
             "checkpoint_sha256": self.checkpoint_sha256,
             "chunks_per_frame": self.chunks_per_frame,
             "offered_mbps": self.offered_mbps,
+            "target_ratio": self.target_ratio,
+            "achieved_ratio": self.achieved_ratio,
         }
 
 
-def resolve_load_tiers(repo_root: Path) -> tuple[LoadTier, ...]:
-    """Resolve the three near-capacity tiers, refusing on any mismatch.
+def load_tiers_from_selection(selection: Sequence[Any]) -> tuple[LoadTier, ...]:
+    """Adopt the deterministic rule's output, re-checking the invariants.
 
-    Checks, in order: catalogue file digests, action id presence, profile id,
-    payload bytes, derived chunk count, offered rate, shared checkpoint, and
-    strictly increasing payload.  Every one of these is a stop condition.
+    The rule already refuses unless the tiers bracket the boundary; this
+    re-checks payload ordering and the shared-decoder requirement at the point
+    the campaign actually adopts them.
     """
-    catalog_path = repo_root / ACTION_CATALOG_RELPATH
-    csv_path = repo_root / ACTION_CATALOG_CSV_RELPATH
-    for path, expected, label in (
-            (catalog_path, ACTION_CATALOG_JSON_SHA256, "catalogue JSON"),
-            (csv_path, ACTION_CATALOG_CSV_SHA256, "catalogue CSV")):
-        if not path.is_file():
-            raise ContractError(f"{label} missing at {path}")
-        observed = sha256_file(path)
-        if observed != expected:
-            raise ContractError(
-                f"{label} sha256 {observed} != pinned {expected}; refusing")
-
-    data = json.loads(catalog_path.read_text())
-    by_action = {int(entry["action_id"]): entry for entry in data["profiles"]}
-
-    tiers: list[LoadTier] = []
-    for tier, spec in EXPECTED_TIERS.items():
-        action_id = int(spec["action_id"])
-        entry = by_action.get(action_id)
-        if entry is None:
-            raise ContractError(
-                f"tier {tier!r}: action {action_id} is not in the catalogue")
-        if entry["profile_id"] != spec["profile_id"]:
-            raise ContractError(
-                f"tier {tier!r}: action {action_id} is {entry['profile_id']!r} in "
-                f"the catalogue but was registered as {spec['profile_id']!r}; "
-                f"refusing to guess which is intended")
-        payload_bytes = int(entry["payload"]["zstd_median_bytes"])
-        if payload_bytes != int(spec["payload_bytes"]):
-            raise ContractError(
-                f"tier {tier!r}: catalogue payload {payload_bytes} B != registered "
-                f"{spec['payload_bytes']} B")
-        checkpoint = str(entry["checkpoint_sha256"])
-        if checkpoint != SHARED_CHECKPOINT_SHA256:
-            raise ContractError(
-                f"tier {tier!r}: checkpoint {checkpoint} != pinned shared "
-                f"checkpoint {SHARED_CHECKPOINT_SHA256}")
-        resolved = LoadTier(
-            tier=tier, action_id=action_id, profile_id=entry["profile_id"],
-            payload_bytes=payload_bytes, family=str(entry["family"]),
-            q_e4=int(entry["q_e4"]), checkpoint_sha256=checkpoint)
-        if resolved.chunks_per_frame != int(spec["chunks"]):
-            raise ContractError(
-                f"tier {tier!r}: {resolved.chunks_per_frame} chunks at "
-                f"{CHUNK_BYTES} B != registered {spec['chunks']}")
-        if abs(resolved.offered_mbps - float(spec["offered_mbps"])) > 0.01:
-            raise ContractError(
-                f"tier {tier!r}: offered {resolved.offered_mbps:.4f} Mbps != "
-                f"registered {spec['offered_mbps']} Mbps")
-        tiers.append(resolved)
-
-    ordered = sorted(tiers, key=lambda item: item.payload_bytes)
-    if [item.tier for item in ordered] != list(TIER_ORDER):
+    tiers = tuple(
+        LoadTier(tier=item.tier, action_id=item.action_id,
+                 profile_id=item.profile_id, payload_bytes=item.payload_bytes,
+                 checkpoint_sha256=getattr(item, "checkpoint_sha256", ""),
+                 offered_mbps=item.offered_mbps, target_ratio=item.target_ratio,
+                 achieved_ratio=item.achieved_ratio)
+        for item in selection)
+    if [t.tier for t in tiers] != list(TIER_ORDER):
         raise ContractError(
-            "tiers are not strictly increasing in payload: "
-            + ", ".join(f"{i.tier}={i.payload_bytes}" for i in ordered))
-    return tuple(ordered)
+            f"selection is not low/medium/high: {[t.tier for t in tiers]}")
+    payloads = [t.payload_bytes for t in tiers]
+    if payloads != sorted(payloads) or len(set(payloads)) != 3:
+        raise ContractError(f"payloads not strictly increasing: {payloads}")
+    blank = [t.tier for t in tiers if not t.checkpoint_sha256]
+    if blank:
+        raise ContractError(
+            f"tier(s) {blank} carry no decoder checkpoint digest; provenance "
+            f"must never be blank")
+    if REQUIRE_SINGLE_SHARED_CHECKPOINT:
+        digests = {t.checkpoint_sha256 for t in tiers}
+        if len(digests) > 1:
+            raise ContractError(
+                f"tiers span {len(digests)} decoder checkpoints {sorted(digests)}")
+    return tiers
 
 
 @dataclass(frozen=True)
@@ -465,5 +418,11 @@ def resolved_source_hashes(repo_root: Path) -> dict[str, str]:
             "rl_agent/ue_mcs_backlog_calibration_v1/runner.py",
             "rl_agent/ue_mcs_backlog_calibration_v1/tagged_sender.py",
             "rl_agent/ue_mcs_backlog_calibration_v1/decision_join.py",
+            "rl_agent/ue_mcs_backlog_near_capacity_v1/contract.py",
+            "rl_agent/ue_mcs_backlog_near_capacity_v1/radio_binding.py",
+            "rl_agent/ue_mcs_backlog_near_capacity_v1/capacity_qualification.py",
+            "rl_agent/ue_mcs_backlog_near_capacity_v1/analysis_spec.py",
+            "rl_agent/ue_mcs_backlog_near_capacity_v1/authorization.py",
+            "rl_agent/ue_mcs_backlog_near_capacity_v1/runner.py",
         )
     }

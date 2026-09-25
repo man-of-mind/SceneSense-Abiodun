@@ -23,9 +23,16 @@ from rl_agent.ue_mcs_backlog_near_capacity_v1 import contract as C
 # Feature binning. Predeclared; never re-cut after seeing outcomes.
 # --------------------------------------------------------------------------
 
-#: Payload is categorical and ordered: exactly the three registered tiers.
-PAYLOAD_LEVELS: tuple[int, ...] = tuple(
-    sorted(spec["payload_bytes"] for spec in C.EXPECTED_TIERS.values()))
+#: Payload is categorical and ordered: exactly the three tiers the
+#: deterministic rule selected against the MEASURED adverse capacity. The
+#: levels are therefore resolved from the run's own plan, not hardcoded -- the
+#: actions are no longer frozen in the contract.
+def payload_levels(tiers: Sequence[Any]) -> tuple[int, ...]:
+    """The three payload levels, ascending, from the adopted tiers."""
+    levels = tuple(sorted(int(t.payload_bytes) for t in tiers))
+    if len(levels) != 3 or len(set(levels)) != 3:
+        raise ValueError(f"expected three distinct payload levels, got {levels}")
+    return levels
 
 #: Backlog bin edges in bytes. Bin 0 is exactly zero, which is a real and
 #: meaningful state (an empty queue), never merged with "small".
@@ -177,11 +184,10 @@ GATES_BY_KEY: Mapping[str, Gate] = {gate.key: gate for gate in GATES}
 # --------------------------------------------------------------------------
 # Degenerate-arm rule, declared BEFORE collection.
 #
-# The registered tiers are 2.25 / 6.49 / 10.38 Mbps. Against the capacity
-# re-derived from Run-3 evidence (ADVERSE P50 12.05 Mbps, FAVORABLE P50
-# 42.13 Mbps) the ADVERSE arm spans 0.19 / 0.54 / 0.86 of capacity and does
-# bracket the knee, while the FAVORABLE arm spans 0.05 / 0.15 / 0.25 and is
-# expected to drain with backlog at or near zero throughout.
+# The tiers are selected by the deterministic rule against the ADVERSE channel's
+# measured capacity, so the ADVERSE arm brackets its boundary by construction.
+# The FAVORABLE arm sees the SAME offered loads on a faster channel, so it is
+# expected to drain with backlog at or near zero.
 #
 # If an arm is degenerate its persistence baseline error is ~0, so "at least
 # 20% better than persistence" is not merely hard but arithmetically
@@ -365,3 +371,194 @@ INTENDED_REWARD_SEMANTICS = (
     "Held tensors reuse the exact action, request no reward, and still enter "
     "the queue recurrence. NOT trained, computed or calibrated in this task."
 )
+
+
+# --------------------------------------------------------------------------
+# Completed estimators and rules (registered; no post-hoc freedom).
+# --------------------------------------------------------------------------
+
+#: EXACT MCS freshness limit. One value, not a candidate list.
+#:
+#: A round-0 grant older than this is recorded MISSING_STALE and never used.
+#: 200 ms is two decision periods at 10 fps, and is the bound under which Run 3
+#: measured 100% UE-side MCS coverage in all twelve cells. It is pinned here so
+#: the limit cannot be tuned after seeing coverage: if coverage at 200 ms is
+#: below 100%, gate 2 FAILS. The limit is not relaxed to rescue it.
+MCS_MAX_AGE_MS: float = 200.0
+
+#: Reported as a sensitivity diagnostic only. Never selects the operative limit.
+MCS_AGE_SENSITIVITY_REPORT_MS: tuple[float, ...] = (100.0, 150.0, 200.0, 250.0)
+
+#: Clock-bridge refusal threshold. Above this the join is not attempted.
+CLOCK_BRIDGE_MAX_RESIDUAL_P95_US: float = 1.0
+
+
+class ClockBridgeError(RuntimeError):
+    """Raised when the same-event wall/monotonic bridge is too loose to join on."""
+
+
+def require_clock_bridge(residual_p95_us: float, *, cell_id: str) -> float:
+    """Refuse a degraded bridge instead of joining through it."""
+    if not (residual_p95_us == residual_p95_us):  # NaN
+        raise ClockBridgeError(
+            f"{cell_id}: clock-bridge residual P95 is undefined; no same-event "
+            f"NR_PDCP_TX_SDU rows were available to build the bridge")
+    if residual_p95_us > CLOCK_BRIDGE_MAX_RESIDUAL_P95_US:
+        raise ClockBridgeError(
+            f"{cell_id}: clock-bridge residual P95 {residual_p95_us:.4f} us "
+            f"exceeds the registered {CLOCK_BRIDGE_MAX_RESIDUAL_P95_US} us limit; "
+            f"refusing to join. Do not widen the limit.")
+    return residual_p95_us
+
+
+# --- Gate 5: the P95 latency estimator, completed ------------------------
+#
+# A binned conditional MEDIAN cannot produce a P95, so gate 5's P95 arm was
+# previously unspecified. It is completed here as a mixture estimator: each FIT
+# bin retains its full empirical latency sample, and a validation cell's
+# predicted distribution is the mixture of those samples weighted by how often
+# that cell actually visits each bin. The predicted P95 is the P95 of the
+# mixture. This uses exactly the same bins, support floor and back-off order as
+# the median estimator, so the two arms of gate 5 cannot disagree about what the
+# model is.
+
+MIXTURE_MIN_SAMPLES = 50
+
+
+def mixture_percentile(
+    bin_samples: Mapping[Any, Sequence[float]],
+    bin_weights: Mapping[Any, float],
+    q: float,
+) -> float:
+    """Percentile of the weight-mixture of per-bin empirical samples.
+
+    Uses the *weighted* form of the same linear-interpolation convention as
+    :func:`percentile`, so the predicted and observed arms of gate 5 cannot
+    disagree about what a percentile means. With equal weights this reduces
+    exactly to ``percentile`` on the pooled sample.
+    """
+    total_weight = sum(w for k, w in bin_weights.items()
+                       if w > 0 and bin_samples.get(k))
+    if total_weight <= 0:
+        raise ValueError("no occupied bin has FIT samples; back off further")
+
+    pairs: list[tuple[float, float]] = []
+    for key, weight in bin_weights.items():
+        samples = bin_samples.get(key)
+        if not samples or weight <= 0:
+            continue
+        share = (weight / total_weight) / len(samples)
+        pairs.extend((float(value), share) for value in samples)
+    pairs.sort(key=lambda item: item[0])
+    if len(pairs) == 1:
+        return pairs[0][0]
+
+    # Type-7 weighted plotting positions: p_i = (C_i - w_i) / (1 - w_i), which
+    # for n equal weights gives i/(n-1), i.e. numpy's default.
+    positions: list[float] = []
+    cumulative = 0.0
+    for _, share in pairs:
+        cumulative += share
+        denominator = 1.0 - share
+        positions.append(0.0 if denominator <= 0
+                         else (cumulative - share) / denominator)
+
+    target = q / 100.0
+    if target <= positions[0]:
+        return pairs[0][0]
+    if target >= positions[-1]:
+        return pairs[-1][0]
+    for index in range(1, len(positions)):
+        if target <= positions[index]:
+            low_pos, high_pos = positions[index - 1], positions[index]
+            low_val, high_val = pairs[index - 1][0], pairs[index][0]
+            if high_pos == low_pos:
+                return high_val
+            ratio = (target - low_pos) / (high_pos - low_pos)
+            return low_val + ratio * (high_val - low_val)
+    return pairs[-1][0]
+
+
+def latency_errors(
+    predicted_p50: float, predicted_p95: float,
+    observed: Sequence[float],
+) -> dict[str, float]:
+    """Per-cell gate-5 errors, in milliseconds."""
+    return {
+        "p50_error_ms": abs(predicted_p50 - percentile(observed, 50)),
+        "p95_error_ms": abs(predicted_p95 - percentile(observed, 95)),
+        "observed_p50_ms": percentile(observed, 50),
+        "observed_p95_ms": percentile(observed, 95),
+        "n": float(len(observed)),
+    }
+
+
+# --- Gate 7: the matching and effect rule, completed ---------------------
+#
+# "Matched near-boundary MCS contrasts must have the physically correct
+# direction" was previously a sentence, not a procedure. Completed:
+#
+#   MATCH   exactly on (payload level, backlog bin), within one validation
+#           channel arm. Exact matching, never a propensity score: there are
+#           only three payloads and seven backlog bins, so exact strata exist.
+#   NEAR-   only strata whose payload sits within NEAR_BOUNDARY_RATIO of the
+#   BOUNDARY measured adverse capacity, because that is the only region where
+#           the channel is supposed to decide feasibility.
+#   CONTRAST within a stratum, compare the LOW MCS group (bin <= low) against
+#           the HIGH MCS group (bin >= high), requiring at least
+#           MIN_CONTRAST_SUPPORT observations on each side and a gap of at
+#           least MIN_MCS_BIN_GAP bins.
+#   EFFECT  observed success-rate difference (high minus low).
+#   RULE    the effect must not be negative beyond CONTRAST_NOISE_TOLERANCE.
+#           A small negative effect inside the tolerance is reported as NULL,
+#           not as a pass and not as a violation.
+
+NEAR_BOUNDARY_RATIO = 0.25
+MIN_CONTRAST_SUPPORT = 30
+MIN_MCS_BIN_GAP = 2
+CONTRAST_NOISE_TOLERANCE = 0.05
+
+CONTRAST_PASS = "CORRECT_DIRECTION"
+CONTRAST_NULL = "NULL_WITHIN_TOLERANCE"
+CONTRAST_VIOLATION = "WRONG_DIRECTION"
+
+
+def is_near_boundary(offered_mbps: float, adverse_capacity_mbps: float) -> bool:
+    if adverse_capacity_mbps <= 0:
+        raise ValueError("adverse capacity must be positive")
+    return abs(offered_mbps / adverse_capacity_mbps - 1.0) <= NEAR_BOUNDARY_RATIO
+
+
+def mcs_contrast(
+    low_group: Sequence[int], high_group: Sequence[int],
+    *, low_bin: int, high_bin: int,
+) -> dict[str, Any]:
+    """One matched near-boundary MCS contrast, with its verdict."""
+    if high_bin - low_bin < MIN_MCS_BIN_GAP:
+        return {"verdict": None, "reason": "MCS_BIN_GAP_TOO_SMALL",
+                "low_bin": low_bin, "high_bin": high_bin}
+    if len(low_group) < MIN_CONTRAST_SUPPORT or len(high_group) < MIN_CONTRAST_SUPPORT:
+        return {"verdict": None, "reason": "INSUFFICIENT_SUPPORT",
+                "n_low": len(low_group), "n_high": len(high_group)}
+    low_rate = sum(low_group) / len(low_group)
+    high_rate = sum(high_group) / len(high_group)
+    effect = high_rate - low_rate
+    if effect < -CONTRAST_NOISE_TOLERANCE:
+        verdict = CONTRAST_VIOLATION
+    elif effect <= CONTRAST_NOISE_TOLERANCE:
+        verdict = CONTRAST_NULL
+    else:
+        verdict = CONTRAST_PASS
+    return {"verdict": verdict, "effect": effect, "low_rate": low_rate,
+            "high_rate": high_rate, "n_low": len(low_group),
+            "n_high": len(high_group), "low_bin": low_bin, "high_bin": high_bin}
+
+
+def gate7_direction_verdict(contrasts: Sequence[Mapping[str, Any]]) -> str:
+    """Any wrong-direction contrast fails; no evaluable contrast is not a pass."""
+    evaluated = [c for c in contrasts if c.get("verdict")]
+    if any(c["verdict"] == CONTRAST_VIOLATION for c in evaluated):
+        return FAIL
+    if not evaluated:
+        return INDETERMINATE
+    return PASS

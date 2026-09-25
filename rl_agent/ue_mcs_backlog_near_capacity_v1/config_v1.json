@@ -1,19 +1,41 @@
 {
-  "schema": "scenesense.ue_mcs_backlog_near_capacity.v1",
+  "schema": "scenesense.ue_mcs_backlog_near_capacity.v2",
   "experiment_id": "ue_mcs_backlog_near_capacity_v1",
-  "claim_boundary": "BOUNDED_NEAR_CAPACITY_QUEUE_TRANSITION_CHARACTERIZATION_WITH_BLOCKED_VALIDATION_NOT_KERNEL_ACCEPTANCE_AND_NOT_PUBLICATION_EVIDENCE",
+  "claim_boundary": "BOUNDED_NEAR_CAPACITY_QUEUE_TRANSITION_CHARACTERIZATION_UNDER_OAI_N78_100MHZ_273PRB_4D5U_V1_WITH_BLOCKED_VALIDATION_NOT_KERNEL_ACCEPTANCE_AND_NOT_PUBLICATION_EVIDENCE",
+  "radio_rebinding_note": "v2 replaces the 40 MHz / 106 PRB / 7D2U binding v1 inherited from Run 3. The radio lock records the legacy target-SNR mapping as CALIBRATED_ON_40MHZ_106PRB_7D2U_DO_NOT_REUSE_AS_100MHZ_EVIDENCE and the Phase-14a binding sets legacy_mapping_permitted=false. No Run-3 actuator anchor and no Run-3 capacity figure survives into v2.",
   "paths": {
     "output_root": "rl_agent/experiments/ue_mcs_backlog_near_capacity_v1",
+    "capacity_output_root": "rl_agent/experiments/ue_mcs_backlog_near_capacity_capacity_v1",
+    "launcher": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
     "oai_ran_build": "OAI/openairinterface5g/cmake_targets/ran_build/build",
-    "oai_ran_conf": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF",
+    "oai_cn": "OAI/oai-cn5g",
     "t_messages": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
     "t_tracer_dir": "OAI/openairinterface5g/common/utils/T/tracer",
     "extract_script": "scripts/ttracer_extract_csv_smoke.sh",
-    "gnb_base_config": "gnb.sa.band78.fr1.106PRB.usrpb210.conf",
-    "ue_base_config": "ue.conf",
-    "channel_config": "channelmod_rfsimu.conf"
+    "target_snr_mapping": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/mapping.json",
+    "radio_state_root": "experiments/splitfusion_oai_100mhz_4d5u_v1"
   },
   "radio": {
+    "profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "band": 78,
+    "bandwidth_mhz": 100,
+    "prb": 273,
+    "numerology": 1,
+    "subcarrier_spacing_khz": 30,
+    "ue_frequency_hz": 3649260000,
+    "ue_ssb": 516,
+    "absolute_frequency_ssb": 641280,
+    "downlink_slots": 4,
+    "downlink_symbols": 6,
+    "uplink_slots": 5,
+    "uplink_symbols": 4,
+    "ue_count": 1,
+    "ue_interface": "oaitun_ue1",
+    "ue_static_ip": "10.0.0.2",
+    "ext_dn_ip": "192.168.70.135",
+    "pdu_session_5qi": 6,
+    "min_rxtxtime": 6,
+    "mcs_policy": "sinr",
     "core_containers": [
       "oai-amf",
       "oai-smf",
@@ -21,73 +43,83 @@
       "oai-ext-dn"
     ],
     "cn_network": "oai-cn5g-public-net",
-    "ue_interface": "oaitun_ue1",
-    "prb": 106,
-    "band": 78,
-    "numerology": 1,
-    "downlink_frequency_hz": 3619200000,
-    "mcs_policy": "sinr",
-    "gnb_start_lead_s": 8.0,
-    "attach_timeout_s": 180.0,
-    "attach_probe_ip": "192.168.70.135",
-    "attach_probe_note": "oai-ext-dn. Used only to prove the PDU session is up, because it is the one CN-side address with a working return route to the UE. The host's route to 10.0.0.0/16 points at the corporate LAN, so ICMP replies from the edge host are misrouted; the edge data path itself is receive-only and is verified separately by a real UDP probe.",
     "edge_container": "oai-ext-dn",
-    "edge_host_note": "The edge reassembly endpoint must be the ext-DN container address, which is NOT local to this host. A host-local destination (e.g. the CN bridge gateway) is matched by ip rule 0 'from all lookup local' and delivered without ever entering oaitun_ue1, so the traffic would bypass the radio entirely. Receivers are therefore run inside the ext-DN network namespace via nsenter, using the host python3 and the host filesystem."
+    "attach_probe_ip": "192.168.70.135",
+    "attach_timeout_s": 180.0,
+    "execution_token": "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH",
+    "edge_host_note": "The edge reassembly endpoint must be the ext-DN container address, which is NOT local to this host. A host-local destination is matched by ip rule 0 'from all lookup local' and delivered without ever entering oaitun_ue1, so the traffic would bypass the radio entirely. Receivers therefore run inside the ext-DN network namespace via nsenter."
   },
   "actuator": {
     "telnet_host": "127.0.0.1",
     "telnet_port": 9090,
-    "response_timeout_s": 2,
+    "response_timeout_s": 2.0,
     "max_response_bytes": 1048576,
     "channel_model_name": "rfsimu_channel_ue0",
     "clean_and_restore_commanded_noise_power_db": "-50",
     "command_granularity_db": 0.25,
-    "existing_measured_anchors": [
+    "mapping_source": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/mapping.json",
+    "mapping_radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "registered_anchors": [
       {
-        "noise_power_db": -2.25,
-        "achieved_median_pusch_snr_db": 5.5
+        "noise_power_db": -13.0,
+        "achieved_median_pusch_snr_db": 25.5
       },
       {
-        "noise_power_db": -2.5,
-        "achieved_median_pusch_snr_db": 6.0
+        "noise_power_db": -12.0,
+        "achieved_median_pusch_snr_db": 23.5
       },
       {
-        "noise_power_db": -3.0,
-        "achieved_median_pusch_snr_db": 6.5
+        "noise_power_db": -11.0,
+        "achieved_median_pusch_snr_db": 21.5
       },
       {
-        "noise_power_db": -3.5,
-        "achieved_median_pusch_snr_db": 7.5
+        "noise_power_db": -10.0,
+        "achieved_median_pusch_snr_db": 19.5
       },
       {
-        "noise_power_db": -4.0,
-        "achieved_median_pusch_snr_db": 8.5
+        "noise_power_db": -9.0,
+        "achieved_median_pusch_snr_db": 17.5
+      },
+      {
+        "noise_power_db": -8.0,
+        "achieved_median_pusch_snr_db": 15.5
+      },
+      {
+        "noise_power_db": -7.0,
+        "achieved_median_pusch_snr_db": 14.0
+      },
+      {
+        "noise_power_db": -6.0,
+        "achieved_median_pusch_snr_db": 12.0
       },
       {
         "noise_power_db": -5.0,
         "achieved_median_pusch_snr_db": 10.0
       },
       {
-        "noise_power_db": -8.0,
-        "achieved_median_pusch_snr_db": 16.0
+        "noise_power_db": -4.0,
+        "achieved_median_pusch_snr_db": 8.5
       },
       {
-        "noise_power_db": -10.0,
-        "achieved_median_pusch_snr_db": 19.5
+        "noise_power_db": -3.0,
+        "achieved_median_pusch_snr_db": 6.5
+      },
+      {
+        "noise_power_db": -2.0,
+        "achieved_median_pusch_snr_db": 5.0
       }
     ],
-    "upper_anchor": {
-      "first_command_db": -12.5,
-      "measurement_duration_s": 6.0,
-      "calibration_frames": 150,
-      "minimum_pusch_samples": 30
-    }
+    "legacy_106prb_anchors_reused": false,
+    "mapping_qualification_note": "Phase-14a status is CALIBRATION_CAPTURE_COMPLETE_PENDING_FOUR_PROFILE_REPLAY with campaign_mapping_qualified=false and profile_replay_performed=false. Run 4 binds the twelve measured anchors as its actuator mapping under this radio and does NOT claim the 288-cell campaign qualification.",
+    "clamp_policy": "ANY_CLAMPED_TARGET_FAILS_THE_CELL",
+    "skip_policy": "ANY_SKIPPED_COMMAND_FAILS_THE_CELL"
   },
   "telemetry": {
     "gnb_port": 2021,
-    "ue_port": 2022,
+    "ue_port": 2023,
     "gnb_relay_port": 2121,
-    "ue_relay_port": 2122,
+    "ue_relay_port": 2123,
+    "ue_port_note": "2023 is the port the qualified launcher actually opens for the UE softmodem. Run 3's 2022 would yield an empty UE trace and therefore no MCS and no backlog at all.",
     "events": {
       "gnb": [
         "GNB_MAC_PUSCH_POWER_CONTROL",
@@ -110,7 +142,11 @@
     "send_buffer_bytes": 8388608,
     "receive_buffer_bytes": 33554432,
     "udp_probe_port": 5409,
-    "udp_probe_datagrams": 5
+    "udp_probe_datagrams": 5,
+    "udp_probe_payload_bytes": 1200,
+    "udp_probe_timeout_s": 10.0,
+    "udp_probe_min_received": 1,
+    "udp_probe_requires_pdcp_evidence": true
   },
   "campaign": {
     "cell_order_seed": 2026092401,
@@ -118,13 +154,64 @@
     "warmup_s": 4.0,
     "sample_period_s": 0.1
   },
-  "derived_from": {
-    "config": "rl_agent/ue_mcs_backlog_calibration_v1/config_v1.json",
-    "note": "Radio, actuator, telemetry and traffic settings are carried over byte-identically from the qualified Run-3 config. Only the output root, identifiers, campaign seed and the retry policy are new."
+  "capacity_qualification": {
+    "stage_id": "ue_mcs_backlog_near_capacity_capacity_qualification_v1",
+    "authorization_token": "AUTHORIZE_NEAR_CAPACITY_CAPACITY_QUALIFICATION",
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "operating_points_db": {
+      "p25": 7.827,
+      "p50": 8.608,
+      "p75": 9.604
+    },
+    "boundary_operating_point": "p50",
+    "probe": {
+      "action_id": 0,
+      "profile_id": "split_noae_uint8_q0000",
+      "payload_bytes": 3568326,
+      "offered_mbps": 285.47,
+      "role": "SATURATING_PROBE_NEVER_A_TIER"
+    },
+    "settle_s": 3.0,
+    "measure_s": 10.0,
+    "sample_period_s": 0.1,
+    "min_service_samples": 60,
+    "min_backlogged_fraction": 0.8,
+    "monotonicity_tolerance": 0.1,
+    "tier_target_ratios": {
+      "low": 0.5,
+      "medium": 1.0,
+      "high": 1.4
+    },
+    "medium_boundary_tolerance": 0.25,
+    "expected_runtime_s": 219.0,
+    "forbidden_legacy_capacity_mbps": {
+      "ADVERSE_STABLE_106PRB_7D2U": 12.05,
+      "FAVORABLE_STABLE_106PRB_7D2U": 42.13
+    },
+    "forbidden_legacy_capacity_reason": "measured on OAI_N78_40MHZ_106PRB_7D2U_LEGACY; the radio lock records the legacy mapping as DO_NOT_REUSE_AS_100MHZ_EVIDENCE",
+    "actions_frozen_here": false,
+    "note": "This stage measures capacity and applies the registered deterministic tier rule. It selects no action by judgement and freezes nothing until the rule's bracketing checks pass."
   },
-  "retry_policy": {
+  "authorization": {
+    "capacity_stage_token": "AUTHORIZE_NEAR_CAPACITY_CAPACITY_QUALIFICATION",
+    "scientific_stage_token": "AUTHORIZE_NEAR_CAPACITY_SCIENTIFIC_CELLS",
     "max_attempts_per_campaign": 1,
-    "rule": "A failed attempt is preserved in place under its own create-only timestamp. Only a proven engineering defect may be repaired, and the repaired campaign runs as a new timestamped root under a single code revision. Cells are never spliced across revisions, and no cell is individually rerun into an existing root.",
-    "authorization_required": true
+    "rule": "A failed attempt is preserved in place under its own create-only timestamp. Only a proven engineering defect may be repaired, and the repaired campaign runs as a new timestamped root under a single committed code revision. Cells are never spliced across revisions, and no cell is individually rerun into an existing root. A second attempt requires a new authorization naming the superseded attempt and the proven defect."
+  },
+  "failure_policy": {
+    "nonzero_exit_on": [
+      "UNRESOLVED_CALIBRATION",
+      "UNREGISTERED_CLAMP_OR_SKIP",
+      "RF_RESTORE_OR_READBACK_FAILURE",
+      "SENDER_OR_RECEIVER_FAILURE",
+      "TTRACER_EXTRACTION_FAILURE",
+      "ACCOUNTING_FAILURE",
+      "ANY_TEARDOWN_NOTE",
+      "NON_COLD_FINAL_STATE",
+      "RADIO_BINDING_DRIFT",
+      "UDP_PROBE_FAILURE",
+      "PROTECTED_EVIDENCE_CHANGED"
+    ],
+    "note": "Run 3 recorded clamps, skips, restore results, teardown notes and extraction failures but did not let any of them fail the run. Every one of them is a hard failure here."
   }
 }
