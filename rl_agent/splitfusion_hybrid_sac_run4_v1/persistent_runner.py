@@ -1046,7 +1046,7 @@ class _RunnerCore:
             previous=prior,
         )
 
-    def _build_transition(
+    def _build_synthetic_mechanics_transition(
         self,
         *,
         current: environment.DecisionStateBundleV1,
@@ -1075,6 +1075,40 @@ class _RunnerCore:
             gamma=self.replay_buffer.binding.gamma,
             discount=self.replay_buffer.binding.gamma ** step_result.hold.duration,
         )
+
+    def _transition_from_environment_cycle(
+        self,
+        *,
+        cycle: environment.CycleResult,
+        current: environment.DecisionStateBundleV1,
+        action: ExecutedActionIdentity,
+        step_result: sequential_kernel.KernelStepResultV1,
+        next_bundle: environment.DecisionStateBundleV1,
+    ) -> contract.SemiMarkovTransitionV2:
+        """Reissue only the private synthetic-mechanics transition.
+
+        Production overrides this seam and consumes the environment's attested
+        calibrated export directly. Keeping reconstruction here makes the
+        synthetic mechanics checkpoint tests unchanged without giving the
+        production runner a path that can relabel or rebuild empirical data.
+        """
+
+        if type(cycle) is not environment.SyntheticMechanicsCycleV1:
+            raise RunnerStateError("synthetic mechanics cycle became excluded")
+        transition = self._build_synthetic_mechanics_transition(
+            current=current,
+            action=action,
+            step_result=step_result,
+            next_bundle=next_bundle,
+            transition_cycle_end_timestamp_ns=(
+                cycle.transition_cycle_end_timestamp_ns
+            ),
+        )
+        if transition.canonical_sha256() != cycle.transition_sha256:
+            raise RunnerStateError(
+                "synthetic environment/runner transition digest differs"
+            )
+        return transition
 
     def _ingest(self, transition: contract.SemiMarkovTransitionV2) -> None:
         if self._ledger.decision_count < len(self.warmup_schedule):
@@ -1114,17 +1148,15 @@ class _RunnerCore:
         )
         self.state_provider.stage_decision(successor_staged)
         diagnostic = self.environment.step(decision.action)
-        if type(diagnostic) is not environment.SyntheticMechanicsCycleV1:
+        if type(diagnostic) is environment.ExcludedCycleV1:
             raise RunnerStateError("learning cycle became excluded")
         next_bundle = self.environment.current_state
-        transition = self._build_transition(
+        transition = self._transition_from_environment_cycle(
+            cycle=diagnostic,
             current=current,
             action=decision.action,
             step_result=step_result,
             next_bundle=next_bundle,
-            transition_cycle_end_timestamp_ns=(
-                diagnostic.transition_cycle_end_timestamp_ns
-            ),
         )
         journal = RunnerStepJournalV1(
             decision=decision,
@@ -1213,17 +1245,15 @@ class _RunnerCore:
             )
             self.state_provider.stage_decision(successor)
             diagnostic = self.environment.step(action)
-            if type(diagnostic) is not environment.SyntheticMechanicsCycleV1:
+            if type(diagnostic) is environment.ExcludedCycleV1:
                 raise RunnerStateError("learning cycle became excluded")
             next_bundle = self.environment.current_state
-            transition = self._build_transition(
+            transition = self._transition_from_environment_cycle(
+                cycle=diagnostic,
                 current=current,
                 action=action,
                 step_result=step_result,
                 next_bundle=next_bundle,
-                transition_cycle_end_timestamp_ns=(
-                    diagnostic.transition_cycle_end_timestamp_ns
-                ),
             )
             journal = RunnerStepJournalV1(
                 decision=decision,
@@ -1316,9 +1346,10 @@ class _RunnerCore:
 
         This is the public process-boundary seam used by checkpoint I/O. It
         accepts no transition object and no attestation token. Every returned
-        transition is reconstructed by :meth:`_execute_prebuilt`, re-attested
-        by :func:`run4_contract.build_transition`, inserted into replay, and
-        compared with all three durable digest targets.
+        transition follows the receiver's normal evidence path: test mechanics
+        reissues its synthetic transition, while production consumes the exact
+        calibrated ``export_for_replay()`` result. It is then inserted into
+        replay and compared with all three durable digest targets.
 
         The receiver must be a pristine runner created by the caller's bound
         factory. Any contradiction permanently faults this disposable
@@ -1601,11 +1632,62 @@ class Run4PersistentTrainingRunnerV1(_RunnerCore):
             raise RunnerAuthorizationError(
                 "production runner did not receive calibrated empirical evidence"
             )
+        self.require_calibrated_cycle_export()
 
     def _make_ledger(self) -> exploration.ExplorationCoverageLedger:
         return exploration.ExplorationCoverageLedger(
             self.warmup_schedule, self.coverage_gate
         )
+
+    def require_calibrated_cycle_export(self) -> None:
+        """Prove that every production step must yield an attested export."""
+
+        self.authorization.require_training_eligible()
+        if type(self.environment) is not environment.Run4SequentialEnvironmentV1:
+            raise RunnerAuthorizationError("production environment type changed")
+        if self.environment.evidence_class is not (
+            environment.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL
+        ):
+            raise RunnerAuthorizationError(
+                "production runner requires calibrated empirical cycles"
+            )
+        binding = self.environment._calibration_binding  # noqa: SLF001
+        if type(binding) is not environment.CalibrationBindingV1:
+            raise RunnerAuthorizationError(
+                "production environment lost its calibration binding"
+            )
+        registered = environment.REGISTERED_CALIBRATION_BINDING_SHA256
+        if registered is None or binding.canonical_sha256() != registered:
+            raise RunnerAuthorizationError(
+                "production environment calibration is not registered"
+            )
+
+    def _transition_from_environment_cycle(
+        self,
+        *,
+        cycle: environment.CycleResult,
+        current: environment.DecisionStateBundleV1,
+        action: ExecutedActionIdentity,
+        step_result: sequential_kernel.KernelStepResultV1,
+        next_bundle: environment.DecisionStateBundleV1,
+    ) -> contract.SemiMarkovTransitionV2:
+        """Consume the exact calibrated transition; never reconstruct it."""
+
+        del current, action, step_result, next_bundle
+        self.require_calibrated_cycle_export()
+        if type(cycle) is not environment.CalibratedEmpiricalCycleV1:
+            raise RunnerStateError(
+                "production environment did not return a calibrated cycle"
+            )
+        transition = cycle.export_for_replay()
+        if type(transition) is not contract.SemiMarkovTransitionV2:
+            raise RunnerStateError("calibrated cycle exported a foreign transition")
+        transition.require_attested()
+        if transition.canonical_sha256() != cycle.transition_sha256:
+            raise RunnerStateError(
+                "calibrated cycle export digest changed after attestation"
+            )
+        return transition
 
     def _record_coverage(self, transition: contract.SemiMarkovTransitionV2) -> None:
         self._ledger.record_transition(transition)

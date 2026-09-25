@@ -232,6 +232,33 @@ class ProductionTrainingTest(unittest.TestCase):
         self.assertFalse(foreign.started)
         self.assertEqual(foreign.decision_count, 0)
 
+    def test_factory_revalidates_calibrated_export_path(self) -> None:
+        prerequisites = _prerequisites()
+        candidate = object.__new__(
+            persistent_runner.Run4PersistentTrainingRunnerV1
+        )
+        candidate.prerequisites = prerequisites
+        candidate.authorization = SimpleNamespace(
+            require_training_eligible=mock.Mock()
+        )
+        factory = src.ProductionRunnerFactoryV1(
+            training_seed=17,
+            prerequisites_sha256=prerequisites.canonical_sha256,
+            verifier_manifest_sha256=(
+                prerequisites.verifier_manifest_sha256
+            ),
+            build=lambda: candidate,
+        )
+        with mock.patch.object(
+            persistent_runner.Run4PersistentTrainingRunnerV1,
+            "require_calibrated_cycle_export",
+            autospec=True,
+        ) as required, mock.patch.object(src, "_require_cpu_runner"):
+            observed = factory.build_runner()
+        self.assertIs(observed, candidate)
+        required.assert_called_once_with(candidate)
+        candidate.authorization.require_training_eligible.assert_called_once_with()
+
     def test_composite_verifier_none_blocks_production_authorization(self) -> None:
         prerequisites = _prerequisites()
         with mock.patch.object(

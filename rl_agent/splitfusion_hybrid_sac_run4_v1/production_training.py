@@ -168,6 +168,7 @@ class ProductionRunnerFactoryV1:
                 "factory must return the exact production runner; no synthetic "
                 "or test runner fallback is permitted"
             )
+        candidate.require_calibrated_cycle_export()
         candidate.authorization.require_training_eligible()
         if candidate.runner_binding_sha256 != self.prerequisites_sha256:
             raise ProductionFactoryError("factory/runner prerequisite digest differs")

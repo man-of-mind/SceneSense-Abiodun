@@ -18,7 +18,7 @@ from rl_agent.splitfusion_hybrid_sac_v1.transaction_identity import (
     canonical_sha256,
 )
 
-from . import exploration, fit_scene_provider, held_payload, models
+from . import environment, exploration, fit_scene_provider, held_payload, models
 from . import persistent_runner as src, quality_adapter
 from . import production_state_provider, replay, run4_contract as contract
 from . import sequential_kernel, trainer
@@ -624,6 +624,77 @@ class PersistentRunnerTest(unittest.TestCase):
         self.assertEqual(runner.trainer.update_count, 0)
         after = self._parameters(runner.model_bundle)
         self.assertTrue(all(torch.equal(x, y) for x, y in zip(before, after)))
+
+    def test_synthetic_mechanics_never_calls_replay_export(self) -> None:
+        runner = self.factory()
+        runner.start(session_uuid=SESSION, ue_id=UE_ID)
+        with mock.patch.object(
+            environment.SyntheticMechanicsCycleV1,
+            "export_for_replay",
+            side_effect=AssertionError("synthetic export was called"),
+        ) as exported:
+            row = runner.step()
+        exported.assert_not_called()
+        row.transition.require_attested()
+
+    def test_production_cycle_consumes_exact_calibrated_export(self) -> None:
+        source = self.factory()
+        source.start(session_uuid=SESSION, ue_id=UE_ID)
+        transition = source.step().transition
+        candidate = environment.CalibratedEmpiricalCycleV1(
+            evidence_class=(
+                environment.EnvironmentEvidenceClass.CALIBRATED_EMPIRICAL
+            ),
+            calibration_binding_sha256=_d("calibrated-cycle-binding"),
+            kernel_terminal_closure_timestamp_ns=(
+                transition.cycle_end_timestamp_ns - 1
+            ),
+            reward_request_flags=(True, False),
+            _transition=transition,
+        )
+        cycle = replace(
+            candidate,
+            _attestation=environment._issue_calibrated_cycle(
+                candidate._binding()
+            ),
+        )
+        production = object.__new__(src.Run4PersistentTrainingRunnerV1)
+        production.require_calibrated_cycle_export = mock.Mock()
+        with mock.patch.object(
+            src._RunnerCore,
+            "_build_synthetic_mechanics_transition",
+            side_effect=AssertionError("production rebuilt a transition"),
+        ) as rebuilt, mock.patch.object(
+            environment.CalibratedEmpiricalCycleV1,
+            "export_for_replay",
+            autospec=True,
+            return_value=transition,
+        ) as exported:
+            observed = production._transition_from_environment_cycle(
+                cycle=cycle,
+                current=None,
+                action=None,
+                step_result=None,
+                next_bundle=None,
+            )
+        self.assertIs(observed, transition)
+        production.require_calibrated_cycle_export.assert_called_once_with()
+        exported.assert_called_once_with(cycle)
+        rebuilt.assert_not_called()
+
+    def test_production_cycle_refuses_non_calibrated_result(self) -> None:
+        production = object.__new__(src.Run4PersistentTrainingRunnerV1)
+        production.require_calibrated_cycle_export = mock.Mock()
+        with self.assertRaisesRegex(
+            src.RunnerStateError, "did not return a calibrated cycle"
+        ):
+            production._transition_from_environment_cycle(
+                cycle=object(),
+                current=None,
+                action=None,
+                step_result=None,
+                next_bundle=None,
+            )
 
     def test_successor_cannot_open_before_two_tensor_hold_closes(self) -> None:
         runner = self.factory()
