@@ -1,0 +1,60 @@
+{
+  "schema": "scenesense.run4_live_v2.phase6_qualification_plan.v1",
+  "status": "PLAN_ONLY__NOT_AUTHORIZED__NOT_EXECUTED",
+  "authorization_required": "Separate explicit Abiodun authorization for Phase 6; this file authorizes nothing.",
+  "binding_manifest": "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/LIVE_BINDING_MANIFEST_V2.json",
+  "run": {
+    "frames": 300,
+    "transmit_cadence_hz": 10,
+    "route": "Route-B (CARLA 0.10 Town10HD_Opt), repeatable qualified route",
+    "channel_profile": "FAVORABLE_STABLE",
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "carla_quality_level": "Epic",
+    "actor": {"seed": 43, "update": 10000, "rule": "deterministic argmax mode, conditional mean, registered half-up q_e4", "device": "cpu", "batch": 1},
+    "decision_lead_before_frame_open_ms": 5,
+    "hold": {"k_min": 2, "reward_deadline_ms": 170, "timeout_reward": -1.0},
+    "telemetry": {"ue_t_port": 2023, "relay_port": 2123, "dci_cache": 8, "rlc_cache": 8, "bridge_min_anchors": 8, "bridge_window": 32, "freshness_ms": 100},
+    "fallback_policy": "On ExternalFallbackRequired the actor is not called; the frame is sent with the registered external fallback action, logged with its typed reason, and no reward ticket is opened for it. The fallback action identity must be pinned in the Phase-6 runner before authorization (see readiness limitations)."
+  },
+  "preflight": [
+    "git HEAD recorded; all pre-existing dirty paths re-hashed and unchanged",
+    "readiness_v2 verify passes (sealed manifest equals working tree)",
+    "host cold: no containers, softmodems, tracer clients, oaitun, CARLA; /proc/loadavg recorded; no other user's CARLA/OAI",
+    "radio_binding.verify and EMITTER_PINS pass; compiled T_messages copies consistent",
+    "CUDA preload gate: torch.cuda available; perception, ranker, AE128/64/32 checkpoints hash-verified against the manifest before load; one warm-up forward per preloaded module; zero hot-path model loads",
+    "actor loaded via frozen_actor_v2.load_registered_actor (CPU, weights_only); boundary digest b61f27a9...bd3",
+    "direct edge-to-map endpoint resolved from `docker network inspect oai-cn5g-public-net` (expected 192.168.70.129:39320); publisher refuses UE tunnel/loopback/0.0.0.0/UE result ports",
+    "reward-feedback return endpoint on the UE resolved and recorded; it must be distinct from the map endpoint"
+  ],
+  "launch_sequence": [
+    "core up, then pinned launcher attach (run_splitfusion_oai_100mhz_4d5u_v1.sh)",
+    "multi relays 2023->2123 and 2021->2121; record attached; three v2 live readers attached; bridge warm (>=8 PDCP anchors)",
+    "telnet channel prime to FAVORABLE_STABLE and read-back",
+    "edge tail + map server preloaded and ready",
+    "CARLA route start; sensor preparation publishes camera SI and radar P40 per frame (live seam: splitfusion_scene_descriptor_live_v1)",
+    "per frame: snapshot -> commit -> action open -> (decision frames) build_live_state -> actor -> resolve_q_e4 -> identity seam -> SFD3 -> transport; held frames reuse the action with reward_requested=false; every frame to tail and map",
+    "stop after 300 transmitted frames and final ticket closure/timeout"
+  ],
+  "teardown": [
+    "stop CARLA",
+    "stop live readers, then RAN (teardown_ran), then extract ue.raw",
+    "telnet restore clean noise; channelmod read-back equals the initial state",
+    "core down; final_cold_with_core == cold; no residual tunnel, tracer, sender, receiver or CARLA process"
+  ],
+  "evidence_fields": [
+    "per decision: decision_seq, snapshot_seq, snapshot latency, state_commit/action_open RAW ns, telemetry sample identities/sources/availability/ages, guard verdict and typed fallback reasons, features sha, actor heads sha, mode_id, q_e4, execution_bundle_sha256, nullable anchor action_id, measurement_status",
+    "per frame: frame_id, tensor_seq, ticket_seq, reward_requested, SFD3 wire bytes, inner payload sha, send/receive times, map install time and map ACK time (separate), edge identity verdict",
+    "per ticket: feedback class ledger (ACCEPTED/DUPLICATE_IGNORED/LATE_ORPHAN/UNKNOWN_ORPHAN), resolution terminal, latency_ms, reward, excluded-fault flags",
+    "run: radio binding and emitter pins before/after, raw-replay comparison of every selected DCI/RLC sample, restore read-back, cold state"
+  ],
+  "gates": {
+    "P1_IDENTITY": "every executed frame's SFD3 identity equals the actor decision and the contract resolution; zero edge refusals other than injected faults",
+    "P2_TELEMETRY": "Phase-2C gates G1, G3, G4, G6-G10 re-applied on the live run; fresh coverage reported (not gated) because CARLA payloads change grant timing",
+    "P3_HOLD_TICKET": "every decision has >=2 transmitted tensors; exactly one reward-requested tensor per decision; zero cross-frame reward attachment; zero conflicting feedback",
+    "P4_ACCOUNTING": "decisions == resolutions + (at most one open at stop); feedback ledger classes sum to received feedback; every delivered frame installed on the map",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "actor call count == admitted decisions",
+    "P6_RESTORE_COLD": "restore read-back equals initial; host application-cold",
+    "reported_not_gated": ["reward mean", "success rate", "latency P50/P95/P99", "fallback fraction", "q_e4/mode distribution", "map AoI"]
+  },
+  "proposed_command": "NOT YET RUNNABLE: requires the Phase-6 live runner that composes these v2 seams with the existing Route-B/FCOS/direct-map stack (see LIVE_QUALIFICATION_READINESS.md, remaining blocker)."
+}

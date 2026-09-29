@@ -1,0 +1,154 @@
+{
+  "actor": {
+    "boundary_sha256": "b61f27a9bcd3512ecf52bc35854f6a723d550092db51cf3055347297039cebd3",
+    "deployment_rule": "CPU_FLOAT32_BATCH1_EVAL_INFERENCE_MODE__ARGMAX_MODE__SELECTED_CONDITIONAL_MEAN__REGISTERED_PER_MODE_SUPPORT__DECIMAL_HALF_UP_Q_E4",
+    "export_manifest_sha256": "7f17a02564b4a398ad7ce34e1cfb25cc612a623c06d0ed3e296f9f3ce5705140",
+    "pinned_sources": {
+      "experiments/splitfusion_hybrid_sac_run4_training_analysis_v1/20260929_advisor_plots/PROVISIONAL_LIVE_CANDIDATE.md": "d231653a9998f61eb58a6c713f5bb5af8a4d8e9764cfaa6e618ca98e52716413",
+      "rl_agent/experiments/splitfusion_hybrid_sac_run4_v2_campaign/20260928_2a92201_three_seed_10000_v1/seed_43/CHECKPOINT_MANIFEST.json": "1ba8131db86f3d8e694ddec6e35ae0079bd766358f0ec64d8e290ff9b552a1d7",
+      "rl_agent/experiments/splitfusion_hybrid_sac_run4_v2_campaign/20260928_2a92201_three_seed_10000_v1/seed_43/SEED_COMPLETE.json": "5f11e37e6de5a9c8443a4da8a731525a724b7d7983cb48df0f93e0021dbd698f",
+      "rl_agent/experiments/splitfusion_hybrid_sac_run4_v2_campaign/20260928_2a92201_three_seed_10000_v1/seed_43/checkpoints/update_010000.checkpoint.json": "3db78b8433223be10386b8c4efacb58989577b0e057e6d13f55d19c718f4e775",
+      "rl_agent/experiments/ue_production_queue_capture_v1/20260929_model_v2b/transport_model_v2.json": "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c"
+    },
+    "seed": 43,
+    "tracked_binding_file_sha256": "3a59d1caaa0f7cd26fe22d7ebeab4466c99ae80b1664d14d398cdcb91ffab5f6",
+    "update": 10000,
+    "weights_file_sha256": "d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29"
+  },
+  "contracts": {
+    "action_catalog_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "action_identity_schema_sha256": "92ac929a981c081b269983ff31cac3f1c36717b6fe7a7a6f1ea6dd0710cf121b",
+    "feature_schema_sha256": "1f22b4f58a59a9ef96236564d4f2f8fe7e91fe1a99170e7f990b40bc1632ac23",
+    "k_min": 2,
+    "policy_feature_order": [
+      "camera_si_scaled",
+      "radar_p40",
+      "prior_ul_mcs_normalized",
+      "pre_action_rlc_backlog_log1p_scaled",
+      "prev_joint_mode_0_one_hot",
+      "prev_joint_mode_1_one_hot",
+      "prev_joint_mode_2_one_hot",
+      "prev_joint_mode_3_one_hot",
+      "prev_joint_mode_4_one_hot",
+      "prev_joint_mode_5_one_hot",
+      "prev_joint_mode_6_one_hot",
+      "prev_joint_mode_7_one_hot",
+      "prev_joint_mode_8_one_hot",
+      "prev_joint_mode_9_one_hot",
+      "prev_joint_mode_10_one_hot",
+      "prev_joint_mode_11_one_hot",
+      "prev_q_normalized",
+      "prev_quality_qperc",
+      "prev_latency_normalized",
+      "prev_present",
+      "prev_success"
+    ],
+    "q_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+    "radio_support": {
+      "backlog_bytes": [
+        0,
+        36002536
+      ],
+      "prior_ul_mcs": [
+        8,
+        28
+      ]
+    },
+    "reward_deadline_ns": 170000000,
+    "reward_schema_sha256": "a47fff2fcdc103446952d57c98f22fd120f413b40cbdbc25b3cc6d6ed667d21b",
+    "run4_contract_schema_sha256": "8d7af3cfbacf7f40e819379e1593d6cf888f3b3cca1eff64186c39049f4d68ef",
+    "timeout_resolution_elapsed_ns": 170000001,
+    "training_freshness_sha256": "6c694ebed2edd12a6e935cfff0262f78b2c8395f180d76bfb7060db77e3a5d65",
+    "training_scaling_sha256": "cb1a3e4d9c9478a9106287fc3cf8b1bac5f92cfe5294fbf32543da0679155671",
+    "transition_schema_sha256": "5ce15d30ea15a4627b5d097e22dae4f21ab31fb7cb85a618d8b0ea3d44be511b"
+  },
+  "execution": {
+    "action_contract_source_sha256": "72ba342cb9c4772c152f56ae00a490bc5048c154047e9f7944c4614cb1a9d6fe",
+    "behavioral_source_binding_sha256": "e226fa67380f11bb96539336caf816dca1eddccb832884558cc5b8a698ee61de",
+    "runtime_binding_sha256": "604450c7f0f791a480ba4e5ed6b286a2b6f68497735372a7a63ed92e93585551",
+    "selected_checkpoints": {
+      "AE128": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+        "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+      },
+      "AE32": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+        "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+      },
+      "AE64": {
+        "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+        "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+      },
+      "perception": {
+        "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+        "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+      },
+      "ranker": {
+        "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+        "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+      }
+    },
+    "startup_artifact_count": 27
+  },
+  "manifest_sha256": "3bda9494f3138a6a3639a8fcaf536a27ee74a3cede7ddb10c420f42cc9a686af",
+  "package_sources": {
+    "ACTOR_BINDING_V2.json": "3a59d1caaa0f7cd26fe22d7ebeab4466c99ae80b1664d14d398cdcb91ffab5f6",
+    "continuous_execution_v2.py": "3dd0ec16cf70e52585b5d20e23d1fe47a443eb6a1e01c4304ac7ce07728f9184",
+    "export_frozen_actor_v2.py": "84b8c3146b8bdbccb617f45f410b01c46a2665869e6deef9956e3fb0ecb567fa",
+    "frozen_actor_v2.py": "8851e3a0e10008ecd36b2be842a599c51d1de234584baa3581787e490cd29c8d",
+    "live_qualification_300_v2.json": "3570da54fcadf2e3d19080c21819e682db7b3aa037c5be7826d4cabe84662a69",
+    "live_state_v2.py": "c74b2d1c43ef878651c5394802bd80213d41ea4baf3e67c59b23822e80c0a21a",
+    "phase2_telemetry_qualification.py": "c9703df32f332a825a34a28bca5d186de48226764057715b7b7424aac816ff69",
+    "reward_hold_controller_v2.py": "b0846fc5d891c13d4d7dc67387e620e08fc9a24619cf55f687af1112a36b93ba",
+    "ue_telemetry_provider_v2.py": "7bcd8bcc82fc3b085c999719d18968a097acfb1f854f16e28cc19fbb63008217"
+  },
+  "radio": {
+    "emitter_pin_ownership": "OBSERVED_OAI_WORKING_TREE_AT_REGISTRATION__NOT_AUTHORED_OR_MODIFIED_BY_THIS_TASK",
+    "emitter_pins": {
+      "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_UE/nr_ue_procedures.c": "9173eae0e2d032d4524b4e4be84206d2ebadf32778821c32b66b3c82c598cc70",
+      "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c": "97707d2dfcb212428f690d33f872fe36f43ce4fba8407fb594129c3fcf1aa66c",
+      "OAI/openairinterface5g/openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c": "3bdc6185626f3d77d0d81dcdc4304f990110e57933502dc9432ffacbff90a215",
+      "OAI/openairinterface5g/openair2/LAYER2/nr_rlc/nr_rlc_oai_api.c": "6783eaaae1eefd4ac1c60c0f83ea4f149c688f7a56002866fd061a636327498e",
+      "rl_agent/ue_production_queue_capture_v1/config_v1.json": "df49469d11f7b9d40e3fdfdb247104e0342bc1ffb289251efd64076fc8678569"
+    },
+    "production_config_relpath": "rl_agent/ue_production_queue_capture_v1/config_v1.json",
+    "radio_binding_files": {
+      "channel_config": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+      "extractor": "82f23ae18136379c4ea2511744eb1ed932d74850851885584b8075f9f3cdb488",
+      "gnb_config_273prb": "03fb7ac7b4df6ce88f5a2e3e7a26211b78ad89e7d313632ca088e6b364742ffb",
+      "launcher": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+      "launcher_runner": "09fb82c0ba644a44bdf5fb5e5ad92269c1daa31ffbeee1fc0864d5b7ce688c93",
+      "launcher_runner_config": "ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9",
+      "libtelnetsrv": "7c815fbfbd987b256c1992666dff142d683b5a548ba1c6f9a5a39f6fede118f7",
+      "nr_softmodem": "ebcd85f4c96cf6e3d0a1752d0047e8377811014be75cdeeef6334c982fcfab70",
+      "nr_uesoftmodem": "60ecc9a1d102e8b66871727a6a23da22977ff907fecc3870a8dc46414080c975",
+      "radio_lock": "fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4",
+      "run3_tagged_sender": "fb6e0015635dfe1dbaf12642959cc9241145a3f983ef34ca6258b7abf3775e7a",
+      "t_messages": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+      "t_messages_compiled_build": "e5801830384c32cda8a805e21d58a43f380732f5ecff7e3553a99348aa23abc3",
+      "t_messages_compiled_incgen": "e5801830384c32cda8a805e21d58a43f380732f5ecff7e3553a99348aa23abc3",
+      "target_snr_mapping_csv": "f1cc9c48bd5cd55d2de2421d07c23dd3deff2bca3497e3a5d5e87aaa11ec2a3d",
+      "target_snr_mapping_json": "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677",
+      "target_snr_mapping_manifest": "5f14b43dedf7aa947598442ffd2823dea155476ad396b6665fc32e37ddb96091",
+      "tracer_csv": "2b5e42dc64d88ed1ad19ebeb7c26b195e668fe2eb9bc9c3da95f81334731faaa",
+      "tracer_extract_config": "e724bd3f0a1327ed9afef50fb1a81703054e029a8e137689e4874fdfc013c898",
+      "tracer_multi": "455ff3083dfb30f82ffee941dac01f888b39705f9d3ffab2b019ff5430da9542",
+      "tracer_record": "517150245a1317c2e117c0ac3adde1ee097a3592658316fe5b40edcbd5235e61",
+      "tracer_replay": "cf6ccf11ad42b481dd3731dea02649e314fa4589b4c710d98ff4e8c06c034f70",
+      "ue_config": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944"
+    },
+    "radio_binding_problems": []
+  },
+  "schema": "scenesense.run4_live_v2.live_binding_manifest.v1",
+  "scope": "PLAN_ONLY__PHASE6_REQUIRES_SEPARATE_AUTHORIZATION__NO_LIVE_RUN_PERFORMED_BY_THIS_MANIFEST",
+  "telemetry": {
+    "evidence_relpath": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_phase2c_ue_telemetry_qualification",
+    "gates_sha256": "8a7f3b4007794228f3a6156365ebb982289f44291549152fc066d66a2fc9dca6",
+    "provider_sha256": "7bcd8bcc82fc3b085c999719d18968a097acfb1f854f16e28cc19fbb63008217",
+    "qualification_runner_sha256": "c9703df32f332a825a34a28bca5d186de48226764057715b7b7424aac816ff69",
+    "result_sha256": "5305904219abf8a1ce84335f726cb13b527cfa7994353ef96f9c77ed50752fbd",
+    "status": "PASSED",
+    "terminal_sha256": "5d30ad0345290bbc14905daf5f9a31d8711437c917b6cb29b32ee330b1196df6"
+  },
+  "torch_cuda_initialized_while_building": false
+}
