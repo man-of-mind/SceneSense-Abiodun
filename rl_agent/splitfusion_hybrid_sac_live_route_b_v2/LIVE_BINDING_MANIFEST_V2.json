@@ -90,7 +90,7 @@
     },
     "startup_artifact_count": 27
   },
-  "manifest_sha256": "c054bcef139e8ba3fa2e1caa32ba65933bdb57b040a73d33be887a0d395d14a3",
+  "manifest_sha256": "c379782859b9c4db8de6961258a81e4927cc1a0c120fbb935e6354a53ce667c1",
   "package_sources": {
     "ACTOR_BINDING_V2.json": "3a59d1caaa0f7cd26fe22d7ebeab4466c99ae80b1664d14d398cdcb91ffab5f6",
     "continuous_execution_v2.py": "3dd0ec16cf70e52585b5d20e23d1fe47a443eb6a1e01c4304ac7ce07728f9184",
@@ -102,8 +102,10 @@
     "phase6_decision_engine_v2.py": "424fe7298a3ad0689f928b8b73efd04988988a6c1f41a6868465face083e304d",
     "phase6_edge_runtime_v2.py": "88dc237742a306ecfded585d07958e2d9c2b9790a045b81e513a14ee86fc36b0",
     "phase6_live_child_v2.py": "c4cc11a3cf3d0d4a09a76c35f2afe6a24be18dbb83b1a0bf67852860442d1d49",
-    "phase6_live_runner_v2.py": "d1285650ae23a3c777455d9f1f8c240c4d9149a1ced95ee449ebcef2ddea4b5d",
+    "phase6_live_runner_v2.py": "5e31a58692a259242e565acdfe2801f5c803a631a993ff888e009e16f278472e",
     "phase6_map_server_v2.py": "e39942ef082bc50874cbcdb1030eb9e8bcfc350b723a0784f181d70c26c20951",
+    "phase6_prospective_addendum_2.json": "259f7bc53d9dc989c3f402a7fc045aab5821dffbbed3e7083ff228ebcd33d737",
+    "phase6_result_reporting_v2.py": "e09428b91c5ed0813bcf785418937928adf8772677f465c7f8d2b9723603fc7f",
     "phase6_ue_runtime_v2.py": "76b3160badacd1a682d72ffcaaf545c935badab90d3f9a5c05f1cb5d8eed9197",
     "reward_hold_controller_v2.py": "b0846fc5d891c13d4d7dc67387e620e08fc9a24619cf55f687af1112a36b93ba",
     "run4_live_wire_v2.py": "2337edbfa2613a418a76a76235c190638cc088576903a61b5e408aabba669924",

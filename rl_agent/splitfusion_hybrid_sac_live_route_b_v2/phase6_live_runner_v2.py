@@ -76,6 +76,24 @@ def telemetry_bindings() -> dict[str, Any]:
             "ue_relay_port": int(runtime["telemetry"]["ue_relay_port"])}
 
 
+ADDENDUM_PATH = Path(__file__).resolve().with_name("phase6_prospective_addendum_2.json")
+
+
+def verify_addendum(path: Path = ADDENDUM_PATH) -> dict[str, Any]:
+    """Addendum 2 (option c) must bind the unchanged plan and the decision memo."""
+    from . import phase6_result_reporting_v2 as REP
+
+    addendum = json.loads(Path(path).read_text(encoding="utf-8"))
+    require(addendum.get("id") == REP.ADDENDUM_ID, "foreign Phase-6 addendum")
+    amends = addendum["amends"]
+    for key in ("plan", "memo"):
+        actual = hashlib.sha256((ROOT / amends[key]).read_bytes()).hexdigest()
+        require(actual == amends[f"{key}_sha256"], f"addendum {key} digest differs")
+    return {"id": addendum["id"], "claim_scope": REP.CLAIM_SCOPE,
+            "policy_performance_claim": False,
+            "sha256": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
+
+
 def offline_preflight(config_path: Path, *, output_root: Path | None,
                       transmitted_budget: int) -> tuple[dict, list, dict]:
     """Everything checkable without starting a process."""
@@ -103,6 +121,7 @@ def offline_preflight(config_path: Path, *, output_root: Path | None,
             == (E.FALLBACK["anchor_action_id"], E.FALLBACK["profile_id"]),
             "fixed fallback does not reconcile with the catalog")
     spec = W.load_run4_quality_spec(ROOT)
+    addendum = verify_addendum()
     report.update({
         "schema": "scenesense.run4_live_v2.phase6_preflight.v1",
         "readiness_manifest_sha256": readiness["manifest_sha256"],
@@ -116,6 +135,7 @@ def offline_preflight(config_path: Path, *, output_root: Path | None,
         "telemetry": telemetry_bindings(),
         "cuda_initialized": torch.cuda.is_initialized(),
         "live_command_executed": False,
+        "addendum": addendum,
     })
     require(not report["cuda_initialized"], "preflight initialized CUDA")
     return config, cells, report
@@ -195,13 +215,21 @@ def evaluate_phase6(*, ue: Mapping[str, Any], edge: Mapping[str, Any],
     verdict = ("PASSED" if all(gates.values())
                else "INCONCLUSIVE_OR_FAILED" if not gates["P0_POLICY_COVERAGE"]
                else "FAILED")
+    from . import phase6_result_reporting_v2 as REP
+
+    # Addendum 2 (option c): reporting only; gates and verdict are unchanged.
     return {"gates": gates, "verdict": verdict,
+            "claim_scope": REP.CLAIM_SCOPE,
+            "policy_performance_claim": False,
+            "verdict_statement": REP.PASS_STATEMENT,
+            "result_summary": REP.result_summary(ue),
             "reported_not_gated": {
                 "fallback_fraction": (ue.get("coverage") or {}).get("fallback_fraction"),
                 "session_rollovers": counters.get("session_rollovers"),
                 "terminals": _histogram(r.get("terminal") for r in resolutions),
                 "reward_mean": _mean(r.get("reward") for r in resolutions
-                                     if r.get("reward") is not None)}}
+                                     if r.get("reward") is not None),
+                "reward_mean_label": REP.CONDITIONAL_LABEL}}
 
 
 def _three_way(edge: Sequence[Any], tunnel: Sequence[Any], ue: Sequence[Any]) -> bool:
@@ -222,6 +250,16 @@ def evaluate_attempt(attempt: Path, *, cleanup_ok: bool) -> dict[str, Any]:
     tunnel = r4fb_digests_in_pcap(attempt / "quality_ack_oaitun_ue1.pcap")
     return evaluate_phase6(ue=ue, edge=edge, map_identity_rows=rows,
                            feedback_packets_on_ue_tunnel=tunnel, cleanup_ok=cleanup_ok)
+
+
+def write_result_summary(attempt: Path, evaluation: Mapping[str, Any]) -> Path:
+    """Create-only human-readable summary led by the systems-integration scope."""
+    from . import phase6_result_reporting_v2 as REP
+
+    path = Path(attempt) / "PHASE6_RESULT_SUMMARY.md"
+    with path.open("x", encoding="utf-8") as handle:
+        handle.write(REP.render_markdown(evaluation))
+    return path
 
 
 def _histogram(values) -> dict[str, int]:
@@ -401,6 +439,8 @@ def run_one_cell(*, base_config: Mapping[str, Any], registered: Any, output_root
                 verdict = evaluate_attempt(attempt, cleanup_ok=cleanup["all_gates_passed"])
                 report["phase6"] = verdict
                 report["status"] = verdict["verdict"]
+                report["claim_scope"] = verdict["claim_scope"]
+                write_result_summary(attempt, verdict)
             except BaseException as exc:
                 report["status"] = "FAILED"
                 report["error"] = f"gate evaluation: {type(exc).__name__}: {exc}"
@@ -437,7 +477,8 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
                           safety_timeout_s=float(args.safety_timeout_s),
                           carla_port=int(args.carla_port),
                           child_timeout_s=float(args.child_timeout_s))
-    print(json.dumps({"status": report["status"], "phase6": report.get("phase6")},
+    print(json.dumps({"status": report["status"], "claim_scope": report.get("claim_scope"),
+                      "phase6": report.get("phase6")},
                      sort_keys=True, indent=2, default=str))
     return 0 if report["status"] == "PASSED" else 1
 

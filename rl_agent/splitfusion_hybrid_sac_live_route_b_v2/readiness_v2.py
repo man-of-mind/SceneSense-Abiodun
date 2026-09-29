@@ -44,6 +44,8 @@ PACKAGE_SOURCES = (
     "phase6_decision_engine_v2.py", "run4_live_wire_v2.py", "run4_map_protocol_v2.py",
     "run4_ue_ledger_v2.py", "phase6_edge_runtime_v2.py", "phase6_map_server_v2.py",
     "phase6_ue_runtime_v2.py", "phase6_live_child_v2.py", "phase6_live_runner_v2.py",
+    # Prospective addendum 2 (option c): reporting only.
+    "phase6_result_reporting_v2.py", "phase6_prospective_addendum_2.json",
 )
 
 

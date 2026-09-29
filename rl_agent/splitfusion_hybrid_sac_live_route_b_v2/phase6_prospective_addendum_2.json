@@ -1,0 +1,44 @@
+{
+  "schema": "scenesense.run4_live_v2.phase6_prospective_addendum.v1",
+  "id": "PHASE6_PROSPECTIVE_ADDENDUM_2_OPTION_C",
+  "date": "2026-09-29",
+  "status": "REGISTERED_BEFORE_ANY_PHASE6_DATA",
+  "decided_by": "Abiodun-Codex",
+  "decision": "Option (c) of PHASE6_UNDEFINED_QUALITY_DECISION_MEMO.md: the 300-frame Phase-6 run is a systems-integration qualification, not a policy-performance validation.",
+  "amends": {
+    "plan": "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/live_qualification_300_v2.json",
+    "plan_sha256": "a36f87be1e2b91192a3702c0433ceb8a221bbee519ad317b78586428eb0a2d80",
+    "plan_unchanged": true,
+    "memo": "rl_agent/splitfusion_hybrid_sac_checkpoint_sidecar_v1/PHASE6_UNDEFINED_QUALITY_DECISION_MEMO.md",
+    "memo_sha256": "65d17836e281788d5caf570b0f4b70300120af514204c82cec6dffe8eb756e41"
+  },
+  "unchanged": [
+    "frozen seed-43/update-10000 actor (boundary b61f27a9bcd3512ecf52bc35854f6a723d550092db51cf3055347297039cebd3)",
+    "21-D Run-4 state and feature schema",
+    "Run-4 reward, the inclusive 170-ms deadline and the registered timeout reward",
+    "hold k_min=2, the fixed fallback and every runtime/transport semantic",
+    "gates P0-P8, their thresholds and the verdict rule"
+  ],
+  "undefined_quality_behavior": {
+    "no_eligible_gt": "excluded EVALUATOR_FAULT (QUALITY_UNDEFINED_NO_ELIGIBLE_GT)",
+    "reward_value": "none; no zero or neutral reward; no timeout substitution",
+    "previous_outcome": "no stale previous outcome; the next policy decision opens a genesis session",
+    "counted_as": "session_rollovers"
+  },
+  "reporting_added": [
+    "reward_requested_decisions",
+    "eligible_quality_denominator (learning-included resolutions)",
+    "excluded_count and excluded_rate (excluded / resolved)",
+    "exclusion_reason_histogram (terminal:evaluator reason)",
+    "session_rollovers and session consistency",
+    "conditional reward mean and success rate, labelled conditional on eligible GT and not gated",
+    "claim_scope = SYSTEMS_INTEGRATION_QUALIFICATION_ONLY; policy_performance_claim = false",
+    "PHASE6_RESULT_SUMMARY.md leading with: P0-P8 PASS is a systems-integration PASS, not a policy-performance PASS"
+  ],
+  "implementation": "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/phase6_result_reporting_v2.py (called by phase6_live_runner_v2.evaluate_phase6)",
+  "claims_not_made": [
+    "policy performance",
+    "reward mean or success rate as a policy-level expectation",
+    "convergence or optimality of the selected actor"
+  ]
+}
