@@ -1,0 +1,8 @@
+{
+  "cell_id": "adverse_stable__perm4",
+  "created_monotonic_ns": 7271006371326534,
+  "epoch_monotonic_ns": 7271006421326534,
+  "period_ns": 100000000,
+  "schema": "scenesense.production_queue_capture_shared_epoch.v1",
+  "sender_ready_sha256": "cba018ce4a40ad2fd45fcaeb34fc9da2f2f32651df969b71afcb1b9daaec6ceb"
+}

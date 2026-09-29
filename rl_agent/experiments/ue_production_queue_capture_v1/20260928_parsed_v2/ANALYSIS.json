@@ -1,0 +1,262 @@
+{
+  "all_gates_passed": false,
+  "binning": {
+    "backlog_edges": [
+      0.0,
+      1.0,
+      1000.0,
+      10000.0,
+      100000.0,
+      1000000.0,
+      10000000.0,
+      null
+    ],
+    "mcs_edges": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      null
+    ],
+    "min_bin_support": 20
+  },
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "disclosures": [
+    "PRODUCTION_DOMAIN_QUEUE_AND_TRANSPORT_ONLY",
+    "SINGLE_UE_RADIO_CONFIGURATION_ONLY",
+    "PROFILE_TRANSFER_UNVALIDATED",
+    "MODE_TRANSFER_UNVALIDATED",
+    "PAYLOAD_INTERPOLATION_UNVALIDATED",
+    "NOT_PERCEPTION_ENDORSEMENT"
+  ],
+  "frozen_binning_source": "ue_mcs_backlog_run4_analysis_v1",
+  "gates": {
+    "gate_1": {
+      "cells": 12,
+      "cycles": 2688,
+      "frames": 5400,
+      "key": "COMPLETE_AND_SEALED_CAPTURE",
+      "passed": true
+    },
+    "gate_10": {
+      "key": "NO_HIDDEN_INPUT",
+      "leaked_fields": [],
+      "model_conditions_on": [
+        "pre_action_rlc_backlog_bytes",
+        "prior_ul_mcs",
+        "udp_application_bytes"
+      ],
+      "passed": true
+    },
+    "gate_2": {
+      "cells_sealed": 12,
+      "failures": [],
+      "key": "SAME_DOMAIN_CLOSURE_SEAL",
+      "passed": true,
+      "requirements": [
+        "EXACT_FRAME_ACTION_PAYLOAD_IDENTITY",
+        "SENDER_FIRST_AND_LAST_SOCKET_HANDOFF_TIMESTAMPS",
+        "UE_PDCP_INGRESS",
+        "UE_RLC_INGRESS_AND_DEQUEUE",
+        "CAUSAL_PRE_ACTION_RLC_BACKLOG",
+        "CAUSAL_PREVIOUS_NEW_DATA_ROUND0_TABLE0_UL_MCS",
+        "RECEIVER_FIRST_AND_LAST_DATAGRAM_TIMESTAMPS",
+        "RECEIVER_COMPLETE_REASSEMBLY_TIMESTAMP",
+        "OBSERVED_IP_FRAGMENT_ACCOUNTING",
+        "ZERO_UNEXPLAINED_SENDER_TO_PDCP_TO_RLC_RESIDUAL",
+        "EXACTLY_ONE_TERMINAL_OUTCOME_PER_SENT_FRAME"
+      ],
+      "rlc_minus_pdcp_bytes_per_sdu": [
+        3
+      ],
+      "total_unexplained_residual_bytes": 0
+    },
+    "gate_3": {
+      "backlog_coverage": 1.0,
+      "key": "CAUSAL_INPUT_COVERAGE",
+      "passed": true,
+      "ul_mcs_coverage": 1.0
+    },
+    "gate_4": {
+      "improvement_over_persistence": 0.2676482731076685,
+      "key": "VALIDATION_NEXT_BACKLOG_ERROR",
+      "model_nmae": 0.016656695719099352,
+      "n": 1344,
+      "passed": true,
+      "persistence_nmae": 0.022744120219092726,
+      "skipped": 0
+    },
+    "gate_5": {
+      "key": "VALIDATION_TRANSPORT_LATENCY_ERROR",
+      "n": 2700,
+      "p50_error_ms": 37.29388803650191,
+      "p95_error_ms": 1056.64432504323,
+      "passed": false
+    },
+    "gate_6": {
+      "brier": 0.025555555555555557,
+      "false_success": 11,
+      "false_success_rate": 0.006642512077294686,
+      "key": "VALIDATION_DEADLINE_OUTCOME_CALIBRATION",
+      "n": 2700,
+      "passed": true,
+      "population": "ALL_SENT_FRAMES_NOT_SURVIVORS_ONLY",
+      "predicted_success": 1656
+    },
+    "gate_7": {
+      "brier_with_mcs": 0.025555555555555557,
+      "brier_without_mcs": 0.02185185185185185,
+      "constrained_rate_mbps_by_mcs_bin": {
+        "2": 33.34205772772428,
+        "3": 33.34205772772428,
+        "4": 36.025768606495674,
+        "5": 42.66539736797002,
+        "6": 43.34245536233978
+      },
+      "degradation": 0.0037037037037037056,
+      "higher_mcs_not_slower": true,
+      "key": "MCS_NONHARM_AND_DIRECTION",
+      "passed": true,
+      "shape_constraint": "PAVA_NON_INCREASING_SLOPE_AND_OVERHEAD_IN_MCS",
+      "unconstrained_rate_mbps_by_mcs_bin": {
+        "2": 33.45974935585719,
+        "3": 32.03954966868163,
+        "4": 36.025768606495674,
+        "5": 42.66539736797002,
+        "6": 43.34245536233978
+      }
+    },
+    "gate_8": {
+      "key": "MONOTONICITY",
+      "passed": true,
+      "probe_count": 15,
+      "violations": 0
+    },
+    "gate_9": {
+      "excluded_inversions": 0,
+      "fraction": 0.0,
+      "key": "BOUNDARY_INTEGRITY",
+      "passed": true,
+      "policy": "EXCLUDED_NOT_CLAMPED"
+    }
+  },
+  "gates_passed": 9,
+  "gates_total": 10,
+  "model": {
+    "bins": {
+      "(2,)": {
+        "count": 1202,
+        "implied_rate_mbps": 33.34205772772428,
+        "overhead_ns": 65256119.1034379,
+        "raw_overhead_ns": 65256119.1034379,
+        "raw_slope_ns_per_byte": 239.09324349435346,
+        "slope_ns_per_byte": 239.93720079693563
+      },
+      "(3,)": {
+        "count": 104,
+        "implied_rate_mbps": 33.34205772772428,
+        "overhead_ns": 2280563.247709747,
+        "raw_overhead_ns": 0.0,
+        "raw_slope_ns_per_byte": 249.6913996210105,
+        "slope_ns_per_byte": 239.93720079693563
+      },
+      "(4,)": {
+        "count": 362,
+        "implied_rate_mbps": 36.025768606495674,
+        "overhead_ns": 2280563.247709747,
+        "raw_overhead_ns": 0.0,
+        "raw_slope_ns_per_byte": 222.06327052679592,
+        "slope_ns_per_byte": 222.06327052679592
+      },
+      "(5,)": {
+        "count": 106,
+        "implied_rate_mbps": 42.66539736797002,
+        "overhead_ns": 2280563.247709747,
+        "raw_overhead_ns": 12306435.638584673,
+        "raw_slope_ns_per_byte": 187.50557813873309,
+        "slope_ns_per_byte": 187.50557813873309
+      },
+      "(6,)": {
+        "count": 926,
+        "implied_rate_mbps": 43.34245536233978,
+        "overhead_ns": 0.0,
+        "raw_overhead_ns": 0.0,
+        "raw_slope_ns_per_byte": 184.57652971250891,
+        "slope_ns_per_byte": 184.57652971250891
+      }
+    },
+    "form": "latency_ns = overhead_ns + slope_ns_per_byte * (backlog + udp_application_bytes)",
+    "global_entry": {
+      "count": 2700,
+      "overhead_ns": 1164682.335502386,
+      "slope_ns_per_byte": 239.815732560862
+    },
+    "rate_support": {
+      "fit_rows_total": 2700,
+      "fit_rows_used": 2700,
+      "max_backlog": 36002536.0,
+      "max_bytes": 625774,
+      "min_backlog": 0.0,
+      "min_bytes": 6213
+    }
+  },
+  "partitions": {
+    "fit_cells": [
+      "adverse_stable__perm0",
+      "adverse_stable__perm1",
+      "adverse_stable__perm2",
+      "favorable_stable__perm0",
+      "favorable_stable__perm1",
+      "favorable_stable__perm2"
+    ],
+    "fit_cycles": 1344,
+    "fit_frames": 2700,
+    "validation_cells": [
+      "adverse_stable__perm3",
+      "adverse_stable__perm4",
+      "adverse_stable__perm5",
+      "favorable_stable__perm3",
+      "favorable_stable__perm4",
+      "favorable_stable__perm5"
+    ],
+    "validation_cycles": 1344,
+    "validation_frames": 2700
+  },
+  "per_tier_descriptive": {
+    "floor": {
+      "backlog_max_bytes": 36002536,
+      "backlog_p50_bytes": 0,
+      "frames": 1800,
+      "latency_p50_ms": 38.575569,
+      "latency_p95_ms": 4089.782288,
+      "success": 1588,
+      "success_rate": 0.8822222222222222
+    },
+    "guard": {
+      "backlog_max_bytes": 36936521,
+      "backlog_p50_bytes": 4039836,
+      "frames": 1800,
+      "latency_p50_ms": 839.244923,
+      "latency_p95_ms": 7806.726503,
+      "success": 719,
+      "success_rate": 0.39944444444444444
+    },
+    "knee": {
+      "backlog_max_bytes": 38896946,
+      "backlog_p50_bytes": 10142,
+      "frames": 1800,
+      "latency_p50_ms": 110.035421,
+      "latency_p95_ms": 8643.915758,
+      "success": 988,
+      "success_rate": 0.5488888888888889
+    }
+  },
+  "schema": "scenesense.production_queue_capture_analysis.v1",
+  "terminal_outcomes": {
+    "COMPLETE_AFTER_DEADLINE": 2105,
+    "COMPLETE_WITHIN_DEADLINE": 3295
+  }
+}

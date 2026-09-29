@@ -1,0 +1,76 @@
+{
+  "role": "TARGET_CHANNEL_STATE_PRIMER_NOT_A_SCIENTIFIC_DECISION",
+  "port": 5431,
+  "datagrams_sent": 5,
+  "payload_bytes": 1200,
+  "send_start_monotonic_ns": 7270373755237141,
+  "send_end_monotonic_ns": 7270373805822038,
+  "datagrams_received": 5,
+  "pdcp_rows_after_send": 5,
+  "latest_pdcp_receipt_monotonic_ns": 7270373796802794,
+  "fresh_round0_grants": 10,
+  "latest_grant": {
+    "receipt_monotonic_ns": 7270373829435078,
+    "mcs": 28,
+    "mcs_table": 0,
+    "round": 0,
+    "ndi": 1
+  },
+  "trailing_zero_rlc_ticks": 16,
+  "zero_rlc_ticks_required": 3,
+  "ingress_quiet_ms_required": 20.0,
+  "retained_rlc_ticks": [
+    {
+      "receipt_monotonic_ns": 7270373829532138,
+      "total_bytes": 0,
+      "rows": 1
+    },
+    {
+      "receipt_monotonic_ns": 7270373830587609,
+      "total_bytes": 0,
+      "rows": 2
+    },
+    {
+      "receipt_monotonic_ns": 7270373830603420,
+      "total_bytes": 0,
+      "rows": 1
+    },
+    {
+      "receipt_monotonic_ns": 7270373834741277,
+      "total_bytes": 0,
+      "rows": 1
+    },
+    {
+      "receipt_monotonic_ns": 7270373834755120,
+      "total_bytes": 0,
+      "rows": 2
+    },
+    {
+      "receipt_monotonic_ns": 7270373834757107,
+      "total_bytes": 0,
+      "rows": 1
+    },
+    {
+      "receipt_monotonic_ns": 7270373834762673,
+      "total_bytes": 0,
+      "rows": 2
+    },
+    {
+      "receipt_monotonic_ns": 7270373835786835,
+      "total_bytes": 0,
+      "rows": 1
+    },
+    {
+      "receipt_monotonic_ns": 7270373835798027,
+      "total_bytes": 0,
+      "rows": 2
+    },
+    {
+      "receipt_monotonic_ns": 7270373836910240,
+      "total_bytes": 0,
+      "rows": 2
+    }
+  ],
+  "completed_monotonic_ns": 7270373837600197,
+  "qualified_for_sender_start": true
+}

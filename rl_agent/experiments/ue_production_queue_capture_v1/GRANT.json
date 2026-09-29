@@ -1,0 +1,14 @@
+{
+  "config_sha256": "df49469d11f7b9d40e3fdfdb247104e0342bc1ffb289251efd64076fc8678569",
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "execution_head": "8ceb3f5728bb95cec414d0c55f6f2b40dcf72827",
+  "expires_utc": "2026-09-29T05:48:32.728072Z",
+  "grant_id": "656d0ba5-1300-4a7d-9c55-bfeb1b6cb43e",
+  "granted_by": "abiodun.ganiyu@interdigital.com",
+  "granted_utc": "2026-09-28T21:48:32.728072Z",
+  "output_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_production_queue_capture_v1/20260928_214832_live",
+  "schema": "scenesense.ue_production_queue_capture_authorization.v1",
+  "source_inventory_sha256": "4c0d88291dcda89ca959919c934a6d1005d71dccec734aa263db0f2e8271f2f2",
+  "stage": "production_queue_capture_v1",
+  "token": "AUTHORIZE_PRODUCTION_QUEUE_CAPTURE_V1"
+}

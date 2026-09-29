@@ -1,0 +1,19 @@
+{
+  "bind_host": "0.0.0.0",
+  "bind_port": 5423,
+  "cell_id": "01__favorable_stable__perm1",
+  "ip_counters_before": {
+    "FragCreates": 0,
+    "FragFails": 0,
+    "FragOKs": 0,
+    "ReasmFails": 0,
+    "ReasmOKs": 0,
+    "ReasmReqds": 0,
+    "ReasmTimeout": 0
+  },
+  "packetization_identity": "PRODUCTION_SFD1_IHH_12500_NO_RETRANSMISSION",
+  "ready_monotonic_ns": 7269873821468728,
+  "schema": "scenesense.production_queue_capture_receiver_ready.v1",
+  "socket_recvbuf_effective": 67108864,
+  "socket_recvbuf_requested": 268435456
+}

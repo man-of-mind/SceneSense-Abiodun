@@ -1,0 +1,241 @@
+{
+  "backlog_age_ns_max": 4871576,
+  "backlog_joins_changed_vs_v1": 29,
+  "backlog_mapping_report": [
+    {
+      "bytes": 0,
+      "log_scaled_backlog": 0.0,
+      "physical_occupancy_fraction": 0.0
+    },
+    {
+      "bytes": 40000,
+      "log_scaled_backlog": 0.598,
+      "physical_occupancy_fraction": 0.0008
+    },
+    {
+      "bytes": 400000,
+      "log_scaled_backlog": 0.728,
+      "physical_occupancy_fraction": 0.008
+    },
+    {
+      "bytes": 1000000,
+      "log_scaled_backlog": 0.779,
+      "physical_occupancy_fraction": 0.02
+    },
+    {
+      "bytes": 10000000,
+      "log_scaled_backlog": 0.909,
+      "physical_occupancy_fraction": 0.2
+    },
+    {
+      "bytes": 50000000,
+      "log_scaled_backlog": 1.0,
+      "physical_occupancy_fraction": 1.0
+    }
+  ],
+  "cells": [
+    {
+      "backlog_age_ns_max": 4261845,
+      "backlog_age_ns_p50": 641232,
+      "backlog_join_changed": 3,
+      "cell_id": "favorable_stable__perm0",
+      "cell_tag": "00__favorable_stable__perm0",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 72121330,
+      "mcs_age_ns_p50": 30182640,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "FIT"
+    },
+    {
+      "backlog_age_ns_max": 4708561,
+      "backlog_age_ns_p50": 571775,
+      "backlog_join_changed": 2,
+      "cell_id": "favorable_stable__perm1",
+      "cell_tag": "01__favorable_stable__perm1",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 69066319,
+      "mcs_age_ns_p50": 35829582,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "FIT"
+    },
+    {
+      "backlog_age_ns_max": 4504184,
+      "backlog_age_ns_p50": 660658,
+      "backlog_join_changed": 3,
+      "cell_id": "favorable_stable__perm2",
+      "cell_tag": "02__favorable_stable__perm2",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 73153945,
+      "mcs_age_ns_p50": 35377858,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "FIT"
+    },
+    {
+      "backlog_age_ns_max": 3825718,
+      "backlog_age_ns_p50": 749636,
+      "backlog_join_changed": 0,
+      "cell_id": "favorable_stable__perm3",
+      "cell_tag": "03__favorable_stable__perm3",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 79116416,
+      "mcs_age_ns_p50": 28945349,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "VALIDATION"
+    },
+    {
+      "backlog_age_ns_max": 4618591,
+      "backlog_age_ns_p50": 572905,
+      "backlog_join_changed": 2,
+      "cell_id": "favorable_stable__perm4",
+      "cell_tag": "04__favorable_stable__perm4",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 82373768,
+      "mcs_age_ns_p50": 36483645,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "VALIDATION"
+    },
+    {
+      "backlog_age_ns_max": 4488580,
+      "backlog_age_ns_p50": 539565,
+      "backlog_join_changed": 0,
+      "cell_id": "favorable_stable__perm5",
+      "cell_tag": "05__favorable_stable__perm5",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 67097538,
+      "mcs_age_ns_p50": 35060065,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "VALIDATION"
+    },
+    {
+      "backlog_age_ns_max": 4216144,
+      "backlog_age_ns_p50": 575479,
+      "backlog_join_changed": 4,
+      "cell_id": "adverse_stable__perm0",
+      "cell_tag": "06__adverse_stable__perm0",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 83087556,
+      "mcs_age_ns_p50": 2760719,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "FIT"
+    },
+    {
+      "backlog_age_ns_max": 4871576,
+      "backlog_age_ns_p50": 605009,
+      "backlog_join_changed": 2,
+      "cell_id": "adverse_stable__perm1",
+      "cell_tag": "07__adverse_stable__perm1",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 70606779,
+      "mcs_age_ns_p50": 1657963,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "FIT"
+    },
+    {
+      "backlog_age_ns_max": 4515747,
+      "backlog_age_ns_p50": 587874,
+      "backlog_join_changed": 3,
+      "cell_id": "adverse_stable__perm2",
+      "cell_tag": "08__adverse_stable__perm2",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 65578998,
+      "mcs_age_ns_p50": 1704108,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "FIT"
+    },
+    {
+      "backlog_age_ns_max": 4469836,
+      "backlog_age_ns_p50": 577504,
+      "backlog_join_changed": 5,
+      "cell_id": "adverse_stable__perm3",
+      "cell_tag": "09__adverse_stable__perm3",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 73536503,
+      "mcs_age_ns_p50": 1651096,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "VALIDATION"
+    },
+    {
+      "backlog_age_ns_max": 4192481,
+      "backlog_age_ns_p50": 507164,
+      "backlog_join_changed": 3,
+      "cell_id": "adverse_stable__perm4",
+      "cell_tag": "10__adverse_stable__perm4",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 84518038,
+      "mcs_age_ns_p50": 2466082,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "VALIDATION"
+    },
+    {
+      "backlog_age_ns_max": 4234322,
+      "backlog_age_ns_p50": 572166,
+      "backlog_join_changed": 2,
+      "cell_id": "adverse_stable__perm5",
+      "cell_tag": "11__adverse_stable__perm5",
+      "coverage": 1.0,
+      "expected_decisions": 225,
+      "mcs_age_ns_max": 86445501,
+      "mcs_age_ns_p50": 2877402,
+      "mcs_join_changed": 0,
+      "missing": [],
+      "partition": "VALIDATION"
+    }
+  ],
+  "contract_v2_sha256": "48c832541b1c973def9b2d8c5daca4e1faaa31439347ffb007b7f841f32284bc",
+  "coverage": 1.0,
+  "coverage_complete": true,
+  "cutoff_field": "frame_open_monotonic_ns",
+  "decisions": 2700,
+  "decisions_csv_sha256": "94cb7f3f12127aeb548a95cc80c6ad63391db6f1d5bc3457d3e4d1ce3b23cb22",
+  "evidence_class": "POSTHOC_DEVELOPMENT_MODEL_FOR_EXPLORATORY_RUN4_TRAINING",
+  "expected_decisions": 2700,
+  "feature_provenance_audit": {
+    "allowed_predictors": [
+      "pre_enqueue_backlog_bytes",
+      "prior_ul_mcs",
+      "action_wire_bytes"
+    ],
+    "checked_rows": 2700,
+    "forbidden_fields_present_in_table": [
+      "terminal_outcome",
+      "transport_latency_ns"
+    ],
+    "forbidden_fields_used_as_predictors": [],
+    "passed": true,
+    "timestamp_violation_count": 0,
+    "timestamp_violations": []
+  },
+  "mcs_age_ns_max": 86445501,
+  "mcs_joins_changed_vs_v1": 0,
+  "raw_backlog_support": {
+    "above_oai_ceiling": 0,
+    "fit_max_bytes": 36002536,
+    "fit_min_bytes": 0,
+    "max_bytes": 38870999,
+    "min_bytes": 0
+  },
+  "rejected_cutoff_field": "first_send_monotonic_ns",
+  "schema": "scenesense.production_transport_causal_join_v2"
+}

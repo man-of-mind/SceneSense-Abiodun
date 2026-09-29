@@ -1,0 +1,18 @@
+{
+  "bind_host": "10.0.0.2",
+  "block_ports": [
+    5421,
+    5422,
+    5423
+  ],
+  "cell_id": "favorable_stable__perm2",
+  "chunk_bytes": 12500,
+  "packetization_identity": "PRODUCTION_SFD1_IHH_12500_NO_RETRANSMISSION",
+  "period_ns": 100000000,
+  "ready_monotonic_ns": 7269998649062154,
+  "remote_host": "192.168.70.135",
+  "schedule_sha256": "92de896df9725339b72c97080782dac183d809da59c95863fae529df06b8d100",
+  "schema": "scenesense.production_queue_capture_sender_ready.v1",
+  "socket_sendbuf_effective": 67108864,
+  "socket_sendbuf_requested": 67108864
+}

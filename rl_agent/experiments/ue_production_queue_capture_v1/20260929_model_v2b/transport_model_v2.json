@@ -1,0 +1,139 @@
+{
+  "action_ranking_sensitivity": {
+    "empirical_on_time_rate": {
+      "375262": 0.5422222222222223,
+      "6242": 0.8377777777777777,
+      "625774": 0.3888888888888889
+    },
+    "empirical_ranking": [
+      6242,
+      375262,
+      625774
+    ],
+    "model_agrees_with_empirical_ranking_fraction": 1.0,
+    "representative_wire_bytes": [
+      6242.0,
+      375262.0,
+      625774.0
+    ],
+    "states_scored": 1350
+  },
+  "adding_both_components_is_forbidden": true,
+  "all_gates_passed": true,
+  "backlog_normalization": {
+    "clip_is_not_a_support_check": true,
+    "oai_source_pins": {
+      "OAI/openairinterface5g/common/platform_constants.h": "3a2ebaa187881fbc53b9e3077a59dde4897362f05941b346ab71483681123d5a",
+      "OAI/openairinterface5g/openair2/LAYER2/nr_rlc/nr_rlc_entity.c": "89620b2c0ea30593ce045839b4fd8897ba4e50f2f2cf72aa213d23ce8277ff98",
+      "OAI/openairinterface5g/openair2/LAYER2/nr_rlc/nr_rlc_entity_am.c": "9283de37d39d7187f79cf07ba1118af0160778bb2067b7858df993e74b002a48"
+    },
+    "reference_bytes": 50000000,
+    "reference_rule": "VERIFIED_OAI_AM_TRANSMIT_ADMISSION_CEILING",
+    "semantics": "LOG_SCALED_BACKLOG__NEVER_PERCENTAGE_FULL"
+  },
+  "boundary": "LAST_UDP_SOCKET_HANDOFF__TO__COMPLETE_RECEIVER_REASSEMBLY",
+  "confirmatory": false,
+  "contract_v2_sha256": "48c832541b1c973def9b2d8c5daca4e1faaa31439347ffb007b7f841f32284bc",
+  "deadline_head": {
+    "w0": 3.151916836109371,
+    "w_backlog": 9.945704779847576,
+    "w_bytes": 1.1400118720408476,
+    "w_mcs": 5.642247976581614
+  },
+  "deadline_ns": 170000000,
+  "disclosures": [
+    "POSTHOC_DEVELOPMENT_MODEL_FOR_EXPLORATORY_RUN4_TRAINING",
+    "NOT_CONFIRMATORY_EVIDENCE",
+    "V1_GATE5_REMAINS_FAILED",
+    "SINGLE_UE_RADIO_CONFIGURATION_ONLY",
+    "PROFILE_TRANSFER_UNVALIDATED",
+    "MODE_TRANSFER_UNVALIDATED",
+    "PAYLOAD_INTERPOLATION_UNVALIDATED",
+    "NOT_PERCEPTION_ENDORSEMENT",
+    "NOT_P_ADMIT__INTERNAL_TRAINING_ENVIRONMENT_MODEL_ONLY"
+  ],
+  "equations": {
+    "backlog_scaled": "min(1, log1p(pre_enqueue_backlog_bytes) / log1p(50000000))",
+    "deadline_head": "p = sigmoid(w0 - w_backlog*backlog_scaled - w_bytes*(wire_bytes/1e6) + w_mcs*(mcs/28))",
+    "latency_head": "latency_ms = 170 * sigmoid(z0 + a_backlog*backlog_scaled + b_bytes*(wire_bytes/1e6) - c_mcs*(mcs/28))",
+    "queue_head": "B_next = max(0, B + deterministic_ingress - service(MCS))"
+  },
+  "evidence_class": "POSTHOC_DEVELOPMENT_MODEL_FOR_EXPLORATORY_RUN4_TRAINING",
+  "fit_support": {
+    "max_backlog_bytes": 36002536.0,
+    "max_prior_ul_mcs": 28.0,
+    "max_wire_bytes": 625774.0,
+    "min_backlog_bytes": 0.0,
+    "min_prior_ul_mcs": 8.0,
+    "min_wire_bytes": 6242.0,
+    "rows": 1350
+  },
+  "gate_verdicts": {
+    "CAUSAL_JOIN_INTEGRITY": true,
+    "CONDITIONAL_ON_TIME_LATENCY_ERROR": true,
+    "DEADLINE_HEAD_CALIBRATION": true,
+    "FEATURE_PROVENANCE": true,
+    "MONOTONICITY": true,
+    "REWARD_ERROR": true
+  },
+  "latency_head": {
+    "a_backlog": 1.1709882130291418,
+    "b_bytes": 2.325472617088792,
+    "c_mcs": 0.4888790212589016,
+    "z0": -0.8946509244695674
+  },
+  "metrics": {
+    "brier": 0.019810816229876203,
+    "causal_coverage": 1.0,
+    "confusion": {},
+    "false_success_rate": 0.00904392764857881,
+    "feature_provenance_passed": true,
+    "latency_abs_error_p50_ms": 7.31699207780207,
+    "latency_abs_error_p95_ms": 33.338824787373866,
+    "monotonicity_violations": 0,
+    "n": 1350,
+    "n_on_time": 796,
+    "reward_error_p50": 0.010760282467355985,
+    "reward_error_p95": 0.04902768351084392
+  },
+  "model_family": "MONOTONE_TWO_PART_DEADLINE_HEAD_PLUS_CONDITIONAL_LATENCY_HEAD",
+  "model_seed": 17,
+  "out_of_support_policy": "REFUSE_DO_NOT_EXTRAPOLATE",
+  "queue_head": {
+    "form": "B_next = max(0, B + deterministic_ingress - service(MCS))",
+    "global_service_bytes": 706472.5,
+    "service_by_mcs_bin": {
+      "2": 700350.0,
+      "3": 748544.0,
+      "4": 1339307.2232142857,
+      "5": 1339307.2232142857,
+      "6": 1339307.2232142857
+    },
+    "support": {
+      "bins": {
+        "2": 451,
+        "3": 29,
+        "4": 78,
+        "5": 14,
+        "6": 20
+      },
+      "censored_drained": 752,
+      "transitions_used": 592
+    }
+  },
+  "raw_backlog_support": {
+    "above_oai_ceiling": 0,
+    "fit_max_bytes": 36002536,
+    "fit_min_bytes": 0,
+    "max_bytes": 38870999,
+    "min_bytes": 0
+  },
+  "replaces_288_component": "application_feature_uplink_ms",
+  "schema": "scenesense.production_transport_model.v2",
+  "selection_protocol": "GROUPED_LEAVE_ONE_WHOLE_FIT_CELL_OUT_CROSS_VALIDATION",
+  "shared_endpoint": "LAST_UDP_SOCKET_HANDOFF",
+  "v1_contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "v1_gate5_status": "FAILED__PRESERVED__NEVER_REWRITTEN_AS_PASSED",
+  "validation_population_status": "INSPECTED_TWICE_ON_20260928__NO_LONGER_PRISTINE__DESCRIPTIVE_ENGINEERING_AUDIT_ONLY",
+  "version": 2
+}

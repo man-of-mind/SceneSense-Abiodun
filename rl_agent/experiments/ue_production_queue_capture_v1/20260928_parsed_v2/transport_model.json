@@ -1,0 +1,116 @@
+{
+  "adding_both_components_is_forbidden": true,
+  "all_gates_passed": false,
+  "backoff_order": [
+    [
+      "pair_bytes",
+      "backlog",
+      "mcs"
+    ],
+    [
+      "pair_bytes",
+      "backlog"
+    ],
+    [
+      "pair_bytes"
+    ],
+    []
+  ],
+  "binning": {
+    "backlog_edges": [
+      0.0,
+      1.0,
+      1000.0,
+      10000.0,
+      100000.0,
+      1000000.0,
+      10000000.0,
+      null
+    ],
+    "mcs_edges": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      null
+    ],
+    "min_bin_support": 20
+  },
+  "bins": {
+    "(2,)": {
+      "count": 1202,
+      "implied_rate_mbps": 33.34205772772428,
+      "overhead_ns": 65256119.1034379,
+      "raw_overhead_ns": 65256119.1034379,
+      "raw_slope_ns_per_byte": 239.09324349435346,
+      "slope_ns_per_byte": 239.93720079693563
+    },
+    "(3,)": {
+      "count": 104,
+      "implied_rate_mbps": 33.34205772772428,
+      "overhead_ns": 2280563.247709747,
+      "raw_overhead_ns": 0.0,
+      "raw_slope_ns_per_byte": 249.6913996210105,
+      "slope_ns_per_byte": 239.93720079693563
+    },
+    "(4,)": {
+      "count": 362,
+      "implied_rate_mbps": 36.025768606495674,
+      "overhead_ns": 2280563.247709747,
+      "raw_overhead_ns": 0.0,
+      "raw_slope_ns_per_byte": 222.06327052679592,
+      "slope_ns_per_byte": 222.06327052679592
+    },
+    "(5,)": {
+      "count": 106,
+      "implied_rate_mbps": 42.66539736797002,
+      "overhead_ns": 2280563.247709747,
+      "raw_overhead_ns": 12306435.638584673,
+      "raw_slope_ns_per_byte": 187.50557813873309,
+      "slope_ns_per_byte": 187.50557813873309
+    },
+    "(6,)": {
+      "count": 926,
+      "implied_rate_mbps": 43.34245536233978,
+      "overhead_ns": 0.0,
+      "raw_overhead_ns": 0.0,
+      "raw_slope_ns_per_byte": 184.57652971250891,
+      "slope_ns_per_byte": 184.57652971250891
+    }
+  },
+  "boundary": "LAST_UDP_SOCKET_HANDOFF__TO__COMPLETE_RECEIVER_REASSEMBLY",
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "cycle_seconds": 0.2,
+  "deadline_ns": 170000000,
+  "disclosures": [
+    "PRODUCTION_DOMAIN_QUEUE_AND_TRANSPORT_ONLY",
+    "SINGLE_UE_RADIO_CONFIGURATION_ONLY",
+    "PROFILE_TRANSFER_UNVALIDATED",
+    "MODE_TRANSFER_UNVALIDATED",
+    "PAYLOAD_INTERPOLATION_UNVALIDATED",
+    "NOT_PERCEPTION_ENDORSEMENT"
+  ],
+  "form": "latency_ns = overhead_ns + slope_ns_per_byte * (backlog + udp_application_bytes)",
+  "gates_passed": 9,
+  "gates_total": 10,
+  "global_entry": {
+    "count": 2700,
+    "overhead_ns": 1164682.335502386,
+    "slope_ns_per_byte": 239.815732560862
+  },
+  "measured_support": {
+    "fit_rows_used": 2700,
+    "max_pre_action_backlog_bytes": 36002536.0,
+    "max_udp_application_bytes": 625774,
+    "min_pre_action_backlog_bytes": 0.0,
+    "min_udp_application_bytes": 6213
+  },
+  "min_bin_support": 20,
+  "out_of_support_policy": "REFUSE_DO_NOT_EXTRAPOLATE",
+  "replaces_288_component": "application_feature_uplink_ms",
+  "schema": "scenesense.production_transport_model.v1",
+  "shared_endpoint": "LAST_UDP_SOCKET_HANDOFF"
+}

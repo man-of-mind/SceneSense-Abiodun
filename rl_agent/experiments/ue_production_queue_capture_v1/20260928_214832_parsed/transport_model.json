@@ -1,0 +1,306 @@
+{
+  "adding_both_components_is_forbidden": true,
+  "all_gates_passed": false,
+  "backoff_order": [
+    [
+      "pair_bytes",
+      "backlog",
+      "mcs"
+    ],
+    [
+      "pair_bytes",
+      "backlog"
+    ],
+    [
+      "pair_bytes"
+    ],
+    []
+  ],
+  "binning": {
+    "backlog_edges": [
+      0.0,
+      1.0,
+      1000.0,
+      10000.0,
+      100000.0,
+      1000000.0,
+      10000000.0,
+      null
+    ],
+    "mcs_edges": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      null
+    ],
+    "min_bin_support": 20
+  },
+  "bins": {
+    "()": {
+      "count": 2700,
+      "median_rate_bps": 3635869.2036133623,
+      "p05_rate_bps": 153181.4024040283,
+      "p95_rate_bps": 7922606.47326166
+    },
+    "(0, 2)": {
+      "count": 292,
+      "median_rate_bps": 177501.72056146798,
+      "p05_rate_bps": 116608.52526007884,
+      "p95_rate_bps": 241501.25760495316
+    },
+    "(0, 3)": {
+      "count": 45,
+      "median_rate_bps": 176224.16083625949,
+      "p05_rate_bps": 104065.86367646598,
+      "p95_rate_bps": 2509184.9573598
+    },
+    "(0, 4)": {
+      "count": 200,
+      "median_rate_bps": 3976422.7036650507,
+      "p05_rate_bps": 151497.62382609415,
+      "p95_rate_bps": 5178558.974713532
+    },
+    "(0, 5)": {
+      "count": 73,
+      "median_rate_bps": 172147.64587759657,
+      "p05_rate_bps": 142418.57673245194,
+      "p95_rate_bps": 6712898.827267943
+    },
+    "(0, 6)": {
+      "count": 899,
+      "median_rate_bps": 5942621.708309963,
+      "p05_rate_bps": 150967.81277913135,
+      "p95_rate_bps": 9084414.885724338
+    },
+    "(0,)": {
+      "count": 1509,
+      "median_rate_bps": 2559174.3415055056,
+      "p05_rate_bps": 144618.3224243899,
+      "p95_rate_bps": 8353997.572415383
+    },
+    "(1, 5)": {
+      "count": 1,
+      "median_rate_bps": 3777131.567715883,
+      "p05_rate_bps": 3777131.567715883,
+      "p95_rate_bps": 3777131.567715883
+    },
+    "(1,)": {
+      "count": 1,
+      "median_rate_bps": 3777131.567715883,
+      "p05_rate_bps": 3777131.567715883,
+      "p95_rate_bps": 3777131.567715883
+    },
+    "(2, 2)": {
+      "count": 3,
+      "median_rate_bps": 510797.2783330358,
+      "p05_rate_bps": 478995.16080417245,
+      "p95_rate_bps": 533255.1601769719
+    },
+    "(2, 3)": {
+      "count": 4,
+      "median_rate_bps": 1605328.3559782156,
+      "p05_rate_bps": 168747.74208830163,
+      "p95_rate_bps": 5063854.61871385
+    },
+    "(2, 4)": {
+      "count": 1,
+      "median_rate_bps": 8091597.66181817,
+      "p05_rate_bps": 8091597.66181817,
+      "p95_rate_bps": 8091597.66181817
+    },
+    "(2, 5)": {
+      "count": 1,
+      "median_rate_bps": 7268060.729006515,
+      "p05_rate_bps": 7268060.729006515,
+      "p95_rate_bps": 7268060.729006515
+    },
+    "(2, 6)": {
+      "count": 4,
+      "median_rate_bps": 298426.9322831187,
+      "p05_rate_bps": 225868.40734044023,
+      "p95_rate_bps": 382483.866976497
+    },
+    "(2,)": {
+      "count": 1215,
+      "median_rate_bps": 3524834.599642503,
+      "p05_rate_bps": 157760.67454797827,
+      "p95_rate_bps": 5730642.9170643315
+    },
+    "(3, 2)": {
+      "count": 2,
+      "median_rate_bps": 3841117.446706875,
+      "p05_rate_bps": 3787840.9007051513,
+      "p95_rate_bps": 3894393.9927085997
+    },
+    "(3, 3)": {
+      "count": 1,
+      "median_rate_bps": 3953245.4980343687,
+      "p05_rate_bps": 3953245.4980343687,
+      "p95_rate_bps": 3953245.4980343687
+    },
+    "(3, 4)": {
+      "count": 10,
+      "median_rate_bps": 6646141.125369038,
+      "p05_rate_bps": 4776735.271561843,
+      "p95_rate_bps": 7910781.316495248
+    },
+    "(3, 5)": {
+      "count": 6,
+      "median_rate_bps": 7848987.351373941,
+      "p05_rate_bps": 2593508.857315724,
+      "p95_rate_bps": 8634479.8528011
+    },
+    "(3, 6)": {
+      "count": 3,
+      "median_rate_bps": 10481822.975746222,
+      "p05_rate_bps": 7289661.261553586,
+      "p95_rate_bps": 10973868.543771511
+    },
+    "(3,)": {
+      "count": 126,
+      "median_rate_bps": 3509038.129357785,
+      "p05_rate_bps": 138114.1047066667,
+      "p95_rate_bps": 7910781.316495248
+    },
+    "(4, 2)": {
+      "count": 192,
+      "median_rate_bps": 3434584.607506186,
+      "p05_rate_bps": 3155634.431800141,
+      "p95_rate_bps": 4491310.393916586
+    },
+    "(4, 3)": {
+      "count": 23,
+      "median_rate_bps": 3589709.110941143,
+      "p05_rate_bps": 2802259.545811966,
+      "p95_rate_bps": 5353458.65732184
+    },
+    "(4, 4)": {
+      "count": 44,
+      "median_rate_bps": 6764334.098762725,
+      "p05_rate_bps": 3630209.706986301,
+      "p95_rate_bps": 8123537.4610284185
+    },
+    "(4, 5)": {
+      "count": 11,
+      "median_rate_bps": 6816307.314974384,
+      "p05_rate_bps": 2471702.502502045,
+      "p95_rate_bps": 10117517.431757139
+    },
+    "(4, 6)": {
+      "count": 2,
+      "median_rate_bps": 10348246.67302984,
+      "p05_rate_bps": 5607327.542023108,
+      "p95_rate_bps": 15089165.804036573
+    },
+    "(4,)": {
+      "count": 634,
+      "median_rate_bps": 3937148.6988685345,
+      "p05_rate_bps": 175466.03897804895,
+      "p95_rate_bps": 7910781.316495248
+    },
+    "(5, 2)": {
+      "count": 374,
+      "median_rate_bps": 3577629.703199963,
+      "p05_rate_bps": 3320919.9482769417,
+      "p95_rate_bps": 5768040.062758465
+    },
+    "(5, 3)": {
+      "count": 14,
+      "median_rate_bps": 4556865.834887838,
+      "p05_rate_bps": 3410436.563092907,
+      "p95_rate_bps": 7500532.434993249
+    },
+    "(5, 4)": {
+      "count": 68,
+      "median_rate_bps": 6976774.700766476,
+      "p05_rate_bps": 3701649.4783493746,
+      "p95_rate_bps": 9035030.379136253
+    },
+    "(5, 5)": {
+      "count": 8,
+      "median_rate_bps": 6439051.330489232,
+      "p05_rate_bps": 4679282.022124937,
+      "p95_rate_bps": 8637183.467340231
+    },
+    "(5, 6)": {
+      "count": 9,
+      "median_rate_bps": 12909290.050756253,
+      "p05_rate_bps": 4845669.4987255,
+      "p95_rate_bps": 15337176.57789526
+    },
+    "(5,)": {
+      "count": 579,
+      "median_rate_bps": 3650705.927954134,
+      "p05_rate_bps": 165062.25977012736,
+      "p95_rate_bps": 8152460.120635483
+    },
+    "(6, 2)": {
+      "count": 339,
+      "median_rate_bps": 3701558.0595989055,
+      "p05_rate_bps": 3513599.0070326882,
+      "p95_rate_bps": 6761991.286585724
+    },
+    "(6, 3)": {
+      "count": 17,
+      "median_rate_bps": 3588265.213095166,
+      "p05_rate_bps": 3518245.1974279224,
+      "p95_rate_bps": 6969808.332411329
+    },
+    "(6, 4)": {
+      "count": 39,
+      "median_rate_bps": 4041545.5126212114,
+      "p05_rate_bps": 3512825.6870117756,
+      "p95_rate_bps": 6611017.632149136
+    },
+    "(6, 5)": {
+      "count": 6,
+      "median_rate_bps": 4946093.7326315995,
+      "p05_rate_bps": 3839308.0481920787,
+      "p95_rate_bps": 7566988.5403756555
+    },
+    "(6, 6)": {
+      "count": 9,
+      "median_rate_bps": 5425782.974283637,
+      "p05_rate_bps": 3974786.451972155,
+      "p95_rate_bps": 7327736.631318276
+    },
+    "(6,)": {
+      "count": 1336,
+      "median_rate_bps": 5231140.531388198,
+      "p05_rate_bps": 155253.46013237527,
+      "p95_rate_bps": 8874090.309190853
+    }
+  },
+  "boundary": "LAST_UDP_SOCKET_HANDOFF__TO__COMPLETE_RECEIVER_REASSEMBLY",
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "cycle_seconds": 0.2,
+  "deadline_ns": 170000000,
+  "disclosures": [
+    "PRODUCTION_DOMAIN_QUEUE_AND_TRANSPORT_ONLY",
+    "SINGLE_UE_RADIO_CONFIGURATION_ONLY",
+    "PROFILE_TRANSFER_UNVALIDATED",
+    "MODE_TRANSFER_UNVALIDATED",
+    "PAYLOAD_INTERPOLATION_UNVALIDATED",
+    "NOT_PERCEPTION_ENDORSEMENT"
+  ],
+  "form": "latency = (backlog + udp_application_bytes) / rate",
+  "gates_passed": 6,
+  "gates_total": 9,
+  "global_median_rate_bps": 3635869.2036133623,
+  "measured_support": {
+    "fit_rows_used": 2700,
+    "max_pre_action_backlog_bytes": 36002536.0,
+    "max_udp_application_bytes": 625774,
+    "min_pre_action_backlog_bytes": 0.0,
+    "min_udp_application_bytes": 6213
+  },
+  "min_bin_support": 20,
+  "out_of_support_policy": "REFUSE_DO_NOT_EXTRAPOLATE",
+  "replaces_288_component": "application_feature_uplink_ms",
+  "schema": "scenesense.production_transport_model.v1",
+  "shared_endpoint": "LAST_UDP_SOCKET_HANDOFF"
+}

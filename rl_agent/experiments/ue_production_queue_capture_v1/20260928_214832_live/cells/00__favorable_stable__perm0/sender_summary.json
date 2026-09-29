@@ -1,0 +1,46 @@
+{
+  "actual_epoch_release_monotonic_ns": 7269751005642461,
+  "cell_id": "favorable_stable__perm0",
+  "end_monotonic_ns": 7269795906233274,
+  "epoch_contract_sha256": "0c7d32914bcfeb2fad8ed873a0c11ff8d52b0efae08d7c07b1b4f29c6463e273",
+  "epoch_monotonic_ns": 7269751005586397,
+  "fps": 10.0,
+  "frames": 450,
+  "log_csv_sha256": "ae01a2738cdbd6124c7385afc8318190440957ff3e775258a14918a7ab7cd860",
+  "packetization": {
+    "chunk_bytes_including_header": 12500,
+    "header_bytes": 8,
+    "header_struct": "!IHH",
+    "identity": "PRODUCTION_SFD1_IHH_12500_NO_RETRANSMISSION",
+    "payload_bytes_per_datagram": 12492,
+    "retransmission": false
+  },
+  "schedule_lag_ms": {
+    "final": 0.217424,
+    "max": 0.735533
+  },
+  "schedule_sha256": "a0b7016785de6a53f93f5c0a5740424187298abc0ea5e3ef843fed26ba6623de",
+  "schema": "scenesense.production_queue_capture_sender_summary.v1",
+  "sender_ready_sha256": "31a1f5e329da12fd17d05af82597dd4f304cb5c79e78d4a21558c8e13feb4d8e",
+  "socket": {
+    "bind_host": "10.0.0.2",
+    "block_ports": [
+      5421,
+      5422,
+      5423
+    ],
+    "blocking": true,
+    "remote_host": "192.168.70.135",
+    "sendbuf_effective": 67108864,
+    "sendbuf_requested": 67108864
+  },
+  "start_wall_ns": 1790632167694954419,
+  "totals": {
+    "application_payload_bytes_handed_to_socket": 150052616,
+    "datagrams_dropped_at_socket": 0,
+    "datagrams_handed_to_socket": 12219,
+    "planned_datagrams": 12219,
+    "planned_total_transmitted_bytes": 150052616,
+    "udp_application_bytes_handed_to_socket": 150150368
+  }
+}

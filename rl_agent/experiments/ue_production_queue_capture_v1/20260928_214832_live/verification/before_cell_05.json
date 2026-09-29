@@ -1,0 +1,265 @@
+{
+  "authorities": {
+    "authority_sha256": "a305ef2d664c57420ecf2ddca4ca4607482a683c0103c9e9f23eb9f7d402bd9d",
+    "source_sha256": {
+      "experiments/splitfusion_hybrid_sac_quality_grid_v1/20260918_exact_continuous_q_grid_a1b_full/run_manifest.json": "8869d085e585bd4cb4d8231abdfea4b358095578e85a3cbfb811bf073bfc9b36",
+      "phase2_map_sharing/transport.py": "c8d8d0b253356c11776e9c35b7d6b1bef009bfc980e4cecfcbba84ae95734a6e",
+      "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.csv": "0512cb39982178e8c7c96a65ed26e272b3aa3a5aec0020a8dd9cf1cdb6696fbb",
+      "rl_agent/splitfusion_hybrid_sac_run4_v1/run4_contract.py": "c3aaf4450deb80e3427972d745bd171cacda517864860f1106ce9d140dc4c18b",
+      "rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/contract.py": "2f501833a07a6bda2b126c6da95cfc432b64aca4c1234a0498ba4c3c3523a520",
+      "rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/schema.py": "a9d133ce98d5f29b6830d1a5f4034128d0d685c995d1e932917e684622e92d3b",
+      "rl_agent/ue_mcs_backlog_near_capacity_v1/config_v1.json": "65fb3d1d3a92c53a6db40c3ba7dc6b4f74b3447428d28d5c6ada0aeb69773659",
+      "rl_agent/ue_mcs_backlog_robust_bracket_v1/sealed/PROSPECTIVE_CAPACITY_AMENDMENT.json": "fa6ef35816c61442aa7c287c31652d06f09fb1c0f8f914d467200629114c6bf0"
+    },
+    "verified": true
+  },
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "protected_evidence": {
+    "all_unchanged": true,
+    "bound_result": "4/7 scientific checks; 12/13 structural gates",
+    "files": {
+      "INTEGRITY_AMENDMENT_DERIVED_V1_SUPERSEDED.md": {
+        "expected_sha256": "d68c665d061452fe663d227b6658ed3650244a9af963539e7ed6f891f1b5a00b",
+        "observed_sha256": "d68c665d061452fe663d227b6658ed3650244a9af963539e7ed6f891f1b5a00b",
+        "present": true,
+        "size_bytes": 1860,
+        "unchanged": true
+      },
+      "VERIFIER_INPUT_MANIFEST_V2.json": {
+        "expected_sha256": "c2b796bcf8991891f79d407751c5edd0c8b5774d425513f82bdd528ad4eba640",
+        "observed_sha256": "c2b796bcf8991891f79d407751c5edd0c8b5774d425513f82bdd528ad4eba640",
+        "present": true,
+        "size_bytes": 4570,
+        "unchanged": true
+      },
+      "analysis_v2.json": {
+        "expected_sha256": "4c48df847a1be13e29ca325c886412584de6b90692d8063090245867e71be999",
+        "observed_sha256": "4c48df847a1be13e29ca325c886412584de6b90692d8063090245867e71be999",
+        "present": true,
+        "size_bytes": 135290,
+        "unchanged": true
+      },
+      "decisions_v2.csv": {
+        "expected_sha256": "cfddd8b9623b055b80a220f48f71e1619c6e8689ce8caf20c2174da95b7af799",
+        "observed_sha256": "cfddd8b9623b055b80a220f48f71e1619c6e8689ce8caf20c2174da95b7af799",
+        "present": true,
+        "size_bytes": 1895500,
+        "unchanged": true
+      },
+      "manifest.json": {
+        "expected_sha256": "219db3ed7dacc975ab3bfc56164ad527724989ba12d6a1f0d83f97af382595a1",
+        "observed_sha256": "219db3ed7dacc975ab3bfc56164ad527724989ba12d6a1f0d83f97af382595a1",
+        "present": true,
+        "size_bytes": 185167,
+        "unchanged": true
+      }
+    },
+    "protected_run": "rl_agent/experiments/ue_mcs_backlog_calibration_v1/20260924_131015",
+    "stage": "before_cell",
+    "verdict_preserved_as": "INCONCLUSIVE"
+  },
+  "radio_binding": {
+    "compiled_t_messages_consistent": true,
+    "execution_token": "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH",
+    "files": {
+      "channel_config": {
+        "authority": "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json:source_sha256.channel_source",
+        "expected_sha256": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+        "matches": true,
+        "observed_sha256": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+        "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf",
+        "present": true
+      },
+      "extractor": {
+        "authority": "rl_agent/configs/ue_n3_oai_ul_live_stage_v1.json:runtime_seals",
+        "expected_sha256": "82f23ae18136379c4ea2511744eb1ed932d74850851885584b8075f9f3cdb488",
+        "matches": true,
+        "observed_sha256": "82f23ae18136379c4ea2511744eb1ed932d74850851885584b8075f9f3cdb488",
+        "path": "scripts/ttracer_extract_csv_smoke.sh",
+        "present": true
+      },
+      "gnb_config_273prb": {
+        "authority": "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json:source_sha256.gnb_source",
+        "expected_sha256": "03fb7ac7b4df6ce88f5a2e3e7a26211b78ad89e7d313632ca088e6b364742ffb",
+        "matches": true,
+        "observed_sha256": "03fb7ac7b4df6ce88f5a2e3e7a26211b78ad89e7d313632ca088e6b364742ffb",
+        "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.273PRB.scenesense_rfsim.conf",
+        "present": true
+      },
+      "launcher": {
+        "authority": "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json:launcher.sha256",
+        "expected_sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+        "matches": true,
+        "observed_sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+        "path": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+        "present": true
+      },
+      "launcher_runner": {
+        "authority": "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json:calibration.runner.sha256",
+        "expected_sha256": "09fb82c0ba644a44bdf5fb5e5ad92269c1daa31ffbeee1fc0864d5b7ce688c93",
+        "matches": true,
+        "observed_sha256": "09fb82c0ba644a44bdf5fb5e5ad92269c1daa31ffbeee1fc0864d5b7ce688c93",
+        "path": "rl_agent/splitfusion_phase14a_100mhz_calibration_v1.py",
+        "present": true
+      },
+      "launcher_runner_config": {
+        "authority": "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json:calibration.config.sha256",
+        "expected_sha256": "ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9",
+        "matches": true,
+        "observed_sha256": "ad541f71f5659e1bb08d7d2c48a45086dfbd5bf45e669b32adfb320ddcab5cd9",
+        "path": "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json",
+        "present": true
+      },
+      "libtelnetsrv": {
+        "authority": "FIRST_PIN_RUN4",
+        "expected_sha256": "7c815fbfbd987b256c1992666dff142d683b5a548ba1c6f9a5a39f6fede118f7",
+        "matches": true,
+        "observed_sha256": "7c815fbfbd987b256c1992666dff142d683b5a548ba1c6f9a5a39f6fede118f7",
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/libtelnetsrv.so",
+        "present": true
+      },
+      "nr_softmodem": {
+        "authority": "FIRST_PIN_RUN4_REBUILT_AFTER_SINR_MCS_POLICY",
+        "expected_sha256": "ebcd85f4c96cf6e3d0a1752d0047e8377811014be75cdeeef6334c982fcfab70",
+        "matches": true,
+        "observed_sha256": "ebcd85f4c96cf6e3d0a1752d0047e8377811014be75cdeeef6334c982fcfab70",
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem",
+        "present": true
+      },
+      "nr_uesoftmodem": {
+        "authority": "FIRST_PIN_RUN4_REBUILT_AFTER_SINR_MCS_POLICY",
+        "expected_sha256": "60ecc9a1d102e8b66871727a6a23da22977ff907fecc3870a8dc46414080c975",
+        "matches": true,
+        "observed_sha256": "60ecc9a1d102e8b66871727a6a23da22977ff907fecc3870a8dc46414080c975",
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+        "present": true
+      },
+      "radio_lock": {
+        "authority": "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json:capacity_evidence.artifacts.radio_lock.sha256",
+        "expected_sha256": "fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4",
+        "matches": true,
+        "observed_sha256": "fd604a37cfbc416412440dd447fe43cea9a94d3b65d69dd5e4e975de01a3dbf4",
+        "path": "rl_agent/configs/oai_radio_baseline_100mhz_4d5u_v1.json",
+        "present": true
+      },
+      "run3_tagged_sender": {
+        "authority": "RESOLVED_AT_VERIFY",
+        "matches": true,
+        "observed_sha256": "fb6e0015635dfe1dbaf12642959cc9241145a3f983ef34ca6258b7abf3775e7a",
+        "path": "rl_agent/ue_mcs_backlog_calibration_v1/tagged_sender.py",
+        "present": true
+      },
+      "t_messages": {
+        "authority": "rl_agent/configs/ue_n3_oai_ul_live_stage_v1.json:runtime_seals",
+        "expected_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+        "matches": true,
+        "observed_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+        "path": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+        "present": true
+      },
+      "t_messages_compiled_build": {
+        "authority": "FIRST_PIN_RUN4",
+        "expected_sha256": "e5801830384c32cda8a805e21d58a43f380732f5ecff7e3553a99348aa23abc3",
+        "matches": true,
+        "observed_sha256": "e5801830384c32cda8a805e21d58a43f380732f5ecff7e3553a99348aa23abc3",
+        "path": "OAI/openairinterface5g/cmake_targets/ran_build/build/common/utils/T/T_messages.txt.h",
+        "present": true
+      },
+      "t_messages_compiled_incgen": {
+        "authority": "FIRST_PIN_RUN4",
+        "expected_sha256": "e5801830384c32cda8a805e21d58a43f380732f5ecff7e3553a99348aa23abc3",
+        "matches": true,
+        "observed_sha256": "e5801830384c32cda8a805e21d58a43f380732f5ecff7e3553a99348aa23abc3",
+        "path": "OAI/openairinterface5g/common/utils/T/incgen/T_messages.txt.h",
+        "present": true
+      },
+      "target_snr_mapping_csv": {
+        "authority": "FIRST_PIN_RUN4",
+        "expected_sha256": "f1cc9c48bd5cd55d2de2421d07c23dd3deff2bca3497e3a5d5e87aaa11ec2a3d",
+        "matches": true,
+        "observed_sha256": "f1cc9c48bd5cd55d2de2421d07c23dd3deff2bca3497e3a5d5e87aaa11ec2a3d",
+        "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/target_to_rfsim_mapping.csv",
+        "present": true
+      },
+      "target_snr_mapping_json": {
+        "authority": "FIRST_PIN_RUN4",
+        "expected_sha256": "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677",
+        "matches": true,
+        "observed_sha256": "841ee69e53d7325570652a0f4baa7ae7f554a2204c4e775ce963a064cabd2677",
+        "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/mapping.json",
+        "present": true
+      },
+      "target_snr_mapping_manifest": {
+        "authority": "\u2026/SPLITFUSION_PHASE14A_100MHZ_CALIBRATION_CAPTURE_COMPLETE_PENDING_REPLAY:manifest_sha256",
+        "expected_sha256": "5f14b43dedf7aa947598442ffd2823dea155476ad396b6665fc32e37ddb96091",
+        "matches": true,
+        "observed_sha256": "5f14b43dedf7aa947598442ffd2823dea155476ad396b6665fc32e37ddb96091",
+        "path": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/manifest.json",
+        "present": true
+      },
+      "tracer_csv": {
+        "authority": "rl_agent/configs/ue_n3_oai_ul_live_stage_v1.json:runtime_seals",
+        "expected_sha256": "2b5e42dc64d88ed1ad19ebeb7c26b195e668fe2eb9bc9c3da95f81334731faaa",
+        "matches": true,
+        "observed_sha256": "2b5e42dc64d88ed1ad19ebeb7c26b195e668fe2eb9bc9c3da95f81334731faaa",
+        "path": "OAI/openairinterface5g/common/utils/T/tracer/csv",
+        "present": true
+      },
+      "tracer_extract_config": {
+        "authority": "rl_agent/configs/ue_n3_oai_ul_live_stage_v1.json:runtime_seals",
+        "expected_sha256": "e724bd3f0a1327ed9afef50fb1a81703054e029a8e137689e4874fdfc013c898",
+        "matches": true,
+        "observed_sha256": "e724bd3f0a1327ed9afef50fb1a81703054e029a8e137689e4874fdfc013c898",
+        "path": "OAI/openairinterface5g/common/utils/T/tracer/extract_config",
+        "present": true
+      },
+      "tracer_multi": {
+        "authority": "rl_agent/configs/ue_n3_oai_ul_live_stage_v1.json:runtime_seals",
+        "expected_sha256": "455ff3083dfb30f82ffee941dac01f888b39705f9d3ffab2b019ff5430da9542",
+        "matches": true,
+        "observed_sha256": "455ff3083dfb30f82ffee941dac01f888b39705f9d3ffab2b019ff5430da9542",
+        "path": "OAI/openairinterface5g/common/utils/T/tracer/multi",
+        "present": true
+      },
+      "tracer_record": {
+        "authority": "rl_agent/configs/ue_n3_oai_ul_live_stage_v1.json:runtime_seals",
+        "expected_sha256": "517150245a1317c2e117c0ac3adde1ee097a3592658316fe5b40edcbd5235e61",
+        "matches": true,
+        "observed_sha256": "517150245a1317c2e117c0ac3adde1ee097a3592658316fe5b40edcbd5235e61",
+        "path": "OAI/openairinterface5g/common/utils/T/tracer/record",
+        "present": true
+      },
+      "tracer_replay": {
+        "authority": "rl_agent/configs/ue_n3_oai_ul_live_stage_v1.json:runtime_seals",
+        "expected_sha256": "cf6ccf11ad42b481dd3731dea02649e314fa4589b4c710d98ff4e8c06c034f70",
+        "matches": true,
+        "observed_sha256": "cf6ccf11ad42b481dd3731dea02649e314fa4589b4c710d98ff4e8c06c034f70",
+        "path": "OAI/openairinterface5g/common/utils/T/tracer/replay",
+        "present": true
+      },
+      "ue_config": {
+        "authority": "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json:source_sha256.ue_source",
+        "expected_sha256": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944",
+        "matches": true,
+        "observed_sha256": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944",
+        "path": "OAI/openairinterface5g/targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf",
+        "present": true
+      }
+    },
+    "legacy_launchers_present_but_forbidden": {
+      "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps.sh": true,
+      "uplink_only_spatial_map_pipeline/run_track1_oai_default106_ttracer_10fps_v2.sh": true
+    },
+    "legacy_radio_id_rejected": "OAI_N78_40MHZ_106PRB_7D2U_LEGACY",
+    "mapping_matches_pinned_file": true,
+    "mapping_qualification_note": "Phase-14a status is CALIBRATION_CAPTURE_COMPLETE_PENDING_FOUR_PROFILE_REPLAY with campaign_mapping_qualified=false and profile_replay_performed=false. Run 4 binds the twelve measured anchors as its actuator mapping under this radio and does NOT claim the 288-cell campaign qualification.",
+    "mapping_strictly_monotonic": true,
+    "problems": [],
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "stage": "before_cell",
+    "verified": true
+  },
+  "source_inventory_sha256": "4c0d88291dcda89ca959919c934a6d1005d71dccec734aa263db0f2e8271f2f2",
+  "stage": "before_cell",
+  "utc": "2026-09-28T21:55:14.924687Z"
+}

@@ -1,0 +1,46 @@
+{
+  "cell_id": "01__favorable_stable__perm1",
+  "duplicate_datagrams": 0,
+  "expected_fragments_per_full_datagram": 9,
+  "first_arrival_monotonic_ns": 7269906108793096,
+  "ip_counters_after": {
+    "FragCreates": 0,
+    "FragFails": 0,
+    "FragOKs": 0,
+    "ReasmFails": 0,
+    "ReasmOKs": 12154,
+    "ReasmReqds": 108135,
+    "ReasmTimeout": 0
+  },
+  "ip_counters_before": {
+    "FragCreates": 0,
+    "FragFails": 0,
+    "FragOKs": 0,
+    "ReasmFails": 0,
+    "ReasmOKs": 0,
+    "ReasmReqds": 0,
+    "ReasmTimeout": 0
+  },
+  "ip_counters_delta": {
+    "FragCreates": 0,
+    "FragFails": 0,
+    "FragOKs": 0,
+    "ReasmFails": 0,
+    "ReasmOKs": 12154,
+    "ReasmReqds": 108135,
+    "ReasmTimeout": 0
+  },
+  "last_arrival_monotonic_ns": 7269921009100024,
+  "log_csv_sha256": "4c0f117dafef5d6c24b1b43b3765a474a784ec22a77cdf2d9ec95cc614bb62fc",
+  "malformed_datagrams": 0,
+  "messages_complete": 150,
+  "messages_incomplete": 0,
+  "messages_observed": 150,
+  "observed_ip_fragmentation": true,
+  "schema": "scenesense.production_queue_capture_receiver_summary.v1",
+  "signal_handlers_installed": true,
+  "socket_recvbuf_effective": 67108864,
+  "total_application_payload_bytes_received": 967599,
+  "total_datagrams_received": 150,
+  "total_udp_application_bytes_received": 968799
+}

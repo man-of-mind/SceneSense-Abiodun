@@ -1,0 +1,353 @@
+{
+  "blocks": [
+    {
+      "action_id": 71,
+      "block_index": 0,
+      "frames": 150,
+      "mode_id": 11,
+      "q_e4": 9800,
+      "tier": "floor"
+    },
+    {
+      "action_id": 38,
+      "block_index": 1,
+      "frames": 150,
+      "mode_id": 6,
+      "q_e4": 5000,
+      "tier": "guard"
+    },
+    {
+      "action_id": 39,
+      "block_index": 2,
+      "frames": 150,
+      "mode_id": 6,
+      "q_e4": 7000,
+      "tier": "knee"
+    }
+  ],
+  "cell_cold_state": {
+    "cold": true,
+    "containers": {
+      "oai-amf": "ABSENT",
+      "oai-ext-dn": "ABSENT",
+      "oai-smf": "ABSENT",
+      "oai-upf": "ABSENT"
+    },
+    "ran_processes": ""
+  },
+  "cell_id": "adverse_stable__perm4",
+  "cell_tag": "10__adverse_stable__perm4",
+  "core_teardown": {
+    "core_after": {
+      "oai-amf": "ABSENT",
+      "oai-ext-dn": "ABSENT",
+      "oai-smf": "ABSENT",
+      "oai-upf": "ABSENT"
+    },
+    "output_tail": "ainer ims Removing \n Container ims Removed \n Container oai-upf Stopped \n Container oai-upf Removing \n Container oai-upf Removed \n Container oai-smf Stopping \n Container oai-smf Stopped \n Container oai-smf Removing \n Container oai-smf Removed \n Container oai-amf Stopping \n Container oai-amf Stopped \n Container oai-amf Removing \n Container oai-amf Removed \n Container oai-ausf Stopping \n Container oai-ausf Stopped \n Container oai-ausf Removing \n Container oai-ausf Removed \n Container oai-udm Stopping \n Container oai-udm Stopped \n Container oai-udm Removing \n Container oai-udm Removed \n Container oai-udr Stopping \n Container oai-udr Stopped \n Container oai-udr Removing \n Container oai-udr Removed \n Container mysql Stopping \n Container oai-nrf Stopping \n Container oai-nrf Stopped \n Container oai-nrf Removing \n Container oai-nrf Removed \n Container mysql Stopped \n Container mysql Removing \n Container mysql Removed \n Network oai-cn5g-public-net Removing \n Network oai-cn5g-public-net Removed \n",
+    "returncode": 0,
+    "stopped": true,
+    "timeout_s": 60.0
+  },
+  "edge_context": {
+    "container_images": {
+      "oai-amf": {
+        "configured_image": "oaisoftwarealliance/oai-amf:v2.2.1",
+        "container_id": "2b81a30715a365f443f2f5793452ab005f01510fb4ed936031af344fddf3dfdb",
+        "image_id": "sha256:e89dffd6e2e6c923295044fe76180af29cbfabdd47e8d958f1d2241d13727633",
+        "repo_digests": [
+          "oaisoftwarealliance/oai-amf@sha256:c6dee19b65b2bf29b73e6647f98e0381d96a2eb4c6f9a68f5c3bc70534afa14c"
+        ]
+      },
+      "oai-ext-dn": {
+        "configured_image": "oaisoftwarealliance/trf-gen-cn5g:latest",
+        "container_id": "102bad9e43f1708463c8526e2c0f6c058fef566913472d28db7d1550d59e9c22",
+        "image_id": "sha256:de786f8e66280d49b1f8f1da270fb4671f2701198e02487be6a3c155ff464d19",
+        "repo_digests": [
+          "oaisoftwarealliance/trf-gen-cn5g@sha256:3f9ab2e401d2a010b568e78db087b5d1526b8756f1056087939116f6138340a6"
+        ]
+      },
+      "oai-smf": {
+        "configured_image": "oaisoftwarealliance/oai-smf:v2.2.1",
+        "container_id": "5ed6541a63a90f7e1af35f3ae93cb781c3c057fc6896dedd07951c75521c6613",
+        "image_id": "sha256:47ec8e129699671a0d2b03f593b3781dc54ea329e97a2206974cb218d2d51018",
+        "repo_digests": [
+          "oaisoftwarealliance/oai-smf@sha256:c1f1452edfc835c36aa96a2efca337da0149212a6561bbb5f9b1994356beee24"
+        ]
+      },
+      "oai-upf": {
+        "configured_image": "oaisoftwarealliance/oai-upf:v2.2.1",
+        "container_id": "ddcf53ab27ccf9f621cc50fbc36486162785b692d3841813ef8423fc5d4367aa",
+        "image_id": "sha256:434bfd0cf88021f8a2615e422dc42be90802b88c6dc23c5463cc778cf8a1212a",
+        "repo_digests": [
+          "oaisoftwarealliance/oai-upf@sha256:03985036c2477a75755ded9b7fe9508b62f49e4ce9e9f059bbb68af63932e7f7"
+        ]
+      }
+    },
+    "core_after_launcher": {
+      "oai-amf": "true healthy",
+      "oai-ext-dn": "true healthy",
+      "oai-smf": "true healthy",
+      "oai-upf": "true healthy"
+    },
+    "edge_container": "oai-ext-dn",
+    "edge_host": "192.168.70.135",
+    "edge_pid": 2184931
+  },
+  "finished_utc": "2026-09-28T22:12:11.278842Z",
+  "lifecycle_notes": [],
+  "noise_before_cell_db": -50.0,
+  "partition": "VALIDATION",
+  "permutation_index": 4,
+  "primer_first_decision": {
+    "authoritative_source_time_gate": "DEFERRED_TO_POST_EXTRACTION_CAUSAL_DECISION_JOIN",
+    "first_frame_monotonic_ns": 7271006421419540,
+    "grant_receipt_to_first_frame_ms": 56.592708,
+    "latest_grant_receipt_monotonic_ns": 7271006364826832,
+    "primer_complete_to_first_frame_ms": 53.62273,
+    "receipt_time_gate_passed": true
+  },
+  "profile_id": "ADVERSE_STABLE",
+  "profile_replay": {
+    "commands_sent": 397,
+    "commands_skipped": 0,
+    "final_commanded_noise_power_db": -3.75,
+    "post_replay_policy": "HOLD_FINAL_COMMAND_AUDIT_ONLY",
+    "replay_end_monotonic_ns": 7271051321493049,
+    "samples": 450,
+    "shared_epoch_monotonic_ns": 7271006421326534,
+    "targets_clamped": 0
+  },
+  "radio_attach": {
+    "command": "bash /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh --execute SPLITFUSION_OAI_100MHZ_4D5U_ATTACH --output /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__10__adverse_stable__perm4",
+    "effective_gnb_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__10__adverse_stable__perm4/effective_gnb_100mhz_4d5u_clean_minus50.conf",
+    "effective_ue_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__10__adverse_stable__perm4/effective_ue_100mhz_clean_minus50.conf",
+    "execution_token": "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH",
+    "launcher": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+    "launcher_sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+    "launcher_timeout_s": 180.0,
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "radio_state_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__10__adverse_stable__perm4",
+    "ue_ip": "10.0.0.2"
+  },
+  "radio_path": {
+    "edge_host": "192.168.70.135",
+    "edge_host_is_host_local": false,
+    "policy_rule_table": "9999",
+    "policy_table_routes": [
+      "default dev oaitun_ue1 scope link"
+    ],
+    "policy_table_routes_via_tunnel": true,
+    "radio_path_verified": true,
+    "route_lookup": "192.168.70.135 from 10.0.0.2 dev oaitun_ue1 table 9999 uid 200171 \n    cache",
+    "routes_via_ue_tunnel": true,
+    "subprocess_timeout_s": 15.0,
+    "ue_ip": "10.0.0.2"
+  },
+  "registered_trace_sha256": "380925bb530945b11b8e79ab93e88d5a555de540ce859756d6c5ad08584e98a0",
+  "restored": true,
+  "run_index": 10,
+  "scene_split": "held_scene",
+  "shared_epoch": {
+    "cell_id": "adverse_stable__perm4",
+    "created_monotonic_ns": 7271006371326534,
+    "epoch_monotonic_ns": 7271006421326534,
+    "period_ns": 100000000,
+    "schema": "scenesense.production_queue_capture_shared_epoch.v1",
+    "sender_ready_sha256": "cba018ce4a40ad2fd45fcaeb34fc9da2f2f32651df969b71afcb1b9daaec6ceb",
+    "shared_epoch_monotonic_ns": 7271006421326534
+  },
+  "started_utc": "2026-09-28T22:09:56.645144Z",
+  "status": "CAPTURED",
+  "target_channel_primer": {
+    "completed_monotonic_ns": 7271006367796810,
+    "datagrams_received": 5,
+    "datagrams_sent": 5,
+    "fresh_round0_grants": 7,
+    "ingress_quiet_ms_required": 20.0,
+    "latest_grant": {
+      "mcs": 13,
+      "mcs_table": 0,
+      "ndi": 1,
+      "receipt_monotonic_ns": 7271006364826832,
+      "round": 0
+    },
+    "latest_pdcp_receipt_monotonic_ns": 7271006342966162,
+    "payload_bytes": 1200,
+    "pdcp_rows_after_send": 5,
+    "port": 5431,
+    "qualified_for_sender_start": true,
+    "retained_rlc_ticks": [
+      {
+        "receipt_monotonic_ns": 7271006359642110,
+        "rows": 1,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006363747203,
+        "rows": 2,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006363749726,
+        "rows": 1,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006363758318,
+        "rows": 3,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006364961079,
+        "rows": 3,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006365853465,
+        "rows": 2,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006365855935,
+        "rows": 1,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006365863239,
+        "rows": 2,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006365872263,
+        "rows": 1,
+        "total_bytes": 0
+      },
+      {
+        "receipt_monotonic_ns": 7271006366941830,
+        "rows": 2,
+        "total_bytes": 0
+      }
+    ],
+    "role": "TARGET_CHANNEL_STATE_PRIMER_NOT_A_SCIENTIFIC_DECISION",
+    "send_end_monotonic_ns": 7271006352181987,
+    "send_start_monotonic_ns": 7271006301347194,
+    "trailing_zero_rlc_ticks": 23,
+    "zero_rlc_ticks_required": 3
+  },
+  "trace_id": "GM_V2_ADVERSE_STABLE_SEED_2026082103",
+  "traffic": {
+    "application_payload_bytes_received_total": 150051078,
+    "application_payload_bytes_sent": 150051078,
+    "datagrams_sent": 12210,
+    "delivery_is_not_gated_here": "Incomplete delivery is the measurement, not a defect. Terminal classification happens in the offline parser.",
+    "frames_sent": 450,
+    "messages_complete_total": 450,
+    "messages_observed_total": 450,
+    "observed_ip_fragmentation": true,
+    "receivers": [
+      {
+        "application_payload_bytes_received": 971199,
+        "duplicate_datagrams": 0,
+        "frames_csv_sha256": "c00cfc8cbcc8b6b55c3d69539c32a9642dc3cd9e4085d56d77ae33c1fec8469d",
+        "ip_counters_delta": {
+          "FragCreates": 0,
+          "FragFails": 0,
+          "FragOKs": 0,
+          "ReasmFails": 0,
+          "ReasmOKs": 6082,
+          "ReasmReqds": 53746,
+          "ReasmTimeout": 0
+        },
+        "messages_complete": 150,
+        "messages_incomplete": 0,
+        "messages_observed": 150,
+        "observed_ip_fragmentation": true,
+        "port": 5421,
+        "summary_sha256": "9c45c5aae3df0339b5b03b293b52ff137d61df5bb827ea2a1bd1e045b70582cb",
+        "tier": "floor",
+        "total_datagrams_received": 150
+      },
+      {
+        "application_payload_bytes_received": 56146463,
+        "duplicate_datagrams": 0,
+        "frames_csv_sha256": "1a0d3ba385124a3b8560f8a4367b4128513d69bb26cacaf521222e5990f14cbd",
+        "ip_counters_delta": {
+          "FragCreates": 0,
+          "FragFails": 0,
+          "FragOKs": 0,
+          "ReasmFails": 0,
+          "ReasmOKs": 12154,
+          "ReasmReqds": 108179,
+          "ReasmTimeout": 0
+        },
+        "messages_complete": 150,
+        "messages_incomplete": 0,
+        "messages_observed": 150,
+        "observed_ip_fragmentation": true,
+        "port": 5422,
+        "summary_sha256": "a553beaf2600668ce398de8e3dd17a5d4d05e4a1a51c46139ebc7fd6f6482aec",
+        "tier": "knee",
+        "total_datagrams_received": 4559
+      },
+      {
+        "application_payload_bytes_received": 92933416,
+        "duplicate_datagrams": 0,
+        "frames_csv_sha256": "69717009365ba5620023e716986650e617b9a1857c3e02b06cfbb250e38e3379",
+        "ip_counters_delta": {
+          "FragCreates": 0,
+          "FragFails": 0,
+          "FragOKs": 0,
+          "ReasmFails": 0,
+          "ReasmOKs": 12154,
+          "ReasmReqds": 108179,
+          "ReasmTimeout": 0
+        },
+        "messages_complete": 150,
+        "messages_incomplete": 0,
+        "messages_observed": 150,
+        "observed_ip_fragmentation": true,
+        "port": 5423,
+        "summary_sha256": "3fa3c168663868235ba03d09b9882ae8a7c6650e4bc6ad05b5c7122962d42e44",
+        "tier": "guard",
+        "total_datagrams_received": 7501
+      }
+    ],
+    "schedule_lag_ms": {
+      "final": 0.064237,
+      "max": 0.705147
+    },
+    "sender_csv_sha256": "0462a4dcdd24b1ffb021a3cb132366d872bfabe1facb3027fc27aee1c391e5c8",
+    "sender_summary_sha256": "9a30a95dd5efff567b204a7f109410570796558028fda032362a13d2300b872a",
+    "udp_application_bytes_sent": 150148758
+  },
+  "ttracer": {
+    "file_count": 11,
+    "files": {
+      "gnb/csv/GNB_MAC_PUSCH_POWER_CONTROL.csv": 28133,
+      "gnb/csv/GNB_MAC_UL_MCS_DECISION.csv": 27519,
+      "gnb/csv/GNB_PDCP_RX_DELIVER.csv": 108246,
+      "ue/csv/NRUE_MAC_DCI_GRANT.csv": 30343,
+      "ue/csv/NRUE_MAC_RLC_BUFFER_STATUS.csv": 206965,
+      "ue/csv/NR_PDCP_TX_SDU.csv": 108246,
+      "ue/csv/NR_RLC_TX_DEQUEUE.csv": 136312,
+      "ue/csv/NR_RLC_TX_SDU.csv": 108246,
+      "ue/primer_dci_live.csv": 20,
+      "ue/primer_pdcp_live.csv": 8,
+      "ue/primer_rlc_live.csv": 741
+    }
+  },
+  "udp_probe": {
+    "arrival_ok": true,
+    "datagrams_received": 5,
+    "datagrams_sent": 5,
+    "edge_host": "192.168.70.135",
+    "min_received_required": 1,
+    "pdcp_evidence_required": true,
+    "pdcp_ok": true,
+    "pdcp_tx_sdu_events_during_probe": 5,
+    "port": 5429,
+    "probe_verified": true,
+    "ue_ip": "10.0.0.2"
+  }
+}

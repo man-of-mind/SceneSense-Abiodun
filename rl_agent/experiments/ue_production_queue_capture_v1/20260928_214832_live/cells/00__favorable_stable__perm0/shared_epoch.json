@@ -1,0 +1,8 @@
+{
+  "cell_id": "favorable_stable__perm0",
+  "created_monotonic_ns": 7269750955586397,
+  "epoch_monotonic_ns": 7269751005586397,
+  "period_ns": 100000000,
+  "schema": "scenesense.production_queue_capture_shared_epoch.v1",
+  "sender_ready_sha256": "31a1f5e329da12fd17d05af82597dd4f304cb5c79e78d4a21558c8e13feb4d8e"
+}

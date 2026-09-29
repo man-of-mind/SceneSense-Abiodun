@@ -1,0 +1,110 @@
+{
+  "schema": "scenesense.ue_production_queue_capture_config.v1",
+  "package_id": "ue_production_queue_capture_v1",
+  "claim_boundary": "PRODUCTION_DOMAIN_UE_QUEUE_AND_TRANSPORT_CALIBRATION_ONLY__NOT_PERCEPTION_ENDORSEMENT__NOT_POLICY_VALIDATION__NOT_DEPLOYMENT_AUTHORIZATION",
+  "base_runtime": {
+    "config_relative_path": "rl_agent/ue_mcs_backlog_near_capacity_v1/config_v1.json",
+    "config_sha256": "65fb3d1d3a92c53a6db40c3ba7dc6b4f74b3447428d28d5c6ada0aeb69773659",
+    "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1"
+  },
+  "payload_authority": {
+    "database_relative_path": "experiments/splitfusion_hybrid_sac_quality_grid_v1/20260918_exact_continuous_q_grid_a1b_full/quality_rows.sqlite3",
+    "manifest_relative_path": "experiments/splitfusion_hybrid_sac_quality_grid_v1/20260918_exact_continuous_q_grid_a1b_full/run_manifest.json",
+    "manifest_sha256": "8869d085e585bd4cb4d8231abdfea4b358095578e85a3cbfb811bf073bfc9b36",
+    "payload_coordinate": "total_transmitted_bytes"
+  },
+  "capacity_lineage": {
+    "relative_path": "rl_agent/ue_mcs_backlog_robust_bracket_v1/sealed/PROSPECTIVE_CAPACITY_AMENDMENT.json",
+    "amendment_sha256": "fa6ef35816c61442aa7c287c31652d06f09fb1c0f8f914d467200629114c6bf0",
+    "role": "byte_role_placement_only_not_a_qualified_tier_selection",
+    "status": "ORIGINAL_CAPACITY_QUALIFICATION_REFUSED__ORIGINAL_TIER_SELECTION_NOT_QUALIFIED"
+  },
+  "byte_roles": {
+    "floor": {"action_id": 71, "mode_id": 11, "q_e4": 9800, "family": "AE32", "quantizer": "UINT4", "profile_id": "split_ae32_uint4_q9800"},
+    "knee": {"action_id": 39, "mode_id": 6, "q_e4": 7000, "family": "AE64", "quantizer": "UINT8", "profile_id": "split_ae64_uint8_q7000"},
+    "guard": {"action_id": 38, "mode_id": 6, "q_e4": 5000, "family": "AE64", "quantizer": "UINT8", "profile_id": "split_ae64_uint8_q5000"},
+    "catalogue_contract_tier": "EMERGENCY_ONLY",
+    "perception_endorsement": false,
+    "byte_only_queue_design": true
+  },
+  "packetization": {
+    "identity": "PRODUCTION_SFD1_IHH_12500_NO_RETRANSMISSION",
+    "udp_chunk_bytes_including_header": 12500,
+    "chunk_header_struct": "!IHH",
+    "chunk_header_bytes": 8,
+    "payload_bytes_per_datagram": 12492,
+    "retransmission": false,
+    "ipv4_fragmentation_expected": true,
+    "path_mtu_bytes": 1500,
+    "historical_60kb_binding_rejected": true
+  },
+  "design": {
+    "fps": 10.0,
+    "frames_per_block": 150,
+    "blocks_per_cell": 3,
+    "frames_per_cell": 450,
+    "duration_steps": 2,
+    "expected_cells": 12,
+    "expected_raw_frames": 5400,
+    "expected_primary_cycles": 2688,
+    "profiles": ["FAVORABLE_STABLE", "ADVERSE_STABLE"],
+    "cell_order_seed": 2026092801,
+    "payload_schedule_seed": 2026092801,
+    "future_epoch_lead_s": 0.05,
+    "sender_arm_timeout_s": 60.0,
+    "sample_period_s": 0.1,
+    "cell_wall_clock_guard_s": 300.0
+  },
+  "traffic": {
+    "ports": {"floor": 5421, "knee": 5422, "guard": 5423},
+    "receiver_tail_s": 25.0,
+    "receiver_idle_timeout_s": 20.0,
+    "send_buffer_bytes": 67108864,
+    "receive_buffer_bytes": 268435456,
+    "udp_probe_port": 5429,
+    "udp_probe_datagrams": 5,
+    "udp_probe_payload_bytes": 1200,
+    "udp_probe_timeout_s": 10.0,
+    "udp_probe_min_received": 1,
+    "udp_probe_requires_pdcp_evidence": true,
+    "target_channel_primer": {
+      "port": 5431,
+      "datagrams": 5,
+      "payload_bytes": 1200,
+      "timeout_s": 2.0,
+      "zero_rlc_ticks_required": 3,
+      "ingress_quiet_ms": 20.0,
+      "max_grant_receipt_to_first_decision_ms": 100.0
+    }
+  },
+  "campaign": {
+    "cell_order_seed": 2026092801,
+    "payload_seed": 2026092801,
+    "warmup_s": 4.0,
+    "sample_period_s": 0.1
+  },
+  "paths": {
+    "output_root": "rl_agent/experiments/ue_production_queue_capture_v1"
+  },
+  "authorization": {
+    "schema": "scenesense.ue_production_queue_capture_authorization.v1",
+    "stage": "production_queue_capture_v1",
+    "token": "AUTHORIZE_PRODUCTION_QUEUE_CAPTURE_V1",
+    "maximum_grant_lifetime_seconds": 28800,
+    "consumption_directory": ".authorization_consumed"
+  },
+  "failure_policy": {
+    "empty_ttracer_is_failure": true,
+    "sender_socket_drop_is_failure": true,
+    "sender_schema_mismatch_is_failure": true,
+    "receiver_schema_mismatch_is_failure": true,
+    "actuator_skip_or_clamp_is_failure": true,
+    "actuator_error_is_failure": true,
+    "restore_or_teardown_note_is_failure": true,
+    "non_cold_final_state_is_failure": true,
+    "cell_retry_in_place_allowed": false,
+    "live_launch_in_unit_tests_allowed": false,
+    "schedule_lag_is_failure": false,
+    "schedule_lag_note": "The guard byte role deliberately offers more than the link carries, so the sender falls behind the nominal 10-Hz grid once the UE queue saturates. Measured socket-handoff stamps are authoritative; the nominal grid is a target, not an assumption."
+  }
+}

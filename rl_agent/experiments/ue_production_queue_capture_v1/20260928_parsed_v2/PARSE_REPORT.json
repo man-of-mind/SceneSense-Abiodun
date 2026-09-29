@@ -1,0 +1,641 @@
+{
+  "capture_root": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/experiments/ue_production_queue_capture_v1/20260928_214832_live",
+  "cells": [
+    {
+      "cell_id": "favorable_stable__perm0",
+      "cell_tag": "00__favorable_stable__perm0",
+      "clock_bridge": {
+        "offset_ns": 7216383310696746,
+        "residual_max_ns": 119279,
+        "residual_p95_ns": 509,
+        "samples": 343088
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152533324,
+        "pdcp_sdu_events": 108244,
+        "receiver_payload_bytes": 150052616,
+        "receiver_udp_application_bytes": 150150368,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152858056,
+        "rlc_sdu_events": 108244,
+        "sender_payload_bytes": 150052616,
+        "sender_udp_application_bytes": 150150368,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 1498,
+      "partition": "FIT",
+      "profile_id_audit_only": "FAVORABLE_STABLE",
+      "scene_split": "fit",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 44,
+        "COMPLETE_WITHIN_DEADLINE": 406
+      },
+      "trace_counts": {
+        "dci_grant": 15633,
+        "pdcp_tx_sdu": 108244,
+        "rlc_buffer_status": 188370,
+        "rlc_tx_dequeue": 126600,
+        "rlc_tx_sdu": 108244
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "favorable_stable__perm1",
+      "cell_tag": "01__favorable_stable__perm1",
+      "clock_bridge": {
+        "offset_ns": 7216383310696751,
+        "residual_max_ns": 224945,
+        "residual_p95_ns": 504,
+        "samples": 343999
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152486926,
+        "pdcp_sdu_events": 108201,
+        "receiver_payload_bytes": 150007265,
+        "receiver_udp_application_bytes": 150104945,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152811529,
+        "rlc_sdu_events": 108201,
+        "sender_payload_bytes": 150007265,
+        "sender_udp_application_bytes": 150104945,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 1569,
+      "partition": "FIT",
+      "profile_id_audit_only": "FAVORABLE_STABLE",
+      "scene_split": "fit",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 91,
+        "COMPLETE_WITHIN_DEADLINE": 359
+      },
+      "trace_counts": {
+        "dci_grant": 16060,
+        "pdcp_tx_sdu": 108201,
+        "rlc_buffer_status": 194880,
+        "rlc_tx_dequeue": 127597,
+        "rlc_tx_sdu": 108201
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "favorable_stable__perm2",
+      "cell_tag": "02__favorable_stable__perm2",
+      "clock_bridge": {
+        "offset_ns": 7216383310696746,
+        "residual_max_ns": 480598,
+        "residual_p95_ns": 510,
+        "samples": 341175
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152475446,
+        "pdcp_sdu_events": 108200,
+        "receiver_payload_bytes": 149995726,
+        "receiver_udp_application_bytes": 150093446,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152800046,
+        "rlc_sdu_events": 108200,
+        "sender_payload_bytes": 149995726,
+        "sender_udp_application_bytes": 150093446,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 1388,
+      "partition": "FIT",
+      "profile_id_audit_only": "FAVORABLE_STABLE",
+      "scene_split": "fit",
+      "terminal_outcomes": {
+        "COMPLETE_WITHIN_DEADLINE": 450
+      },
+      "trace_counts": {
+        "dci_grant": 13953,
+        "pdcp_tx_sdu": 108200,
+        "rlc_buffer_status": 182580,
+        "rlc_tx_dequeue": 124775,
+        "rlc_tx_sdu": 108200
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "favorable_stable__perm3",
+      "cell_tag": "03__favorable_stable__perm3",
+      "clock_bridge": {
+        "offset_ns": 7216383310696749,
+        "residual_max_ns": 500488,
+        "residual_p95_ns": 507,
+        "samples": 343528
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152539495,
+        "pdcp_sdu_events": 108251,
+        "receiver_payload_bytes": 150058752,
+        "receiver_udp_application_bytes": 150156448,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152864248,
+        "rlc_sdu_events": 108251,
+        "sender_payload_bytes": 150058752,
+        "sender_udp_application_bytes": 150156448,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 1565,
+      "partition": "VALIDATION",
+      "profile_id_audit_only": "FAVORABLE_STABLE",
+      "scene_split": "held_scene",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 9,
+        "COMPLETE_WITHIN_DEADLINE": 441
+      },
+      "trace_counts": {
+        "dci_grant": 16033,
+        "pdcp_tx_sdu": 108251,
+        "rlc_buffer_status": 188115,
+        "rlc_tx_dequeue": 127026,
+        "rlc_tx_sdu": 108251
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "favorable_stable__perm4",
+      "cell_tag": "04__favorable_stable__perm4",
+      "clock_bridge": {
+        "offset_ns": 7216383310696747,
+        "residual_max_ns": 166670,
+        "residual_p95_ns": 508,
+        "samples": 344102
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152550578,
+        "pdcp_sdu_events": 108257,
+        "receiver_payload_bytes": 150069741,
+        "receiver_udp_application_bytes": 150167421,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152875349,
+        "rlc_sdu_events": 108257,
+        "sender_payload_bytes": 150069741,
+        "sender_udp_application_bytes": 150167421,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 1568,
+      "partition": "VALIDATION",
+      "profile_id_audit_only": "FAVORABLE_STABLE",
+      "scene_split": "held_scene",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 87,
+        "COMPLETE_WITHIN_DEADLINE": 363
+      },
+      "trace_counts": {
+        "dci_grant": 16085,
+        "pdcp_tx_sdu": 108257,
+        "rlc_buffer_status": 182586,
+        "rlc_tx_dequeue": 127588,
+        "rlc_tx_sdu": 108257
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "favorable_stable__perm5",
+      "cell_tag": "05__favorable_stable__perm5",
+      "clock_bridge": {
+        "offset_ns": 7216383310696756,
+        "residual_max_ns": 115541,
+        "residual_p95_ns": 499,
+        "samples": 341257
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152572707,
+        "pdcp_sdu_events": 108271,
+        "receiver_payload_bytes": 150091448,
+        "receiver_udp_application_bytes": 150189192,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152897520,
+        "rlc_sdu_events": 108271,
+        "sender_payload_bytes": 150091448,
+        "sender_udp_application_bytes": 150189192,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 1409,
+      "partition": "VALIDATION",
+      "profile_id_audit_only": "FAVORABLE_STABLE",
+      "scene_split": "held_scene",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 5,
+        "COMPLETE_WITHIN_DEADLINE": 445
+      },
+      "trace_counts": {
+        "dci_grant": 14021,
+        "pdcp_tx_sdu": 108271,
+        "rlc_buffer_status": 194796,
+        "rlc_tx_dequeue": 124715,
+        "rlc_tx_sdu": 108271
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "adverse_stable__perm0",
+      "cell_tag": "06__adverse_stable__perm0",
+      "clock_bridge": {
+        "offset_ns": 7216383310696749,
+        "residual_max_ns": 490115,
+        "residual_p95_ns": 505,
+        "samples": 352749
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152523393,
+        "pdcp_sdu_events": 108228,
+        "receiver_payload_bytes": 150043245,
+        "receiver_udp_application_bytes": 150140885,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152848077,
+        "rlc_sdu_events": 108228,
+        "sender_payload_bytes": 150043245,
+        "sender_udp_application_bytes": 150140885,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 2766,
+      "partition": "FIT",
+      "profile_id_audit_only": "ADVERSE_STABLE",
+      "scene_split": "fit",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 276,
+        "COMPLETE_WITHIN_DEADLINE": 174
+      },
+      "trace_counts": {
+        "dci_grant": 30597,
+        "pdcp_tx_sdu": 108228,
+        "rlc_buffer_status": 213210,
+        "rlc_tx_dequeue": 136293,
+        "rlc_tx_sdu": 108228
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "adverse_stable__perm1",
+      "cell_tag": "07__adverse_stable__perm1",
+      "clock_bridge": {
+        "offset_ns": 7216383310696750,
+        "residual_max_ns": 493288,
+        "residual_p95_ns": 505,
+        "samples": 352352
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152480839,
+        "pdcp_sdu_events": 108206,
+        "receiver_payload_bytes": 150000961,
+        "receiver_udp_application_bytes": 150098697,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152805457,
+        "rlc_sdu_events": 108206,
+        "sender_payload_bytes": 150000961,
+        "sender_udp_application_bytes": 150098697,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 2703,
+      "partition": "FIT",
+      "profile_id_audit_only": "ADVERSE_STABLE",
+      "scene_split": "fit",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 345,
+        "COMPLETE_WITHIN_DEADLINE": 105
+      },
+      "trace_counts": {
+        "dci_grant": 28418,
+        "pdcp_tx_sdu": 108206,
+        "rlc_buffer_status": 186615,
+        "rlc_tx_dequeue": 135940,
+        "rlc_tx_sdu": 108206
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "adverse_stable__perm2",
+      "cell_tag": "08__adverse_stable__perm2",
+      "clock_bridge": {
+        "offset_ns": 7216383310696753,
+        "residual_max_ns": 203459,
+        "residual_p95_ns": 502,
+        "samples": 352783
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152498896,
+        "pdcp_sdu_events": 108215,
+        "receiver_payload_bytes": 150018909,
+        "receiver_udp_application_bytes": 150116605,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152823541,
+        "rlc_sdu_events": 108215,
+        "sender_payload_bytes": 150018909,
+        "sender_udp_application_bytes": 150116605,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 2705,
+      "partition": "FIT",
+      "profile_id_audit_only": "ADVERSE_STABLE",
+      "scene_split": "fit",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 352,
+        "COMPLETE_WITHIN_DEADLINE": 98
+      },
+      "trace_counts": {
+        "dci_grant": 28631,
+        "pdcp_tx_sdu": 108215,
+        "rlc_buffer_status": 196740,
+        "rlc_tx_dequeue": 136353,
+        "rlc_tx_sdu": 108215
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "adverse_stable__perm3",
+      "cell_tag": "09__adverse_stable__perm3",
+      "clock_bridge": {
+        "offset_ns": 7216383310696750,
+        "residual_max_ns": 237615,
+        "residual_p95_ns": 504,
+        "samples": 352760
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152579648,
+        "pdcp_sdu_events": 108281,
+        "receiver_payload_bytes": 150098243,
+        "receiver_udp_application_bytes": 150195955,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152904491,
+        "rlc_sdu_events": 108281,
+        "sender_payload_bytes": 150098243,
+        "sender_udp_application_bytes": 150195955,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 2671,
+      "partition": "VALIDATION",
+      "profile_id_audit_only": "ADVERSE_STABLE",
+      "scene_split": "held_scene",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 365,
+        "COMPLETE_WITHIN_DEADLINE": 85
+      },
+      "trace_counts": {
+        "dci_grant": 28200,
+        "pdcp_tx_sdu": 108281,
+        "rlc_buffer_status": 187626,
+        "rlc_tx_dequeue": 136198,
+        "rlc_tx_sdu": 108281
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "adverse_stable__perm4",
+      "cell_tag": "10__adverse_stable__perm4",
+      "clock_bridge": {
+        "offset_ns": 7216383310696756,
+        "residual_max_ns": 117634,
+        "residual_p95_ns": 500,
+        "samples": 352801
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152531663,
+        "pdcp_sdu_events": 108245,
+        "receiver_payload_bytes": 150051078,
+        "receiver_udp_application_bytes": 150148758,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152856398,
+        "rlc_sdu_events": 108245,
+        "sender_payload_bytes": 150051078,
+        "sender_udp_application_bytes": 150148758,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 2825,
+      "partition": "VALIDATION",
+      "profile_id_audit_only": "ADVERSE_STABLE",
+      "scene_split": "held_scene",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 288,
+        "COMPLETE_WITHIN_DEADLINE": 162
+      },
+      "trace_counts": {
+        "dci_grant": 30342,
+        "pdcp_tx_sdu": 108245,
+        "rlc_buffer_status": 206964,
+        "rlc_tx_dequeue": 136311,
+        "rlc_tx_sdu": 108245
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    },
+    {
+      "cell_id": "adverse_stable__perm5",
+      "cell_tag": "11__adverse_stable__perm5",
+      "clock_bridge": {
+        "offset_ns": 7216383310696750,
+        "residual_max_ns": 172596,
+        "residual_p95_ns": 505,
+        "samples": 352834
+      },
+      "closure_seal": {
+        "datagrams_dropped_at_socket": 0,
+        "distinct_terminal_outcomes": [
+          "COMPLETE_AFTER_DEADLINE",
+          "COMPLETE_WITHIN_DEADLINE"
+        ],
+        "frames_with_exactly_one_terminal": 450,
+        "observed_ip_fragmentation": true,
+        "payload_bytes_conserved": true,
+        "pdcp_sdu_bytes": 152581558,
+        "pdcp_sdu_events": 108279,
+        "receiver_payload_bytes": 150100195,
+        "receiver_udp_application_bytes": 150197907,
+        "rlc_minus_pdcp_bytes_per_sdu": 3,
+        "rlc_sdu_bytes": 152906395,
+        "rlc_sdu_events": 108279,
+        "sender_payload_bytes": 150100195,
+        "sender_udp_application_bytes": 150197907,
+        "terminal_outcomes_registered": true,
+        "unexplained_layer_residual_bytes": 0,
+        "wire_bytes_conserved": true
+      },
+      "cycles": 224,
+      "frames": 450,
+      "mcs_rows_rejected_non_causal_class": 2795,
+      "partition": "VALIDATION",
+      "profile_id_audit_only": "ADVERSE_STABLE",
+      "scene_split": "held_scene",
+      "terminal_outcomes": {
+        "COMPLETE_AFTER_DEADLINE": 243,
+        "COMPLETE_WITHIN_DEADLINE": 207
+      },
+      "trace_counts": {
+        "dci_grant": 30084,
+        "pdcp_tx_sdu": 108279,
+        "rlc_buffer_status": 219441,
+        "rlc_tx_dequeue": 136276,
+        "rlc_tx_sdu": 108279
+      },
+      "unclosed_decision_indices": [
+        448
+      ]
+    }
+  ],
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "cycles_csv_sha256": "4b70262cc112851e6b0d16ee4109cfdf9043b970e78838c9b944319dd6863f5b",
+  "frames_csv_sha256": "340e0d394c37f9caa0a6420c93283b92f23a6f8c43784495768b5dbf56899bcf",
+  "schema": "scenesense.production_queue_capture_parsed.v1",
+  "totals": {
+    "cycles": 2688,
+    "expected_cycles": 2688,
+    "expected_frames": 5400,
+    "frames": 5400,
+    "terminal_outcomes": {
+      "COMPLETE_AFTER_DEADLINE": 2105,
+      "COMPLETE_WITHIN_DEADLINE": 3295
+    }
+  }
+}

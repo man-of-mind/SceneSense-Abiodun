@@ -1,0 +1,85 @@
+{
+  "application_payload_bytes_received_total": 150018909,
+  "application_payload_bytes_sent": 150018909,
+  "datagrams_sent": 12212,
+  "delivery_is_not_gated_here": "Incomplete delivery is the measurement, not a defect. Terminal classification happens in the offline parser.",
+  "frames_sent": 450,
+  "messages_complete_total": 450,
+  "messages_observed_total": 450,
+  "observed_ip_fragmentation": true,
+  "receivers": [
+    {
+      "application_payload_bytes_received": 969166,
+      "duplicate_datagrams": 0,
+      "frames_csv_sha256": "c6086a87e4cf227d9c9fb399c735cd3cdfb61bb6f7fe434e9166f8d0ee91635c",
+      "ip_counters_delta": {
+        "FragCreates": 0,
+        "FragFails": 0,
+        "FragOKs": 0,
+        "ReasmFails": 0,
+        "ReasmOKs": 12155,
+        "ReasmReqds": 108148,
+        "ReasmTimeout": 0
+      },
+      "messages_complete": 150,
+      "messages_incomplete": 0,
+      "messages_observed": 150,
+      "observed_ip_fragmentation": true,
+      "port": 5421,
+      "summary_sha256": "1e46daca44d9ac71d29404c67a7ccc8125cde1c37f4d75817595e9e57fa5b497",
+      "tier": "floor",
+      "total_datagrams_received": 150
+    },
+    {
+      "application_payload_bytes_received": 56168643,
+      "duplicate_datagrams": 0,
+      "frames_csv_sha256": "dbca8345d9b4ed2eb9cba6dccc214e25fba06a7375b5ae28d6dd550a7dca6445",
+      "ip_counters_delta": {
+        "FragCreates": 0,
+        "FragFails": 0,
+        "FragOKs": 0,
+        "ReasmFails": 0,
+        "ReasmOKs": 12155,
+        "ReasmReqds": 108148,
+        "ReasmTimeout": 0
+      },
+      "messages_complete": 150,
+      "messages_incomplete": 0,
+      "messages_observed": 150,
+      "observed_ip_fragmentation": true,
+      "port": 5422,
+      "summary_sha256": "59b5dd08afdc2dba83595d62a7c92af8a7e4564142c5eb47478e4ce00dd62f11",
+      "tier": "knee",
+      "total_datagrams_received": 4563
+    },
+    {
+      "application_payload_bytes_received": 92881100,
+      "duplicate_datagrams": 0,
+      "frames_csv_sha256": "92ab52f785ae55ea9e8505a02004ac5ec4b5eb7630a8650542ef8f02c0c24f77",
+      "ip_counters_delta": {
+        "FragCreates": 0,
+        "FragFails": 0,
+        "FragOKs": 0,
+        "ReasmFails": 0,
+        "ReasmOKs": 11045,
+        "ReasmReqds": 98179,
+        "ReasmTimeout": 0
+      },
+      "messages_complete": 150,
+      "messages_incomplete": 0,
+      "messages_observed": 150,
+      "observed_ip_fragmentation": true,
+      "port": 5423,
+      "summary_sha256": "76633ba6525dcfe247f77886c46fc207d9118c1aa9a0d1629240b71dac0b202a",
+      "tier": "guard",
+      "total_datagrams_received": 7499
+    }
+  ],
+  "schedule_lag_ms": {
+    "final": 0.058293,
+    "max": 0.447365
+  },
+  "sender_csv_sha256": "665a2a6c6bfaae50fe51df333e5f20da209a4d974731967d18662e13d8ca5646",
+  "sender_summary_sha256": "e9ed76fb7098b64f27797a05e33204a5d20cad20834bb3e139d7ba6d19c70597",
+  "udp_application_bytes_sent": 150116605
+}

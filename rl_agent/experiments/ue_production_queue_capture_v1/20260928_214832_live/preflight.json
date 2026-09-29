@@ -1,0 +1,432 @@
+{
+  "carla_absent": true,
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "core_before": {
+    "oai-amf": "ABSENT",
+    "oai-ext-dn": "ABSENT",
+    "oai-smf": "ABSENT",
+    "oai-upf": "ABSENT"
+  },
+  "cuda_or_model_started": false,
+  "packetization": {
+    "chunk_bytes": 12500,
+    "expected_fragments_per_full_datagram": 9,
+    "full_ipv4_packet_bytes": 12528,
+    "identity": "PRODUCTION_SFD1_IHH_12500_NO_RETRANSMISSION",
+    "ipv4_fragmentation_expected": true,
+    "path_mtu_bytes": 1500,
+    "payload_bytes_per_datagram": 12492
+  },
+  "plan": [
+    {
+      "blocks": [
+        {
+          "action_id": 71,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 39,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 38,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        }
+      ],
+      "cell_id": "favorable_stable__perm0",
+      "partition": "FIT",
+      "permutation_index": 0,
+      "profile_id": "FAVORABLE_STABLE",
+      "run_index": 0,
+      "scene_split": "fit"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 39,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 38,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 71,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        }
+      ],
+      "cell_id": "favorable_stable__perm1",
+      "partition": "FIT",
+      "permutation_index": 1,
+      "profile_id": "FAVORABLE_STABLE",
+      "run_index": 1,
+      "scene_split": "fit"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 38,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 71,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 39,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        }
+      ],
+      "cell_id": "favorable_stable__perm2",
+      "partition": "FIT",
+      "permutation_index": 2,
+      "profile_id": "FAVORABLE_STABLE",
+      "run_index": 2,
+      "scene_split": "fit"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 38,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 39,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 71,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        }
+      ],
+      "cell_id": "favorable_stable__perm3",
+      "partition": "VALIDATION",
+      "permutation_index": 3,
+      "profile_id": "FAVORABLE_STABLE",
+      "run_index": 3,
+      "scene_split": "held_scene"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 71,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 38,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 39,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        }
+      ],
+      "cell_id": "favorable_stable__perm4",
+      "partition": "VALIDATION",
+      "permutation_index": 4,
+      "profile_id": "FAVORABLE_STABLE",
+      "run_index": 4,
+      "scene_split": "held_scene"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 39,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 71,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 38,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        }
+      ],
+      "cell_id": "favorable_stable__perm5",
+      "partition": "VALIDATION",
+      "permutation_index": 5,
+      "profile_id": "FAVORABLE_STABLE",
+      "run_index": 5,
+      "scene_split": "held_scene"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 71,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 39,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 38,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        }
+      ],
+      "cell_id": "adverse_stable__perm0",
+      "partition": "FIT",
+      "permutation_index": 0,
+      "profile_id": "ADVERSE_STABLE",
+      "run_index": 6,
+      "scene_split": "fit"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 39,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 38,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 71,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        }
+      ],
+      "cell_id": "adverse_stable__perm1",
+      "partition": "FIT",
+      "permutation_index": 1,
+      "profile_id": "ADVERSE_STABLE",
+      "run_index": 7,
+      "scene_split": "fit"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 38,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 71,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 39,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        }
+      ],
+      "cell_id": "adverse_stable__perm2",
+      "partition": "FIT",
+      "permutation_index": 2,
+      "profile_id": "ADVERSE_STABLE",
+      "run_index": 8,
+      "scene_split": "fit"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 38,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 39,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 71,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        }
+      ],
+      "cell_id": "adverse_stable__perm3",
+      "partition": "VALIDATION",
+      "permutation_index": 3,
+      "profile_id": "ADVERSE_STABLE",
+      "run_index": 9,
+      "scene_split": "held_scene"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 71,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 38,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        },
+        {
+          "action_id": 39,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        }
+      ],
+      "cell_id": "adverse_stable__perm4",
+      "partition": "VALIDATION",
+      "permutation_index": 4,
+      "profile_id": "ADVERSE_STABLE",
+      "run_index": 10,
+      "scene_split": "held_scene"
+    },
+    {
+      "blocks": [
+        {
+          "action_id": 39,
+          "block_index": 0,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 7000,
+          "tier": "knee"
+        },
+        {
+          "action_id": 71,
+          "block_index": 1,
+          "frames": 150,
+          "mode_id": 11,
+          "q_e4": 9800,
+          "tier": "floor"
+        },
+        {
+          "action_id": 38,
+          "block_index": 2,
+          "frames": 150,
+          "mode_id": 6,
+          "q_e4": 5000,
+          "tier": "guard"
+        }
+      ],
+      "cell_id": "adverse_stable__perm5",
+      "partition": "VALIDATION",
+      "permutation_index": 5,
+      "profile_id": "ADVERSE_STABLE",
+      "run_index": 11,
+      "scene_split": "held_scene"
+    }
+  ],
+  "ran_cold": true,
+  "utc": "2026-09-28T21:49:00.488250Z"
+}

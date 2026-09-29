@@ -1,0 +1,8 @@
+{
+  "contract_sha256": "02711e83b0f295674aec3334e8727e472a8adcc892c5b841b70adda99ab9b7e1",
+  "created_utc": "2026-09-28T22:14:26.460486Z",
+  "manifest_sha256": "385be47305e10b347010091c9313e19870af4e43f933c94699b055c03de8af95",
+  "result_sha256": "a7dd167aef636534dec6b0a73fb418ffb15957dc1902432d23c5d98113afd8c5",
+  "schema": "scenesense.production_queue_capture_terminal.v1",
+  "status": "PRODUCTION_QUEUE_CAPTURE_CAPTURED"
+}

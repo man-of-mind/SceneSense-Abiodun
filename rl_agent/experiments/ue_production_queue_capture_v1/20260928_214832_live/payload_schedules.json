@@ -1,0 +1,200 @@
+{
+  "campaign_schedule_sha256": "514ffd2902269ab084874d3391d825e00560110e2322e08f80a9fa2b59998a7c",
+  "cells": [
+    {
+      "cell_id": "favorable_stable__perm0",
+      "file_sha256": "54f361116cda2e5eae3f21b24dc0b7626c353175338738de750e3c5d4d493b84",
+      "partition": "FIT",
+      "run_index": 0,
+      "schedule_sha256": "a0b7016785de6a53f93f5c0a5740424187298abc0ea5e3ef843fed26ba6623de",
+      "summary": {
+        "distinct_payload_bytes": 407,
+        "frames": 450,
+        "max_total_transmitted_bytes": 625366,
+        "min_total_transmitted_bytes": 6205,
+        "sum_datagrams": 12219,
+        "sum_total_transmitted_bytes": 150052616,
+        "sum_udp_application_bytes": 150150368
+      }
+    },
+    {
+      "cell_id": "favorable_stable__perm1",
+      "file_sha256": "7122c45f17f20e5a57e0469d12752e04320437416ce5ac55337ffd40eff08867",
+      "partition": "FIT",
+      "run_index": 1,
+      "schedule_sha256": "82f1b42a1045d6bbc0b2ee4ea315e6008cdf8deaa8014daea88b93a5e4920f2d",
+      "summary": {
+        "distinct_payload_bytes": 414,
+        "frames": 450,
+        "max_total_transmitted_bytes": 625100,
+        "min_total_transmitted_bytes": 6249,
+        "sum_datagrams": 12210,
+        "sum_total_transmitted_bytes": 150007265,
+        "sum_udp_application_bytes": 150104945
+      }
+    },
+    {
+      "cell_id": "favorable_stable__perm2",
+      "file_sha256": "cb35b931a4bc01de45aed7a7f2e4ae4cedf22cf8ee68337b24f5d40059096f85",
+      "partition": "FIT",
+      "run_index": 2,
+      "schedule_sha256": "92de896df9725339b72c97080782dac183d809da59c95863fae529df06b8d100",
+      "summary": {
+        "distinct_payload_bytes": 410,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624323,
+        "min_total_transmitted_bytes": 6249,
+        "sum_datagrams": 12215,
+        "sum_total_transmitted_bytes": 149995726,
+        "sum_udp_application_bytes": 150093446
+      }
+    },
+    {
+      "cell_id": "favorable_stable__perm3",
+      "file_sha256": "cdde3a455274ffac311c2fa93a197b05d2b6011b222831a14e6e8f031ed6a1d8",
+      "partition": "VALIDATION",
+      "run_index": 3,
+      "schedule_sha256": "b0b8ec3c3423e718eae0e5fbe3ee42fb59e21dd5b3df577614edcb52b0ffb452",
+      "summary": {
+        "distinct_payload_bytes": 419,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624837,
+        "min_total_transmitted_bytes": 6287,
+        "sum_datagrams": 12212,
+        "sum_total_transmitted_bytes": 150058752,
+        "sum_udp_application_bytes": 150156448
+      }
+    },
+    {
+      "cell_id": "favorable_stable__perm4",
+      "file_sha256": "5ab16e26ea68dee77f504755e8a711ebc7c9bcfea2587265e88530c5e8ba12a1",
+      "partition": "VALIDATION",
+      "run_index": 4,
+      "schedule_sha256": "2b3dc70b1538d15de735d67a619430481ed0b5b2ff71e2eae4432056e2772706",
+      "summary": {
+        "distinct_payload_bytes": 420,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624612,
+        "min_total_transmitted_bytes": 6287,
+        "sum_datagrams": 12210,
+        "sum_total_transmitted_bytes": 150069741,
+        "sum_udp_application_bytes": 150167421
+      }
+    },
+    {
+      "cell_id": "favorable_stable__perm5",
+      "file_sha256": "d62590d67888b3ac0284a665fdae466f261ecfcfd94b50781db019585e5fa824",
+      "partition": "VALIDATION",
+      "run_index": 5,
+      "schedule_sha256": "f13c4c8eedc2e589d314727e709bb61432c186158578dc7ae75804095ba26e17",
+      "summary": {
+        "distinct_payload_bytes": 413,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624837,
+        "min_total_transmitted_bytes": 6287,
+        "sum_datagrams": 12218,
+        "sum_total_transmitted_bytes": 150091448,
+        "sum_udp_application_bytes": 150189192
+      }
+    },
+    {
+      "cell_id": "adverse_stable__perm0",
+      "file_sha256": "783d8ff6365fd0fd6d16fdddaa4667ef27971ec4dfe1e0bf233737a20a1e7e17",
+      "partition": "FIT",
+      "run_index": 6,
+      "schedule_sha256": "92822ea8c172c8f016d465b0ef3b6ceafd566913523b04e1c78167949ee5fe47",
+      "summary": {
+        "distinct_payload_bytes": 409,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624809,
+        "min_total_transmitted_bytes": 6224,
+        "sum_datagrams": 12205,
+        "sum_total_transmitted_bytes": 150043245,
+        "sum_udp_application_bytes": 150140885
+      }
+    },
+    {
+      "cell_id": "adverse_stable__perm1",
+      "file_sha256": "08cc93d0e7235015cf4887615a98164d5d8b4c095d0c57620a63688b2d3fcb3c",
+      "partition": "FIT",
+      "run_index": 7,
+      "schedule_sha256": "f57caec7ddf3884688a64afc8abbd44492c3f7edc00abb2bc5240f669811a152",
+      "summary": {
+        "distinct_payload_bytes": 418,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624481,
+        "min_total_transmitted_bytes": 6224,
+        "sum_datagrams": 12217,
+        "sum_total_transmitted_bytes": 150000961,
+        "sum_udp_application_bytes": 150098697
+      }
+    },
+    {
+      "cell_id": "adverse_stable__perm2",
+      "file_sha256": "3854749fd5f2b9e4c86a0c3e3fb0146514e5565e16a3c02d09a0137f51bd3354",
+      "partition": "FIT",
+      "run_index": 8,
+      "schedule_sha256": "d62c9bb37a4890b0485029287df3910e0b072fc539c052523a693986c0c6d50e",
+      "summary": {
+        "distinct_payload_bytes": 418,
+        "frames": 450,
+        "max_total_transmitted_bytes": 623909,
+        "min_total_transmitted_bytes": 6234,
+        "sum_datagrams": 12212,
+        "sum_total_transmitted_bytes": 150018909,
+        "sum_udp_application_bytes": 150116605
+      }
+    },
+    {
+      "cell_id": "adverse_stable__perm3",
+      "file_sha256": "bf85231d7651f94c0a96f884231f6aebb50ed1fa206a35b2b53d855e6857e5dd",
+      "partition": "VALIDATION",
+      "run_index": 9,
+      "schedule_sha256": "09755f510c7132e067019be1d6822b7b3d93a55846a64779f0d7343aefd6fcb6",
+      "summary": {
+        "distinct_payload_bytes": 408,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624837,
+        "min_total_transmitted_bytes": 6287,
+        "sum_datagrams": 12214,
+        "sum_total_transmitted_bytes": 150098243,
+        "sum_udp_application_bytes": 150195955
+      }
+    },
+    {
+      "cell_id": "adverse_stable__perm4",
+      "file_sha256": "9617bbd3ed26e065dbb4c721f2cf92ab6b1d29f7c88efabaa545ef9409f01222",
+      "partition": "VALIDATION",
+      "run_index": 10,
+      "schedule_sha256": "b7c6c03f06be3f9788065fd498e9d923c626620cfb00ddd6bc08f4c18d5b9e63",
+      "summary": {
+        "distinct_payload_bytes": 415,
+        "frames": 450,
+        "max_total_transmitted_bytes": 624837,
+        "min_total_transmitted_bytes": 6287,
+        "sum_datagrams": 12210,
+        "sum_total_transmitted_bytes": 150051078,
+        "sum_udp_application_bytes": 150148758
+      }
+    },
+    {
+      "cell_id": "adverse_stable__perm5",
+      "file_sha256": "11716f33225c39feae0d987199cc85731a814bf75ba7d951facdfffd90e1bbf4",
+      "partition": "VALIDATION",
+      "run_index": 11,
+      "schedule_sha256": "60c240f489568c06c967c93fc96adc9a2e14ef45f186f3e5ce7f3588c29fbc68",
+      "summary": {
+        "distinct_payload_bytes": 411,
+        "frames": 450,
+        "max_total_transmitted_bytes": 625280,
+        "min_total_transmitted_bytes": 6298,
+        "sum_datagrams": 12214,
+        "sum_total_transmitted_bytes": 150100195,
+        "sum_udp_application_bytes": 150197907
+      }
+    }
+  ],
+  "payload_coordinate": "total_transmitted_bytes",
+  "payload_schedule_seed": 2026092801,
+  "utc": "2026-09-28T21:49:01.303220Z"
+}

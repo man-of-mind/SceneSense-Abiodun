@@ -1,0 +1,12 @@
+{
+  "command": "bash /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh --execute SPLITFUSION_OAI_100MHZ_4D5U_ATTACH --output /home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__06__adverse_stable__perm0",
+  "effective_gnb_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__06__adverse_stable__perm0/effective_gnb_100mhz_4d5u_clean_minus50.conf",
+  "effective_ue_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__06__adverse_stable__perm0/effective_ue_100mhz_clean_minus50.conf",
+  "execution_token": "SPLITFUSION_OAI_100MHZ_4D5U_ATTACH",
+  "launcher": "uplink_only_spatial_map_pipeline/run_splitfusion_oai_100mhz_4d5u_v1.sh",
+  "launcher_sha256": "8e02f0913338a187bff1de24bfea09d7eca03607da0e383ef8ad4a005b64ce61",
+  "launcher_timeout_s": 180.0,
+  "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+  "radio_state_dir": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/20260928_214832_live__06__adverse_stable__perm0",
+  "ue_ip": "10.0.0.2"
+}

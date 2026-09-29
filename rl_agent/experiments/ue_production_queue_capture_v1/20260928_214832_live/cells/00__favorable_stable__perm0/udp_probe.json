@@ -1,0 +1,13 @@
+{
+  "ue_ip": "10.0.0.2",
+  "edge_host": "192.168.70.135",
+  "port": 5429,
+  "datagrams_sent": 5,
+  "datagrams_received": 5,
+  "pdcp_tx_sdu_events_during_probe": 5,
+  "min_received_required": 1,
+  "pdcp_evidence_required": true,
+  "arrival_ok": true,
+  "pdcp_ok": true,
+  "probe_verified": true
+}
