@@ -10,11 +10,30 @@
     "channel_profile": "FAVORABLE_STABLE",
     "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
     "carla_quality_level": "Epic",
-    "actor": {"seed": 43, "update": 10000, "rule": "deterministic argmax mode, conditional mean, registered half-up q_e4", "device": "cpu", "batch": 1},
+    "actor": {
+      "seed": 43,
+      "update": 10000,
+      "rule": "deterministic argmax mode, conditional mean, registered half-up q_e4",
+      "device": "cpu",
+      "batch": 1
+    },
     "decision_lead_before_frame_open_ms": 5,
-    "hold": {"k_min": 2, "reward_deadline_ms": 170, "timeout_reward": -1.0},
-    "telemetry": {"ue_t_port": 2023, "relay_port": 2123, "dci_cache": 8, "rlc_cache": 8, "bridge_min_anchors": 8, "bridge_window": 32, "freshness_ms": 100},
-    "fallback_policy": "On ExternalFallbackRequired the actor is not called; the frame is sent with the registered external fallback action, logged with its typed reason, and no reward ticket is opened for it. The fallback action identity must be pinned in the Phase-6 runner before authorization (see readiness limitations)."
+    "hold": {
+      "k_min": 2,
+      "reward_deadline_ms": 170,
+      "timeout_reward": -1.0
+    },
+    "telemetry": {
+      "ue_t_port": 2023,
+      "relay_port": 2123,
+      "dci_cache": 8,
+      "rlc_cache": 8,
+      "bridge_min_anchors": 8,
+      "bridge_window": 32,
+      "freshness_ms": 100
+    },
+    "fallback_policy": "Fixed external fallback mode_id=11, q_e4=9800, anchor action_id=71, AE32/UINT4, profile_id=split_ae32_uint4_q9800. An open ticket or a hold with fewer than k_min=2 transmitted tensors continues its exact action; a guard refusal never interrupts it. At a genuine decision opportunity a refused state does not call the actor, opens no ticket, transmits action 71 with reward_requested=false, logs every typed reason and the exact fallback identity, is excluded from learning/reward/policy-decision counts, leaves the last policy action/outcome untouched, still passes edge identity validation and map installation, and the next 10-Hz frame retries. No TTL.",
+    "excluded_outcomes": "Undefined Q_perc (no eligible live GT) and evaluator faults are excluded EVALUATOR_FAULT outcomes; by the Run-4 contract they cannot become a previous outcome, so the next policy decision opens a new decision session at genesis (counted as session_rollovers, reported). Any failure after tensor assignment but before a successful send is an excluded INFRASTRUCTURE_FAULT and stops the run."
   },
   "preflight": [
     "git HEAD recorded; all pre-existing dirty paths re-hashed and unchanged",
@@ -54,7 +73,37 @@
     "P4_ACCOUNTING": "decisions == resolutions + (at most one open at stop); feedback ledger classes sum to received feedback; every delivered frame installed on the map",
     "P5_NO_ACTOR_AFTER_REFUSAL": "actor call count == admitted decisions",
     "P6_RESTORE_COLD": "restore read-back equals initial; host application-cold",
-    "reported_not_gated": ["reward mean", "success rate", "latency P50/P95/P99", "fallback fraction", "q_e4/mode distribution", "map AoI"]
+    "reported_not_gated": [
+      "reward mean",
+      "success rate",
+      "latency P50/P95/P99",
+      "fallback fraction",
+      "q_e4/mode distribution",
+      "map AoI"
+    ],
+    "P0_POLICY_COVERAGE": {
+      "rule": "after the first 10 decision opportunities, at least 95% must be admitted policy decisions with valid fresh MCS/backlog (fallback fraction <= 5%)",
+      "warmup_opportunities": 10,
+      "min_admitted_fraction": 0.95,
+      "threshold_source": "Phase-2C G2 (reused unchanged)",
+      "if_failed": "INCONCLUSIVE_OR_FAILED; never a plumbing pass"
+    },
+    "P7_FEEDBACK_OVER_DOWNLINK": "edge->UE R4FB feedback observed on oaitun_ue1 for every received feedback message; edge container route to 10.0.0.2 via the UPF (192.168.70.134); feedback endpoint distinct from the direct-map endpoint",
+    "P8_NO_INFRASTRUCTURE_FAULT": "no post-assignment transport failure and no conflicting reward feedback"
   },
-  "proposed_command": "NOT YET RUNNABLE: requires the Phase-6 live runner that composes these v2 seams with the existing Route-B/FCOS/direct-map stack (see LIVE_QUALIFICATION_READINESS.md, remaining blocker)."
+  "proposed_command": "NOT EXECUTED: CUDA_VISIBLE_DEVICES=0 python3 -u -m rl_agent.splitfusion_hybrid_sac_live_route_b_v2.phase6_live_runner_v2 --output-root rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/<run>_phase6_live_qualification --transmitted-budget 300 --execute SPLITFUSION_RUN4_PHASE6_LIVE_QUALIFICATION_V2_EXECUTE (run --preflight first; requires separate authorization)",
+  "amendments": [
+    {
+      "id": "PHASE6_PROSPECTIVE_AMENDMENT_1",
+      "date": "2026-09-29",
+      "status": "REGISTERED_BEFORE_ANY_PHASE6_DATA",
+      "changes": [
+        "fixed external fallback identity",
+        "non-vacuous policy-coverage gate P0 (reuses Phase-2C G2 threshold)",
+        "reward feedback must traverse the OAI downlink (P7)",
+        "infrastructure faults after assignment stop the run (P8)",
+        "runner implemented: phase6_live_runner_v2 (still NOT authorized)"
+      ]
+    }
+  ]
 }
