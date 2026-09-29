@@ -27,13 +27,20 @@ Continuation is allowed only when all of the following hold:
 
 1. the 288-decision causal preflight passes;
 2. every update metric is finite;
-3. the update-500 canonical checkpoint exactly reproduces the retained
-   `18e678ddf4e762a0cfcf244babea3e84cd91059fa026d9a74330ffc5260c20b2`;
+3. all observables retained by the historical smoke reproduce exactly:
+   the 288-decision preflight population, update-0/100/250/500 decision counts
+   and trainer metrics, and the update-500 trajectory summary. The historical
+   `18e678ddf4e762a0cfcf244babea3e84cd91059fa026d9a74330ffc5260c20b2`
+   checkpoint identity is provenance only: its retained file is a metadata
+   sidecar, not a restorable checkpoint, and it predates the corrected MCS
+   source-evidence binding. It must not be equated with the new full
+   event-sourced checkpoint identity;
 4. a controlled backlog-only sweep, expressed in executed q and the combined
    reward-requested-plus-held-frame ingress bytes, has a 95% interval strictly in the physically expected
    direction: higher backlog increases drop fraction and decreases bytes; and
-5. a fresh Python process restores update 250 and produces a byte-identical
-   update-500 checkpoint.
+5. a fresh Python process restores the new full update-250 checkpoint and
+   produces a byte-identical new full update-500 checkpoint. This is the
+   authoritative full-state reproducibility check.
 
 This replaces the earlier unsupported statement that every original
 fixed-panel continuation gate had been evaluated. The original preregistration

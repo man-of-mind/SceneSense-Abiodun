@@ -28,8 +28,22 @@ SCHEMA = "scenesense.run4_exploratory_campaign.v1"
 EXPECTED_ARTIFACT_SHA256 = (
     "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c"
 )
-EXPECTED_SEED17_UPDATE500_SHA256 = (
+HISTORICAL_SEED17_UPDATE500_SHA256 = (
     "18e678ddf4e762a0cfcf244babea3e84cd91059fa026d9a74330ffc5260c20b2"
+)
+HISTORICAL_SMOKE_REPORT_RELPATH = Path(
+    "rl_agent/experiments/splitfusion_hybrid_sac_run4_v2_smoke/"
+    "20260929_012728_seed17/SMOKE_500.json"
+)
+HISTORICAL_SMOKE_REPORT_SHA256 = (
+    "e4a9f929beab27113008cb54ed9872f3bda6b395bbf37607131b82fc63df6d26"
+)
+HISTORICAL_PREFLIGHT_RELPATH = Path(
+    "rl_agent/experiments/splitfusion_hybrid_sac_run4_v2_smoke/"
+    "20260929_012728_seed17/PREFLIGHT_288.json"
+)
+HISTORICAL_PREFLIGHT_SHA256 = (
+    "4d7acc890ac12fec78a21254f98969496cf3fac706fb3b7d43c77f77d9fc7f57"
 )
 PROTOCOL_RELPATH = Path(
     "rl_agent/ue_production_transport_model_v2/"
@@ -115,9 +129,126 @@ def _preflight_document(report, backlog: dict[str, Any]) -> dict[str, Any]:
         "decision_count": report.decision_count,
         "success_count": report.success_count,
         "failure_count": report.failure_count,
+        "schedule_id": report.schedule_id,
+        "feature_diagnostics": [
+            item.to_dict() for item in report.feature_diagnostics
+        ],
         "preflight_report_sha256": report.canonical_sha256,
         "backlog_preflight": backlog,
         "passed": bool(report.passed and backlog["passed"]),
+    }
+
+
+def _load_pinned_json(relative_path: Path, expected_sha256: str) -> dict[str, Any]:
+    path = Path(__file__).resolve().parents[2] / relative_path
+    if not path.is_file():
+        raise RuntimeError(f"retained evidence is missing: {relative_path}")
+    if _sha256_file(path) != expected_sha256:
+        raise RuntimeError(f"retained evidence digest differs: {relative_path}")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if type(value) is not dict:
+        raise RuntimeError(f"retained evidence is not an object: {relative_path}")
+    return value
+
+
+def _compare_historical_observables(
+    *,
+    historical_smoke: dict[str, Any],
+    historical_preflight: dict[str, Any],
+    current_preflight: dict[str, Any],
+    current_milestones: Sequence[dict[str, Any]],
+    current_trajectory: dict[str, Any],
+) -> dict[str, Any]:
+    """Require exact equality only for observables retained by the old smoke.
+
+    The historical checkpoint files are metadata sidecars, not restorable
+    checkpoints. Their canonical hashes also predate the corrected MCS-source
+    evidence binding, so they remain provenance only. Full-state
+    reproducibility is enforced separately by a fresh-process resume.
+    """
+    preflight_fields = (
+        "decision_count",
+        "success_count",
+        "failure_count",
+        "schedule_id",
+        "feature_diagnostics",
+    )
+    observed_preflight = {
+        field: current_preflight[field] for field in preflight_fields
+    }
+    expected_preflight = {
+        field: historical_preflight[field] for field in preflight_fields
+    }
+
+    def milestone_projection(
+        rows: Sequence[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "update": row["update"],
+                "decision_count": row["decision_count"],
+                "metrics": row["metrics"],
+            }
+            for row in rows
+            if row["update"] in (0, 100, 250, 500)
+        ]
+
+    observed_milestones = milestone_projection(current_milestones)
+    expected_milestones = milestone_projection(historical_smoke["milestones"])
+    comparisons = (
+        ("preflight", observed_preflight, expected_preflight),
+        ("milestone metrics", observed_milestones, expected_milestones),
+        ("trajectory", current_trajectory, historical_smoke["trajectory"]),
+    )
+    for label, observed, expected in comparisons:
+        if observed != expected:
+            raise RuntimeError(
+                f"seed-17 historical {label} did not reproduce exactly"
+            )
+    historical_checkpoint = historical_smoke["summary"][
+        "final_checkpoint_sha256"
+    ]
+    if historical_checkpoint != HISTORICAL_SEED17_UPDATE500_SHA256:
+        raise RuntimeError("retained historical checkpoint provenance differs")
+    return {
+        "status": "HISTORICAL_OBSERVABLES_REPRODUCED",
+        "preflight_equal": True,
+        "milestone_metrics_equal": True,
+        "trajectory_equal": True,
+        "historical_checkpoint_sha256_provenance": historical_checkpoint,
+        "historical_checkpoint_identity_comparable_to_full_checkpoint": False,
+        "identity_difference_reason": (
+            "historical metadata-era identity predates the corrected MCS "
+            "source-evidence binding and has no retained restorable state"
+        ),
+    }
+
+
+def _require_historical_observables(
+    *,
+    current_preflight: dict[str, Any],
+    current_milestones: Sequence[dict[str, Any]],
+    current_trajectory: dict[str, Any],
+) -> dict[str, Any]:
+    historical_smoke = _load_pinned_json(
+        HISTORICAL_SMOKE_REPORT_RELPATH,
+        HISTORICAL_SMOKE_REPORT_SHA256,
+    )
+    historical_preflight = _load_pinned_json(
+        HISTORICAL_PREFLIGHT_RELPATH,
+        HISTORICAL_PREFLIGHT_SHA256,
+    )
+    result = _compare_historical_observables(
+        historical_smoke=historical_smoke,
+        historical_preflight=historical_preflight,
+        current_preflight=current_preflight,
+        current_milestones=current_milestones,
+        current_trajectory=current_trajectory,
+    )
+    return {
+        **result,
+        "historical_smoke_report_sha256": HISTORICAL_SMOKE_REPORT_SHA256,
+        "historical_preflight_sha256": HISTORICAL_PREFLIGHT_SHA256,
     }
 
 
@@ -203,13 +334,13 @@ def _run_seed17_gate_and_training(
             update_callback=on_update,
             emit_current_checkpoint=True,
         )
-        if (
-            smoke_summary.final_checkpoint_sha256
-            != EXPECTED_SEED17_UPDATE500_SHA256
-        ):
-            raise RuntimeError(
-                "seed-17 update-500 checkpoint did not reproduce retained smoke"
-            )
+        historical_observables = _require_historical_observables(
+            current_preflight=preflight,
+            current_milestones=recorder.records,
+            current_trajectory=smoke_runner.trajectory_report(
+                orchestrator.collector.diagnostics()
+            ),
+        )
         response = smoke_runner.backlog_response_probe(orchestrator)
         if response["desired_direction_passed"] is not True:
             raise RuntimeError("physical backlog-response gate failed")
@@ -221,9 +352,9 @@ def _run_seed17_gate_and_training(
             {
                 "schema": "scenesense.run4_exploratory_smoke_gate.v1",
                 "seed": 17,
-                "historical_checkpoint_reproduced": True,
-                "historical_checkpoint_sha256": (
-                    EXPECTED_SEED17_UPDATE500_SHA256
+                "historical_observables": historical_observables,
+                "new_full_checkpoint_sha256": (
+                    smoke_summary.final_checkpoint_sha256
                 ),
                 "backlog_response": response,
                 "cross_process_resume": resume,
