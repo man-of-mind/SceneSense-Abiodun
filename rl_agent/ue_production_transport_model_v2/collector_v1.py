@@ -396,13 +396,15 @@ class RealModeledTransitionCollectorV1:
             self.retained_residuals = load_retained_residuals(repo_root)
             self.actor_reserve_ns = load_actor_reserve_ns(repo_root)
             self.action_catalog = action_contract.load_contract()
-            self._mcs_model = MCSP.fit_mcs_markov_model(
-                MCSEV.load_dynamic_mcs_273prb_evidence())
+            mcs_evidence = MCSEV.load_dynamic_mcs_273prb_evidence()
+            self._mcs_evidence_sha256 = mcs_evidence.canonical_evidence_sha256
+            self._mcs_model = MCSP.fit_mcs_markov_model(mcs_evidence)
         else:
             for name in ("model", "catalog", "retained_residuals",
-                         "actor_reserve_ns", "action_catalog", "mcs_model"):
-                setattr(self, "_mcs_model" if name == "mcs_model" else name,
-                        shared_sources[name])
+                         "actor_reserve_ns", "action_catalog"):
+                setattr(self, name, shared_sources[name])
+            self._mcs_model = shared_sources["mcs_model"]
+            self._mcs_evidence_sha256 = shared_sources["mcs_evidence_sha256"]
 
         values = [self.catalog.scene_descriptors(key)[0]
                   for key in self.catalog.keys]
@@ -440,6 +442,7 @@ class RealModeledTransitionCollectorV1:
             "actor_reserve_ns": self.actor_reserve_ns,
             "action_catalog": self.action_catalog,
             "mcs_model": self._mcs_model,
+            "mcs_evidence_sha256": self._mcs_evidence_sha256,
         }
 
     # -- one persistent causal session ---------------------------------
@@ -718,9 +721,17 @@ class RealModeledTransitionCollectorV1:
         """
         require(type(checkpoint) is orch.CollectorCheckpointV1,
                 "checkpoint has a foreign type")
+        require(checkpoint.collector_schema_id == self.SCHEMA,
+                "checkpoint schema differs from this collector")
         require(checkpoint.collector_binding_sha256 == self._collector_binding,
                 "checkpoint binding differs from this collector")
         payload = json.loads(checkpoint.payload_json)
+        expected_payload_keys = {
+            "seed", "backlog_bytes", "mcs_current", "actions",
+            "diagnostics_sha256", "state_features_sha256s",
+        }
+        require(set(payload) == expected_payload_keys,
+                "checkpoint payload fields differ")
         require(int(payload["seed"]) == self._seed,
                 "checkpoint seed differs from this collector")
         self._start_session()
@@ -774,7 +785,9 @@ def _build_modeled_binding(
             disclosure(
                 modeled.ComponentRole.UL_MCS_TRANSITION,
                 modeled.ComponentEvidenceNature.FIT_DERIVED_MODEL,
-                collector._mcs_model.binding_sha256,
+                # The sealed acceptance binds source = evidence digest and
+                # fit support = model binding digest; both must match exactly.
+                collector._mcs_evidence_sha256,
                 collector._mcs_model.binding_sha256,
                 "sealed FIT MCS Markov provider with checkpointed local RNG"),
             disclosure(

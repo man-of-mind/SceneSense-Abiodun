@@ -8,7 +8,10 @@ launches a radio, CARLA, OAI, Docker or any network service.
 from __future__ import annotations
 
 import collections
+import hashlib
+import json
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import modeled_smoke_orchestrator as orch
@@ -205,6 +208,28 @@ class CheckpointResumeTests(CollectorTestBase):
         other = self.fresh(seed=C2.MODEL_SEED + 7)
         with self.assertRaises(CV.CollectorError):
             other.restore(checkpoint)
+
+    def test_restore_refuses_foreign_schema_and_payload_fields(self) -> None:
+        collector = self.fresh()
+        for request in _requests(4):
+            collector.collect(request)
+        checkpoint = collector.checkpoint()
+        with self.assertRaisesRegex(CV.CollectorError, "schema"):
+            self.fresh().restore(
+                replace(checkpoint, collector_schema_id="foreign.schema")
+            )
+        payload = json.loads(checkpoint.payload_json)
+        payload["unexpected"] = "field"
+        text = json.dumps(
+            payload, sort_keys=True, separators=(",", ":"),
+            ensure_ascii=True, allow_nan=False
+        )
+        forged = replace(
+            checkpoint, payload_json=text,
+            payload_sha256=hashlib.sha256(text.encode("ascii")).hexdigest()
+        )
+        with self.assertRaisesRegex(CV.CollectorError, "payload fields"):
+            self.fresh().restore(forged)
 
 
 if __name__ == "__main__":
