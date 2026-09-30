@@ -84,6 +84,22 @@ RUN5_MODEL_BINDING: Mapping[str, Any] = MappingProxyType(
 )
 RUN5_MODEL_BINDING_SHA256 = canonical_sha256(RUN5_MODEL_BINDING)
 
+# Training binding: identical networks, v2 feature schema (registered SNR
+# support/scaling and controller lease).  Imported lazily-free: run5_snr_v2
+# performs no I/O.
+from . import run5_snr_v2 as _SNR2  # noqa: E402
+
+RUN5_V2_MODEL_BINDING: Mapping[str, Any] = MappingProxyType(
+    {
+        **dict(RUN5_MODEL_BINDING),
+        "feature_schema_id": _SNR2.FEATURE_SCHEMA_ID,
+        "feature_schema_sha256": _SNR2.FEATURE_SCHEMA_SHA256,
+        "feature_schema_version": _SNR2.FEATURE_SCHEMA_VERSION,
+        "schema": RUN5_MODEL_SCHEMA + "+feature_schema_v2",
+    }
+)
+RUN5_V2_MODEL_BINDING_SHA256 = canonical_sha256(RUN5_V2_MODEL_BINDING)
+
 
 def run5_model_config() -> HybridSacModelConfig:
     """Run 4's configuration with ``state_dim`` = 22 and nothing else changed."""
@@ -148,8 +164,10 @@ def build_run5_models(*, actor_seed: int, critic_seed: int):
     return actor, critics
 
 
-def refuse_run4_binding(binding: Mapping[str, Any]) -> None:
-    """Raise unless ``binding`` is exactly the Run-5 model binding."""
+def refuse_run4_binding(
+    binding: Mapping[str, Any], expected_sha256: str = RUN5_MODEL_BINDING_SHA256
+) -> None:
+    """Raise unless ``binding`` is exactly the expected Run-5 model binding."""
     if not isinstance(binding, Mapping):
         raise Run5CheckpointRefused("checkpoint binding must be a mapping")
     document = dict(binding)
@@ -168,7 +186,7 @@ def refuse_run4_binding(binding: Mapping[str, Any]) -> None:
         )
     if document.get("policy_feature_count") == RUN4_ACTOR_INPUT_WIDTH:
         raise Run5CheckpointRefused("21-feature checkpoint binding refused")
-    if digest != RUN5_MODEL_BINDING_SHA256:
+    if digest != expected_sha256:
         raise Run5CheckpointRefused("checkpoint binding is not the Run-5 binding")
 
 
@@ -186,6 +204,7 @@ def load_run5_model_state(
     binding: Mapping[str, Any],
     actor_state: Mapping[str, Any],
     critic_state: Mapping[str, Any],
+    expected_binding_sha256: str = RUN5_MODEL_BINDING_SHA256,
 ):
     """Load a Run-5 state dict into fresh modules; refuse anything 21-D."""
     width = _input_width(actor_state, ACTOR_INPUT_KEY, "actor")
@@ -201,7 +220,7 @@ def load_run5_model_state(
             raise Run5CheckpointRefused(
                 f"critic input width {critic_width} is not {RUN5_CRITIC_INPUT_WIDTH}"
             )
-    refuse_run4_binding(binding)
+    refuse_run4_binding(binding, expected_binding_sha256)
     # A 21-D Run-4 matrix zero-padded to 22 columns is a relabel, even under a
     # forged Run-5 binding.  No initialized or trained Run-5 layer has an
     # identically zero SNR input column.
