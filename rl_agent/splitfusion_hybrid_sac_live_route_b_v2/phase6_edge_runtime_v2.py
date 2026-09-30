@@ -719,13 +719,24 @@ def run_run4_edge_service(args: argparse.Namespace) -> int:  # pragma: no cover 
 
     ready = Path(args.ready_file)
     ready.parent.mkdir(parents=True, exist_ok=True)
-    with ready.open("x", encoding="utf-8") as handle:
-        json.dump(ready_document(
-            action_id=args.action_id, direct_map_host=args.direct_map_host,
-            direct_map_port=args.direct_map_port, ue_control_host=args.ue_control_host,
-            ue_control_port=args.ue_control_port, tail_device=device,
-            quality_spec_sha256=spec.canonical_sha256(), evidence_dir=evidence_dir),
-            handle, sort_keys=True)
+
+    def write_ready() -> None:
+        with ready.open("x", encoding="utf-8") as handle:
+            json.dump(ready_document(
+                action_id=args.action_id, direct_map_host=args.direct_map_host,
+                direct_map_port=args.direct_map_port, ue_control_host=args.ue_control_host,
+                ue_control_port=args.ue_control_port, tail_device=device,
+                quality_spec_sha256=spec.canonical_sha256(), evidence_dir=evidence_dir),
+                handle, sort_keys=True)
+
+    # Addendum 7: READY only after every registered edge path has warmed.
+    from . import phase6_prewarm_v2 as PW
+
+    PW.publish_ready_after_warmup(
+        lambda: PW.warm_edge(processor, rt, contract, device=device,
+                             encoders=edge.autoencoders, codec=rt._codec,
+                             unguarded_tail=edge.tail),
+        write_ready, report_path=evidence_dir / "run4_phase6_prewarm_edge.json")
     threads = [threading.Thread(target=receive_loop, daemon=True, name="run4-edge-receive"),
                threading.Thread(target=process_loop, daemon=True, name="run4-edge-process")]
     for thread in threads:

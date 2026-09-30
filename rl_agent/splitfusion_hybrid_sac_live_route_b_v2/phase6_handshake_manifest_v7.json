@@ -1,0 +1,29 @@
+{
+  "base_commit_prefix": "4626c2e",
+  "ceilings": "at most 40 transmitted frames, 60 s route time; no extension, no retry",
+  "claim_scope": "SYSTEMS_INTEGRATION_QUALIFICATION_ONLY",
+  "classification_rules": {
+    "feedback_over_170ms": "FAIL with exact per-stage excess (UE raw-clock and edge wall-clock stages reported separately); deadline and reward unchanged",
+    "superseded_after_verified_warmup": "REWARD_FRAME_PROTECTION_REQUIRED - stop; no scheduler change without review"
+  },
+  "command": "env -u PYTHONPATH CUDA_VISIBLE_DEVICES=0 python3 -u -m rl_agent.splitfusion_hybrid_sac_live_route_b_v2.phase6_live_runner_v2 --output-root rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/<UTC>_phase6_gt_handshake_v7 --transmitted-budget 40 --stop-after-decisions 1 --safety-timeout-s 60 --child-timeout-s 600 --execute SPLITFUSION_RUN4_PHASE6_LIVE_QUALIFICATION_V2_EXECUTE",
+  "id": "PHASE6_ONE_DECISION_HANDSHAKE_V7",
+  "pass_requires": [
+    "all UE and edge warm-up paths completed before admission",
+    "refresh_static completed before admission",
+    "one rewarded decision plus its required hold",
+    "rewarded frame reaches edge inference and evaluator submission",
+    "rewarded frame is not superseded",
+    "all three GT components identity-matched and readable (host == container == preserved)",
+    "object-GT queue wait and compute reported separately (HIGH class)",
+    "exact Q_perc returned through the UE feedback path",
+    "action-open-to-feedback <= 170 ms",
+    "zero unresolved tickets, unknown orphans, conflicts or infrastructure faults",
+    "no missing HIGH object-GT output",
+    "actor/checkpoint hashes unchanged",
+    "cold host and channel restored"
+  ],
+  "schema": "scenesense.run4_live_v2.phase6_handshake_manifest.v7",
+  "status": "PROSPECTIVE_NOT_EXECUTED_REQUIRES_AUTHORIZATION",
+  "verdict_tool": "python3 -m rl_agent.splitfusion_hybrid_sac_live_route_b_v2.phase6_gt_handoff_v2 <cell> --actor-audit-before <json> --actor-audit-after <json> --write <create-only json>  (handshake_verdict_v2)"
+}

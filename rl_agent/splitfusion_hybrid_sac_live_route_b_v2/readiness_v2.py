@@ -59,6 +59,10 @@ PACKAGE_SOURCES = (
     # Addendum 6: boundary restoration, cycle-aware stop, GT handoff diagnosis.
     "phase6_gt_handoff_v2.py", "test_phase6_repair_diagnostic_v2.py",
     "phase6_repair_diagnostic_addendum_6.json",
+    # Addendum 7: deterministic pre-warm and reward-priority object GT.
+    "phase6_prewarm_v2.py", "phase6_gt_priority_v2.py",
+    "test_phase6_prewarm_gt_priority_v2.py", "phase6_prewarm_gt_priority_addendum_7.json",
+    "phase6_handshake_manifest_v7.json",
 )
 
 

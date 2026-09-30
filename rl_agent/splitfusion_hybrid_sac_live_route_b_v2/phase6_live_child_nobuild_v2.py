@@ -25,6 +25,7 @@ from typing import Any, Optional, Sequence
 
 from . import phase6_edge_launch_v2 as EL
 from . import phase6_gt_handoff_v2 as GH
+from . import phase6_gt_priority_v2 as GP
 from . import phase6_live_child_v2 as C
 
 EVIDENCE_RELPATH = Path("run4_phase6") / "edge_image_launch.json"
@@ -46,16 +47,19 @@ def install_run4_seams_nobuild(campaign: Any, *, attempt_dir: Path, **kwargs: An
 
     budget = kwargs.get("transmitted_budget")
     factory = pinned.LivePilotCellRuntime
+    ticket_log = GP.GtTicketLogV2()          # addendum 7: object-GT ticket timeline
 
     def budgeted_factory(**factory_kwargs: Any) -> Any:
         runtime = factory(**factory_kwargs)
         runtime.cycle_budget = U.CycleBudgetV2(frame_budget=budget,
                                                decision_cap=_DECISION_CAP["value"])
+        runtime.gt_log = ticket_log
         return runtime
 
     pinned.LivePilotCellRuntime = budgeted_factory
 
-    recorder = GH.GtWriteRecorderV2(Path(attempt_dir) / GT_WRITES_RELPATH)
+    recorder = GH.GtWriteRecorderV2(Path(attempt_dir) / GT_WRITES_RELPATH,
+                                    ticket_log=ticket_log)
     Q.write_object_ground_truth, Q.write_semantic_ground_truth = recorder.wrap(
         Q.write_object_ground_truth, Q.write_semantic_ground_truth)
 

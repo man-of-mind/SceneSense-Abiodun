@@ -47,9 +47,10 @@ def _sha256(path: Path) -> str:
 class GtWriteRecorderV2:
     """Append-only JSONL record of every UE-side GT component write."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, ticket_log: Any = None) -> None:
         self.path = Path(path)
         self._lock = threading.Lock()
+        self.ticket_log = ticket_log          # addendum 7: object-write timing
 
     def _append(self, row: Mapping[str, Any]) -> None:
         with self._lock:
@@ -73,6 +74,9 @@ class GtWriteRecorderV2:
 
     def wrap(self, write_objects: Callable[..., Any], write_semantic: Callable[..., Any]):
         def objects(directory, *, identity, **kwargs):
+            frame_id = int(identity["frame_id"])
+            if self.ticket_log is not None:
+                self.ticket_log.write_started(frame_id, time.time_ns())
             try:
                 result = write_objects(directory, identity=identity, **kwargs)
             except Exception as exc:
@@ -80,6 +84,12 @@ class GtWriteRecorderV2:
                               "identity": dict(identity), "written_wall_ns": time.time_ns()})
                 raise
             self.record("objects", [Path(result)], identity)
+            if self.ticket_log is not None:
+                path = Path(result)
+                self.ticket_log.write_finished(
+                    frame_id, time.time_ns(), object_count=len(kwargs.get("rows") or ()),
+                    size_bytes=path.stat().st_size if path.is_file() else None,
+                    sha256=_sha256(path) if path.is_file() else None, identity=identity)
             return result
 
         def semantic(directory, *, identity, **kwargs):
@@ -253,6 +263,122 @@ def handshake_verdict(cell: Path, *, actor_audit_before: Mapping[str, Any],
             "handoff": report}
 
 
+def _csv(path: Path) -> list[dict[str, Any]]:
+    import csv
+
+    if not Path(path).is_file():
+        return []
+    with Path(path).open(newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def handshake_verdict_v2(cell: Path, *, actor_audit_before: Mapping[str, Any],
+                         actor_audit_after: Mapping[str, Any]) -> dict[str, Any]:
+    """Addendum-7 prospective one-decision handshake criteria (not yet executed)."""
+    cell = Path(cell)
+    evidence = cell / "run4_phase6"
+    base = handshake_verdict(cell, actor_audit_before=actor_audit_before,
+                             actor_audit_after=actor_audit_after)
+    ue = _load(evidence / "PHASE6_UE_EVIDENCE.json", {}) or {}
+    edge = _load(evidence / "edge_report.json", {}) or {}
+    result = _load(cell / "CELL_RESULT.json", {}) or {}
+    edge_warm = _load(evidence / "gt_scratch_preserved" / "run4_phase6_prewarm_edge.json", {}) or {}
+    reward_frames = [f for f in ue.get("frames") or () if f.get("reward_requested")]
+    reward_frame = reward_frames[0]["frame_id"] if len(reward_frames) == 1 else None
+    terminals = _csv(cell / "map_feedback.csv")
+    superseded = any(int(r["frame_id"]) == reward_frame and r.get("outcome") == "SUPERSEDED_PENDING"
+                     for r in terminals) if reward_frame is not None else False
+    evaluation = next((r for r in edge.get("evaluations") or ()
+                       if r.get("frame_id") == reward_frame), None)
+    feedback = next((r for r in ue.get("feedback_rows") or ()
+                     if r.get("frame_id") == reward_frame), None)
+    gt_ticket = next((t for t in (ue.get("gt_objects") or {}).get("tickets") or ()
+                      if t.get("frame_id") == reward_frame), None)
+    resolutions = ue.get("resolutions") or []
+    resolution = resolutions[0] if len(resolutions) == 1 else {}
+    refresh = ue.get("gt_refresh_startup") or {}
+    first_capture = min((int(d["capture"]["ns"]) for d in ue.get("decisions") or ()
+                         if isinstance(d.get("capture"), Mapping)), default=None)
+    classes = [r.get("class") for c in ue.get("feedback_ledgers") or () for r in c]
+    warmed = (bool(ue.get("prewarm_ue_completed")) and bool(edge_warm.get("completed"))
+              and edge_warm.get("modes_warmed") == list(range(12)))
+    latency = resolution.get("latency_ms")
+    checks = {
+        "warmup_completed_before_admission": warmed,
+        "refresh_static_completed_before_admission": bool(refresh.get("completed"))
+            and first_capture is not None and int(refresh["end_wall_ns"]) < first_capture,
+        "one_rewarded_decision_plus_hold": base["checks"]["decision_two_tensors_one_reward_request"],
+        "reward_frame_reached_inference_and_evaluator": evaluation is not None,
+        "reward_frame_not_superseded": reward_frame is not None and not superseded,
+        "gt_components_identity_matched_and_readable": (
+            base["checks"]["all_three_components_host_and_container_match"]
+            and base["checks"]["read_before_local_gt_expiry"]),
+        "object_gt_queue_wait_and_compute_reported": bool(gt_ticket)
+            and gt_ticket.get("queue_class") == "HIGH"
+            and gt_ticket.get("queue_wait_ms") is not None
+            and gt_ticket.get("object_rows_ms") is not None,
+        "exact_q_perc_through_ue_feedback": bool(feedback and evaluation)
+            and feedback.get("class") == "ACCEPTED" and evaluation.get("kind") == "DELIVERED_SUCCESS"
+            and feedback.get("q_perc") == evaluation.get("q_perc")
+            and resolution.get("q_perc") == evaluation.get("q_perc"),
+        "action_open_to_feedback_within_170ms": latency is not None and float(latency) <= 170.0,
+        "zero_unresolved_orphans_conflicts_faults": (
+            ue.get("unresolved_tickets_at_close") == 0 and "UNKNOWN_ORPHAN" not in classes
+            and ue.get("faulted") is None
+            and bool(((result.get("phase6") or {}).get("gates") or {}).get(
+                "P8_NO_INFRASTRUCTURE_FAULT"))),
+        "no_missing_high_gt_output": not ue.get("gt_missing_high_outputs"),
+        "actor_hashes_unchanged": base["checks"]["actor_hashes_unchanged"],
+        "cold_host_and_channel_restored": base["checks"]["cold_host_and_channel_restored"],
+    }
+    if warmed and superseded:
+        classification = "REWARD_FRAME_PROTECTION_REQUIRED"
+    elif all(checks.values()):
+        classification = "PASS"
+    else:
+        classification = "FAIL"
+    excess = None
+    if latency is not None and float(latency) > 170.0:
+        decision = next((d for d in ue.get("decisions") or ()
+                         if d.get("frame_id") == reward_frame), {})
+        stages = decision.get("stages") or {}
+        opened = (decision.get("action_open") or {}).get("ns")
+        timing = (evaluation or {}).get("timing") or {}
+        ingest = next((r for r in _csv(cell / "direct_edge_map" / "direct_map_ingest.csv")
+                       if int(r["frame_id"]) == reward_frame), {})
+
+        def span(a, b):
+            return None if a is None or b is None else (float(b) - float(a)) / 1e6
+
+        excess = {
+            "excess_ms": float(latency) - 170.0,
+            "ue_raw_clock_ms": {
+                "action_open_to_7ch": span(opened, stages.get("input_7ch_start_raw_ns")),
+                "7ch_to_front_end": span(stages.get("input_7ch_start_raw_ns"),
+                                         stages.get("front_end_raw_ns")),
+                "front_end_to_first_send": span(stages.get("front_end_raw_ns"),
+                                                stages.get("first_packet_send_raw_ns"))},
+            "edge_wall_clock_ms": {
+                "reassembly_to_compute_start": span(
+                    float(ingest["edge_reassembly_complete_wall_s"]) * 1e9
+                    if ingest.get("edge_reassembly_complete_wall_s") else None,
+                    float(ingest["edge_compute_start_wall_s"]) * 1e9
+                    if ingest.get("edge_compute_start_wall_s") else None),
+                "evaluator_enqueue_to_gt_ready": span(timing.get("enqueued_wall_ns"),
+                                                      timing.get("gt_ready_detected_wall_ns")),
+                "gt_ready_to_evaluator_start": span(timing.get("gt_ready_detected_wall_ns"),
+                                                    timing.get("evaluator_start_wall_ns")),
+                "evaluator_compute": span(timing.get("evaluator_start_wall_ns"),
+                                          timing.get("evaluator_end_wall_ns"))},
+            "note": "UE stages use CLOCK_MONOTONIC_RAW and edge stages wall time; they are "
+                    "never subtracted across domains."}
+    return {"schema": "scenesense.run4_live_v2.phase6_gt_handshake.v2",
+            "classification": classification, "checks": checks,
+            "reward_frame": reward_frame, "latency_ms": latency,
+            "stage_excess": excess, "object_gt_ticket": gt_ticket,
+            "handoff": base["handoff"]}
+
+
 def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - CLI
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("cell", type=Path)
@@ -260,14 +386,15 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - CLI
     parser.add_argument("--actor-audit-after", type=Path, required=True)
     parser.add_argument("--write", type=Path)
     args = parser.parse_args(list(argv) if argv is not None else None)
-    verdict = handshake_verdict(args.cell, actor_audit_before=_load(args.actor_audit_before),
-                                actor_audit_after=_load(args.actor_audit_after))
+    verdict = handshake_verdict_v2(args.cell,
+                                   actor_audit_before=_load(args.actor_audit_before),
+                                   actor_audit_after=_load(args.actor_audit_after))
     text = json.dumps(verdict, indent=1, sort_keys=True, default=str) + "\n"
     if args.write:
         with args.write.open("x", encoding="utf-8") as handle:
             handle.write(text)
     sys.stdout.write(text)
-    return 0 if verdict["verdict"] == "PASS" else 1
+    return 0 if verdict["classification"] == "PASS" else 1
 
 
 if __name__ == "__main__":  # pragma: no cover

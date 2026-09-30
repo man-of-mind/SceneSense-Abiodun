@@ -550,6 +550,21 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
             self.sensor_stages: "collections.OrderedDict[float, dict]" = (
                 collections.OrderedDict())
             self.cycle_boundary_reached = False
+            # Addendum 7: warm every registered UE path before any frame exists.
+            from . import phase6_prewarm_v2 as PW
+
+            self.prewarm_report = PW.warm_ue(
+                continuous, self.contract,
+                prepare_input=lambda frame, radar: base._prepare_live_input(
+                    frame, radar, self.device))
+            _require(self.prewarm_report["completed"]
+                     and self.prewarm_report["modes_warmed"] == list(range(12)),
+                     "UE pre-warm incomplete; no scientific frame may be admitted")
+            PW.write_report_create_only(bindings.evidence_dir / "prewarm_ue.json",
+                                        self.prewarm_report)
+            if not hasattr(self, "gt_log"):
+                from . import phase6_gt_priority_v2 as GP
+                self.gt_log = GP.GtTicketLogV2()
             self._run4_ready.set()
 
         @property
@@ -753,6 +768,14 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                 "cycle_budget": {"frame_budget": self.cycle_budget.frame_budget,
                                  "decision_cap": self.cycle_budget.decision_cap},
                 "cycle_boundary_reached": bool(self.cycle_boundary_reached),
+                "prewarm_ue_completed": bool(self.prewarm_report.get("completed")),
+                "gt_refresh_startup": getattr(self, "gt_refresh_startup", None),
+                "gt_objects": self.gt_log.snapshot(),
+                "gt_missing_high_outputs": self.gt_log.missing_high_outputs(),
+                "gt_queue": ({"counters": dict(self.gt_queue.counters),
+                              "depth_at_close": self.gt_queue.depth(),
+                              "unfinished_tasks": self.gt_queue.unfinished_tasks}
+                             if getattr(self, "gt_queue", None) is not None else None),
                 "unresolved_tickets_at_close": sum(
                     1 for c in self.engine.controllers
                     if c.current is not None and c.current.resolution is None),
@@ -813,6 +836,48 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             self.aggregator.window_detections = recorded
             self.live.scene_hooks = self._run4_scene_inputs
             self.parked = _PreparationTimer(self.parked, self._run4_timed_build)
+            self._run4_install_gt_priority()
+
+        def _run4_install_gt_priority(self) -> None:
+            """Addendum 7: reward-priority object GT and a timed pre-route refresh."""
+            from . import phase6_gt_priority_v2 as GP
+
+            _require(self.scene_source is not None, "object GT requires a scene source")
+            log = getattr(self.live, "gt_log", None) or GP.GtTicketLogV2()
+            self.live.gt_log = log
+            # completes before any frame; a failure raises and admits nothing
+            self.live.gt_refresh_startup = GP.timed_startup_refresh(self.scene_source)
+            GP.install_timed_refresh(self.scene_source, log)
+            queue = GP.RewardPriorityGtQueueV2(
+                classify=self._run4_gt_class, maxsize_high=64, maxsize_low=64,
+                on_enqueue=log.enqueued, on_dequeue=log.dequeued)
+            self.evaluation_queue = queue            # worker reads it per iteration
+            self.live.gt_queue = queue
+
+        def _run4_gt_class(self, item: Mapping[str, Any]) -> str:
+            from . import phase6_gt_priority_v2 as GP
+
+            frame_id = int(item["frame_id"])
+            identity = self.live._run4_identity.get(frame_id)
+            if identity is None or frame_id not in self.live._gt_identity:
+                raise GP.GtQueueError(f"object-GT ticket for foreign frame {frame_id}")
+            return GP.HIGH if identity.get("reward_requested") is True else GP.LOW
+
+        def _ground_truth(self, **kwargs: Any):
+            exact = kwargs.get("world") is not None and hasattr(self.live, "gt_log")
+            frame_id = int(kwargs["frame_id"])
+            if exact:
+                self.live.gt_log.rows_started(frame_id, time.time_ns())
+            try:
+                rows = super()._ground_truth(**kwargs)
+            except Exception as exc:
+                if exact:
+                    self.live.gt_log.completed(frame_id, time.time_ns(),
+                                               error=f"{type(exc).__name__}: {exc}"[:200])
+                raise
+            if exact:
+                self.live.gt_log.completed(frame_id, time.time_ns())
+            return rows
 
         def _run4_timed_build(self, real_build: Callable[..., Any], **kwargs: Any):
             """Time the radar rasterization and bind it to its exact window."""
