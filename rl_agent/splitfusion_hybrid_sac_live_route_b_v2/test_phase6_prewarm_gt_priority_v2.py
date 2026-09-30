@@ -297,7 +297,8 @@ class PrewarmTest(unittest.TestCase):
         self.assertEqual(edge_report["modes_warmed"], list(range(12)))
         self.assertEqual(len(ue_report["paths"]), n)
         self.assertEqual(len(edge_report["paths"]), n)
-        self.assertEqual(len(syncs), 2 * (1 + n) + 2 * n)   # before+after every timed path
+        # before+after every timed path: UE input + two UE passes, two edge passes
+        self.assertEqual(len(syncs), 2 * (1 + 2 * n) + 2 * (2 * n))
         self.assertEqual(ue_report["input_shape"], [])        # fake input carries no shape
         for row in edge_report["paths"]:
             self.assertEqual(len(row["wire_sha256"]), 64)

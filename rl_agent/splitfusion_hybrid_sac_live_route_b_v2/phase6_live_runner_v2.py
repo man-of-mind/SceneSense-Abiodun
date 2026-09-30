@@ -286,6 +286,21 @@ def write_result_summary(attempt: Path, evaluation: Mapping[str, Any]) -> Path:
     return path
 
 
+def preserve_service_log(service: Path, attempt: Path,
+                         name: str = "carla_server.log") -> dict[str, Any]:
+    """Create-only copy of the CARLA server log into the attempt directory."""
+    source, target = Path(service) / name, Path(attempt) / name
+    if not source.is_file():
+        return {"preserved": False, "reason": "absent"}
+    try:
+        with source.open("rb") as reader, target.open("xb") as writer:
+            shutil.copyfileobj(reader, writer)
+    except OSError as exc:
+        return {"preserved": False, "reason": f"{type(exc).__name__}: {exc}"}
+    return {"preserved": True, "bytes": target.stat().st_size,
+            "sha256": hashlib.sha256(target.read_bytes()).hexdigest()}
+
+
 def _histogram(values) -> dict[str, int]:
     out: dict[str, int] = {}
     for value in values:
@@ -458,6 +473,8 @@ def run_one_cell(*, base_config: Mapping[str, Any], registered: Any, output_root
             except BaseException as exc:
                 cleanup["radio_error"] = f"{type(exc).__name__}: {exc}"
                 cleanup["radio_shutdown_verified"] = False
+        # Addendum 8: keep the CARLA server log before the service dir is deleted.
+        cleanup["carla_server_log"] = preserve_service_log(service, attempt)
         shutil.rmtree(service, ignore_errors=True)
         try:
             cleanup["cold_after"] = supervisor._require_phase15_application_cold(campaign)

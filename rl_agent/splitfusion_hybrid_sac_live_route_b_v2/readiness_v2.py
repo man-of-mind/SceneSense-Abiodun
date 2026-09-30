@@ -63,6 +63,8 @@ PACKAGE_SOURCES = (
     "phase6_prewarm_v2.py", "phase6_gt_priority_v2.py",
     "test_phase6_prewarm_gt_priority_v2.py", "phase6_prewarm_gt_priority_addendum_7.json",
     "phase6_handshake_manifest_v7.json",
+    # Addendum 8: preserved route failure/CARLA log and hot-repeat warm-up timing.
+    "test_phase6_route_diagnostic_hot_repeat_v2.py", "phase6_diagnostic_repair_addendum_8.json",
 )
 
 

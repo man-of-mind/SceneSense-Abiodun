@@ -334,7 +334,9 @@ class BoundedChangeTest(unittest.TestCase):
         old = self._nodes(self._committed(name))
         new_source = (ROOT / "rl_agent/splitfusion_hybrid_sac_live_route_b_v2" / name).read_text()
         new = self._nodes(new_source)
-        self.assertEqual(set(old), set(new))
+        # Addendum 8 adds exactly the route-detail helper (constants are not named nodes).
+        self.assertEqual(set(new) - set(old), {"record_route_detail"})
+        self.assertEqual(set(old) - set(new), set())
         self.assertEqual({k for k in old if old[k] != new[k]}, {"run"})
         self.assertIn("DECISION_CYCLE_BOUNDARY", new_source)
 

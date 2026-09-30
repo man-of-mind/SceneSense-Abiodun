@@ -53,6 +53,38 @@ def _atomic_json(path: Path, payload: Mapping[str, Any]) -> None:
     temporary.replace(path)
 
 
+ROUTE_DETAIL_NAME = "route_detail.json"
+POPULATION_GLOB = "ue_route_b_metrics_*population_events.jsonl"
+
+
+def record_route_detail(result: dict, detail: Any, artifacts_dir: Path, *,
+                        since_unix_s: float, tmp_root: Path = Path("/tmp")) -> dict[str, Any]:
+    """Keep the complete ``run_route_b`` detail and route artifacts (create-only).
+
+    Called immediately after ``run_route_b`` returns, so a ``collector=None``
+    failure still retains the original route error, return code, density
+    status, summary retention/parse information and outcome. Population-event
+    files created by this route are copied without changing route behaviour.
+    """
+    safe = json.loads(json.dumps(dict(detail or {}), sort_keys=True, default=str))
+    result["route_detail"] = safe
+    path = Path(artifacts_dir) / ROUTE_DETAIL_NAME
+    with path.open("x", encoding="utf-8") as handle:
+        handle.write(json.dumps(safe, sort_keys=True, indent=1) + "\n")
+    copied = []
+    for source in sorted(Path(tmp_root).glob(POPULATION_GLOB)):
+        try:
+            if source.is_file() and source.stat().st_mtime >= float(since_unix_s):
+                target = Path(artifacts_dir) / source.name
+                with source.open("rb") as reader, target.open("xb") as writer:
+                    shutil.copyfileobj(reader, writer)
+                copied.append(source.name)
+        except OSError:
+            continue
+    result["route_population_artifacts"] = copied
+    return safe
+
+
 def edge_config(campaign: Mapping[str, Any], cell: Mapping[str, Any],
                 evidence_leaf: str) -> dict[str, Any]:
     evidence = Path("/work/torch_cache") / evidence_leaf
@@ -223,9 +255,10 @@ def run(args: argparse.Namespace) -> int:  # pragma: no cover - live
             map_api_port=int(args.map_api_port), feedback_port=int(args.feedback_port),
             edge_evidence_dir=edge_scratch / pinned.EDGE_EVIDENCE_LEAF,
             maximum_loop_sim_s=float(args.safety_timeout_s))
+        # Addendum 8: persist the complete route detail before any assertion.
+        record_route_detail(result, detail, artifacts_dir,
+                            since_unix_s=float(result["started_at_unix_s"]))
         require(collector is not None, "route never entered the collector")
-        result["route_detail"] = {k: detail.get(k) for k in (
-            "route_runner_returncode", "route_completed", "route_abort_reason", "error")}
         result["collector"] = collector.probe_summary()
         stop_reason = str(collector.probe_stop_reason)
         # Addendum 6: a stop at a closed k_min decision cycle is registered;

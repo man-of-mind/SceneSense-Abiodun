@@ -43,6 +43,7 @@ WARM_SEED = 20260930
 FRAME_SHAPE = (720, 1280, 3)          # live RGB camera (image_size 1280x720)
 RADAR_SHAPE = (4, 448, 768)           # live rasterized radar tensor
 C2_SHAPE = (256, 112, 192)            # frozen split boundary
+PASSES = ("first_pass", "hot_repeat")  # addendum 8: identical HOT repeat after pass 1
 SCORE_SHAPE = (112, 192)              # frozen ranker score map
 
 
@@ -110,29 +111,37 @@ def warm_ue(continuous_ue: Any, contract: Any, *,
             prepare_input: Callable[[Any, Any], Any],
             sync: Callable[[], None] = _sync_default,
             clock: Callable[[], int] = time.perf_counter_ns) -> dict[str, Any]:
-    """Warm every UE execution path; returns the per-path report."""
+    """Warm every UE path (first pass), then one identical HOT repeat (addendum 8)."""
     frame, radar = synthetic_sensor_inputs()
     input_7ch, input_ms = _timed(lambda: prepare_input(frame, radar), sync=sync, clock=clock)
-    rows = []
-    for index, path in enumerate(warm_paths(contract)):
-        identity = warm_identity(index, capture_ns=time.time_ns())
-        try:
-            prepared, elapsed = _timed(
-                lambda: continuous_ue.prepare(path["profile"], input_7ch, identity),
-                sync=sync, clock=clock)
-        except Exception as exc:
-            raise PrewarmError(f"UE warm path mode {path['mode_id']} q_e4 "
-                               f"{path['q_e4']} failed: {type(exc).__name__}: {exc}") from exc
-        inner = prepared.envelope.inner_payload
-        rows.append({k: path[k] for k in ("mode_id", "q_e4", "family", "quantizer",
-                                          "keep_count")}
-                    | {"elapsed_ms": elapsed, "inner_bytes": len(inner),
-                       "inner_sha256": hashlib.sha256(inner).hexdigest()})
-    return {"schema": "scenesense.run4_live_v2.prewarm_ue.v1", "side": "UE",
+    paths = warm_paths(contract)
+    rows = [{k: path[k] for k in ("mode_id", "q_e4", "family", "quantizer", "keep_count")}
+            for path in paths]
+    for pass_index, label in enumerate(PASSES):
+        for index, path in enumerate(paths):
+            identity = warm_identity(pass_index * len(paths) + index,
+                                     capture_ns=time.time_ns())
+            try:
+                prepared, elapsed = _timed(
+                    lambda: continuous_ue.prepare(path["profile"], input_7ch, identity),
+                    sync=sync, clock=clock)
+            except Exception as exc:
+                raise PrewarmError(f"UE {label} path mode {path['mode_id']} q_e4 "
+                                   f"{path['q_e4']} failed: {type(exc).__name__}: {exc}") from exc
+            inner = prepared.envelope.inner_payload
+            rows[index][f"{label}_ms"] = elapsed
+            rows[index][f"{label}_inner_sha256"] = hashlib.sha256(inner).hexdigest()
+            rows[index]["inner_bytes"] = len(inner)
+    for row in rows:
+        row["elapsed_ms"] = row["first_pass_ms"]
+        row["hot_identical_payload"] = row["first_pass_inner_sha256"] == row["hot_repeat_inner_sha256"]
+    return {"schema": "scenesense.run4_live_v2.prewarm_ue.v2", "side": "UE",
             "input_preparation_ms": input_ms,
             "input_shape": list(getattr(input_7ch, "shape", ())),
             "paths": rows, "modes_warmed": sorted({r["mode_id"] for r in rows}),
-            "completed": len(rows) == len(warm_paths(contract))}
+            "timing_summary": timing_summary(rows),
+            "completed": all("first_pass_ms" in r and "hot_repeat_ms" in r for r in rows)
+                         and len(rows) == len(paths)}
 
 
 class _WarmRanker:
@@ -182,36 +191,77 @@ def warm_edge(processor: Any, runtime: Any, contract: Any, *, device: Any,
     synthesizer = X.ContinuousUERuntimeV2(contract, front=lambda _input: c2,
                                           ranker=_WarmRanker(), ae_encoders=dict(encoders),
                                           codec=codec)
-    rows = []
+    paths = warm_paths(contract)
+    rows = [{k: path[k] for k in ("mode_id", "q_e4", "family", "quantizer", "keep_count")}
+            for path in paths]
     with isolated_edge_runtime(runtime, unguarded_tail=unguarded_tail):
-        for index, path in enumerate(warm_paths(contract)):
-            capture_ns = time.time_ns()
-            identity = warm_identity(index, capture_ns=capture_ns)
-            try:
-                prepared = synthesizer.prepare(path["profile"], None, identity)
-                context = build_frame_context_v1(
-                    stream_id=WARM_STREAM, frame_id=identity.frame_id,
-                    sequence_id=identity.tensor_seq, capture_timestamp_ns=capture_ns,
-                    ego_world_x=0.0, ego_world_y=0.0, ego_world_z=0.0,
-                    ego_world_pitch=0.0, ego_world_yaw=0.0, ego_world_roll=0.0)
-                wire = W.pack_sfd4(prepared.envelope, context)
-                processed, elapsed = _timed(
-                    lambda: processor.process(wire, edge_timing={}), sync=sync, clock=clock)
-            except Exception as exc:
-                raise PrewarmError(f"edge warm path mode {path['mode_id']} q_e4 "
-                                   f"{path['q_e4']} failed: {type(exc).__name__}: {exc}") from exc
-            if processed.evaluation is not None:
-                raise PrewarmError("a warm frame produced an evaluation ticket")
-            update = json.dumps(processed.update, sort_keys=True, default=str).encode()
-            rows.append({k: path[k] for k in ("mode_id", "q_e4", "family", "quantizer",
-                                              "keep_count")}
-                        | {"elapsed_ms": elapsed, "wire_bytes": len(wire),
-                           "wire_sha256": hashlib.sha256(wire).hexdigest(),
-                           "map_update_sha256": hashlib.sha256(update).hexdigest(),
-                           "record_count": len(processed.update.get("records") or ())})
-    return {"schema": "scenesense.run4_live_v2.prewarm_edge.v1", "side": "EDGE",
+        for pass_index, label in enumerate(PASSES):
+            for index, path in enumerate(paths):
+                capture_ns = time.time_ns()
+                identity = warm_identity(pass_index * len(paths) + index,
+                                         capture_ns=capture_ns)
+                try:
+                    prepared = synthesizer.prepare(path["profile"], None, identity)
+                    context = build_frame_context_v1(
+                        stream_id=WARM_STREAM, frame_id=identity.frame_id,
+                        sequence_id=identity.tensor_seq, capture_timestamp_ns=capture_ns,
+                        ego_world_x=0.0, ego_world_y=0.0, ego_world_z=0.0,
+                        ego_world_pitch=0.0, ego_world_yaw=0.0, ego_world_roll=0.0)
+                    wire = W.pack_sfd4(prepared.envelope, context)
+                    processed, elapsed = _timed(
+                        lambda: processor.process(wire, edge_timing={}), sync=sync,
+                        clock=clock)
+                except Exception as exc:
+                    raise PrewarmError(f"edge {label} path mode {path['mode_id']} q_e4 "
+                                       f"{path['q_e4']} failed: {type(exc).__name__}: "
+                                       f"{exc}") from exc
+                if processed.evaluation is not None:
+                    raise PrewarmError("a warm frame produced an evaluation ticket")
+                update = json.dumps(processed.update, sort_keys=True, default=str).encode()
+                row = rows[index]
+                row[f"{label}_ms"] = elapsed
+                row[f"{label}_inner_sha256"] = prepared.envelope.inner_payload_sha256
+                row[f"{label}_wire_sha256"] = hashlib.sha256(wire).hexdigest()
+                row[f"{label}_map_update_sha256"] = hashlib.sha256(update).hexdigest()
+                row["wire_bytes"] = len(wire)
+                row["record_count"] = len(processed.update.get("records") or ())
+    for row in rows:
+        row["elapsed_ms"] = row["first_pass_ms"]
+        row["wire_sha256"] = row["first_pass_wire_sha256"]
+        row["map_update_sha256"] = row["first_pass_map_update_sha256"]
+        row["hot_identical_payload"] = row["first_pass_inner_sha256"] == row["hot_repeat_inner_sha256"]
+    return {"schema": "scenesense.run4_live_v2.prewarm_edge.v2", "side": "EDGE",
             "paths": rows, "modes_warmed": sorted({r["mode_id"] for r in rows}),
-            "completed": len(rows) == len(warm_paths(contract))}
+            "timing_summary": timing_summary(rows),
+            "completed": all("first_pass_ms" in r and "hot_repeat_ms" in r for r in rows)
+                         and len(rows) == len(paths)}
+
+
+def _stats(values: Sequence[float]) -> dict[str, Any]:
+    ordered = sorted(float(v) for v in values)
+    if not ordered:
+        return {"n": 0, "p50": None, "p95": None, "max": None}
+
+    def pick(fraction: float) -> float:
+        return ordered[min(len(ordered) - 1, int(round((len(ordered) - 1) * fraction)))]
+    return {"n": len(ordered), "p50": pick(0.5), "p95": pick(0.95), "max": ordered[-1]}
+
+
+def timing_summary(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Diagnostic first-pass vs hot-repeat timing; no acceptance threshold."""
+    summary: dict[str, Any] = {"overall": {}, "per_mode": {}}
+    for label in PASSES:
+        key = f"{label}_ms"
+        summary["overall"][label] = _stats([r[key] for r in rows if key in r])
+        for mode in sorted({r["mode_id"] for r in rows}):
+            summary["per_mode"].setdefault(str(mode), {})[label] = _stats(
+                [r[key] for r in rows if r["mode_id"] == mode and key in r])
+    mode11 = [r for r in rows if r["mode_id"] == 11]
+    if mode11:
+        top = max(mode11, key=lambda r: r["q_e4"])
+        summary["mode11_highest_q"] = {k: top.get(k) for k in (
+            "q_e4", "family", "quantizer", "first_pass_ms", "hot_repeat_ms")}
+    return summary
 
 
 def write_report_create_only(path: Path, report: Mapping[str, Any]) -> Path:
