@@ -219,9 +219,13 @@ class PreflightTest(unittest.TestCase):
                              CAMPAIGN.EXIT_REFUSED)
 
     def test_deep_mode_is_refused_without_authorization(self) -> None:
-        self.assertFalse(CAMPAIGN.AUTHORIZATION.exists())
-        code = CAMPAIGN.main(["--mode", "deep", "--campaign-dir", "/nonexistent", "--seed", "17",
-                              "--evidence-root", str(EVIDENCE_ROOT)])
+        if CAMPAIGN.AUTHORIZATION.exists():        # granted after GO_RUN5_DEEP
+            self.assertEqual(json.loads(CAMPAIGN.AUTHORIZATION.read_text())
+                             ["preregistration_sha256"], PR.load_sealed()["sha256"])
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.object(CAMPAIGN, "AUTHORIZATION", Path(tmp) / "absent.json"):
+            code = CAMPAIGN.main(["--mode", "deep", "--campaign-dir", "/nonexistent",
+                                  "--seed", "17", "--evidence-root", str(EVIDENCE_ROOT)])
         self.assertEqual(code, CAMPAIGN.EXIT_REFUSED)
 
     def test_disk_preflight_estimates_the_three_seed_campaign(self) -> None:
