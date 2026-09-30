@@ -49,6 +49,9 @@ PACKAGE_SOURCES = (
     # Setup-repair addendum 3: no-build, image-bound edge launch (mechanics only).
     "phase6_edge_launch_v2.py", "phase6_live_child_nobuild_v2.py",
     "phase6_edge_startup_qualification_v2.py", "phase6_setup_repair_addendum_3.json",
+    # Setup-repair addendum 4: metadata-only ready-record contract repair.
+    "phase6_edge_runtime_v2.py", "test_phase6_ready_contract_v2.py",
+    "phase6_setup_repair_addendum_4.json",
 )
 
 

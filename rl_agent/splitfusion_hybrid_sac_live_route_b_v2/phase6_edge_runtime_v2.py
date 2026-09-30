@@ -378,6 +378,30 @@ class Run4MapPublisherV2:
         self.socket.close()
 
 
+def ready_document(*, action_id: int, direct_map_host: str, direct_map_port: int,
+                   ue_control_host: str, ue_control_port: int, tail_device: Any,
+                   quality_spec_sha256: str, evidence_dir: Any) -> dict[str, Any]:
+    """The edge ready record (pure; the live write site uses exactly this).
+
+    Addendum 4 adds three metadata fields that ``adapter_direct_v1`` requires:
+    the dense predicted mask stays at the edge for the asynchronous evaluator
+    (never returned to the UE); object records travel edge-to-map directly (only
+    compact quality/terminal feedback travels edge-to-UE); and the evaluator's
+    evidence directory is the schema-validated ``config["evidence_dir"]``.
+    """
+    return {"schema": "splitfusion_direct_live_edge_ready.v1",
+            "run4_edge": True, "action_id": int(action_id),
+            "direct_map_host": str(direct_map_host),
+            "direct_map_port": int(direct_map_port),
+            "ue_control_host": str(ue_control_host),
+            "ue_control_port": int(ue_control_port),
+            "tail_device": str(tail_device), "architecture": "DIRECT_EDGE_TO_MAP_V1",
+            "quality_spec_sha256": str(quality_spec_sha256),
+            "dense_label_map_on_radio": False,
+            "object_records_on_radio": False,
+            "evaluation_evidence_dir": str(evidence_dir)}
+
+
 # ---------------------------------------------------------------------------
 # Container service
 # ---------------------------------------------------------------------------
@@ -547,14 +571,12 @@ def run_run4_edge_service(args: argparse.Namespace) -> int:  # pragma: no cover 
     ready = Path(args.ready_file)
     ready.parent.mkdir(parents=True, exist_ok=True)
     with ready.open("x", encoding="utf-8") as handle:
-        json.dump({"schema": "splitfusion_direct_live_edge_ready.v1",
-                   "run4_edge": True, "action_id": int(args.action_id),
-                   "direct_map_host": str(args.direct_map_host),
-                   "direct_map_port": int(args.direct_map_port),
-                   "ue_control_host": str(args.ue_control_host),
-                   "ue_control_port": int(args.ue_control_port),
-                   "tail_device": str(device), "architecture": "DIRECT_EDGE_TO_MAP_V1",
-                   "quality_spec_sha256": spec.canonical_sha256()}, handle, sort_keys=True)
+        json.dump(ready_document(
+            action_id=args.action_id, direct_map_host=args.direct_map_host,
+            direct_map_port=args.direct_map_port, ue_control_host=args.ue_control_host,
+            ue_control_port=args.ue_control_port, tail_device=device,
+            quality_spec_sha256=spec.canonical_sha256(), evidence_dir=evidence_dir),
+            handle, sort_keys=True)
     threads = [threading.Thread(target=receive_loop, daemon=True, name="run4-edge-receive"),
                threading.Thread(target=process_loop, daemon=True, name="run4-edge-process")]
     for thread in threads:

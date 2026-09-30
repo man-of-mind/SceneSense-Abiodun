@@ -64,6 +64,13 @@ def _tunnel_present() -> bool:
                           stderr=subprocess.DEVNULL, check=False).returncode == 0
 
 
+def build_cache_total() -> str:
+    out = subprocess.run(["sudo", "-n", "docker", "buildx", "du"], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True, check=False, timeout=60.0)
+    lines = [line for line in out.stdout.splitlines() if line.startswith("Total:")]
+    return lines[-1].split(":", 1)[1].strip() if lines else ""
+
+
 def cold_snapshot(supervisor: Any, campaign: Any) -> dict[str, Any]:
     return {"application": supervisor._require_phase15_application_cold(campaign),
             "running_containers": _running_containers(),
@@ -119,6 +126,7 @@ def run(output_root: Path) -> dict[str, Any]:  # pragma: no cover - live
         report["cold_before"] = cold_snapshot(supervisor, campaign)
         EL.require(is_cold(report["cold_before"]), "host is not cold before startup")
         report["edge_image_prelaunch"] = EL.resolve_admitted_image()
+        report["build_cache_total_before"] = build_cache_total()
         core_started = True
         rc = _sudo_compose(["up", "-d", "--pull", "never", "--force-recreate",
                             "--remove-orphans"], CN_DIR, log, 240.0)
@@ -168,6 +176,28 @@ def run(output_root: Path) -> dict[str, Any]:  # pragma: no cover - live
                                         == str(record["sha256"]))
         checks["tail_device_cuda0"] = ready.get("tail_device") == "cuda:0"
         checks["ready_schema"] = ready.get("schema") == "splitfusion_direct_live_edge_ready.v1"
+        from rl_agent.splitfusion_direct_edge_map_v1 import adapter_direct_v1 as D
+
+        from . import phase6_live_child_v2 as C
+
+        expected_evidence = C.edge_config(campaign, cell_dict,
+                                          pinned.EDGE_EVIDENCE_LEAF)["evidence_dir"]
+        runtime = campaign["runtime"]
+        checks["ready_architecture"] = ready.get("architecture") == "DIRECT_EDGE_TO_MAP_V1"
+        checks["ready_dense_label_map_off_radio"] = ready.get("dense_label_map_on_radio") is False
+        checks["ready_object_records_off_radio"] = ready.get("object_records_on_radio") is False
+        checks["ready_evidence_dir_exact"] = (
+            ready.get("evaluation_evidence_dir") == expected_evidence
+            == str(Path("/work/torch_cache") / pinned.EDGE_EVIDENCE_LEAF))
+        checks["ready_map_endpoint"] = (
+            str(ready.get("direct_map_host")) == str(D._ENDPOINT["endpoint"].host)
+            and int(ready.get("direct_map_port")) == int(runtime["direct_map_ingest_port"]))
+        checks["ready_endpoints_distinct"] = (
+            (ready.get("direct_map_host"), ready.get("direct_map_port"))
+            != (ready.get("ue_control_host"), ready.get("ue_control_port")))
+        checks["ready_quality_spec"] = (ready.get("quality_spec_sha256")
+                                        == preflight.get("quality_spec_sha256"))
+        report["expected_evidence_dir"] = expected_evidence
         checks["no_scientific_frame"] = True
         report["status"] = "PASSED" if all(checks.values()) else "FAILED"
     except BaseException as exc:
@@ -187,6 +217,11 @@ def run(output_root: Path) -> dict[str, Any]:  # pragma: no cover - live
                 ["down", "--remove-orphans"], CN_DIR, log, 240.0)
         shutil.rmtree(service, ignore_errors=True)
         try:
+            cleanup["edge_image_after_teardown"] = EL.resolve_admitted_image()
+        except BaseException as exc:
+            cleanup["edge_image_after_teardown_failure"] = f"{type(exc).__name__}: {exc}"
+        cleanup["build_cache_total_after"] = build_cache_total()
+        try:
             cleanup["cold_after"] = cold_snapshot(supervisor, campaign)
             cleanup["cold"] = is_cold(cleanup["cold_after"])
         except BaseException as exc:
@@ -195,6 +230,15 @@ def run(output_root: Path) -> dict[str, Any]:  # pragma: no cover - live
         if report["status"] == "PASSED" and not cleanup.get("cold"):
             report["status"] = "FAILED"
             report["error"] = report["error"] or "host not cold after teardown"
+        if report["status"] == "PASSED" and (
+                (cleanup.get("edge_image_after_teardown") or {}).get("id")
+                != EL.ADMITTED_IMAGE_ID):
+            report["status"] = "FAILED"
+            report["error"] = "admitted image identity not verified after teardown"
+        if report["status"] == "PASSED" and (
+                cleanup.get("build_cache_total_after") != report.get("build_cache_total_before")):
+            report["status"] = "FAILED"
+            report["error"] = "build cache changed during startup (a build occurred)"
         report["finished_at_unix_s"] = time.time()
         LP._atomic_create_json(output_root / "EDGE_STARTUP_QUALIFICATION.json", report)
     return report

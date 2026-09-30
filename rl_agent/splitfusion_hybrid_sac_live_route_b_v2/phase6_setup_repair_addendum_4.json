@@ -1,0 +1,68 @@
+{
+  "added_ready_fields": {
+    "dense_label_map_on_radio": {
+      "semantics": "The predicted dense mask remains at the edge for the asynchronous evaluator; it is not returned to the UE.",
+      "value": false
+    },
+    "evaluation_evidence_dir": {
+      "semantics": "Identifies the existing container-mounted evidence directory used by the evaluator; not hardcoded and not taken from the ignored legacy --edge-segmentation-evidence-dir argument.",
+      "value": "str(evidence_dir) where evidence_dir = Path(config['evidence_dir']) from the already-loaded, schema-validated Phase-6 edge config"
+    },
+    "object_records_on_radio": {
+      "semantics": "Object records travel over the direct edge-to-map path; only compact quality/terminal feedback travels edge-to-UE.",
+      "value": false
+    }
+  },
+  "admitted_image_id": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+  "base_commit": "c5a6d0418c0d1c732edef07a9decb5dcdcd867e8",
+  "cause": "Startup qualification 20260930T003718Z failed with 'direct edge ready record identity/endpoint drift': phase6_edge_runtime_v2 (producer) omitted three fields that adapter_direct_v1.start_direct_live_edge (consumer, unchanged) requires.",
+  "consumer": "rl_agent/splitfusion_direct_edge_map_v1/adapter_direct_v1.py (unchanged)",
+  "date": "2026-09-30",
+  "id": "PHASE6_SETUP_REPAIR_ADDENDUM_4_READY_RECORD_CONTRACT",
+  "implementation": "Pure builder phase6_edge_runtime_v2.ready_document used by the single live write site; no other runtime logic changed (AST-bounded diff test).",
+  "preserved_failed_attempts": {
+    "20260930T000922Z_phase6_live_qualification_option_c": {
+      "classification": "SETUP_FAILURE_EDGE_IMAGE_REBUILD_ZERO_FRAMES",
+      "sha256": {
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.docker_cache_state_after.txt": "c7863238306c7f839a52ec84e6da56e5716a78007a728ed067135fed2a1a60d9",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.dockerd_journal_17-09_17-15.txt": "0ccbafcba2f73619e33e49d79b36fb9dba82acca801559aa63cb4afc3813f4b8",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.launcher.log": "7624c5edb9f140f23cd175ca18f5ca88dfd0c3b1c019428d90b0cf574b8d1605",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/CELL_RESULT.json": "0903017ff5ad97cb7c44a159c22ea67ebcf461f8623ea9778bd94f6a34422255",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/child_stdout_stderr.log": "ad65df21f76b3e121dbeedfa285e58b54fc017811d233891509f790476e9b6b8",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "01a0abc798f4e40bddcbd803cd04fc9bf26bc7a386eed0efbaf0a4fa0f53c6eb",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ready.json": "d34b9e54fe27c216970a7d3499185bd0e7260d225ca6a0aca44eff5d599bd1fe",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_report.json": "5cbf8d859dcd60defba80bcb29197eb27c0149a97c91fce62ffb16bb4d310cbc",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/run4_map_identity.csv": "4dcedf018e1a8b6970a8c1282477cd28915d4adabb254c35de1ad1207a308245",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_record.log": "11358f2ea1a0ce5eafb2fb6c09536c9d5ea4b9faa57f7b3ef2c9c352ccfc2ad7",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_relay.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/phase6_artifacts/child_result.json": "6ea6bae2054dae0b87cb52015d00bd874bcd1aaa795003151581c5366056e4b6",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap": "1a9822ce1040178d2ec5b6dc63494cb4e1482b40377c3178e447813451a38800",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_tcpdump.log": "a0bccf29552a1a74902784d38887193cca1f5685d01eb2eea064e5535feccb75",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/ttracer/ue/ue.raw": "d564788541ddaa53b5bda847014e0a3680cd08c057055684fa033ff0a6a9495f"
+      }
+    },
+    "20260930T003718Z_phase6_edge_startup_qualification": {
+      "classification": "STARTUP_QUALIFICATION_FAILED_READY_RECORD_CONTRACT_ZERO_FRAMES",
+      "sha256": {
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification.launcher.log": "39ad8af6ef6c40b733d15e8f41670ccdee7f1e7d19af7581fd81094e1717e094",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/EDGE_STARTUP_QUALIFICATION.json": "79b9950f58e728e639505ea8d00877c644c29c45dea8ee978029ea57eea323e1",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/direct_edge_map/direct_edge_ready.json": "25360231367dcf0336f1b7caf0104eb8acbb44014706b66e6f274a26b34f81d9",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/infrastructure.log": "d45bc28401393492846c2f2ab558b54f44b93540dabfb710c29b7ca64d7c407d",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/run4_phase6/edge_image_launch.json": "28bd004cec30457cd312a0405fb6544b351f90db8d3b0f17df30ba4d3d3b640a",
+        "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/run4_phase6/edge_report.json": "96840d442081eb476de190aa2594097d9e35c23318e819a8288896950a5dfac9"
+      }
+    }
+  },
+  "producer": "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/phase6_edge_runtime_v2.py",
+  "recurrence_guard": "test_phase6_ready_contract_v2 runs the unchanged adapter predicate against the real produced document and against 18 violations.",
+  "schema": "scenesense.run4_live_v2.phase6_setup_repair_addendum.v1",
+  "scientific_protocol_changed": false,
+  "scope": "Metadata-only repair of the Phase-6 edge ready record. No model execution, reward, state, timeout, fallback, transport, map/reward protocol, quality evaluation, P0-P8/verdict or Option-C reporting logic changes; addendum 2 still governs claim scope (SYSTEMS_INTEGRATION_QUALIFICATION_ONLY) and addendum 3 still governs the no-build admitted-image launch.",
+  "sequence": [
+    "offline verification",
+    "one bounded startup qualification (core network + edge only, no scientific frame, teardown to cold)",
+    "only if PASSED and host independently cold: one 300-frame FAVORABLE_STABLE Option-C qualification",
+    "no retry"
+  ],
+  "status": "REGISTERED_BEFORE_ANY_NEW_PHASE6_EVIDENCE"
+}

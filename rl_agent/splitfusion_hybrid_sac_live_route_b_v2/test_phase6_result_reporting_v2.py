@@ -31,7 +31,8 @@ BASE_COMMIT = "42bca445b993b095d5404cca38b6372eb3bc8704"
 FROZEN = (
     "phase6_decision_engine_v2.py", "reward_hold_controller_v2.py", "live_state_v2.py",
     "run4_live_wire_v2.py", "continuous_execution_v2.py", "frozen_actor_v2.py",
-    "phase6_ue_runtime_v2.py", "phase6_edge_runtime_v2.py", "phase6_live_child_v2.py",
+    # phase6_edge_runtime_v2.py: addendum-4 ready-record repair (AST-bounded elsewhere).
+    "phase6_ue_runtime_v2.py", "phase6_live_child_v2.py",
     "live_qualification_300_v2.json", "PHASE6_RUNNER_REPORT.md", "ACTOR_BINDING_V2.json",
 )
 VALID = {
