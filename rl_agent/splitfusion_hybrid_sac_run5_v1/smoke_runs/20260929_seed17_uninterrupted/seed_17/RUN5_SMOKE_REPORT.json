@@ -1,0 +1,388 @@
+{
+ "all_gates_passed": true,
+ "campaign_started": false,
+ "claims_not_made": [
+  "convergence",
+  "policy performance",
+  "deployment readiness"
+ ],
+ "controlled_snr_response_at_500": {
+  "claim": "descriptive only at 500 updates; no direction is required",
+  "expected_q_exec_delta_ci95": [
+   0.0030918363796023306,
+   0.0052364993895881425
+  ],
+  "expected_q_exec_delta_mean": 0.004169482041095387,
+  "expected_two_tensor_ingress_bytes_delta_ci95": [
+   -9430.843656739546,
+   -7996.732119222401
+  ],
+  "expected_two_tensor_ingress_bytes_delta_mean": -8724.073350592866,
+  "mode_distribution_tv_mean": 0.12999005615711212,
+  "n_states": 2288,
+  "probe": "CONTROLLED_SNR_ONLY_SWEEP_5.5_TO_24.5_DB_ON_OBSERVED_STATES"
+ },
+ "current_snr_equal_to_a_later_generated_sample": 0,
+ "disk_preflight": {
+  "deep_three_seed_estimate_bytes": 4057399296,
+  "deep_three_seed_passed_now": true,
+  "deep_three_seed_required_bytes": 8114798592,
+  "estimate_bytes": 82612224,
+  "free_bytes": 10414764032,
+  "model": {
+   "fixed_bundle_bytes": 8388608,
+   "per_decision_event_bytes": 2048,
+   "per_decision_log_bytes": 2048,
+   "per_update_log_bytes": 1024,
+   "reserve": "max(estimate, 2 GiB)"
+  },
+  "passed": true,
+  "required_bytes": 2230095872,
+  "reserve_bytes": 2147483648,
+  "seeds": [
+   17
+  ],
+  "target_update": 500
+ },
+ "eligible_gt": "all reported performance is conditional on eligible ground truth; no empty-scene reward is defined",
+ "exploration": {
+  "deterministic_warmup": {
+   "decisions": 288,
+   "modes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "source": [
+    "STRATIFIED_WARMUP"
+   ]
+  },
+  "post_warmup_actor": {
+   "decisions": 2000,
+   "distinct_q_e4": 1762,
+   "empirical_mode_entropy_nats": 2.233162657769222,
+   "max_entropy_nats": 2.4849066497880004,
+   "mean_policy_discrete_entropy": 1.8577588591575622,
+   "mode_counts": [
+    87,
+    126,
+    18,
+    64,
+    97,
+    108,
+    295,
+    252,
+    166,
+    223,
+    79,
+    485
+   ],
+   "modes_selected": 12,
+   "per_mode": {
+    "0": {
+     "count": 87,
+     "distinct_q": 81,
+     "q_max": 9784,
+     "q_min": 8832
+    },
+    "1": {
+     "count": 126,
+     "distinct_q": 119,
+     "q_max": 9776,
+     "q_min": 8507
+    },
+    "10": {
+     "count": 79,
+     "distinct_q": 79,
+     "q_max": 9608,
+     "q_min": 1238
+    },
+    "11": {
+     "count": 485,
+     "distinct_q": 458,
+     "q_max": 9666,
+     "q_min": 22
+    },
+    "2": {
+     "count": 18,
+     "distinct_q": 18,
+     "q_max": 9549,
+     "q_min": 7581
+    },
+    "3": {
+     "count": 64,
+     "distinct_q": 64,
+     "q_max": 9756,
+     "q_min": 8329
+    },
+    "4": {
+     "count": 97,
+     "distinct_q": 96,
+     "q_max": 9756,
+     "q_min": 7835
+    },
+    "5": {
+     "count": 108,
+     "distinct_q": 107,
+     "q_max": 9761,
+     "q_min": 5908
+    },
+    "6": {
+     "count": 295,
+     "distinct_q": 279,
+     "q_max": 9788,
+     "q_min": 6606
+    },
+    "7": {
+     "count": 252,
+     "distinct_q": 244,
+     "q_max": 9735,
+     "q_min": 5741
+    },
+    "8": {
+     "count": 166,
+     "distinct_q": 165,
+     "q_max": 9683,
+     "q_min": 2024
+    },
+    "9": {
+     "count": 223,
+     "distinct_q": 217,
+     "q_max": 9599,
+     "q_min": 3134
+    }
+   },
+   "q_e4_max": 9788,
+   "q_e4_min": 22,
+   "q_e4_pstdev": 2895.1267911101922
+  }
+ },
+ "gates": {
+  "all_12_modes_selected_by_post_warmup_actor": true,
+  "committed_bundles_verified": true,
+  "continuous_q_non_degenerate": true,
+  "current_snr_never_a_future_sample": true,
+  "four_profiles_balanced": true,
+  "fresh_process_weights_only_actor_load": true,
+  "host_confirmed_cold": true,
+  "losses_gradients_parameters_finite": true,
+  "reward_matches_registered_formula": true,
+  "state_features_vary": true
+ },
+ "host": {
+  "allowlisted_gpu_system_daemons": [
+   "3031, /usr/libexec/gnome-remote-desktop-daemon",
+   "2016454, nvidia-cuda-mps-server"
+  ],
+  "cold": true,
+  "cpu_count": 24,
+  "docker_ok": true,
+  "gpu_compute_apps": [],
+  "gpu_utilization_percent": [
+   1
+  ],
+  "hot_containers": [],
+  "hot_processes": [],
+  "loadavg": [
+   0.45,
+   2.12,
+   3.56
+  ],
+  "nvidia_smi_ok": true
+ },
+ "metrics_at_boundaries": {
+  "100": {
+   "actor_delta_norm": 0.03510244019971153,
+   "actor_grad_norm": 0.03135119098346574,
+   "actor_loss": -0.43976566195487976,
+   "batch_size": 256,
+   "bootstrap_count": 256,
+   "critic_delta_norm": 0.03556018800736811,
+   "critic_grad_norm": 0.12434365428003305,
+   "critic_loss": 0.5512580871582031,
+   "discount_max": 0.9800999760627747,
+   "discount_min": 0.9800999760627747,
+   "discrete_entropy": 1.93398118019104,
+   "index": 99,
+   "q_executed_mean": 0.6985407471656799,
+   "reward_mean": 0.11058744788169861,
+   "schema_id": "splitfusion.run4.hybrid_sac_trainer.v1",
+   "target_delta_norm": 0.009885981921045638,
+   "target_mean": 0.3088385760784149,
+   "update_index": 100
+  },
+  "250": {
+   "actor_delta_norm": 0.04595600949682478,
+   "actor_grad_norm": 0.027319293636831443,
+   "actor_loss": -0.5123239755630493,
+   "batch_size": 256,
+   "bootstrap_count": 256,
+   "critic_delta_norm": 0.026849238265417238,
+   "critic_grad_norm": 0.4450195193905585,
+   "critic_loss": 0.5160220861434937,
+   "discount_max": 0.9800999760627747,
+   "discount_min": 0.9800999760627747,
+   "discrete_entropy": 1.5204161405563354,
+   "index": 249,
+   "q_executed_mean": 0.6789913177490234,
+   "reward_mean": 0.06202928349375725,
+   "schema_id": "splitfusion.run4.hybrid_sac_trainer.v1",
+   "target_delta_norm": 0.014852875572463618,
+   "target_mean": 0.35350364446640015,
+   "update_index": 250
+  },
+  "500": {
+   "actor_delta_norm": 0.025526240383998963,
+   "actor_grad_norm": 0.04425169568908038,
+   "actor_loss": -0.8071762323379517,
+   "batch_size": 256,
+   "bootstrap_count": 256,
+   "critic_delta_norm": 0.021545854236323377,
+   "critic_grad_norm": 0.4960764457436251,
+   "critic_loss": 0.5052790641784668,
+   "discount_max": 0.9800999760627747,
+   "discount_min": 0.9800999760627747,
+   "discrete_entropy": 1.5523030757904053,
+   "index": 499,
+   "q_executed_mean": 0.7697103023529053,
+   "reward_mean": 0.11854133009910583,
+   "schema_id": "splitfusion.run4.hybrid_sac_trainer.v1",
+   "target_delta_norm": 0.010954605781846309,
+   "target_mean": 0.6540838479995728,
+   "update_index": 500
+  }
+ },
+ "preflight": {
+  "decisions": 288,
+  "failures": [],
+  "future_tick_violations": 0,
+  "passed": true,
+  "previous_outcome_mismatches": 0,
+  "reward_formula_mismatches": 0,
+  "strata": 72,
+  "terminals": [
+   "SUCCESS",
+   "TIMEOUT"
+  ],
+  "variation": {
+   "backlog": {
+    "distinct": 14,
+    "span": 0.6940356102488296
+   },
+   "camera_si": {
+    "distinct": 216,
+    "span": 4.378116325496748
+   },
+   "mcs": {
+    "distinct": 20,
+    "span": 0.6785714285714286
+   },
+   "prev_latency": {
+    "distinct": 257,
+    "span": 0.9763841647058824
+   },
+   "prev_mode": {
+    "distinct": 12,
+    "span": 11
+   },
+   "prev_present": {
+    "distinct": 2,
+    "span": 1.0
+   },
+   "prev_q": {
+    "distinct": 270,
+    "span": 1.0
+   },
+   "prev_quality": {
+    "distinct": 203,
+    "span": 0.9310382498869254
+   },
+   "prev_success": {
+    "distinct": 2,
+    "span": 1.0
+   },
+   "radar_p40": {
+    "distinct": 216,
+    "span": 0.4399981791929193
+   },
+   "snr": {
+    "distinct": 288,
+    "span": 0.9498704560263334
+   }
+  }
+ },
+ "profile_segments_audit_only": {
+  "ADVERSE_STABLE": 4,
+  "FADE_RECOVERY": 4,
+  "FAVORABLE_STABLE": 4,
+  "MID_VARIABLE": 4
+ },
+ "schema": "splitfusion.run5.smoke_report.v1",
+ "seed": 17,
+ "session_rollovers": 0,
+ "shuffled_snr_control_at_500": {
+  "actor_expected_q_exec_abs_delta_mean": 0.006329162842666162,
+  "actor_mode_distribution_tv_mean": 0.039905909448862076,
+  "claim": "descriptive only; no gate on direction or magnitude",
+  "control": "AUDIT_ONLY_IN_SUPPORT_TEMPORALLY_SHUFFLED_SNR_ACTOR_CRITIC_INPUT",
+  "critic_executed_action_abs_q_delta_mean": 0.04363837093114853,
+  "n_states": 2288,
+  "seed": 17
+ },
+ "state_variation": {
+  "backlog": {
+   "distinct": 138,
+   "span": 0.7107927024545445
+  },
+  "camera_si": {
+   "distinct": 473,
+   "span": 4.4187986015810115
+  },
+  "mcs": {
+   "distinct": 20,
+   "span": 0.6785714285714286
+  },
+  "prev_latency": {
+   "distinct": 1868,
+   "span": 0.9930052647058822
+  },
+  "prev_mode": {
+   "distinct": 12,
+   "span": 11
+  },
+  "prev_present": {
+   "distinct": 2,
+   "span": 1.0
+  },
+  "prev_q": {
+   "distinct": 1962,
+   "span": 1.0
+  },
+  "prev_quality": {
+   "distinct": 1571,
+   "span": 0.988901456184404
+  },
+  "prev_success": {
+   "distinct": 2,
+   "span": 1.0
+  },
+  "radar_p40": {
+   "distinct": 473,
+   "span": 0.4507770205833912
+  },
+  "snr": {
+   "distinct": 2288,
+   "span": 0.9911585735619398
+  }
+ },
+ "target": 500
+}

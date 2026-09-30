@@ -1,0 +1,2 @@
+# Tensor payloads stay on disk; their SHA-256 is bound by each committed manifest.json.
+*.pt
