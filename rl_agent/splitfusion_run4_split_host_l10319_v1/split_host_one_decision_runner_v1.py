@@ -35,6 +35,9 @@ REMOTE_HOST = "shr_aisvcs@L10319.idcc.lab"
 REMOTE_REPOSITORY = Path("/home/shr_aisvcs/workarea/carla_0_10_env/"
                          "Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/"
                          "abiodun_run4_l10319")
+REMOTE_ATTEMPT_BASE = Path("/home/shr_aisvcs/workarea/carla_0_10_env/"
+                           "Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/"
+                           "splitfusion_run4_split_host_l10319_v1_attempts")
 DEFAULT_CONFIG = (LR.ROOT / "rl_agent/configs/"
                   "splitfusion_direct_edge_map_live_validation_v1.json")
 TRANSMITTED_BUDGET, DECISION_CAP = 40, 1
@@ -92,8 +95,10 @@ class OneDecisionPlanV1:
     outer_runtime_s: float = OUTER_RUNTIME_S
 
     def validate(self) -> "OneDecisionPlanV1":
-        output = Path(self.output_root).resolve(strict=False)
-        _require(output.is_absolute() and str(output) not in {"/", "/tmp", "/home"}
+        supplied_output = Path(self.output_root)
+        _require(supplied_output.is_absolute(), "output root must be absolute")
+        output = supplied_output.resolve(strict=False)
+        _require(str(output) not in {"/", "/tmp", "/home"}
                  and not output.exists(), "unsafe/non-create-only output root")
         for value, label in ((self.run_id, "run"), (self.attempt_id, "attempt")):
             _require(re.fullmatch(r"[A-Za-z0-9_.-]{1,96}", value) is not None,
@@ -108,8 +113,7 @@ class OneDecisionPlanV1:
 
     @property
     def remote_base(self) -> Path:
-        return (self.remote_repository / "rl_agent/experiments/"
-                "splitfusion_run4_split_host_l10319_v1")
+        return REMOTE_ATTEMPT_BASE
 
     @property
     def remote_attempt(self) -> Path:
@@ -168,10 +172,11 @@ class RemoteCliV1:
         return value
 
     def ensure_attempt_parent(self, *, repository: Path, parent: Path) -> None:
-        repository = Path(repository)
-        expected = (repository / "rl_agent/experiments/"
-                    "splitfusion_run4_split_host_l10319_v1")
+        repository = Path(repository).resolve(strict=False)
+        expected = REMOTE_ATTEMPT_BASE.resolve(strict=False)
         _require(parent == expected, "remote attempt parent identity drift")
+        _require(repository != expected and repository not in expected.parents,
+                 "remote attempt parent must be outside repository")
         result = self._ssh(["mkdir", "-p", "--", str(expected)], 30)
         _require(result.returncode == 0,
                  "remote exact attempt parent creation failed")

@@ -6,6 +6,8 @@ from types import SimpleNamespace
 import tempfile
 import unittest
 
+from . import contract as C
+from . import remote_edge_lifecycle_v1 as E
 from . import split_host_one_decision_runner_v1 as R
 from . import split_host_phase6_coordinator_v1 as CO
 from . import remote_edge_held_session_v1 as RH
@@ -305,6 +307,28 @@ class RunnerTests(unittest.TestCase):
             R.REMOTE_ABORT_TIMEOUT_S,
             RH.DEFAULT_START_ABORT_LOCK_TIMEOUT_S
             + RH.ABORT_CLEANUP_TIMEOUT_BUDGET_S)
+
+    def test_plan_refuses_relative_output_and_uses_outside_repo_remote_root(self):
+        with self.assertRaisesRegex(R.SplitHostOneDecisionError,
+                                    "output root must be absolute"):
+            self.plan(Path("relative-output")).validate()
+        with tempfile.TemporaryDirectory() as directory:
+            plan = self.plan(Path(directory) / "absolute-output").validate()
+        self.assertEqual(plan.remote_base, R.REMOTE_ATTEMPT_BASE)
+        self.assertNotEqual(plan.remote_repository, plan.remote_base)
+        self.assertNotIn(plan.remote_repository, plan.remote_attempt.parents)
+        fcos = next(item for item in C.ARTIFACTS
+                    if item.name == "torchvision_fcos")
+        paths = E.RemoteEdgePaths(
+            repository_root=plan.remote_repository,
+            attempt_root=plan.remote_attempt,
+            state_root=plan.remote_attempt / "state",
+            evidence_root=plan.remote_attempt / "evidence",
+            compose_path=plan.remote_attempt / "remote_edge.compose.json",
+            fcos_weight_path=plan.remote_repository / fcos.relative_path,
+            campaign_config_relative="rl_agent/configs/campaign.json",
+        )
+        self.assertIs(paths.validate(), paths)
 
     def test_remote_start_creates_only_exact_attempt_parent_first(self):
         events = []
