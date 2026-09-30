@@ -345,7 +345,8 @@ def run_one_cell(*, base_config: Mapping[str, Any], registered: Any, output_root
                  run_id: str, transmitted_budget: int, safety_timeout_s: float,
                  carla_port: int, child_timeout_s: float,
                  supervisor: Any = None, capture_class: Any = None,
-                 image_resolver: Callable[[], dict] | None = None) -> dict[str, Any]:
+                 image_resolver: Callable[[], dict] | None = None,
+                 stop_after_decisions: int | None = None) -> dict[str, Any]:
     """One fresh OAI/CARLA cell; teardown is attempted for every resource."""
     from rl_agent import ue_288_campaign_supervisor as default_supervisor
     from rl_agent.splitfusion_quality_feedback_probe_v1 import live_probe as LP
@@ -410,6 +411,8 @@ def run_one_cell(*, base_config: Mapping[str, Any], registered: Any, output_root
                 "--bindings-json", str(files["bindings"]), "--carla-port", str(carla_port),
                 "--transmitted-budget", str(transmitted_budget),
                 "--safety-timeout-s", str(safety_timeout_s)]
+        if stop_after_decisions is not None:      # addendum 6: stop at a closed cycle
+            argv += ["--stop-after-decisions", str(int(stop_after_decisions))]
         with (attempt / "child_stdout_stderr.log").open("xb") as stream:
             child = subprocess.Popen(argv, cwd=str(ROOT), stdin=subprocess.DEVNULL,
                                      stdout=stream, stderr=subprocess.STDOUT,
@@ -497,6 +500,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
     parser.add_argument("--safety-timeout-s", type=float, default=120.0)
     parser.add_argument("--child-timeout-s", type=float, default=1200.0)
     parser.add_argument("--carla-port", type=int, default=2000)
+    parser.add_argument("--stop-after-decisions", type=int, default=None)
     args = parser.parse_args(list(argv) if argv is not None else None)
     output_root = args.output_root.resolve()
     config, cells, preflight = offline_preflight(
@@ -514,7 +518,8 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
                           run_id=run_id, transmitted_budget=int(args.transmitted_budget),
                           safety_timeout_s=float(args.safety_timeout_s),
                           carla_port=int(args.carla_port),
-                          child_timeout_s=float(args.child_timeout_s))
+                          child_timeout_s=float(args.child_timeout_s),
+                          stop_after_decisions=args.stop_after_decisions)
     print(json.dumps({"status": report["status"], "claim_scope": report.get("claim_scope"),
                       "phase6": report.get("phase6")},
                      sort_keys=True, indent=2, default=str))

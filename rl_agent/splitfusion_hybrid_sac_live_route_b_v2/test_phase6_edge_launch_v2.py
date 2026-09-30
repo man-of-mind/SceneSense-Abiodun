@@ -30,7 +30,7 @@ OTHER_ID = "sha256:" + "1" * 64
 FROZEN_PACKAGE = (
     # addendum 5 authorizes phase6_decision_engine_v2 / reward_hold_controller_v2 /
     # phase6_ue_runtime_v2 changes; test_phase6_live_path_repair_v2 bounds them.
-    "phase6_live_child_v2.py",
+    # phase6_live_child_v2.py: addendum-6 cycle-boundary stop (bounded elsewhere).
     "live_state_v2.py", "run4_live_wire_v2.py", "run4_map_protocol_v2.py",
     "run4_ue_ledger_v2.py", "continuous_execution_v2.py", "frozen_actor_v2.py",
     # phase6_edge_runtime_v2.py: addendum-4 ready-record repair; bounded by

@@ -227,10 +227,18 @@ def run(args: argparse.Namespace) -> int:  # pragma: no cover - live
         result["route_detail"] = {k: detail.get(k) for k in (
             "route_runner_returncode", "route_completed", "route_abort_reason", "error")}
         result["collector"] = collector.probe_summary()
-        require(int(collector.sent) == int(args.transmitted_budget),
-                f"only {int(collector.sent)}/{int(args.transmitted_budget)} frames sent")
-        require(str(collector.probe_stop_reason) == "TRANSMITTED_BUDGET_REACHED",
-                f"unexpected stop reason {collector.probe_stop_reason!r}")
+        stop_reason = str(collector.probe_stop_reason)
+        # Addendum 6: a stop at a closed k_min decision cycle is registered;
+        # it can only end at or below the transmitted budget.
+        if stop_reason == "DECISION_CYCLE_BOUNDARY":
+            require(1 <= int(collector.sent) <= int(args.transmitted_budget),
+                    f"cycle-boundary stop outside the budget ({int(collector.sent)})")
+        else:
+            require(int(collector.sent) == int(args.transmitted_budget),
+                    f"only {int(collector.sent)}/{int(args.transmitted_budget)} frames sent")
+            require(stop_reason == "TRANSMITTED_BUDGET_REACHED",
+                    f"unexpected stop reason {collector.probe_stop_reason!r}")
+        result["stop_reason"] = stop_reason
         require(bool(collector.cleanup_ok) and not collector.failures,
                 f"collector failures: {collector.failures[:4]}")
         return_code = 0

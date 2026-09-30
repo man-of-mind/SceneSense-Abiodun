@@ -31,21 +31,43 @@ def _ns(stamp: Any) -> Optional[int]:
 
 
 def ordering_violations(decisions: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """Frames where planning did not strictly precede post-plan preparation."""
+    """Addendum 6: frames violating the RUN4_CONTRACT latency boundary.
+
+    Sensor preparation (radar raster, RGB conversion, SI/P40) and state commit
+    precede action-open; 7-channel/front/send follow it.
+    """
+    from . import phase6_ue_runtime_v2 as U
+
     bad = []
     for record in decisions:
         stages = record.get("stages") or {}
-        radar_start = stages.get("radar_tensor_start_raw_ns")
-        si_end = stages.get("si_p40_end_raw_ns")
-        commit = _ns(record.get("state_commit"))
-        if radar_start is None or si_end is None:
-            bad.append({"frame_id": record.get("frame_id"), "why": "NOT_PLANNED_FIRST"})
+        if stages.get("radar_tensor_end_raw_ns") is None or stages.get(
+                "si_p40_end_raw_ns") is None:
+            bad.append({"frame_id": record.get("frame_id"), "why": "NO_SENSOR_STAGES"})
             continue
-        if commit is not None and not (si_end <= commit <= radar_start):
-            bad.append({"frame_id": record.get("frame_id"), "why": "ORDER"})
-        elif commit is None and si_end > radar_start:
-            bad.append({"frame_id": record.get("frame_id"), "why": "ORDER"})
+        violations = U.boundary_violations(record)
+        if violations:
+            bad.append({"frame_id": record.get("frame_id"), "why": violations})
     return bad
+
+
+def e5_status(edge: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Non-vacuous evaluator gate: PASS only with real, prompt GT reads."""
+    records = list(edge.get("evaluations") or ())
+    evaluator = edge.get("evaluator") or {}
+    waits = ready_wait_ms(records)
+    ready = [r for r in records if (r.get("timing") or {}).get("gt_ready_detected_wall_ns")]
+    exceptions = [r for r in records if r.get("reason") == "EVALUATOR_EXCEPTION"]
+    detail = {"ready_wait_n": len(waits), "gt_bundles_read": len(ready),
+              "max_wait_ms": max(waits) if waits else None,
+              "reader_exceptions": len(exceptions),
+              "duplicate_emission_refused": int(evaluator.get("duplicate_emission_refused", 0)),
+              "queue_overflow": int(evaluator.get("queue_overflow", 0))}
+    if not ready or not waits:
+        return "INCONCLUSIVE_NO_GT_READY", detail
+    ok = (all(w <= READY_WAIT_BOUND_MS for w in waits) and not exceptions
+          and detail["duplicate_emission_refused"] == 0 and detail["queue_overflow"] == 0)
+    return ("PASS" if ok else "FAIL"), detail
 
 
 def ready_wait_ms(records: Sequence[Mapping[str, Any]]) -> list[float]:
@@ -85,16 +107,16 @@ def evaluate(cell: Path) -> dict[str, Any]:
     order_bad = ordering_violations([d for d in decisions if d.get("kind")])
     camera_age = [f for f in ue.get("fallback_log") or ()
                   if any("camera_si is stale" in r for r in f.get("reasons") or ())]
-    plan_counters = ue.get("plan_first_counters") or {}
+    e5, e5_detail = e5_status(edge)
     gates = {
         "E1_P0_POLICY_ADMISSION": bool(gates6.get("P0_POLICY_COVERAGE")),
-        "E2_NO_POST_PLAN_CAMERA_AGE": not order_bad,
+        "E2_TIMING_BOUNDARY_EVERY_FRAME": not order_bad,
         "E3_EXACT_TERMINAL_ACCOUNTING": (
             bool(gates6.get("P4_ACCOUNTING")) and summary.get("open_at_stop") == 0
             and unique_terminal_frames == sent
-            and int(plan_counters.get("post_plan_failures", 0)) == 0),
+            and ue.get("unresolved_tickets_at_close") == 0),
         "E4_SUPERSEDED_REWARD_TERMINALS_DELIVERED": not missing_terminal,
-        "E5_NO_EVALUATOR_HEAD_OF_LINE": all(w <= READY_WAIT_BOUND_MS for w in waits),
+        "E5_NON_VACUOUS_EVALUATOR": e5 == "PASS",
         "E6_NO_CONFLICT_ORPHAN_OR_FAULT": (
             ue.get("faulted") is None and "UNKNOWN_ORPHAN" not in classes
             and "CONFLICT" not in classes and bool(gates6.get("P8_NO_INFRASTRUCTURE_FAULT"))
@@ -104,7 +126,7 @@ def evaluate(cell: Path) -> dict[str, Any]:
     }
     return {
         "schema": "scenesense.run4_live_v2.phase6_engineering_gates.v1",
-        "addendum": "PHASE6_LIVE_PATH_REPAIR_ADDENDUM_5",
+        "addendum": "PHASE6_REPAIR_DIAGNOSTIC_ADDENDUM_6",
         "gates": gates,
         "evidence": {
             "p0": (result.get("phase6") or {}).get("reported_not_gated", {}).get(
@@ -118,7 +140,9 @@ def evaluate(cell: Path) -> dict[str, Any]:
             "evaluator_ready_wait_n": len(waits),
             "evaluator_counters": edge.get("evaluator"),
             "feedback_classes": {c: classes.count(c) for c in sorted(set(map(str, classes)))},
-            "plan_first_counters": plan_counters,
+            "e5_status": e5, "e5_detail": e5_detail,
+            "stop_reason": (result.get("child") or {}).get("stop_reason"),
+            "unresolved_tickets_at_close": ue.get("unresolved_tickets_at_close"),
         },
         "note": "E8 (actor/checkpoint digest) is verified separately by the "
                 "frozen-actor audit before and after the run.",

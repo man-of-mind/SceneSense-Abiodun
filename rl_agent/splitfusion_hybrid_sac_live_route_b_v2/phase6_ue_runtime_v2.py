@@ -44,7 +44,9 @@ __all__ = [
     "PreparedRun4FrameV2",
     "Run4FramePipelineV2",
     "PlannedRun4FrameV2",
-    "PlanFirstCoordinatorV2",
+    "SensorFirstPlannerV2",
+    "CycleBudgetV2",
+    "boundary_violations",
     "radar_window_sha256",
     "registered_terminal_from_message",
     "Run4LiveBindingsV2",
@@ -139,6 +141,7 @@ class Run4FramePipelineV2:
         self._clock = clock
         self.decisions: list[dict[str, Any]] = []
         self._records: dict[int, dict[str, Any]] = {}
+        self.stage_clock: Callable[[], int] = T.raw_now_ns
 
     def process(self, *, frame_id: int, capture_wall_ns: int,
                 ego_pose: Sequence[float], scene: SceneDescriptorsV2,
@@ -225,11 +228,11 @@ class Run4FramePipelineV2:
                 ego_world_x=ego_pose[0], ego_world_y=ego_pose[1], ego_world_z=ego_pose[2],
                 ego_world_pitch=ego_pose[3], ego_world_yaw=ego_pose[4],
                 ego_world_roll=ego_pose[5])
-            stages["input_7ch_start_raw_ns"] = T.raw_now_ns()
+            stages["input_7ch_start_raw_ns"] = self.stage_clock()
             tensor = input_7ch()
-            stages["front_start_raw_ns"] = T.raw_now_ns()
+            stages["front_start_raw_ns"] = self.stage_clock()
             prepared = self._ue.prepare(plan.profile, tensor, plan.frame_identity)
-            stages["front_end_raw_ns"] = T.raw_now_ns()
+            stages["front_end_raw_ns"] = self.stage_clock()
             wire = W.pack_sfd4(prepared.envelope, context)
             identity = MP.run4_identity(prepared.envelope)
             MP.validate_run4_identity(identity)
@@ -336,99 +339,96 @@ class PlannedRun4FrameV2:
                      "materialized radar window differs from plan")
 
 
-class PlanFirstCoordinatorV2:
-    """Addendum 5: plan the action before expensive radar/7-channel preparation.
+class CycleBudgetV2:
+    """Addendum 6: stop only at a completed k_min decision cycle.
 
-    Order: complete window + synchronized RGB -> SI/P40 -> telemetry/guard ->
-    immutable plan (actor at most once; action-open is the reward clock start)
-    -> radar tensor -> front/codec/send using exactly that plan. The RGB
-    receipt instant stays the scene source timestamp; nothing is re-stamped.
+    A new opportunity (decision or fallback) is admitted only if a complete
+    k_min group still fits in the frame budget and the optional decision cap is
+    not yet reached; a hold for an already-open decision is never refused.
+    """
+
+    def __init__(self, *, frame_budget: Optional[int] = None,
+                 decision_cap: Optional[int] = None) -> None:
+        self.frame_budget = None if frame_budget is None else int(frame_budget)
+        self.decision_cap = None if decision_cap is None else int(decision_cap)
+
+    def allow_new_opportunity(self, *, sent: int, policy_decisions: int) -> bool:
+        from . import reward_hold_controller_v2 as R
+
+        if self.frame_budget is not None and self.frame_budget - int(sent) < R.K_MIN:
+            return False
+        if self.decision_cap is not None and int(policy_decisions) >= self.decision_cap:
+            return False
+        return True
+
+
+class SensorFirstPlannerV2:
+    """Addendum 6: the RUN4_CONTRACT latency boundary.
+
+    Sensor preparation (RGB conversion, radar rasterization, camera SI, radar
+    P40) completes and the causal state is committed before action-open; the
+    actor decision, 7-channel construction, front, compression and send run
+    inside the unchanged 170-ms action-open clock, which is never re-stamped.
+    The immutable plan binds the exact rasterized radar window.
     """
 
     def __init__(self, *, pipeline: Run4FramePipelineV2, lock: Any,
-                 deadline_ok: Callable[[int], bool],
                  scene_fn: Callable[..., SceneDescriptorsV2] = compute_scene_descriptors,
                  clock: Callable[[], int] = T.raw_now_ns) -> None:
         self._pipeline = pipeline
         self._lock = lock
-        self._deadline_ok = deadline_ok
         self._scene_fn = scene_fn
         self._clock = clock
-        self._pending: dict[int, dict[str, Any]] = {}
-        self.counters: dict[str, int] = collections.Counter()
 
-    def _fail(self, planned: "PlannedRun4FrameV2", detail: str) -> None:
-        self.counters["post_plan_failures"] += 1
-        with self._lock:
-            self._pipeline.engine.transport_failed(planned.plan, detail)
-
-    def abandon_unmaterialized(self, reason: str) -> None:
-        """Close any plan whose preparation never reached materialization."""
-        while self._pending:
-            frame_id, entry = self._pending.popitem()
-            try:
-                self._fail(entry["planned"], f"PLANNED_FRAME_NOT_MATERIALIZED:{reason}")
-            except E.InfrastructureFault:
-                pass
-
-    def plan_before_preparation(self, *, frame_id: int, capture_wall_ns: int,
-                                carla_timestamp: float, frame_bgr: Any, window_meta: Any,
-                                rgb_raw_ns: int, window_ready_raw_ns: Optional[int]
-                                ) -> Optional["PlannedRun4FrameV2"]:
-        if self._pending:
-            self.abandon_unmaterialized("NEXT_FRAME_PLANNED")
-            raise E.InfrastructureFault(str(self._pipeline.engine.faulted))
+    def plan_and_materialize(self, *, frame_id: int, capture_wall_ns: int,
+                             carla_timestamp: float, frame_bgr: Any, window_meta: Any,
+                             rgb_raw_ns: int, preparation: Mapping[str, Any],
+                             ego_pose: Sequence[float], input_7ch: Callable[[], Any]
+                             ) -> PreparedRun4FrameV2:
         _require(int(window_meta["callbacks"]) == 4,
                  "refusing to plan from an incomplete radar window")
-        if not self._deadline_ok(int(capture_wall_ns)):
-            self.counters["stale_before_plan"] += 1
-            return None          # pre-assignment: the legacy stale drop applies
-        stages: dict[str, Any] = {"rgb_receipt_raw_ns": int(rgb_raw_ns),
-                                  "radar_window_ready_raw_ns": window_ready_raw_ns,
-                                  "si_p40_start_raw_ns": self._clock()}
+        window = radar_window_sha256(window_meta, carla_timestamp)
+        _require(preparation.get("radar_window_sha256") == window,
+                 "rasterized radar window differs from the P40 window")
+        _require(preparation.get("radar_tensor_end_raw_ns") is not None,
+                 "radar rasterization did not complete before planning")
+        stages: dict[str, Any] = {
+            "rgb_receipt_raw_ns": int(rgb_raw_ns),
+            "radar_window_ready_raw_ns": preparation.get("radar_window_ready_raw_ns"),
+            "radar_tensor_start_raw_ns": preparation.get("radar_tensor_start_raw_ns"),
+            "radar_tensor_end_raw_ns": preparation.get("radar_tensor_end_raw_ns"),
+            "sensor_prepared_raw_ns": preparation.get("sensor_prepared_raw_ns"),
+            "si_p40_start_raw_ns": self._clock()}
         scene = self._scene_fn(frame_bgr, window_meta, source_raw_ns=int(rgb_raw_ns))
         stages["si_p40_end_raw_ns"] = self._clock()
-        window = radar_window_sha256(window_meta, carla_timestamp)
         with self._lock:
             planned = self._pipeline.plan(
                 frame_id=frame_id, capture_wall_ns=capture_wall_ns, scene=scene,
                 carla_timestamp=carla_timestamp, radar_window_sha256=window, stages=stages)
-        self._pending[int(frame_id)] = {"planned": planned, "rasterized_window": None}
-        self.counters["planned"] += 1
-        return planned
-
-    def has_plan(self, frame_id: int) -> bool:
-        return int(frame_id) in self._pending
-
-    def prepare_radar(self, *, frame_id: int, carla_timestamp: float,
-                      build: Callable[[], Any]) -> Any:
-        entry = self._pending.get(int(frame_id))
-        _require(entry is not None, f"no plan for frame {frame_id} before radar preparation")
-        planned = entry["planned"]
-        stages = self._pipeline.stages_for(planned.tensor_seq)
-        if float(carla_timestamp) != planned.carla_timestamp:
-            del self._pending[int(frame_id)]
-            self._fail(planned, "radar preparation CARLA timestamp differs from plan")
-        stages["radar_tensor_start_raw_ns"] = self._clock()
-        try:
-            result = build()
-        except Exception as exc:  # noqa: BLE001 - post-plan failure is registered
-            del self._pending[int(frame_id)]
-            self._fail(planned, f"radar preparation failed: {type(exc).__name__}: {exc}")
-        stages["radar_tensor_end_raw_ns"] = self._clock()
-        entry["rasterized_window"] = planned.radar_window_sha256
-        return result
-
-    def materialize(self, *, frame_id: int, capture_wall_ns: int, carla_timestamp: float,
-                    ego_pose: Sequence[float], input_7ch: Callable[[], Any]
-                    ) -> PreparedRun4FrameV2:
-        entry = self._pending.pop(int(frame_id), None)
-        _require(entry is not None, f"no pending plan for frame {frame_id}")
-        with self._lock:
             return self._pipeline.materialize(
-                entry["planned"], frame_id=frame_id, capture_wall_ns=capture_wall_ns,
+                planned, frame_id=frame_id, capture_wall_ns=capture_wall_ns,
                 ego_pose=ego_pose, input_7ch=input_7ch, carla_timestamp=carla_timestamp,
-                radar_window_sha256=entry["rasterized_window"])
+                radar_window_sha256=window)
+
+
+BOUNDARY_ORDER = ("radar_tensor_end_raw_ns", "sensor_prepared_raw_ns", "si_p40_start_raw_ns",
+                  "si_p40_end_raw_ns", "state_commit", "action_open", "input_7ch_start_raw_ns",
+                  "front_start_raw_ns", "front_end_raw_ns", "first_packet_send_raw_ns")
+
+
+def boundary_violations(record: Mapping[str, Any]) -> list[str]:
+    """Out-of-order stage pairs for one frame record (empty = boundary holds).
+
+    Holds have no state commit/action-open of their own; their ordering is
+    checked on the remaining stages.
+    """
+    stages = dict(record.get("stages") or {})
+    for name in ("state_commit", "action_open"):
+        if isinstance(record.get(name), Mapping):
+            stages[name] = int(record[name]["ns"])
+    present = [(name, stages[name]) for name in BOUNDARY_ORDER
+               if stages.get(name) is not None]
+    return [f"{a}>{b}" for (a, x), (b, y) in zip(present, present[1:]) if x > y]
 
 
 def registered_terminal_from_message(message: Mapping[str, Any]
@@ -543,18 +543,14 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                 run_id=str(self.campaign["campaign_id"]), cell_id=str(self.cell["cell_id"]))
             self._chunk_payload = chunk_payload
             self._terminal_rows: list[dict[str, Any]] = []
-            self.plan_first = PlanFirstCoordinatorV2(
-                pipeline=self.pipeline, lock=self._engine_lock,
-                deadline_ok=self._pre_assignment_deadline_ok)
+            # Addendum 6: sensor-first planning and cycle-aware stopping.
+            self.sensor_first = SensorFirstPlannerV2(pipeline=self.pipeline,
+                                                     lock=self._engine_lock)
+            self.cycle_budget = CycleBudgetV2()      # configured by the child entry
+            self.sensor_stages: "collections.OrderedDict[float, dict]" = (
+                collections.OrderedDict())
+            self.cycle_boundary_reached = False
             self._run4_ready.set()
-
-        def _pre_assignment_deadline_ok(self, capture_timestamp_ns: int) -> bool:
-            try:
-                base.check_deadline(base.UE_STAGE_AFTER_PREPARATION,
-                                    capture_timestamp_ns, self.deadline_s)
-            except base.DeadlineExpired:
-                return False
-            return True
 
         @property
         def infrastructure_fault(self) -> Optional[str]:
@@ -574,43 +570,46 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
             base._require(self.thread.is_alive(), "control receiver exited")
             _require(self.engine.faulted is None, str(self.engine.faulted))
             started = time.perf_counter_ns()
-            if self.plan_first.has_plan(int(frame_id)):
-                # Addendum 5: the action was planned before radar preparation;
-                # the tensor is already assigned, so lateness is the reward
-                # deadline's job (no pre-assignment stale drop here).
-                prepared = self.plan_first.materialize(
+            try:
+                base.check_deadline(base.UE_STAGE_AFTER_PREPARATION,
+                                    capture_timestamp_ns, self.deadline_s)
+            except base.DeadlineExpired as expired:   # before any assignment
+                return self._record_stale(expired, frame_id=frame_id,
+                                          capture_id=capture_id, stream_id=stream_id,
+                                          profile=self.profile)
+            # RGB conversion and radar rasterization are complete here (the
+            # adapter performed both before calling submit).
+            preparation = dict(self.sensor_stages.pop(float(carla_timestamp), {}))
+            preparation["sensor_prepared_raw_ns"] = T.raw_now_ns()
+            window_meta, rgb_raw_ns = self.scene_hooks(int(frame_id), float(carla_timestamp))
+            with self._engine_lock:
+                self.engine.new_opportunity_allowed = self.cycle_budget.allow_new_opportunity(
+                    sent=self.sent, policy_decisions=self.engine.counters.policy_decisions)
+            try:
+                prepared = self.sensor_first.plan_and_materialize(
                     frame_id=int(frame_id), capture_wall_ns=int(capture_timestamp_ns),
-                    carla_timestamp=float(carla_timestamp), ego_pose=ego_pose,
+                    carla_timestamp=float(carla_timestamp), frame_bgr=frame_bgr,
+                    window_meta=window_meta, rgb_raw_ns=int(rgb_raw_ns),
+                    preparation=preparation, ego_pose=ego_pose,
                     input_7ch=lambda: base._prepare_live_input(frame_bgr, radar_tensor,
                                                                self.device))
-            else:
-                try:
-                    base.check_deadline(base.UE_STAGE_AFTER_PREPARATION,
-                                        capture_timestamp_ns, self.deadline_s)
-                except base.DeadlineExpired as expired:   # before any assignment
-                    return self._record_stale(expired, frame_id=frame_id,
-                                              capture_id=capture_id, stream_id=stream_id,
-                                              profile=self.profile)
-                window_meta, rgb_raw_ns = self.scene_hooks(int(frame_id),
-                                                           float(carla_timestamp))
-                scene = compute_scene_descriptors(frame_bgr, window_meta,
-                                                  source_raw_ns=rgb_raw_ns)
-                with self._engine_lock:
-                    prepared = self.pipeline.process(
-                        frame_id=int(frame_id), capture_wall_ns=int(capture_timestamp_ns),
-                        ego_pose=ego_pose, scene=scene,
-                        input_7ch=lambda: base._prepare_live_input(frame_bgr, radar_tensor,
-                                                                   self.device))
+            except E.DecisionCapacityExhausted:
+                # Nothing was assigned: stop at this closed decision cycle.
+                self.cycle_boundary_reached = True
+                return {"sent": False, "prepare_status": "DECISION_CYCLE_BOUNDARY",
+                        "stale_stage": "", "stale_age_ms": ""}
             stages = self.pipeline.stages_for(prepared.plan.tensor_seq)
             try:
                 chunks = self._chunk_payload(prepared.wire, message_id=int(frame_id),
                                              chunk_bytes=self.chunk_bytes)
                 self.ledger.stage(capture_id, identity=prepared.identity,
                                   anchor_profile_id=prepared.anchor_profile_id)
+                stages["ledger_staged_raw_ns"] = T.raw_now_ns()
                 self._gt_identity[int(frame_id)] = dict(prepared.gt_identity)
                 self._run4_identity[int(frame_id)] = dict(prepared.identity)
                 if on_commit is not None:
                     on_commit()
+                stages["commit_registered_raw_ns"] = T.raw_now_ns()
                 with self.lock:
                     self.metrics[int(frame_id)] = {
                         "capture_id": str(capture_id), "frame_id": int(frame_id),
@@ -709,8 +708,17 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                     return
 
         def close(self) -> dict[str, Any]:
-            if hasattr(self, "plan_first"):
-                self.plan_first.abandon_unmaterialized("CLOSE")
+            if hasattr(self, "engine"):
+                # Addendum 6: drain the active ticket (feedback, terminal or the
+                # registered timeout) before accounting; nothing new is admitted.
+                deadline = time.monotonic() + R.TIMEOUT_RESOLUTION_ELAPSED_NS / 1e9 + 0.3
+                while time.monotonic() < deadline:
+                    with self._engine_lock:
+                        current = self.engine.controller.current
+                        self.engine.controller.poll(T.raw_now_ns())
+                        if current is None or current.resolution is not None:
+                            break
+                    time.sleep(0.01)
             with self._engine_lock:
                 for controller in self.engine.controllers:
                     controller.poll(T.raw_now_ns())
@@ -742,7 +750,12 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                 "decisions": list(self.pipeline.decisions),
                 "feedback_rows": list(self._feedback_rows),
                 "terminal_rows": list(self._terminal_rows),
-                "plan_first_counters": dict(self.plan_first.counters),
+                "cycle_budget": {"frame_budget": self.cycle_budget.frame_budget,
+                                 "decision_cap": self.cycle_budget.decision_cap},
+                "cycle_boundary_reached": bool(self.cycle_boundary_reached),
+                "unresolved_tickets_at_close": sum(
+                    1 for c in self.engine.controllers
+                    if c.current is not None and c.current.resolution is None),
                 "telemetry_counters": dict(self.provider.counters),
                 "bridge_counters": dict(self.provider.bridge.counters),
                 "reader_counters": {r.event: dict(r.counters) for r in self.readers},
@@ -758,8 +771,8 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
     return Run4LiveRuntimeV2
 
 
-class _PlanFirstParked:
-    """Instance-local proxy: only ``build_radar_sample`` gains the plan-first hook."""
+class _PreparationTimer:
+    """Instance-local proxy: only ``build_radar_sample`` gains a timing hook."""
 
     def __init__(self, parked: Any, hook: Callable[..., Any]) -> None:
         self._parked = parked
@@ -799,40 +812,34 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
 
             self.aggregator.window_detections = recorded
             self.live.scene_hooks = self._run4_scene_inputs
-            self._run4_current: Optional[tuple] = None
-            self.parked = _PlanFirstParked(self.parked, self._run4_plan_then_build)
+            self.parked = _PreparationTimer(self.parked, self._run4_timed_build)
 
-        def _records_for(self, frame_id: int, *args: Any, **kwargs: Any):
-            records = super()._records_for(frame_id, *args, **kwargs)
-            self._run4_current = None if records is None else (int(frame_id), records)
-            return records
-
-        def _run4_plan_then_build(self, real_build: Callable[..., Any], **kwargs: Any):
-            """Plan from the exact window + RGB, then run the expensive raster."""
-            from rl_agent import ue_route_b_split_cell_adapter_v1 as pinned
-
-            current = self._run4_current
-            _require(current is not None, "radar preparation without a current token")
-            frame_id, (image, capture_wall, _perf, radar) = current
-            carla_timestamp = float(kwargs["frame_time_s"])
-            _require(float(radar.timestamp) == carla_timestamp,
-                     "radar preparation timestamp differs from the current token")
+        def _run4_timed_build(self, real_build: Callable[..., Any], **kwargs: Any):
+            """Time the radar rasterization and bind it to its exact window."""
+            timestamp = float(kwargs["frame_time_s"])
             with self._run4_lock:
-                meta = self._run4_window.pop(carla_timestamp, None)
-                ready_raw = self._run4_window_ready.pop(carla_timestamp, None)
-                rgb_raw = self._run4_rgb_raw.pop(int(frame_id), None)
-            _require(meta is not None and rgb_raw is not None,
-                     f"sensor inputs missing for frame {frame_id}")
-            planned = self.live.plan_first.plan_before_preparation(
-                frame_id=int(frame_id),
-                capture_wall_ns=int(round(float(capture_wall) * 1_000_000_000)),
-                carla_timestamp=carla_timestamp, frame_bgr=pinned.carla_image_to_bgr(image),
-                window_meta=meta, rgb_raw_ns=int(rgb_raw), window_ready_raw_ns=ready_raw)
-            if planned is None:                       # stale before assignment
-                return real_build(**kwargs)
-            return self.live.plan_first.prepare_radar(
-                frame_id=int(frame_id), carla_timestamp=carla_timestamp,
-                build=lambda: real_build(**kwargs))
+                meta = self._run4_window.get(timestamp)
+                ready_raw = self._run4_window_ready.get(timestamp)
+            started = T.raw_now_ns()
+            result = real_build(**kwargs)
+            ended = T.raw_now_ns()
+            stages = self.live.sensor_stages
+            stages[timestamp] = {
+                "radar_window_ready_raw_ns": ready_raw,
+                "radar_tensor_start_raw_ns": started, "radar_tensor_end_raw_ns": ended,
+                "radar_window_sha256": (None if meta is None
+                                        else radar_window_sha256(meta, timestamp))}
+            while len(stages) > 64:
+                stages.popitem(last=False)
+            return result
+
+        def _process_token(self, token: Mapping[str, Any]) -> None:
+            super()._process_token(token)
+            # Addendum 6: a refused opportunity means no complete cycle fits;
+            # stop admitting work at this closed decision cycle.
+            if getattr(self.live, "cycle_boundary_reached", False) and hasattr(
+                    self, "_request_probe_stop"):
+                self._request_probe_stop("DECISION_CYCLE_BOUNDARY")
 
         def _on_rgb(self, image: Any) -> None:
             with self._run4_lock:

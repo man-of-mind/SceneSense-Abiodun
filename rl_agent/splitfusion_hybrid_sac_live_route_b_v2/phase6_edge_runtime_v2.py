@@ -257,7 +257,8 @@ class Run4EvaluatorV2:
                  send: Callable[[bytes], None], match_distance_m: float,
                  gt_timeout_s: float, queue_depth: int = 64,
                  probe_timeout_s: float = 0.002, poll_interval_s: float = 0.005,
-                 clock: Callable[[], float] = time.monotonic) -> None:
+                 clock: Callable[[], float] = time.monotonic,
+                 evidence_dir: Optional[Path] = None) -> None:
         self._spec = spec
         self._read = read_ground_truth
         self._send = send
@@ -267,6 +268,7 @@ class Run4EvaluatorV2:
         self._poll = float(poll_interval_s)
         self._clock = clock
         self._depth = int(queue_depth)
+        self._evidence_dir = None if evidence_dir is None else Path(evidence_dir)
         self._queue: "queue.Queue[Optional[EvaluationTicketV2]]" = queue.Queue(
             maxsize=int(queue_depth))
         self.records: list[dict[str, Any]] = []
@@ -365,13 +367,60 @@ class Run4EvaluatorV2:
                 "measurement_semantics": W.LIVE_MEASUREMENT_SEMANTICS,
             })
 
+    GT_COMPONENTS = ("objects.json", "semantic.npy", "semantic.json")
+
+    def _observe_components(self, ticket: EvaluationTicketV2, timing: dict) -> None:
+        """Addendum 6: per-component container-side GT handoff diagnostics."""
+        if self._evidence_dir is None:
+            return
+        from rl_agent.splitfusion_quality_feedback_probe_v1 import gt_evidence
+
+        handoff = timing.setdefault("gt_handoff", {})
+        if "stem" not in handoff:
+            identity = ticket.gt_identity
+            handoff["stem"] = gt_evidence._stem(str(identity["stream_id"]),
+                                                int(identity["frame_id"]))
+            handoff["identity"] = dict(identity)
+            handoff["components"] = {
+                name: {"container_path": str(self._evidence_dir
+                                             / f"{handoff['stem']}.{name}"),
+                       "first_observed_wall_ns": None, "size_bytes": None}
+                for name in self.GT_COMPONENTS}
+            handoff["read_errors"] = {}
+        for entry in handoff["components"].values():
+            if entry["first_observed_wall_ns"] is None:
+                path = Path(entry["container_path"])
+                if path.is_file():
+                    entry["first_observed_wall_ns"] = time.time_ns()
+                    entry["size_bytes"] = path.stat().st_size
+
+    def _record_read(self, timing: dict, *, error: Optional[BaseException] = None) -> None:
+        handoff = timing.get("gt_handoff")
+        if handoff is None:
+            return
+        if error is not None:
+            message = f"{type(error).__name__}: {error}"[:200]
+            errors = handoff["read_errors"]
+            errors[message] = errors.get(message, 0) + 1
+            return
+        handoff["read_success_wall_ns"] = time.time_ns()
+        for entry in handoff["components"].values():
+            path = Path(entry["container_path"])
+            if path.is_file():
+                if entry["first_observed_wall_ns"] is None:   # appeared within this pass
+                    entry["first_observed_wall_ns"] = handoff["read_success_wall_ns"]
+                entry["sha256_at_read"] = hashlib.sha256(path.read_bytes()).hexdigest()
+                entry["size_bytes"] = path.stat().st_size
+
     def _service(self, pending: "collections.OrderedDict", *, draining: bool) -> None:
         """One pass: evaluate every ready ticket, expire timed-out ones."""
         for key, (ticket, submitted, timing) in list(pending.items()):
+            self._observe_components(ticket, timing)
             try:
                 gt = self._read(expected_identity=ticket.gt_identity,
                                 timeout_s=self._probe_timeout)
             except Exception as exc:  # noqa: BLE001 - not ready (or unreadable) yet
+                self._record_read(timing, error=exc)
                 if self._clock() - submitted >= self._gt_timeout:
                     del pending[key]
                     timing["gt_expired_wall_ns"] = time.time_ns()
@@ -385,6 +434,11 @@ class Run4EvaluatorV2:
                 continue
             del pending[key]
             timing["gt_ready_detected_wall_ns"] = time.time_ns()
+            self._record_read(timing)
+            timing["gt_bundle_sha256"] = {
+                name: gt.get(name) for name in ("object_gt_sha256", "semantic_gt_sha256",
+                                                "semantic_sidecar_sha256",
+                                                "semantic_npy_sha256")}
             if draining:
                 with self._lock:
                     self.counters["drained_at_shutdown"] += 1
@@ -562,7 +616,8 @@ def run_run4_edge_service(args: argparse.Namespace) -> int:  # pragma: no cover 
         spec=spec, send=lambda payload: control.sendto(payload, ue_remote),
         read_ground_truth=lambda **kw: gt_evidence.read_ground_truth(evidence_dir, **kw),
         match_distance_m=float(config["match_distance_m"]),
-        gt_timeout_s=float(config["gt_timeout_s"]), queue_depth=int(config["queue_depth"]))
+        gt_timeout_s=float(config["gt_timeout_s"]), queue_depth=int(config["queue_depth"]),
+        evidence_dir=evidence_dir)
     evaluator.start()
 
     receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

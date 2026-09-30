@@ -68,6 +68,10 @@ class InfrastructureFault(EngineError):
     """Post-assignment transport failure: excluded; the run must stop."""
 
 
+class DecisionCapacityExhausted(EngineError):
+    """Addendum 6: no complete k_min decision cycle fits; nothing is assigned."""
+
+
 class FrameKind(str, enum.Enum):
     POLICY_DECISION = "POLICY_DECISION"
     POLICY_HOLD = "POLICY_HOLD"
@@ -167,6 +171,9 @@ class Run4DecisionEngineV2:
         self.opportunities: list[dict[str, Any]] = []
         self.fallback_log: list[dict[str, Any]] = []
         self.faulted: Optional[str] = None
+        # Addendum 6: the caller clears this when a complete k_min cycle can no
+        # longer fit (frame budget / decision cap). Holds are never refused.
+        self.new_opportunity_allowed = True
 
     # -- sessions ---------------------------------------------------------------
     def _new_session(self) -> None:
@@ -217,6 +224,9 @@ class Run4DecisionEngineV2:
             return self._plan(FrameKind.POLICY_HOLD, assignment, profile, frame_id,
                               capture_wall_ns, (), None)
 
+        if not self.new_opportunity_allowed:
+            raise DecisionCapacityExhausted(
+                "no complete k_min decision cycle fits; stopping at a closed cycle")
         index = self._opportunity
         self._opportunity += 1
         try:

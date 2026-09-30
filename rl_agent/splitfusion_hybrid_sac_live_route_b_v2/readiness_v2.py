@@ -56,6 +56,9 @@ PACKAGE_SOURCES = (
     # the repaired runtime/controller/engine files are already pinned above.
     "phase6_engineering_gates_v2.py", "test_phase6_live_path_repair_v2.py",
     "phase6_live_path_repair_addendum_5.json",
+    # Addendum 6: boundary restoration, cycle-aware stop, GT handoff diagnosis.
+    "phase6_gt_handoff_v2.py", "test_phase6_repair_diagnostic_v2.py",
+    "phase6_repair_diagnostic_addendum_6.json",
 )
 
 

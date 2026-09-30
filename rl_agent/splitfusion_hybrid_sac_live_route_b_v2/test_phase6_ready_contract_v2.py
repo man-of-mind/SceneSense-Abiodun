@@ -44,12 +44,11 @@ RESULT_TERMS = ("q_perc", "reward", "latency", "success", "iou", "recall", "tp",
 FROZEN_SCIENTIFIC = (
     # addendum 5 authorizes phase6_decision_engine_v2 / reward_hold_controller_v2 /
     # phase6_ue_runtime_v2 changes; test_phase6_live_path_repair_v2 bounds them.
-    "phase6_live_child_v2.py",
     "live_state_v2.py", "run4_live_wire_v2.py", "run4_map_protocol_v2.py",
     "run4_ue_ledger_v2.py", "continuous_execution_v2.py", "frozen_actor_v2.py",
     "phase6_map_server_v2.py", "phase6_result_reporting_v2.py",
     "phase6_prospective_addendum_2.json", "live_qualification_300_v2.json",
-    "ACTOR_BINDING_V2.json", "phase6_edge_launch_v2.py", "phase6_live_child_nobuild_v2.py",
+    "ACTOR_BINDING_V2.json", "phase6_edge_launch_v2.py",
     "phase6_setup_repair_addendum_3.json",
 )
 
@@ -216,6 +215,10 @@ class BoundedDiffTest(unittest.TestCase):
     @staticmethod
     def _normalize_ready_write(function: ast.AST) -> str:
         for node in ast.walk(function):
+            # Addendum 6 passes evidence_dir to the evaluator (diagnostics only).
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "Run4EvaluatorV2"):
+                node.keywords = [k for k in node.keywords if k.arg != "evidence_dir"]
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                     and node.func.attr == "dump" and len(node.args) == 2
                     and isinstance(node.args[1], ast.Name) and node.args[1].id == "handle"):

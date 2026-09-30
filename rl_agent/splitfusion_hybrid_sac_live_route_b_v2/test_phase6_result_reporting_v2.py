@@ -34,7 +34,7 @@ FROZEN = (
     "live_state_v2.py",
     "run4_live_wire_v2.py", "continuous_execution_v2.py", "frozen_actor_v2.py",
     # phase6_edge_runtime_v2.py: addendum-4 ready-record repair (AST-bounded elsewhere).
-    "phase6_live_child_v2.py",
+    # phase6_live_child_v2.py: addendum-6 cycle-boundary stop (bounded elsewhere).
     "live_qualification_300_v2.json", "PHASE6_RUNNER_REPORT.md", "ACTOR_BINDING_V2.json",
 )
 VALID = {

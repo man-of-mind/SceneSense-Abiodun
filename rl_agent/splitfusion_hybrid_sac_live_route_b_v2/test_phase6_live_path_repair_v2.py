@@ -76,41 +76,47 @@ def build(module=U, actor=None):
     return h, engine, pipe, actor
 
 
-def coordinator(h, pipe, *, deadline_ok=lambda ns: True, scene_calls=None):
+def planner(h, pipe, *, scene_calls=None):
     def scene_fn(frame_bgr, window_meta, *, source_raw_ns):
         if scene_calls is not None:
             scene_calls.append(source_raw_ns)
         return U.SceneDescriptorsV2(camera_si=112.0, radar_p40=0.4, camera_status="VALID",
                                     radar_status="VALID", source_raw_ns=source_raw_ns,
                                     available_raw_ns=h.host.raw())
-    return U.PlanFirstCoordinatorV2(pipeline=pipe, lock=threading.Lock(),
-                                    deadline_ok=deadline_ok, scene_fn=scene_fn,
-                                    clock=h.host.raw)
+    pipe.stage_clock = h.host.raw
+    return U.SensorFirstPlannerV2(pipeline=pipe, lock=threading.Lock(), scene_fn=scene_fn,
+                                  clock=h.host.raw)
 
 
 CAPTURE0 = 1_790_000_000_000_000_000
 
 
-def plan_frame(h, coord, frame_id, *, rgb_age_ns=20 * MS, carla=None):
+def run_frame(h, plan, frame_id, *, rgb_age_ns=20 * MS, raster_ns=25 * MS, window=WINDOW,
+              prep_window=None, input_7ch=None, drop=()):
+    """One frame: radar raster and RGB preparation first, then plan + materialize."""
     h.host.advance(100 * MS)
     _fresh_radio(h)
-    return coord.plan_before_preparation(
+    rgb = h.host.raw() - rgb_age_ns
+    ready = h.host.raw()
+    start = h.host.raw()
+    h.host.advance(raster_ns)
+    timestamp = frame_id / 10.0
+    preparation = {"radar_window_ready_raw_ns": ready, "radar_tensor_start_raw_ns": start,
+                   "radar_tensor_end_raw_ns": h.host.raw(),
+                   "radar_window_sha256": prep_window or U.radar_window_sha256(window,
+                                                                               timestamp),
+                   "sensor_prepared_raw_ns": h.host.raw()}
+    for key in drop:
+        preparation.pop(key)
+    return plan.plan_and_materialize(
         frame_id=frame_id, capture_wall_ns=CAPTURE0 + frame_id * 100 * MS,
-        carla_timestamp=float(frame_id if carla is None else carla) / 10.0,
-        frame_bgr=object(), window_meta=WINDOW, rgb_raw_ns=h.host.raw() - rgb_age_ns,
-        window_ready_raw_ns=h.host.raw())
-
-
-def materialize(coord, frame_id, *, carla=None, capture=None):
-    return coord.materialize(
-        frame_id=frame_id,
-        capture_wall_ns=CAPTURE0 + frame_id * 100 * MS if capture is None else capture,
-        carla_timestamp=float(frame_id if carla is None else carla) / 10.0,
-        ego_pose=(1.0, 2.0, 0.1, 0.0, 90.0, 0.0), input_7ch=lambda: object())
+        carla_timestamp=timestamp, frame_bgr=object(), window_meta=window,
+        rgb_raw_ns=rgb, preparation=preparation, ego_pose=(1.0, 2.0, 0.1, 0.0, 90.0, 0.0),
+        input_7ch=input_7ch or (lambda: object()))
 
 
 # ---------------------------------------------------------------------------
-# Repair 1: plan before preparation
+# Repair 1 (restored by addendum 6): sensor-first planning at the contract boundary
 # ---------------------------------------------------------------------------
 
 
@@ -147,141 +153,93 @@ class PlanningSplitTest(unittest.TestCase):
         self.assertEqual(results[0][2], results[1][2])      # actor calls
         self.assertTrue(any(f is not None for f in results[1][1]))
 
-    def test_02_slow_preparation_after_action_open_cannot_change_plan(self) -> None:
+    def test_02_sensor_preparation_precedes_action_open_and_front_follows(self) -> None:
         h, engine, pipe, actor = build()
-        coord = coordinator(h, pipe)
-        planned = plan_frame(h, coord, 10)
-        self.assertEqual(planned.plan.kind, E.FrameKind.POLICY_DECISION)
-        digest, calls = planned.digest, actor.calls
-        opened = engine.controller.current.action_open_ns
-
-        def slow_raster():
-            h.host.advance(120 * MS)
-            return "RADAR"
-        self.assertEqual(coord.prepare_radar(frame_id=10, carla_timestamp=1.0,
-                                             build=slow_raster), "RADAR")
-        prepared = materialize(coord, 10)
-        self.assertEqual(planned.digest, digest)
-        self.assertEqual(actor.calls, calls)                   # no second actor call
-        self.assertEqual((prepared.plan.profile.mode_id, prepared.plan.profile.q_e4),
-                         (planned.mode_id, planned.q_e4))
-        stages = pipe.stages_for(planned.tensor_seq)
+        plan = planner(h, pipe)
+        prepared = run_frame(h, plan, 10, raster_ns=60 * MS,
+                             input_7ch=lambda: h.host.advance(40 * MS) or object())
+        self.assertEqual(prepared.plan.kind, E.FrameKind.POLICY_DECISION)
         record = pipe.decisions[-1]
-        self.assertEqual(record["action_open"]["ns"], opened)   # clock not restarted
+        self.assertEqual(U.boundary_violations(record), [])
+        stages = record["stages"]
+        opened = engine.controller.current.action_open_ns
+        self.assertEqual(record["action_open"]["ns"], opened)          # never re-stamped
+        self.assertLessEqual(stages["radar_tensor_end_raw_ns"], stages["si_p40_start_raw_ns"])
         self.assertLessEqual(stages["si_p40_end_raw_ns"], record["state_commit"]["ns"])
-        self.assertLessEqual(record["action_open"]["ns"], stages["radar_tensor_start_raw_ns"])
-        self.assertGreaterEqual(stages["radar_tensor_end_raw_ns"] - opened, 120 * MS)
-        # The reward deadline counts from the earlier action-open, inclusive.
+        self.assertLessEqual(opened, stages["input_7ch_start_raw_ns"])
+        self.assertGreaterEqual(stages["front_start_raw_ns"] - opened, 40 * MS)
+        self.assertEqual(actor.calls, 1)
         processed = processor().process(prepared.wire, edge_timing={})
         feedback, _ = W.quality_feedback(SPEC, {"frame_id": 10, **VALID}, processed.envelope)
         self.assertEqual(engine.on_feedback(feedback, receipt_raw_ns=opened + 170 * MS),
                          R.FeedbackClass.ACCEPTED)
 
-    def test_02b_late_feedback_after_slow_preparation_times_out(self) -> None:
+    def test_02b_front_inside_the_clock_can_cause_a_timeout(self) -> None:
         h, engine, pipe, _ = build()
-        coord = coordinator(h, pipe)
-        plan_frame(h, coord, 10)
+        prepared = run_frame(h, planner(h, pipe), 10,
+                             input_7ch=lambda: h.host.advance(150 * MS) or object())
         opened = engine.controller.current.action_open_ns
-        coord.prepare_radar(frame_id=10, carla_timestamp=1.0,
-                            build=lambda: h.host.advance(150 * MS))
-        prepared = materialize(coord, 10)
         processed = processor().process(prepared.wire, edge_timing={})
         feedback, _ = W.quality_feedback(SPEC, {"frame_id": 10, **VALID}, processed.envelope)
         self.assertEqual(engine.on_feedback(feedback, receipt_raw_ns=opened + 170 * MS + 1),
                          R.FeedbackClass.LATE_ORPHAN)
 
-    def test_03_identity_mismatches_fail_closed(self) -> None:
-        cases = {
-            "frame": dict(frame_id=10, materialize=dict(capture=None), alt_frame=True),
-            "capture": dict(materialize=dict(capture=CAPTURE0 + 1)),
-            "carla": dict(materialize=dict(carla=99)),
-        }
-        for name, case in cases.items():
-            with self.subTest(case=name):
-                h, engine, pipe, _ = build()
-                coord = coordinator(h, pipe)
-                plan_frame(h, coord, 10)
-                coord.prepare_radar(frame_id=10, carla_timestamp=1.0, build=lambda: None)
-                entry = coord._pending[10]
-                if case.get("alt_frame"):
-                    coord._pending[11] = coord._pending.pop(10)
-                    with self.assertRaises(E.InfrastructureFault):
-                        materialize(coord, 11)
-                else:
-                    with self.assertRaises(E.InfrastructureFault):
-                        materialize(coord, 10, **case["materialize"])
-                self.assertIsNotNone(engine.faulted)
-                del entry
-        # radar window: the rasterized window must be the planned one
-        h, engine, pipe, _ = build()
-        coord = coordinator(h, pipe)
-        plan_frame(h, coord, 10)
-        coord.prepare_radar(frame_id=10, carla_timestamp=1.0, build=lambda: None)
-        coord._pending[10]["rasterized_window"] = "0" * 64
-        with self.assertRaisesRegex(E.InfrastructureFault, "radar window"):
-            materialize(coord, 10)
-        # radar preparation for a different CARLA timestamp than planned
-        h, engine, pipe, _ = build()
-        coord = coordinator(h, pipe)
-        plan_frame(h, coord, 10)
-        with self.assertRaises(E.InfrastructureFault):
-            coord.prepare_radar(frame_id=10, carla_timestamp=7.0, build=lambda: None)
-        # an incomplete radar window is never planned from
-        h, engine, pipe, _ = build()
-        coord = coordinator(h, pipe)
+    def test_03_window_and_identity_mismatches_fail_closed(self) -> None:
+        h, engine, pipe, actor = build()
+        with self.assertRaisesRegex(U.Phase6UeError, "rasterized radar window"):
+            run_frame(h, planner(h, pipe), 10, prep_window="0" * 64)
+        self.assertIsNone(engine.controller.current)                   # nothing assigned
+        self.assertEqual(actor.calls, 0)
+        with self.assertRaisesRegex(U.Phase6UeError, "did not complete"):
+            run_frame(h, planner(h, pipe), 11, drop=("radar_tensor_end_raw_ns",))
         with self.assertRaisesRegex(U.Phase6UeError, "incomplete radar window"):
-            coord.plan_before_preparation(
-                frame_id=1, capture_wall_ns=CAPTURE0, carla_timestamp=0.1,
-                frame_bgr=object(), window_meta={**WINDOW, "callbacks": 3},
-                rgb_raw_ns=h.host.raw(), window_ready_raw_ns=h.host.raw())
+            run_frame(h, planner(h, pipe), 12, window={**WINDOW, "callbacks": 3})
+        for name, kwargs in {"frame": dict(frame_id=99),
+                             "capture": dict(capture_wall_ns=CAPTURE0 + 1),
+                             "carla": dict(carla_timestamp=9.9),
+                             "window": dict(radar_window_sha256="1" * 64)}.items():
+            with self.subTest(case=name):
+                h2, engine2, pipe2, _ = build()
+                h2.host.advance(100 * MS)
+                _fresh_radio(h2)
+                planned = pipe2.plan(frame_id=10, capture_wall_ns=CAPTURE0, scene=_scene(h2),
+                                     carla_timestamp=1.0, radar_window_sha256="a" * 64)
+                args = dict(frame_id=10, capture_wall_ns=CAPTURE0, carla_timestamp=1.0,
+                            radar_window_sha256="a" * 64)
+                args.update(kwargs)
+                with self.assertRaises(E.InfrastructureFault):
+                    pipe2.materialize(planned, ego_pose=(1, 2, 0, 0, 90, 0),
+                                      input_7ch=lambda: object(), **args)
+                self.assertIsNotNone(engine2.faulted)
 
-    def test_03b_failed_post_plan_preparation_is_registered_not_left_open(self) -> None:
+    def test_03b_failed_front_is_registered_not_left_open(self) -> None:
         h, engine, pipe, _ = build()
-        coord = coordinator(h, pipe)
-        plan_frame(h, coord, 10)
 
         def broken():
-            raise OSError("raster failed")
+            raise OSError("7-channel construction failed")
         with self.assertRaises(E.InfrastructureFault):
-            coord.prepare_radar(frame_id=10, carla_timestamp=1.0, build=broken)
-        self.assertIn("radar preparation failed", engine.faulted)
-        self.assertFalse(coord.has_plan(10))
-        # a plan never materialized is closed when the next frame is planned
-        h, engine, pipe, _ = build()
-        coord = coordinator(h, pipe)
-        plan_frame(h, coord, 10)
-        with self.assertRaises(E.InfrastructureFault):
-            plan_frame(h, coord, 11)
-        self.assertIn("PLANNED_FRAME_NOT_MATERIALIZED", engine.faulted)
+            run_frame(h, planner(h, pipe), 10, input_7ch=broken)
+        self.assertIn("7-channel construction failed", engine.faulted)
 
     def test_04_rgb_source_timestamp_and_100ms_rule_unchanged(self) -> None:
         h, engine, pipe, _ = build()
         calls = []
-        coord = coordinator(h, pipe, scene_calls=calls)
-        planned = plan_frame(h, coord, 10, rgb_age_ns=20 * MS)
+        prepared = run_frame(h, planner(h, pipe, scene_calls=calls), 10, rgb_age_ns=20 * MS)
         self.assertEqual(calls[-1], pipe.decisions[-1]["stages"]["rgb_receipt_raw_ns"])
-        self.assertEqual(planned.plan.kind, E.FrameKind.POLICY_DECISION)
-        coord.prepare_radar(frame_id=10, carla_timestamp=1.0, build=lambda: None)
-        materialize(coord, 10)
-        # an RGB receipt older than 100 ms stays stale: fallback, never re-stamped
+        self.assertEqual(prepared.plan.kind, E.FrameKind.POLICY_DECISION)
         h2, engine2, pipe2, _ = build()
-        coord2 = coordinator(h2, pipe2)
-        stale = plan_frame(h2, coord2, 10, rgb_age_ns=101 * MS)
-        self.assertEqual(stale.plan.kind, E.FrameKind.FALLBACK)
+        stale = run_frame(h2, planner(h2, pipe2), 10, rgb_age_ns=80 * MS, raster_ns=25 * MS)
+        self.assertEqual(stale.plan.kind, E.FrameKind.FALLBACK)          # 105 ms > 100 ms
         self.assertTrue(any("camera_si" in r for r in stale.plan.fallback_reasons))
         from .ue_telemetry_provider_v2 import TRAINING_FRESHNESS
         self.assertIn("100", repr(TRAINING_FRESHNESS).replace("_", ""))
-        # pre-assignment stale: no plan, no ticket, the legacy stale drop applies
-        h3, engine3, pipe3, _ = build()
-        coord3 = coordinator(h3, pipe3, deadline_ok=lambda ns: False)
-        self.assertIsNone(plan_frame(h3, coord3, 10))
-        self.assertIsNone(engine3.controller.current)
 
     def test_05_legacy_default_paths_unchanged(self) -> None:
         for path in ("rl_agent/ue_route_b_split_cell_adapter_v1.py",
                      "rl_agent/splitfusion_direct_edge_map_v1/adapter_direct_v1.py",
                      "rl_agent/splitfusion_quality_feedback_probe_v1/adapter_quality_v1.py",
                      "rl_agent/splitfusion_quality_feedback_probe_v1/live_cell_child.py",
+                     "rl_agent/splitfusion_quality_feedback_probe_v1/gt_evidence.py",
                      "rl_agent/splitfusion_live_dispatch_v1/live_pilot_runtime.py"):
             committed = subprocess.run(["git", "show", f"{REPAIR_BASE}:{path}"], cwd=ROOT,
                                        capture_output=True, check=True).stdout
@@ -289,7 +247,7 @@ class PlanningSplitTest(unittest.TestCase):
         calls = []
         original = types.SimpleNamespace(build_radar_sample=lambda **kw: ("real", kw),
                                          other="forwarded")
-        proxy = U._PlanFirstParked(original, lambda real, **kw: calls.append(kw) or real(**kw))
+        proxy = U._PreparationTimer(original, lambda real, **kw: calls.append(kw) or real(**kw))
         self.assertEqual(proxy.other, "forwarded")
         self.assertEqual(proxy.build_radar_sample(frame_time_s=1.0), ("real",
                                                                         {"frame_time_s": 1.0}))
@@ -312,10 +270,7 @@ class _Clock:
 
 def _tickets():
     h, engine, pipe, _ = build()
-    coord = coordinator(h, pipe)
-    plan_frame(h, coord, 10)
-    coord.prepare_radar(frame_id=10, carla_timestamp=1.0, build=lambda: None)
-    prepared = materialize(coord, 10)
+    prepared = run_frame(h, planner(h, pipe), 10)
     base = processor().process(prepared.wire, edge_timing={}).evaluation
     a = dataclasses.replace(base, gt_identity={"frame_id": "A"})
     b = dataclasses.replace(
@@ -427,10 +382,7 @@ class EvaluatorTest(unittest.TestCase):
 
 
 def _decided(h, engine, pipe, coord, frame_id):
-    plan_frame(h, coord, frame_id)
-    coord.prepare_radar(frame_id=frame_id, carla_timestamp=frame_id / 10.0,
-                        build=lambda: None)
-    return materialize(coord, frame_id)
+    return run_frame(h, coord, frame_id)
 
 
 def _terminal_doc(prepared, outcome="SUPERSEDED_PENDING", stage="EDGE_PENDING_REPLACED"):
@@ -440,7 +392,7 @@ def _terminal_doc(prepared, outcome="SUPERSEDED_PENDING", stage="EDGE_PENDING_RE
 class TerminalTest(unittest.TestCase):
     def setUp(self) -> None:
         self.h, self.engine, self.pipe, _ = build()
-        self.coord = coordinator(self.h, self.pipe)
+        self.coord = planner(self.h, self.pipe)
         self.prepared = _decided(self.h, self.engine, self.pipe, self.coord, 10)
         self.opened = self.engine.controller.current.action_open_ns
 
@@ -479,15 +431,8 @@ class TerminalTest(unittest.TestCase):
 
     def test_09b_late_terminal_never_attaches_to_newer_action(self) -> None:
         # second tensor of the hold, then time out the first decision
-        self.h.host.advance(100 * MS)
-        _fresh_radio(self.h)
-        hold = self.coord.plan_before_preparation(
-            frame_id=11, capture_wall_ns=CAPTURE0 + 11 * 100 * MS, carla_timestamp=1.1,
-            frame_bgr=object(), window_meta=WINDOW, rgb_raw_ns=self.h.host.raw(),
-            window_ready_raw_ns=self.h.host.raw())
-        self.assertEqual(hold.plan.kind, E.FrameKind.POLICY_HOLD)
-        self.coord.prepare_radar(frame_id=11, carla_timestamp=1.1, build=lambda: None)
-        hold_prepared = materialize(self.coord, 11)
+        hold_prepared = run_frame(self.h, self.coord, 11)
+        self.assertEqual(hold_prepared.plan.kind, E.FrameKind.POLICY_HOLD)
         self.assertIsNone(U.registered_terminal_from_message(
             _terminal_doc(hold_prepared)))                    # hold: ledger only
         newer = _decided(self.h, self.engine, self.pipe, self.coord, 12)
@@ -500,11 +445,8 @@ class TerminalTest(unittest.TestCase):
 
     def test_09c_fallback_and_map_feedback_are_ledger_only(self) -> None:
         h, engine, pipe, _ = build()
-        coord = coordinator(h, pipe)
-        fallback = plan_frame(h, coord, 10, rgb_age_ns=150 * MS)
-        self.assertEqual(fallback.plan.kind, E.FrameKind.FALLBACK)
-        coord.prepare_radar(frame_id=10, carla_timestamp=1.0, build=lambda: None)
-        prepared = materialize(coord, 10)
+        prepared = run_frame(h, planner(h, pipe), 10, rgb_age_ns=150 * MS)
+        self.assertEqual(prepared.plan.kind, E.FrameKind.FALLBACK)
         self.assertIsNone(U.registered_terminal_from_message(_terminal_doc(prepared)))
         doc = _terminal_doc(self.prepared)
         self.assertIsNone(U.registered_terminal_from_message(
@@ -539,8 +481,8 @@ class FrozenTest(unittest.TestCase):
                      "run4_live_wire_v2.py", "run4_map_protocol_v2.py",
                      "ue_telemetry_provider_v2.py", "phase6_result_reporting_v2.py",
                      "live_qualification_300_v2.json", "ACTOR_BINDING_V2.json",
-                     "phase6_edge_launch_v2.py", "phase6_live_child_v2.py",
-                     "phase6_live_child_nobuild_v2.py"):
+                     "phase6_edge_launch_v2.py"):
+            # phase6_live_child_v2 / _nobuild_v2: addendum-6 stop and GT seams only.
             committed = subprocess.run(["git", "show", f"{REPAIR_BASE}:{PACKAGE_PATH}/{name}"],
                                        cwd=ROOT, capture_output=True, check=True).stdout
             self.assertEqual((ROOT / PACKAGE_PATH / name).read_bytes(), committed, name)
