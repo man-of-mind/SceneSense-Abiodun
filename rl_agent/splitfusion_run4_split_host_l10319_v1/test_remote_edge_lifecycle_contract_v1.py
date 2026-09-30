@@ -273,10 +273,18 @@ class ObservationTests(unittest.TestCase):
                 with self.assertRaises(E.RemoteEdgeLifecycleError):
                     E.validate_gt_final_record(bad, plan=self.plan)
 
+    def test_repository_directory_named_carla_is_not_a_launch_token(self) -> None:
+        E.assert_edge_only_command((
+            "sudo", "docker", "compose", "--project-name", "edge-only",
+            "-f", "/work/carla_0_10_env/abiodun_run4_l10319/remote_edge.compose.json",
+            "config", "--quiet",
+        ))
+
     def test_broad_or_foreign_commands_are_refused(self) -> None:
         for argv in (
             ("python3", "-m", "phase6_live_runner"),
             ("nr-softmodem", "-O", "config"),
+            ("/opt/CarlaUE4/Binaries/Linux/CarlaUE4-Linux-Shipping",),
             ("sudo", "docker", "compose", "up", "oai-perception-rx"),
         ):
             with self.subTest(argv=argv):

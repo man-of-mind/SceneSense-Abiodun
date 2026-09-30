@@ -342,10 +342,11 @@ def compose_document(*, binding: C.RemoteRuntimeBinding, paths: RemoteEdgePaths,
 def assert_edge_only_command(argv: Sequence[str]) -> None:
     """Fail closed if a prospective command can start broader infrastructure."""
     words = tuple(str(value) for value in argv)
-    rendered = " ".join(words).lower()
+    command_names = tuple(Path(value).name.lower() for value in words)
     for token in ("carla", "nr-softmodem", "nr-uesoftmodem", "cn_start",
                   "oai-gnb", "oai-nr-ue", "phase6_live_runner", "--transmitted-budget"):
-        _require(token not in rendered, f"non-edge lifecycle token is forbidden: {token}")
+        _require(not any(token in value for value in command_names),
+                 f"non-edge lifecycle token is forbidden: {token}")
     if "docker" in words and "compose" in words and "up" in words:
         _require("--no-build" in words, "edge launch must refuse builds")
         _require("--pull" in words and words[words.index("--pull") + 1] == "never",
