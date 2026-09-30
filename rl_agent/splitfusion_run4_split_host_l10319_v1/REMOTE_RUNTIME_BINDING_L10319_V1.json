@@ -1,0 +1,54 @@
+{
+  "schema": "scenesense.run4.remote_runtime_binding.v1",
+  "hostname": "L10319",
+  "host_ipv4": "10.21.16.162",
+  "gpu": {
+    "model": "NVIDIA GeForce RTX 5090 Laptop GPU",
+    "uuid": "GPU-b8c4646c-abb0-5d63-679b-49622ce057b6",
+    "memory_total_mib": 24463,
+    "driver_version": "610.43.02"
+  },
+  "image_tag": "oai-perception-rx:latest",
+  "image_manifest_digest": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c",
+  "image_config_digest": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+  "remote_image_id": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c",
+  "remote_container_image_id": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c",
+  "canonical_inspect_fields_sha256": "7f8a14571eb00426d98b7084175de1180d4a50300c01150a5c2390c55bba3d91",
+  "artifacts": [
+    {
+      "name": "perception",
+      "relative_path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    {
+      "name": "ranker",
+      "relative_path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    },
+    {
+      "name": "ae128",
+      "relative_path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+      "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+    },
+    {
+      "name": "ae64",
+      "relative_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+      "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+    },
+    {
+      "name": "ae32",
+      "relative_path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+      "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+    },
+    {
+      "name": "torchvision_fcos",
+      "relative_path": "experiments/splitfusion_phase15_runtime_cache_v1/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth",
+      "sha256": "99b0c9b7cfb1527d782db86b91d207f00547c792fb4103fc612b651d0a07b9e7"
+    },
+    {
+      "name": "compose_fusion_checkpoint",
+      "relative_path": "checkpoints/fusion_object_best.pt",
+      "sha256": "6a9d6a1041055e4a6461836d9a95a9a2d6c0b30b7e67984e87426456460478a5"
+    }
+  ]
+}
