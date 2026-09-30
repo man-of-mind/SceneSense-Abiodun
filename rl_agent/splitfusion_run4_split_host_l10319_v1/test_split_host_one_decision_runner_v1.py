@@ -323,6 +323,9 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(plan.remote_base, R.REMOTE_ATTEMPT_BASE)
         self.assertNotEqual(plan.remote_repository, plan.remote_base)
         self.assertNotIn(plan.remote_repository, plan.remote_attempt.parents)
+        self.assertEqual(plan.local_radio_state.parent, R.LOCAL_RADIO_STATE_BASE)
+        self.assertEqual(R.LOCAL_RADIO_STATE_BASE,
+                         R.LR.ROOT / "experiments/splitfusion_oai_100mhz_4d5u_v1")
         fcos = next(item for item in C.ARTIFACTS
                     if item.name == "torchvision_fcos")
         paths = E.RemoteEdgePaths(

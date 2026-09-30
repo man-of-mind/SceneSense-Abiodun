@@ -41,6 +41,8 @@ REMOTE_ATTEMPT_BASE = Path("/home/shr_aisvcs/workarea/carla_0_10_env/"
                            "splitfusion_run4_split_host_l10319_v1_attempts")
 DEFAULT_CONFIG = (LR.ROOT / "rl_agent/configs/"
                   "splitfusion_direct_edge_map_live_validation_v1.json")
+LOCAL_RADIO_STATE_BASE = (LR.ROOT / "experiments/"
+                          "splitfusion_oai_100mhz_4d5u_v1")
 TRANSMITTED_BUDGET, DECISION_CAP = 40, 1
 SAFETY_TIMEOUT_S, OUTER_RUNTIME_S = 60.0, 600.0
 REMOTE_START_TIMEOUT_S = 360.0
@@ -133,6 +135,10 @@ class OneDecisionPlanV1:
     @property
     def local_attempt(self) -> Path:
         return self.output_root / "attempt"
+
+    @property
+    def local_radio_state(self) -> Path:
+        return LOCAL_RADIO_STATE_BASE / f"split_host_{self.attempt_id}"
 
 
 @dataclass
@@ -249,7 +255,7 @@ class SystemOpsV1:
             map_api_port=35001, spatial_map_port=39310, feedback_port=39401,
             transmitted_budget=TRANSMITTED_BUDGET,
             safety_timeout_s=SAFETY_TIMEOUT_S)
-        ran = LR.build_local_ran_plan(plan.output_root / "radio_state", root=LR.ROOT,
+        ran = LR.build_local_ran_plan(plan.local_radio_state, root=LR.ROOT,
                                       raw_path=attempt / "ttracer/ue/ue.raw")
         retrieval = CO.RemoteEvidenceRetrievalPlanV1(
             schema=CO.REMOTE_RETRIEVAL_SCHEMA,
