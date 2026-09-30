@@ -313,6 +313,12 @@ class RunnerTests(unittest.TestCase):
                                     "output root must be absolute"):
             self.plan(Path("relative-output")).validate()
         with tempfile.TemporaryDirectory() as directory:
+            bad = R.OneDecisionPlanV1(Path(directory) / "absolute-output",
+                                      "run", "Attempt-Uppercase")
+            with self.assertRaisesRegex(R.SplitHostOneDecisionError,
+                                        "remote-incompatible attempt identity"):
+                bad.validate()
+        with tempfile.TemporaryDirectory() as directory:
             plan = self.plan(Path(directory) / "absolute-output").validate()
         self.assertEqual(plan.remote_base, R.REMOTE_ATTEMPT_BASE)
         self.assertNotEqual(plan.remote_repository, plan.remote_base)

@@ -25,6 +25,7 @@ from . import first_real_tensor_proof_v1 as TP
 from . import local_ran_executor_v1 as LX
 from . import local_ran_lifecycle_v1 as LR
 from . import remote_edge_held_session_v1 as RH
+from . import remote_edge_lifecycle_v1 as RE
 from . import split_host_phase6_coordinator_v1 as CO
 
 SCHEMA = "scenesense.run4.split_host_one_decision_runner.v1"
@@ -100,9 +101,11 @@ class OneDecisionPlanV1:
         output = supplied_output.resolve(strict=False)
         _require(str(output) not in {"/", "/tmp", "/home"}
                  and not output.exists(), "unsafe/non-create-only output root")
-        for value, label in ((self.run_id, "run"), (self.attempt_id, "attempt")):
-            _require(re.fullmatch(r"[A-Za-z0-9_.-]{1,96}", value) is not None,
-                     f"unsafe {label} identity")
+        _require(re.fullmatch(r"[A-Za-z0-9_.-]{1,96}", self.run_id) is not None
+                 and RE.IDENTITY_RE.fullmatch(self.run_id) is not None,
+                 "unsafe run identity")
+        _require(RE.ATTEMPT_RE.fullmatch(self.attempt_id) is not None,
+                 "unsafe or remote-incompatible attempt identity")
         _require(self.remote_host == REMOTE_HOST, "remote SSH identity drift")
         _require(Path(self.remote_repository).is_absolute(), "remote root not absolute")
         _require(Path(self.config_path).is_absolute(), "config not absolute")
