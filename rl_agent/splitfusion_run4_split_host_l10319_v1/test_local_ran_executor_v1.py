@@ -342,9 +342,15 @@ class SourceSafetyTests(unittest.TestCase):
 class _RootOps(E.LocalRanOps):
     root_discovery_timeout_s = 0.0
 
-    def __init__(self, identities):
+    def __init__(self, identities, *, parents=None, sessions=None):
         self.identities = identities
         self.members = sorted(identities)
+        exact = [pid for pid, row in identities.items()
+                 if Path(row[0]).name.startswith("nr-")]
+        main = min(exact) if exact else None
+        defaults = {pid: (500 if pid == main else main) for pid in exact}
+        self.parents = {**defaults, **(parents or {})}
+        self.sessions = dict(sessions or {})
         self.launched = ()
         self.signals = []
 
@@ -354,6 +360,21 @@ class _RootOps(E.LocalRanOps):
 
     def _group_pids(self, pgid, *, root_owned):
         return list(self.members)
+
+    def _root_softmodem_rows(self, wrapper_pgid):
+        rows = []
+        for pid in self.members:
+            executable, argv, group = self.identities[pid]
+            rows.append({
+                "pid": pid,
+                "ppid": self.parents.get(pid, 1),
+                "process_group_id": group,
+                "session_id": self.sessions.get(pid, group),
+                "command_name": Path(executable).name,
+                "executable": executable,
+                "command": " ".join(argv),
+            })
+        return tuple(rows)
 
     def _process_identity(self, pid, *, root_owned):
         return self.identities[pid]
@@ -379,12 +400,18 @@ class RootOwnedProcessTests(unittest.TestCase):
         ).validate()
         return root, executable.resolve(), plan
 
-    def test_wrapper_is_not_recorded_and_exact_root_child_is(self) -> None:
-        root, executable, plan = self.make_plan()
-        ops = _RootOps({
+    @staticmethod
+    def valid_identities(executable, argv):
+        return {
             500: ("/usr/bin/sudo", ("sudo", "-n"), 700),
-            501: (str(executable), plan.argv, 700),
-        })
+            501: (str(executable), argv, 700),
+            502: (str(executable), argv, 700),
+            503: (str(executable), argv, 700),
+        }
+
+    def test_wrapper_is_not_recorded_and_main_is_selected(self) -> None:
+        root, executable, plan = self.make_plan()
+        ops = _RootOps(self.valid_identities(executable, plan.argv))
         ops.root_discovery_timeout_s = 1.0
         with mock.patch.object(E.os, "getpgid", return_value=700):
             spawned = ops.spawn(plan, log_path=root / "gnb.log")
@@ -397,40 +424,63 @@ class RootOwnedProcessTests(unittest.TestCase):
         self.assertIn("SCENESENSE_MCS_POLICY=sinr", ops.launched)
         self.assertEqual(ops.launched[-len(plan.argv):], plan.argv)
         ops.stop_process(spawned)
-        self.assertEqual(ops.signals[0][0], (500, 501))
-        self.assertTrue(ops.signals[0][2])
+        self.assertEqual(ops.signals[0][0], (500, 501, 502, 503))
+        self.assertTrue(spawned.log_handle.closed)
 
-    def test_duplicate_exact_children_are_refused(self) -> None:
+    def test_partial_topology_waits_for_both_workers(self) -> None:
         root, executable, plan = self.make_plan()
-        ops = _RootOps({
-            500: ("/usr/bin/sudo", ("sudo",), 700),
-            501: (str(executable), plan.argv, 700),
-            502: (str(executable), plan.argv, 700),
-        })
+
+        class PartialThenComplete(_RootOps):
+            def _root_softmodem_rows(self, wrapper_pgid):
+                rows = super()._root_softmodem_rows(wrapper_pgid)
+                self.topology_reads = getattr(self, "topology_reads", 0) + 1
+                return tuple(row for row in rows if self.topology_reads > 1
+                             or row["pid"] != 503)
+
+        ops = PartialThenComplete(self.valid_identities(executable, plan.argv))
         ops.root_discovery_timeout_s = 1.0
+        with mock.patch.object(E.os, "getpgid", return_value=700):
+            spawned = ops.spawn(plan, log_path=root / "partial.log")
+        self.assertEqual(spawned.owned.pid, 501)
+        self.assertGreaterEqual(ops.topology_reads, 2)
+        ops.stop_process(spawned)
+        self.assertTrue(spawned.log_handle.closed)
+
+    def test_multiple_root_topology_is_refused(self) -> None:
+        root, executable, plan = self.make_plan()
+        ops = _RootOps(
+            self.valid_identities(executable, plan.argv),
+            parents={501: 500, 502: 500, 503: 500},
+        )
+        ops.root_discovery_timeout_s = 0.08
         with mock.patch.object(E.os, "getpgid", return_value=700), \
              self.assertRaises(E.LocalRanExecutorError):
             ops.spawn(plan, log_path=root / "ambiguous.log")
-        self.assertEqual(ops.signals[0][0], (500, 501, 502))
+        self.assertEqual(ops.signals[0][0], (500, 501, 502, 503))
 
     def test_matching_executable_with_wrong_argv_is_refused(self) -> None:
         root, executable, plan = self.make_plan()
-        ops = _RootOps({
-            500: ("/usr/bin/sudo", ("sudo",), 700),
-            501: (str(executable), (str(executable), "--wrong"), 700),
-        })
-        ops.root_discovery_timeout_s = 1.0
+        wrong = (str(executable), "--wrong")
+        ops = _RootOps(self.valid_identities(executable, wrong))
+        ops.root_discovery_timeout_s = 0.08
         with mock.patch.object(E.os, "getpgid", return_value=700), \
              self.assertRaises(E.LocalRanExecutorError):
             ops.spawn(plan, log_path=root / "mismatch.log")
-        self.assertEqual(ops.signals[0][0], (500, 501))
+        self.assertEqual(ops.signals[0][0], (500, 501, 502, 503))
+
+    def test_session_drift_is_refused(self) -> None:
+        root, executable, plan = self.make_plan()
+        ops = _RootOps(
+            self.valid_identities(executable, plan.argv), sessions={503: 701})
+        ops.root_discovery_timeout_s = 0.08
+        with mock.patch.object(E.os, "getpgid", return_value=700), \
+             self.assertRaises(E.LocalRanExecutorError):
+            ops.spawn(plan, log_path=root / "session-drift.log")
+        self.assertEqual(ops.signals[0][0], (500, 501, 502, 503))
 
     def test_cleanup_identity_drift_refuses_every_signal(self) -> None:
         root, executable, plan = self.make_plan()
-        ops = _RootOps({
-            500: ("/usr/bin/sudo", ("sudo", "-n"), 700),
-            501: (str(executable), plan.argv, 700),
-        })
+        ops = _RootOps(self.valid_identities(executable, plan.argv))
         ops.root_discovery_timeout_s = 1.0
         with mock.patch.object(E.os, "getpgid", return_value=700):
             spawned = ops.spawn(plan, log_path=root / "identity-drift.log")
@@ -443,10 +493,7 @@ class RootOwnedProcessTests(unittest.TestCase):
 
     def test_cleanup_refuses_surviving_group_without_attested_pid(self) -> None:
         root, executable, plan = self.make_plan()
-        ops = _RootOps({
-            500: ("/usr/bin/sudo", ("sudo", "-n"), 700),
-            501: (str(executable), plan.argv, 700),
-        })
+        ops = _RootOps(self.valid_identities(executable, plan.argv))
         ops.root_discovery_timeout_s = 1.0
         with mock.patch.object(E.os, "getpgid", return_value=700):
             spawned = ops.spawn(plan, log_path=root / "owner-vanished.log")
@@ -463,6 +510,68 @@ class RootOwnedProcessTests(unittest.TestCase):
              self.assertRaises(E.LocalRanExecutorError):
             ops.spawn(plan, log_path=root / "missing.log")
         self.assertEqual(ops.signals[0][0], (500,))
+
+
+class ChannelRestoreTests(unittest.TestCase):
+    @staticmethod
+    def response(*, model_type="AWGN", path_loss="0", noise="-50"):
+        return (
+            f"model 2 rfsimu_channel_ue0 type {model_type}:\n"
+            "model owner: not set\n"
+            f"max Doppler: 0 path loss: {path_loss}  noise: {noise} "
+            "rchannel offset: 0\n"
+        )
+
+    @staticmethod
+    def session(response):
+        value = mock.Mock()
+        value.command.return_value = (None, None, None, None, response)
+        return value
+
+    def test_already_clean_channel_is_read_only_even_without_owner(self) -> None:
+        from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as R
+        from rl_agent import ue_n2_oai_ul_calibration_smoke as N
+
+        session = self.session(self.response())
+        with mock.patch.object(N, "TelnetSession", return_value=session), \
+             mock.patch.object(R, "restore_interrupted_radio") as delegated:
+            result = E.LocalRanOps().restore_channel()
+        self.assertEqual(result["status"], "ALREADY_CLEAN_NO_MUTATION")
+        self.assertEqual(result["noise_power_db"], -50.0)
+        session.command.assert_called_once_with("channelmod show current")
+        session.close.assert_called_once_with()
+        delegated.assert_not_called()
+
+    def test_nonclean_channel_delegates_to_frozen_restore_authority(self) -> None:
+        from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as R
+        from rl_agent import ue_n2_oai_ul_calibration_smoke as N
+
+        session = self.session(self.response(noise="-35"))
+        restored = {"verified": True, "noise_power_db": -50.0}
+        with mock.patch.object(N, "TelnetSession", return_value=session), \
+             mock.patch.object(R, "restore_interrupted_radio",
+                               return_value=restored) as delegated:
+            result = E.LocalRanOps().restore_channel()
+        self.assertIs(result, restored)
+        delegated.assert_called_once()
+
+    def test_missing_or_drifted_channel_is_refused_without_mutation(self) -> None:
+        from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as R
+        from rl_agent import ue_n2_oai_ul_calibration_smoke as N
+
+        cases = (
+            "softmodem_gnb> ",
+            self.response(model_type="TDL_A"),
+            self.response(path_loss="3"),
+        )
+        for index, response in enumerate(cases):
+            with self.subTest(index=index):
+                session = self.session(response)
+                with mock.patch.object(N, "TelnetSession", return_value=session), \
+                     mock.patch.object(R, "restore_interrupted_radio") as delegated, \
+                     self.assertRaises(E.LocalRanExecutorError):
+                    E.LocalRanOps().restore_channel()
+                delegated.assert_not_called()
 
 
 if __name__ == "__main__":

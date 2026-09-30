@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -211,34 +212,46 @@ class LocalRanOps:
                  f"cannot read PGID for PID {pid}")
         return executable.stdout.strip(), argv, int(group.stdout.strip())
 
+    def _root_softmodem_rows(self, wrapper_pgid: int
+                             ) -> tuple[Mapping[str, Any], ...]:
+        from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as A
+
+        return tuple(
+            row for row in A.process_table()
+            if int(row["process_group_id"]) == wrapper_pgid
+        )
+
     def _discover_root_softmodem(self, plan: L.ProcessPlan,
                                  wrapper_pgid: int) -> tuple[int, int]:
-        expected_executable = str(Path(plan.argv[0]).resolve(strict=True))
+        from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as A
+
+        expected_executable = Path(plan.argv[0]).resolve(strict=True)
         deadline = time.monotonic() + self.root_discovery_timeout_s
+        last_error = "topology was not yet observable"
         while time.monotonic() < deadline:
-            exact: list[tuple[int, int]] = []
-            mismatched: list[int] = []
-            for pid in self._group_pids(wrapper_pgid, root_owned=True):
-                try:
-                    executable, argv, pgid = self._process_identity(
-                        pid, root_owned=True)
-                except LocalRanExecutorError:
-                    continue
-                if executable != expected_executable:
-                    continue  # sudo/env wrappers are deliberately not owners
-                if argv == plan.argv and pgid == wrapper_pgid:
-                    exact.append((pid, pgid))
-                else:
-                    mismatched.append(pid)
-            _require(not mismatched,
-                     f"root softmodem argv/PGID mismatch: {mismatched}")
-            _require(len(exact) <= 1,
-                     f"ambiguous root softmodem identity: {exact}")
-            if exact:
-                return exact[0]
-            time.sleep(0.05)
+            try:
+                selected = A.select_softmodem_process(
+                    self._root_softmodem_rows(wrapper_pgid),
+                    command_name=expected_executable.name,
+                    expected_executable=expected_executable,
+                )
+            except A.Phase14AError as exc:
+                last_error = str(exc)
+                time.sleep(0.05)
+                continue
+            pid = int(selected["pid"])
+            executable, argv, pgid = self._process_identity(
+                pid, root_owned=True)
+            _require(executable == str(expected_executable),
+                     f"root {plan.role} executable drift: {executable}")
+            _require(argv == plan.argv,
+                     f"root {plan.role} argv drift for PID {pid}")
+            _require(pgid == wrapper_pgid,
+                     f"root {plan.role} PGID drift for PID {pid}: {pgid}")
+            return pid, pgid
         raise LocalRanExecutorError(
-            f"root {plan.role} process was not found in PGID {wrapper_pgid}")
+            f"root {plan.role} topology was not attested in PGID "
+            f"{wrapper_pgid}: {last_error}")
 
     def _abort_unattested_group(self, process: Any, pgid: int,
                                 *, root_owned: bool) -> None:
@@ -349,13 +362,49 @@ class LocalRanOps:
 
     def restore_channel(self) -> Mapping[str, Any]:
         from rl_agent import splitfusion_phase14b_corrected_four_profile_replay_v1 as R
+        from rl_agent import ue_n2_oai_ul_calibration_smoke as N
 
         config_path = L.ROOT / "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json"
         config = json.loads(config_path.read_text(encoding="utf-8"))
+        actuator = config["actuator"]
+        session = N.TelnetSession(
+            str(actuator["telnet_host"]), int(actuator["telnet_port"]),
+            float(actuator["response_timeout_s"]),
+            int(actuator["max_response_bytes"]),
+        )
+        try:
+            before = session.command("channelmod show current")[-1]
+        finally:
+            session.close()
+        try:
+            model = N.parse_channel_models(before).get(
+                str(actuator["channel_model_name"]))
+        except N.SmokeFailure as exc:
+            raise LocalRanExecutorError(
+                f"registered RFsim state is malformed: {exc}") from exc
+        _require(type(model) is dict, "registered RFsim channel is absent")
+        _require(model.get("model_type") == actuator["channel_model_type"],
+                 f"registered RFsim channel type drift: {model}")
+        path_loss = float(model.get("path_loss_db", math.nan))
+        noise = float(model.get("noise_power_db", math.nan))
+        _require(math.isfinite(path_loss) and math.isfinite(noise),
+                 f"registered RFsim channel has non-finite state: {model}")
+        _require(math.isclose(path_loss, float(actuator["path_loss_db"]),
+                              abs_tol=1e-6),
+                 f"registered RFsim path-loss drift: {model}")
+        clean = float(actuator["clean_restore_noise_power_db"])
+        if math.isclose(noise, clean, abs_tol=1e-6):
+            return {
+                "noise_power_db": noise,
+                "before_sha256": _sha256_text(before),
+                "verified": True,
+                "status": "ALREADY_CLEAN_NO_MUTATION",
+            }
+
         result = R.restore_interrupted_radio(config)
         _require(type(result) is dict and result.get("verified") is True,
                  "registered RFsim authority did not verify restoration")
-        _require(float(result.get("noise_power_db")) == -50.0,
+        _require(float(result.get("noise_power_db")) == clean,
                  "registered RFsim authority restored the wrong value")
         return result
 
