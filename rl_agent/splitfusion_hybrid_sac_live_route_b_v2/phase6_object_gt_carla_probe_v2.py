@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import statistics
 import subprocess
 import sys
@@ -513,6 +514,11 @@ def launch(args: argparse.Namespace) -> int:  # pragma: no cover - live CARLA on
     from . import phase6_live_runner_v2 as RUN
 
     require(args.execute == EXECUTE_TOKEN, f"requires --execute {EXECUTE_TOKEN}")
+    # The CARLA server inherits this environment (lifecycle.child_env); it must
+    # see the GPU exactly as under the live runner. The probe child alone is
+    # denied CUDA below.
+    require(os.environ.get("CUDA_VISIBLE_DEVICES") == "0",
+            "launch with CUDA_VISIBLE_DEVICES=0 (CARLA server GPU, as the live runner)")
     out = Path(args.output_root).resolve()
     out.mkdir(parents=True, exist_ok=False)
     config, _cells, _ = LP.offline_preflight(
@@ -537,7 +543,8 @@ def launch(args: argparse.Namespace) -> int:  # pragma: no cover - live CARLA on
                 "--feedback-port", str(int(args.feedback_port))]
         with (out / "child.log").open("xb") as stream:
             rc = subprocess.run(argv, cwd=str(ROOT), stdin=subprocess.DEVNULL, stdout=stream,
-                                stderr=subprocess.STDOUT, env=lifecycle.child_env(),
+                                stderr=subprocess.STDOUT,
+                                env={**lifecycle.child_env(), "CUDA_VISIBLE_DEVICES": ""},
                                 timeout=float(args.child_timeout_s)).returncode
         report["child_returncode"] = rc
         child_result = json.loads((out / "child_result.json").read_text(encoding="utf-8"))

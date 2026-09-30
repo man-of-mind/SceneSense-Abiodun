@@ -90,7 +90,7 @@
     },
     "startup_artifact_count": 27
   },
-  "manifest_sha256": "1beeb3d1b4637237b8c8eb814e63a552be6a19d62198980547d96bc638d0daf5",
+  "manifest_sha256": "73f0eac99372d6d60a3ca3a93b7d0fcc40c16a2f042b87b917f8d2fc9b153215",
   "package_sources": {
     "ACTOR_BINDING_V2.json": "3a59d1caaa0f7cd26fe22d7ebeab4466c99ae80b1664d14d398cdcb91ffab5f6",
     "continuous_execution_v2.py": "3dd0ec16cf70e52585b5d20e23d1fe47a443eb6a1e01c4304ac7ce07728f9184",
@@ -113,8 +113,8 @@
     "phase6_live_path_repair_addendum_5.json": "0b475282d191f69e232011cba0f60dc7b754369516abb0132163d01ffb5e51f5",
     "phase6_live_runner_v2.py": "fb4146d0fe013d331a190e45f8d39011642bd35e5e1a80af4e4930dfe6246bab",
     "phase6_map_server_v2.py": "e39942ef082bc50874cbcdb1030eb9e8bcfc350b723a0784f181d70c26c20951",
-    "phase6_object_gt_carla_probe_v2.py": "d29e6e45103acf14985abd8954fa762165cb5093828e9d057ef457c9333dcc11",
-    "phase6_object_gt_repair_addendum_9.json": "ac85de868afb30e2b02ce38001d644ce03a2ec54a62c59c462e54bd844a517e3",
+    "phase6_object_gt_carla_probe_v2.py": "d031a1ee072b4bca75068f81e829b549c85587dcc04a167c0332579fbbc97010",
+    "phase6_object_gt_repair_addendum_9.json": "d3ba48cf02ddecb17b00ef3351a02a7bfb51810efa985bc64cbb71c40dc1efe0",
     "phase6_object_gt_v2.py": "a3c538e1f4baa60589913c9c3bba13bf441bcb143ef05fd0698b20c4e27f709f",
     "phase6_prewarm_gt_priority_addendum_7.json": "f503e8c77b8bcb527252fdfbc01fd23dab292afe028cbbdbb3a9d8a72254c28b",
     "phase6_prewarm_v2.py": "50d1b4901c7fce53f968ff8e2ba380c61f1d24b182a243a59e21fc8a17834329",

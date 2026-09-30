@@ -1,0 +1,179 @@
+{
+ "addendum": "PHASE6_OBJECT_GT_REPAIR_ADDENDUM_9",
+ "claim_scope": "SYSTEMS_INTEGRATION_QUALIFICATION_ONLY",
+ "evidence_sha256": {
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T053937Z_phase6_object_gt_carla_probe_v9/carla_server.log": "fcfe5bd361a1c5ff107171dd943b561182fd1d1a7d09af2cd5bdbabf1bd545b7",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T053937Z_phase6_object_gt_carla_probe_v9/host_idle_before.json": "028b345ce0463bab9b18e8f9dbb52d4317837060e7c85c30484afac1f204cfa7",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/PROBE_REPORT.json": "e8786876b5996d1a55a1ddcf861a59f0d3677553d2d7632329642219839c444d",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/attempt/map_feedback.csv": "23ebfc56580b2c4e2acb4c39a11fd52c5efcd7a2a8af616dcb27f76f55eac878",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/attempt/per_frame_metrics.csv": "093db6c495ae54c649e758d16fe75df4eb728663d2532c6bfdc2e8505233b21c",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/attempt/perception_metrics.csv": "dc6a9f5f371dbbf7cc73631011614298e785c9ebb3f72747a26ea4de3b21c807",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/attempt/phase6_artifacts/budget_reached.json": "000ec38968a9a3988fa989dbbc724df6e115d009c836dbb73f2524bd9d84ced2",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/attempt/phase6_artifacts/collector_summary.json": "78589904f43ab7ec5990d6de93486de42a317a1e6eabb586e838cf705ceda33e",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/carla_server.log": "f7d7dc79c12c5dad53dd1feb833dee1fb7788ca7401eac7047330c5505e0fa55",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/child.log": "2829ee325b63eb0ea74574961b59bf1f5fc0ecec46d8f8eb505a3e403e9660c7",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/child_result.json": "877eefb7859e3f4a37d0612295acf65ad607b9d17601e40605bb3344c186f1e5",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/gt_writes.jsonl": "c3c49745c714292d4ba91dc2590ddfb0f96aaa596402cff4103c77578d26633e",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/host_idle_before.json": "0c600027a7163f78aba64548956252578c469d456c30fa242ed70314da2eaa26",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/probe_evidence.json": "a79022d399e5912215444f168f26deb653173333e5d05111808f50bba3130426",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054219Z_phase6_object_gt_carla_probe_v9/target_start": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9.actor_audit_after.json": "2ea9080fd3c7a25dd246d8b482c0dc5a3c65cf0b296d460fda1e224dea672b7b",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9.actor_audit_before.json": "2ea9080fd3c7a25dd246d8b482c0dc5a3c65cf0b296d460fda1e224dea672b7b",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9.gt_handshake_verdict_v2.json": "a8ff31f0a310a7da5a69d5d457465033ce5e9e03a7114c3c8d58129118deae5b",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9.launcher.log": "93aeff5c162e2150ab4c54f5afe5191f71cedb81e9fbe7a771aef58bd9a579c0",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/CELL_RESULT.json": "98f383cbdeced4b02570c8cd117288e7aa1f443bdb7dcf007c07e205e6b0ca5e",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/PHASE6_RESULT_SUMMARY.md": "d55c684238b948fbcdcaa54dbdf37f9aaa96631716818c80faedc36b0264ed8e",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/carla_server.log": "f7d7dc79c12c5dad53dd1feb833dee1fb7788ca7401eac7047330c5505e0fa55",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/child_stdout_stderr.log": "c444ae45e57c7cedb615be7663aa72f19173d69c46c1f3e2afdeadc5419cd016",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/direct_edge_map/direct_edge_ready.json": "1902b7f7af67e1e989585bdad307110560a3044189ec75d50e389721d26f46e1",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "b874b23de1df6ba9a8722735e63df9af63b8f719cd65bffb6616a18d0daf9a8c",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/direct_edge_map/direct_map_ready.json": "a2e60acefe149d196c8d66419bf2d19a6570abbec72cec6e2ccaa4391004d03d",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/direct_edge_map/direct_map_report.json": "1d7caf03ceea5f0ee628b0607410d7d6f5e13d6b55b81ef08f61f8a05301b726",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/direct_edge_map/run4_map_identity.csv": "6855124ab0703dc1c338cbc9049304cd8fa2b7207394eb49f60b00f7104ee03b",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/edge_image_prelaunch.json": "f8e1914f7460b97941952af9a2eaabf8cabd8e1fd9d46b4b21845d152fd40f33",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/logs/ue_record.log": "11358f2ea1a0ce5eafb2fb6c09536c9d5ea4b9faa57f7b3ef2c9c352ccfc2ad7",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/logs/ue_relay.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/map_feedback.csv": "737f915d425119ae5a286d04496167e30ce93078a214ec6a8450f0a71099ec21",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/per_frame_metrics.csv": "d116bba2c92e034c5ad54813a8acf190f4eaeadbf7dd3b717b47a60c9e7566eb",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/perception_metrics.csv": "5575433c6403c19a6fdda67341d5fc234a95ebf97310c2384239bd8f3f5e648f",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/phase6_artifacts/child_result.json": "73b8a06d27e586332aad582d022defb9115601d868f2d15d4c8531dd6d90a9cb",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/phase6_artifacts/collector_summary.json": "af67970fd5231e61d8a53032fbce1b11b3eb8c07a639bd7b2590e58f9fab5e8f",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/phase6_artifacts/route_detail.json": "13656d115f4cfc155fe703ad0c849333dd554f04e8ac8e309b75fb363e935847",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/phase6_artifacts/ue_route_b_metrics_3rpysiwu_population_events.jsonl": "0c4603f3f9059c293a7b442013003540ffdd5df945e8dac0e5211bac057cebda",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap": "684b764375fa03e4fc9fe8df9af3ef89efda7e1b03a78a12f91b2a441f89fdce",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/quality_ack_tcpdump.log": "fc21def57d10be5f90dba4891ac6d9f2ffbb6f9c03e2abb9a539a89f882f0851",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/radio_trace.csv": "4fa8fcf408a4daa743147e33c9aeb43c959daa57e02215ba64f47e056889276d",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json": "e0121f12e2b7c8709e322209a24a734b1eab6aafde886d82d7b6eb50fa92f362",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/edge_image_launch.json": "a7eef72daff447175d7feaeedf0ed3ddb3ff7c45ce5fbc91bd8e63d0429dd3dd",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/edge_report.json": "244ab8237142c58d41d1beebff51541e6128bf9f744d3244c73e53e3d7001b82",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_handoff_ue.jsonl": "eea8fbe74c75f4e766cd8c24e3ede39e4c9099deee6a0365e56258868d46a845",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved.manifest.json": "6d65d7ecc4a3854e936a39c02dbe71190a3e4d047fe1008221c5a2cdb86f5095",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1308.objects.json": "e073a871871c83b4bf89995936182ccf663953fd3a5e6cb93dfaa0c703d48cab",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1308.semantic.json": "fbfce364ddda950124e99beef6f1bea843f68ed9d317c12bdbb427020ef2e101",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1308.semantic.npy": "995328aed826003c36d3d102ac4be09b8c30f9885934b977ea6d52fd1e8aae10",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1310.objects.json": "163af5da16fa6afca55fdb30fd04ec97f704f69297dd4e0cb027f8e93e321f8c",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1310.semantic.json": "1694027322151e1e969b8545d3afd065bb7af8499d9cc131059e2d21586cb217",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1310.semantic.npy": "c5e8c068168127e9e2d3f5ef41aecebfb281886c533aa8cd139c088510b2f990",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1312.objects.json": "649c09bcfc1e0fdc4eb123d22949fdd410a6f8e768bef841defe3c694ce6e07a",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1312.semantic.json": "c3367c574316d7d20115f2be2eccd1216c6cf94f24a48eaeedd9ddf89327cb10",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1312.semantic.npy": "0b1338d3594724672df9ead2e20480363a7d9954a5c4aebd64b565093b2f67e1",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1314.objects.json": "4b685e152f26829be4e4104098331c68d660445c959aeef62bfdb045536a319f",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1314.semantic.json": "2efa31e3557771f24657a6b026ec6f7a5daebec99404dd5045268c3cf388139c",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/quality_gt_43ec50636c7c3962_1314.semantic.npy": "a7f9f3238748014970b81dfb3f3c6b96934dac07f2160632cb4cb087d0dbc114",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/run4_phase6_edge_report.json": "244ab8237142c58d41d1beebff51541e6128bf9f744d3244c73e53e3d7001b82",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved/run4_phase6_prewarm_edge.json": "5920b1e54220546fc4a488d3dc1c7a769eaa7bd43cafa8c05bfd668096e0e6e7",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/prewarm_ue.json": "7f19c62fa163f6f91c2c10799af0e0a210c29309c9f10e9cfbeeb318ff67c9f9",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_DCI_GRANT_live.csv": "dd7d208889ad0d2f6710f430d05e574208373ebddbd41a49f606082ab4b5757d",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_RLC_BUFFER_STATUS_live.csv": "13ee6412e24e58079819a70881181666990e0abbed0f961750362542f6fd2e3f",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/run4_phase6/telemetry_live/NR_PDCP_TX_SDU_live.csv": "6fd96bd0c07854d81346723bebd36cde56ee97057401700d512bfe581b5e97a3",
+  "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T054416Z_phase6_gt_handshake_v9/cells/a71__favorable_stable/ttracer/ue/ue.raw": "f5d49c84391a5fe182c824842dd30dcd3d53d989c023e0b2e08c563937f77cd2"
+ },
+ "offline_parity": "PASS (package 234, run4_v1 448, quality probe 23; real carla value types in both interpreters)",
+ "phase_c": {
+  "attempt": "20260930T054219Z_phase6_object_gt_carla_probe_v9",
+  "failed_setup_attempt": "20260930T053937Z: CARLA segfault at startup (CUDA_VISIBLE_DEVICES empty); no measurement; erratum_1",
+  "gates": {
+   "every_high_ticket_produced_objects": true,
+   "no_low_delaying_high": true,
+   "objects_ready_max_le_150ms": true,
+   "passed": true,
+   "predicted_feedback_margin_ms": 38.652056000000016,
+   "predicted_feedback_max_lt_170ms": true
+  },
+  "high_builder_wall_ms": {
+   "max": 0.840819,
+   "method": "nearest-rank on sorted samples",
+   "min": 0.265283,
+   "n": 15,
+   "p50": 0.400195,
+   "p95": 0.441928
+  },
+  "high_objects_ready_after_action_open_ms": {
+   "max": 37.986011,
+   "method": "nearest-rank on sorted samples",
+   "min": 30.143038,
+   "n": 15,
+   "p50": 30.786891,
+   "p95": 33.71188
+  },
+  "high_predicted_feedback_after_action_open_ms": {
+   "max": 131.34794399999998,
+   "method": "nearest-rank on sorted samples",
+   "min": 131.34794399999998,
+   "n": 15,
+   "p50": 131.34794399999998,
+   "p95": 131.34794399999998
+  },
+  "high_queue_wait_ms": {
+   "max": 0.601876,
+   "method": "nearest-rank on sorted samples",
+   "min": 0.043761,
+   "n": 15,
+   "p50": 0.319236,
+   "p95": 0.441323
+  },
+  "low_builder_wall_ms": {
+   "max": 17.012009,
+   "method": "nearest-rank on sorted samples",
+   "min": 5.237102,
+   "n": 15,
+   "p50": 10.135992,
+   "p95": 12.852366
+  },
+  "low_preempted": 0,
+  "low_skipped": 0,
+  "note": "pinned 140-m builder uncontended here: P50 12.8 ms, max 32.7 ms; v8's 372 ms was dominated by live contention the probe does not reproduce",
+  "sent": 30,
+  "shadow_parity": {
+   "compared": 30,
+   "passed": true
+  }
+ },
+ "phase_d": {
+  "actor_audit": "after-run audit PASS; hashes equal to the last pre-run audit (v8 after); no separate before-audit was taken for v9",
+  "attempt": "20260930T054416Z_phase6_gt_handshake_v9",
+  "classification": "FAIL",
+  "cold_host_restored": true,
+  "diagnosis": "object GT no longer late; the early-start prefetch thread overlapped the reward frame's 7-channel preparation, which took 65.8 ms instead of about 8 ms (GIL contention probable; correlational, n=1); the evaluator received the frame 206.5 ms after action-open",
+  "failed_checks": [
+   "action_open_to_feedback_within_170ms",
+   "exact_q_perc_through_ue_feedback"
+  ],
+  "feedback_after_action_open_ms": 215.5,
+  "feedback_class": "LATE_ORPHAN",
+  "high_queue_wait_ms": 0.514626,
+  "input_7ch_ms": {
+   "other_v9_frames": [
+    8.1,
+    23.9,
+    17.8
+   ],
+   "reward_frame_1312_with_prefetch_overlap": 65.8,
+   "v8_frames": [
+    8.0,
+    10.7,
+    7.9,
+    14.0
+   ]
+  },
+  "last_packet_send_after_action_open_ms": {
+   "v8": 26.92,
+   "v9": 93.01
+  },
+  "mode_id": 7,
+  "no_300_frame_run": true,
+  "object_builder_wall_ms": 0.400908,
+  "object_gt_written_after_action_open_ms": 94.3,
+  "object_rows_ms": 3.294612,
+  "prefetch": {
+   "start_after_action_open_ms": 0.96,
+   "thread_cpu_ms": 12.2,
+   "wall_ms": 86.0
+  },
+  "q_e4": 6805,
+  "q_perc": 0.456568999208375,
+  "retry": "none",
+  "reward_frame": 1312
+ },
+ "schema": "scenesense.run4_live_v2.phase6_object_gt_repair_results.v1"
+}

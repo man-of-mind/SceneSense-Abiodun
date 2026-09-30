@@ -23,6 +23,15 @@
    "prediction": "max(123.5 v8 edge-ready, objects_ready + 2.443659 v8 write->detect) + 5.747944 v8 detect->emit + 2.1 v8 emit->UE receipt",
    "shadow_parity": "every compared ticket identical (rows within 40 m, eligible targets, class/world xy, tracker state)"
   },
+  "erratum_1": {
+   "cause": "registered launch used CUDA_VISIBLE_DEVICES= which the CARLA server inherited via lifecycle.child_env(); live runner launches use CUDA_VISIBLE_DEVICES=0",
+   "command": "env -u PYTHONPATH CUDA_VISIBLE_DEVICES=0 python3 -u -m rl_agent.splitfusion_hybrid_sac_live_route_b_v2.phase6_object_gt_carla_probe_v2 --output-root rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/<UTC>_phase6_object_gt_carla_probe_v9 --frames 30 --execute GO_RUN4_PHASE6_OBJECT_GT_CARLA_PROBE_V9",
+   "criteria_unchanged": true,
+   "date": "2026-09-30",
+   "failed_attempt": "20260930T053937Z_phase6_object_gt_carla_probe_v9",
+   "failure": "CARLA server segfault (signal 11) at startup before RPC; no frame, no measurement",
+   "fix": "launcher requires CUDA_VISIBLE_DEVICES=0 for the CARLA server; the probe child is launched with CUDA_VISIBLE_DEVICES='' (still no CUDA)"
+  },
   "on_failure": "stop and report; no live run",
   "precondition": "Run-5 diagnostic session finished and host verified idle (load1 < 1.5, no CARLA, no containers, supervisor cold check)",
   "scope": "CARLA server + Route-B collector chain only; no OAI, edge container, map service, Docker, CUDA or Phase-6 runtime",
