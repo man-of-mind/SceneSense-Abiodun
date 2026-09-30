@@ -1,0 +1,167 @@
+"""CPU-only tests for the prospective two-host contract."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import replace
+from pathlib import Path
+import unittest
+
+from . import contract as C
+
+
+class TopologyTests(unittest.TestCase):
+    def test_registered_topology(self) -> None:
+        t = C.default_topology()
+        self.assertEqual(t.local_lan_ip, "10.21.16.222")
+        self.assertEqual(t.remote_lan_ip, "10.21.16.162")
+        self.assertEqual(t.cn_subnet, "192.168.70.128/26")
+        self.assertEqual(
+            (t.amf_ip, t.upf_ip, t.ext_dn_ip, t.edge_ip),
+            ("192.168.70.132", "192.168.70.134", "192.168.70.135", "192.168.70.140"),
+        )
+        self.assertEqual((t.map_ip, t.map_port), ("10.21.16.222", 39320))
+
+    def test_overlap_and_role_alias_are_refused(self) -> None:
+        with self.assertRaises(C.SplitHostContractError):
+            replace(C.default_topology(), remote_lan_ip="192.168.70.162").validate()
+        with self.assertRaises(C.SplitHostContractError):
+            replace(C.default_topology(), edge_ip="192.168.70.135").validate()
+
+
+class NetworkPlanTests(unittest.TestCase):
+    def test_plan_is_scoped_tagged_and_has_no_nat_or_flush(self) -> None:
+        plan = C.network_plan(previous_ip_forward=0, previous_route_argv=None)
+        rendered = "\n".join(" ".join(command.argv) for command in (
+            plan.probes + (plan.local_apply, plan.local_rollback,
+                           plan.forwarding_apply, plan.forwarding_rollback)
+            + tuple(rule.check() for rule in plan.rules)
+            + tuple(rule.add() for rule in plan.rules)
+            + tuple(rule.remove() for rule in plan.rules)
+        ))
+        self.assertIn("192.168.70.128/26 via 10.21.16.162", rendered)
+        self.assertEqual(rendered.count(C.RULE_TAG), 6)
+        self.assertNotIn(" -F", rendered)
+        self.assertNotIn("--flush", rendered)
+        self.assertNotIn(" -P ", rendered)
+        self.assertNotIn(" nat ", rendered.lower())
+        self.assertNotIn("MASQUERADE", rendered)
+        for rule in plan.rules:
+            self.assertIn("10.21.16.222/32", rule.rule_args)
+
+    def test_forwarding_and_route_restore_measured_prior_state(self) -> None:
+        prior = ("ip", "route", "replace", "192.168.70.128/26", "via", "10.21.16.9")
+        plan = C.network_plan(previous_ip_forward=1, previous_route_argv=prior)
+        self.assertEqual(plan.forwarding_rollback.argv[-1], "net.ipv4.ip_forward=1")
+        self.assertEqual(plan.local_rollback.argv, ("sudo",) + prior)
+
+    def test_unmeasured_forwarding_state_is_refused(self) -> None:
+        with self.assertRaises(C.SplitHostContractError):
+            C.network_plan(previous_ip_forward=2, previous_route_argv=None)
+
+
+class GnbRewriteTests(unittest.TestCase):
+    SOURCE = """
+    amf_ip_address = ({ ipv4 = "192.168.70.1"; });
+    NETWORK_INTERFACES : {
+      GNB_IPV4_ADDRESS_FOR_NG_AMF = "192.168.70.129/24";
+      GNB_IPV4_ADDRESS_FOR_NGU = "192.168.70.129/24";
+    };
+    """
+
+    def test_runtime_rewrite_is_exact_and_idempotent(self) -> None:
+        result = C.rewrite_runtime_gnb_config(self.SOURCE)
+        self.assertIn('ipv4 = "192.168.70.132"', result)
+        self.assertEqual(result.count('"10.21.16.222/24"'), 2)
+        self.assertEqual(C.rewrite_runtime_gnb_config(result), result)
+
+    def test_missing_or_duplicate_field_is_refused(self) -> None:
+        with self.assertRaises(C.SplitHostContractError):
+            C.rewrite_runtime_gnb_config(self.SOURCE.replace(
+                'GNB_IPV4_ADDRESS_FOR_NGU = "192.168.70.129/24";', ""))
+        with self.assertRaises(C.SplitHostContractError):
+            C.rewrite_runtime_gnb_config(self.SOURCE + self.SOURCE)
+
+
+def valid_binding_dict() -> dict:
+    return {
+        "schema": "scenesense.run4.remote_runtime_binding.v1",
+        "hostname": "L10319",
+        "host_ipv4": "10.21.16.162",
+        "gpu": {
+            "model": "AUDITED_REMOTE_MODEL",
+            "uuid": "GPU-audited-uuid",
+            "memory_total_mib": 24576,
+            "driver_version": "AUDITED_DRIVER",
+        },
+        "image_tag": C.EDGE_IMAGE_TAG,
+        "image_id": C.EDGE_IMAGE_ID,
+        "artifacts": [
+            {"name": item.name, "relative_path": item.relative_path,
+             "sha256": item.sha256}
+            for item in C.ARTIFACTS
+        ],
+    }
+
+
+class RemoteBindingTests(unittest.TestCase):
+    def test_measured_remote_facts_and_exact_seven_artifacts_are_accepted(self) -> None:
+        binding = C.RemoteRuntimeBinding.from_mapping(valid_binding_dict())
+        self.assertEqual(binding.gpu.memory_total_mib, 24576)
+        self.assertEqual(len(binding.artifacts), 7)
+        self.assertNotIn(C.LOCAL_ACTOR_ARTIFACT, binding.artifacts)
+        self.assertEqual(binding.artifacts[-1].name, "compose_fusion_checkpoint")
+
+    def test_no_gpu_defaults_or_foreign_fields(self) -> None:
+        raw = valid_binding_dict()
+        del raw["gpu"]["driver_version"]
+        with self.assertRaises(C.SplitHostContractError):
+            C.RemoteRuntimeBinding.from_mapping(raw)
+        raw = valid_binding_dict()
+        raw["gpu"]["cuda_guess"] = "12.8"
+        with self.assertRaises(C.SplitHostContractError):
+            C.RemoteRuntimeBinding.from_mapping(raw)
+
+    def test_wrong_image_or_missing_checkpoint_is_refused(self) -> None:
+        raw = valid_binding_dict()
+        raw["image_id"] = "sha256:" + "0" * 64
+        with self.assertRaises(C.SplitHostContractError):
+            C.RemoteRuntimeBinding.from_mapping(raw)
+        raw = valid_binding_dict()
+        raw["artifacts"].pop()
+        with self.assertRaises(C.SplitHostContractError):
+            C.RemoteRuntimeBinding.from_mapping(raw)
+
+    def test_schema_is_strict_and_requires_remote_gpu_facts(self) -> None:
+        schema_path = Path(__file__).with_name("REMOTE_RUNTIME_BINDING_SCHEMA_V1.json")
+        schema = json.loads(schema_path.read_text())
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["properties"]["hostname"]["const"], "L10319")
+        self.assertEqual(set(schema["properties"]["gpu"]["required"]),
+                         {"model", "uuid", "memory_total_mib", "driver_version"})
+        self.assertEqual(schema["properties"]["artifacts"]["minItems"], 7)
+        self.assertEqual(schema["properties"]["artifacts"]["maxItems"], 7)
+
+
+class ReadinessTests(unittest.TestCase):
+    def test_initial_status_stays_blocked(self) -> None:
+        report = C.readiness_report(
+            remote_binding=None, remote_connectivity_qualified=False,
+            gt_lifecycle_seam_implemented=False,
+        )
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertFalse(report["live_run_authorized"])
+        self.assertEqual(len(report["blockers"]), 3)
+
+    def test_even_structural_ready_does_not_authorize_live_run(self) -> None:
+        binding = C.RemoteRuntimeBinding.from_mapping(valid_binding_dict())
+        report = C.readiness_report(
+            remote_binding=binding, remote_connectivity_qualified=True,
+            gt_lifecycle_seam_implemented=True,
+        )
+        self.assertEqual(report["status"], "READY")
+        self.assertFalse(report["live_run_authorized"])
+
+
+if __name__ == "__main__":
+    unittest.main()

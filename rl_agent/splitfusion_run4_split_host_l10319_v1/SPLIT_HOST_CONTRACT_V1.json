@@ -1,0 +1,28 @@
+{
+  "schema": "scenesense.run4.split_host_l10319.v1",
+  "status": "BLOCKED_PENDING_REMOTE_FACTS_AND_GT_LIFECYCLE_SEAM",
+  "hosts": {
+    "local": {"hostname": "W10275", "lan_ipv4": "10.21.16.222", "role": "CARLA_GNB_UE_FRONT_AGENT_MAP"},
+    "remote": {"hostname": "L10319", "lan_ipv4": "10.21.16.162", "role": "CN_EXT_DN_EDGE_TAIL"}
+  },
+  "routed_cn_subnet": "192.168.70.128/26",
+  "preserved_container_addresses": {
+    "amf": "192.168.70.132",
+    "upf": "192.168.70.134",
+    "ext_dn": "192.168.70.135",
+    "edge": "192.168.70.140"
+  },
+  "direct_map_endpoint": {"host": "10.21.16.222", "port": 39320, "transport": "UDP"},
+  "gnb_runtime_only_rewrite": {
+    "amf_ip_address": "192.168.70.132",
+    "GNB_IPV4_ADDRESS_FOR_NG_AMF": "10.21.16.222/24",
+    "GNB_IPV4_ADDRESS_FOR_NGU": "10.21.16.222/24"
+  },
+  "network_policy": {
+    "nat": false,
+    "blanket_firewall_disable": false,
+    "forward_rule_tag": "scenesense-run4-l10319-v1",
+    "rules_are_removed_only_if_added_by_this_attempt": true
+  },
+  "live_run_authorized": false
+}
