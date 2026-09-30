@@ -24,7 +24,9 @@ project label, image ID, binding labels, ID, and mounts have been checked.
 - remote OCI manifest/image/container identity `ac143760...`;
 - source OCI config identity `2be62d53...`;
 - canonical portable inspect hash `c5a66909...`;
-- all seven ignored artifacts under their original relative paths.
+- all ten ignored runtime files under their original relative paths: seven
+  binaries plus the person-P025 qualification, train-only perception priors,
+  and Run-4 reward spec.
 
 The frozen Phase-6 edge has a legacy exact-name check for the desktop RTX
 5090. `remote_edge_entry_v1.py` handles only that compatibility issue. Before

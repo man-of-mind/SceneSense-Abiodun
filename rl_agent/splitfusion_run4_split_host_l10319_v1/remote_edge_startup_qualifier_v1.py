@@ -43,7 +43,7 @@ RESULT_NAME = "REMOTE_EDGE_STARTUP_QUALIFICATION.json"
 PLAN_NAME = "REMOTE_EDGE_STARTUP_PLAN.json"
 IMAGE_NAME = "REMOTE_EDGE_IMAGE_OBSERVATION.json"
 CONTAINER_NAME = "REMOTE_EDGE_CONTAINER_OBSERVATION.json"
-LOG_NAME = "remote_edge_logs_tail.txt"
+LOG_NAME = "remote_edge_logs_timestamped.txt"
 DEFAULT_READY_TIMEOUT_S = 300.0
 FIXED_ACTION_ID = 71
 FIXED_ALLOWED_ACTIONS = (71,)
@@ -215,7 +215,9 @@ def prepare_attempt(
                             "expected_returncode": c.expected_returncode}
                            for c in plan.preflight],
             "launch": list(plan.launch.argv),
-            "post_create": [list(c.argv) for c in plan.post_create],
+            "post_create": [list(plan.post_create[0].argv)],
+            "pre_teardown_log_capture":
+                list(plan.post_create[1].argv),
             "teardown": list(plan.teardown.argv),
         },
         "full_live_run_authorized": False,
@@ -288,6 +290,41 @@ def _run_checked(*, command: E.LifecycleCommand, runner: CommandRunner,
     return result
 
 
+def _capture_container_logs(
+    *, command: E.LifecycleCommand, runner: CommandRunner,
+    ledger: list[Mapping[str, Any]], target: Path,
+) -> Mapping[str, Any]:
+    """Persist both Docker log streams without preventing later teardown."""
+    result = runner(command.argv, 20.0)
+    command_record = _command_record(
+        command.purpose, command.argv, result, command.expected_returncode)
+    ledger.append(command_record)
+    payload = (
+        b"=== docker logs stdout ===\n"
+        + result.stdout.encode("utf-8")
+        + b"\n=== docker logs stderr ===\n"
+        + result.stderr.encode("utf-8")
+    )
+    record: dict[str, Any] = {
+        "status": "FAILED",
+        "path": target.name,
+        "bytes": len(payload),
+        "returncode": result.returncode,
+        "expected_returncode": command.expected_returncode,
+        "command_result": command_record,
+    }
+    try:
+        _write_bytes_create_only(target, payload)
+        record["sha256"] = _sha256_file(target)
+        if result.returncode == command.expected_returncode:
+            record["status"] = "CAPTURED"
+        else:
+            record["error"] = "docker logs command returned an unexpected status"
+    except BaseException as exc:
+        record["error"] = f"{type(exc).__name__}: {exc}"[:1000]
+    return record
+
+
 def _wait_for_ready(
     prepared: PreparedStartupAttempt, *, runner: CommandRunner,
     ledger: list[Mapping[str, Any]], timeout_s: float,
@@ -340,6 +377,7 @@ def qualify_startup(
     """Launch, verify READY, and always project-scope teardown the edge."""
     _require(1.0 <= float(timeout_s) <= 600.0, "readiness timeout is outside [1,600]")
     plan = prepared.plan
+    inspect_command, logs_command = plan.post_create
     ledger: list[Mapping[str, Any]] = []
     report: dict[str, Any] = {
         "schema": SCHEMA, "status": "FAILED", "error": "",
@@ -372,7 +410,6 @@ def qualify_startup(
         launch_attempted = True
         _run_checked(command=plan.launch, runner=runner, ledger=ledger,
                      timeout_s=60.0)
-        inspect_command, logs_command = plan.post_create
         inspected = _run_checked(command=inspect_command, runner=runner,
                                  ledger=ledger, timeout_s=20.0)
         container = container_observer(inspected.stdout)
@@ -381,10 +418,6 @@ def qualify_startup(
 
         gt_ready, edge_ready = _wait_for_ready(
             prepared, runner=runner, ledger=ledger, timeout_s=float(timeout_s))
-        logs = _run_checked(command=logs_command, runner=runner, ledger=ledger,
-                            timeout_s=20.0)
-        _write_bytes_create_only(plan.paths.attempt_root / LOG_NAME,
-                                 logs.stdout[-65536:].encode("utf-8"))
         report.update({
             "status": "STARTUP_READY_PENDING_TEARDOWN",
             "image_observation_sha256": _sha256_file(plan.paths.attempt_root / IMAGE_NAME),
@@ -402,6 +435,19 @@ def qualify_startup(
         report["error"] = f"{type(exc).__name__}: {exc}"[:1000]
     finally:
         if launch_attempted:
+            try:
+                report["edge_log_capture"] = _capture_container_logs(
+                    command=logs_command, runner=runner,
+                    ledger=ledger,
+                    target=plan.paths.attempt_root / LOG_NAME)
+            except BaseException as exc:
+                report["edge_log_capture"] = {
+                    "status": "FAILED",
+                    "error": f"{type(exc).__name__}: {exc}"[:1000],
+                }
+            if report["edge_log_capture"].get("status") != "CAPTURED":
+                report["error"] = report["error"] or (
+                    "timestamped edge log capture failed")
             try:
                 result = _run_checked(command=plan.teardown, runner=runner,
                                       ledger=ledger, timeout_s=60.0)
@@ -432,9 +478,12 @@ def qualify_startup(
                 report["error"] = report["error"] or cleanup_error
         else:
             report["cleanup"]["not_launched"] = True
+            report["edge_log_capture"] = {
+                "status": "NOT_REQUIRED_NOT_LAUNCHED"}
         if (report["status"] == "STARTUP_READY_PENDING_TEARDOWN"
                 and report["cleanup"].get("container_absent") is True
-                and report["cleanup"].get("gt_listener_stopped") is True):
+                and report["cleanup"].get("gt_listener_stopped") is True
+                and report["edge_log_capture"].get("status") == "CAPTURED"):
             report["status"] = "PASS_STARTUP_READY_AND_PROJECT_TEARDOWN_COMPLETE"
         else:
             report["status"] = "FAILED"

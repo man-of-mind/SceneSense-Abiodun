@@ -69,7 +69,8 @@ LOCAL_ACTOR_ARTIFACT = ArtifactIdentity(
     "d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29",
 )
 
-# Exactly seven ignored binaries required on L10319 by the frozen codec/edge path.
+# Exact ignored-file closure: seven binaries plus three runtime metadata
+# authorities required on L10319 by the frozen codec/edge path.
 ARTIFACTS = (
     ArtifactIdentity(
         "perception",
@@ -107,6 +108,24 @@ ARTIFACTS = (
         "experiments/splitfusion_phase15_runtime_cache_v1/torch/hub/checkpoints/"
         "fcos_resnet50_fpn_coco-99b0c9b7.pth",
         "99b0c9b7cfb1527d782db86b91d207f00547c792fb4103fc612b651d0a07b9e7",
+    ),
+    ArtifactIdentity(
+        "person_p025_train_qualification",
+        "experiments/splitfusion_fcos_person_p025_calibration_v1/"
+        "train_holdout_qualification.json",
+        "3d403dd481235aa50353747104dcb90339dcde322373975fba4498925f86b405",
+    ),
+    ArtifactIdentity(
+        "perception_train_only_priors",
+        "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1/"
+        "20260829_214123/TRAIN_ONLY_PRIORS.json",
+        "90ce336604ff83ccd7ea813ae4c12434b6f122b90a906e83d36742ff7f6700f0",
+    ),
+    ArtifactIdentity(
+        "run4_reward_spec",
+        "experiments/splitfusion_hybrid_sac_quality_grid_v1/"
+        "20260918_exact_continuous_q_grid_a1b_full/reward_spec.json",
+        "d5d1e0d2d435076dd53c740f8b0e632620144194c32baf7d24db6d5043fc74d9",
     ),
     ArtifactIdentity(
         "compose_fusion_checkpoint",
@@ -457,7 +476,7 @@ class RemoteRuntimeBinding:
 
 
 def verify_artifact_files(root: Path) -> None:
-    """Hash all seven transferred files; missing files never become defaults."""
+    """Hash the complete transferred closure; missing files get no defaults."""
     root = Path(root)
     for artifact in ARTIFACTS:
         path = root / artifact.relative_path

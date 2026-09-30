@@ -399,8 +399,8 @@ def build_plan(*, binding: C.RemoteRuntimeBinding, paths: RemoteEdgePaths,
             ("sudo", "-n", "docker", "container", "inspect", CONTAINER),
         ),
         LifecycleCommand(
-            "capture bounded edge logs",
-            ("sudo", "-n", "docker", "logs", "--tail", "200", CONTAINER),
+            "capture full timestamped edge logs before teardown",
+            ("sudo", "-n", "docker", "logs", "--timestamps", CONTAINER),
         ),
     )
     teardown = LifecycleCommand(

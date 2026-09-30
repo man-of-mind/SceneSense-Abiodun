@@ -109,11 +109,12 @@ def gt_final(prepared: Q.PreparedStartupAttempt) -> dict:
 
 class FakeRuntime:
     def __init__(self, prepared: Q.PreparedStartupAttempt, *, publish_ready=True,
-                 die_before_ready=False, fail_launch=False) -> None:
+                 die_before_ready=False, fail_launch=False, fail_logs=False) -> None:
         self.prepared = prepared
         self.publish_ready = publish_ready
         self.die_before_ready = die_before_ready
         self.fail_launch = fail_launch
+        self.fail_logs = fail_logs
         self.launched = False
         self.calls: list[tuple[str, ...]] = []
 
@@ -164,7 +165,9 @@ class FakeRuntime:
                 self.write_ready()
             return Q.CommandResult(2 if self.fail_launch else 0)
         if words[:4] == ("sudo", "-n", "docker", "logs"):
-            return Q.CommandResult(0, "edge bounded startup log\n")
+            if self.fail_logs:
+                return Q.CommandResult(3, "", "docker log lookup failed\n")
+            return Q.CommandResult(0, "edge bounded startup log\n", "edge stderr\n")
         if "compose" in words and "down" in words:
             final_path = (self.prepared.plan.paths.state_root
                           / Path(E.GT_FINAL_DESTINATION).name)
@@ -198,6 +201,10 @@ class PreparationTests(unittest.TestCase):
         self.assertNotIn("build", compose["services"][E.SERVICE])
         plan = json.loads((paths.attempt_root / Q.PLAN_NAME).read_text())
         self.assertFalse(plan["full_live_run_authorized"])
+        self.assertEqual(plan["commands"]["pre_teardown_log_capture"], [
+            "sudo", "-n", "docker", "logs", "--timestamps",
+            E.CONTAINER,
+        ])
         rendered = json.dumps(plan["commands"])
         self.assertNotIn("CARLA", rendered)
         self.assertNotIn("nr-softmodem", rendered)
@@ -240,6 +247,15 @@ class ExecutionTests(unittest.TestCase):
         self.assertTrue(report["cleanup"]["container_absent"])
         self.assertTrue(report["cleanup"]["gt_listener_stopped"])
         self.assertEqual(len(report["cleanup"]["gt_final_sha256"]), 64)
+        self.assertEqual(report["edge_log_capture"]["status"], "CAPTURED")
+        log_path = self.prepared.plan.paths.attempt_root / Q.LOG_NAME
+        log_bytes = log_path.read_bytes()
+        self.assertIn(b"edge bounded startup log", log_bytes)
+        self.assertIn(b"edge stderr", log_bytes)
+        self.assertEqual(report["edge_log_capture"]["sha256"],
+                         Q._sha256_file(log_path))
+        log_index = next(i for i, call in enumerate(runtime.calls)
+                         if call[:4] == ("sudo", "-n", "docker", "logs"))
         self.assertFalse(runtime.launched)
         launch = next(call for call in runtime.calls if "up" in call)
         self.assertIn("--no-build", launch)
@@ -247,6 +263,8 @@ class ExecutionTests(unittest.TestCase):
         self.assertIn("--no-deps", launch)
         down = next(call for call in runtime.calls if "down" in call)
         self.assertIn(self.prepared.plan.invocation.project_name, down)
+        down_index = runtime.calls.index(down)
+        self.assertLess(log_index, down_index)
         rendered = "\n".join(" ".join(call) for call in runtime.calls)
         self.assertNotIn("phase6_live_runner", rendered)
         self.assertNotIn("nr-softmodem", rendered)
@@ -262,9 +280,16 @@ class ExecutionTests(unittest.TestCase):
             image_observer=self.image_observer)
         self.assertEqual(report["status"], "FAILED")
         self.assertIn("edge exited before READY", report["error"])
+        self.assertEqual(report["edge_log_capture"]["status"], "CAPTURED")
+        self.assertIn(b"edge stderr", (
+            self.prepared.plan.paths.attempt_root / Q.LOG_NAME).read_bytes())
         self.assertTrue(report["cleanup"]["container_absent"])
         self.assertFalse(runtime.launched)
         self.assertTrue(any("down" in call for call in runtime.calls))
+        log_index = next(i for i, call in enumerate(runtime.calls)
+                         if call[:4] == ("sudo", "-n", "docker", "logs"))
+        down_index = next(i for i, call in enumerate(runtime.calls) if "down" in call)
+        self.assertLess(log_index, down_index)
 
     def test_preflight_refusal_never_launches_or_tears_foreign_resources(self) -> None:
         runtime = FakeRuntime(self.prepared)
@@ -282,6 +307,12 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAILED")
         self.assertTrue(report["cleanup"]["not_launched"])
         self.assertFalse(any("up" in call or "down" in call for call in runtime.calls))
+        self.assertEqual(report["edge_log_capture"]["status"],
+                         "NOT_REQUIRED_NOT_LAUNCHED")
+        self.assertFalse((self.prepared.plan.paths.attempt_root / Q.LOG_NAME).exists())
+        self.assertFalse(any(
+            call[:4] == ("sudo", "-n", "docker", "logs")
+            for call in runtime.calls))
 
     def test_partial_compose_up_failure_still_tears_down_attempt_project(self) -> None:
         runtime = FakeRuntime(self.prepared, fail_launch=True)
@@ -293,6 +324,44 @@ class ExecutionTests(unittest.TestCase):
         self.assertTrue(report["cleanup"]["container_absent"])
         self.assertFalse(runtime.launched)
         self.assertTrue(any("down" in call for call in runtime.calls))
+        self.assertEqual(report["edge_log_capture"]["status"], "CAPTURED")
+        log_index = next(i for i, call in enumerate(runtime.calls)
+                         if call[:4] == ("sudo", "-n", "docker", "logs"))
+        down_index = next(i for i, call in enumerate(runtime.calls) if "down" in call)
+        self.assertLess(log_index, down_index)
+
+    def test_log_capture_failure_does_not_prevent_teardown(self) -> None:
+        runtime = FakeRuntime(self.prepared, fail_logs=True)
+        report = Q.qualify_startup(
+            self.prepared, runner=runtime, timeout_s=1.0,
+            image_observer=self.image_observer)
+        self.assertEqual(report["status"], "FAILED")
+        self.assertIn("timestamped edge log capture failed", report["error"])
+        self.assertEqual(report["edge_log_capture"]["status"], "FAILED")
+        self.assertEqual(report["edge_log_capture"]["returncode"], 3)
+        self.assertTrue(report["cleanup"]["container_absent"])
+        self.assertFalse(runtime.launched)
+        log_bytes = (self.prepared.plan.paths.attempt_root / Q.LOG_NAME).read_bytes()
+        self.assertIn(b"docker log lookup failed", log_bytes)
+        log_index = next(i for i, call in enumerate(runtime.calls)
+                         if call[:4] == ("sudo", "-n", "docker", "logs"))
+        down_index = next(i for i, call in enumerate(runtime.calls) if "down" in call)
+        self.assertLess(log_index, down_index)
+
+    def test_existing_log_target_fails_closed_but_teardown_still_runs(self) -> None:
+        target = self.prepared.plan.paths.attempt_root / Q.LOG_NAME
+        original = b"user-owned prior evidence\n"
+        target.write_bytes(original)
+        runtime = FakeRuntime(self.prepared)
+        report = Q.qualify_startup(
+            self.prepared, runner=runtime, timeout_s=1.0,
+            image_observer=self.image_observer)
+        self.assertEqual(report["status"], "FAILED")
+        self.assertEqual(report["edge_log_capture"]["status"], "FAILED")
+        self.assertIn("File exists", report["edge_log_capture"]["error"])
+        self.assertEqual(target.read_bytes(), original)
+        self.assertTrue(report["cleanup"]["container_absent"])
+        self.assertFalse(runtime.launched)
 
 
 class InspectParserTests(unittest.TestCase):

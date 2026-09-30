@@ -22,4 +22,5 @@ selected document, and the offline regression recomputes the digest from it.
 
 Only this selected-field digest changed. The OCI manifest digest `ac143760...`,
 source config digest `2be62d53...`, remote image/container ID `ac143760...`,
-and all seven artifact hashes remain mandatory and unchanged.
+and every then-registered artifact hash remained mandatory and unchanged. The
+audited startup closure now expands the exact runtime set from seven to ten.

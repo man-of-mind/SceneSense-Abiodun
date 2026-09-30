@@ -41,10 +41,12 @@ route/forwarding value. There is no global `allow-direct-routing`,
    `c5a6690923255163ccb090db0c6f278b1761e4c52e516f024ba88c970ee918d1`.
    A differing Docker store `.Id` alone is therefore not content drift. Preserve
    and record any pre-existing L10319 tag/image as a backup; do not prune it.
-3. Transfer and hash all seven edge-host files in `contract.ARTIFACTS`:
+3. Transfer and hash all ten edge-host files in `contract.ARTIFACTS`:
    perception, ranker, AE128/64/32, the Phase-15 FCOS constructor weight, and
-   `checkpoints/fusion_object_best.pt` required by the compose mount. Git does
-   not carry them. The Run-4 actor is the separate `LOCAL_ACTOR_ARTIFACT`; it
+   `checkpoints/fusion_object_best.pt` required by the compose mount, plus the
+   person-P025 qualification, perception train-only priors, and Run-4 reward
+   spec read during startup. Git does not carry them. The Run-4 actor is the
+   separate `LOCAL_ACTOR_ARTIFACT`; it
    stays on W10275 and must not be required on L10319.
 4. Qualify, without CARLA, bidirectional W10275-to-container routing, N2/N3,
    ext-DN reachability, edge UDP receipt, direct map UDP, and compact feedback.

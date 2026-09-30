@@ -132,12 +132,16 @@ def valid_binding_dict() -> dict:
 
 
 class RemoteBindingTests(unittest.TestCase):
-    def test_measured_remote_facts_and_exact_seven_artifacts_are_accepted(self) -> None:
+    def test_measured_remote_facts_and_exact_runtime_closure_are_accepted(self) -> None:
         binding = C.RemoteRuntimeBinding.from_mapping(valid_binding_dict())
         self.assertEqual(binding.gpu.memory_total_mib, 24576)
-        self.assertEqual(len(binding.artifacts), 7)
+        self.assertEqual(len(binding.artifacts), 10)
         self.assertNotIn(C.LOCAL_ACTOR_ARTIFACT, binding.artifacts)
         self.assertEqual(binding.artifacts[-1].name, "compose_fusion_checkpoint")
+        self.assertEqual(
+            {item.name for item in binding.artifacts[-4:-1]},
+            {"person_p025_train_qualification",
+             "perception_train_only_priors", "run4_reward_spec"})
 
     def test_no_gpu_defaults_or_foreign_fields(self) -> None:
         raw = valid_binding_dict()
@@ -174,8 +178,8 @@ class RemoteBindingTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["hostname"]["const"], "L10319")
         self.assertEqual(set(schema["properties"]["gpu"]["required"]),
                          {"model", "uuid", "memory_total_mib", "driver_version"})
-        self.assertEqual(schema["properties"]["artifacts"]["minItems"], 7)
-        self.assertEqual(schema["properties"]["artifacts"]["maxItems"], 7)
+        self.assertEqual(schema["properties"]["artifacts"]["minItems"], 10)
+        self.assertEqual(schema["properties"]["artifacts"]["maxItems"], 10)
         self.assertEqual(schema["properties"]["image_manifest_digest"]["const"],
                          C.EDGE_IMAGE_MANIFEST_DIGEST)
         self.assertEqual(schema["properties"]["image_config_digest"]["const"],

@@ -27,8 +27,8 @@
     "canonical_inspect_fields_sha256": {"const": "c5a6690923255163ccb090db0c6f278b1761e4c52e516f024ba88c970ee918d1"},
     "artifacts": {
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
+      "minItems": 10,
+      "maxItems": 10,
       "items": {
         "type": "object",
         "additionalProperties": false,

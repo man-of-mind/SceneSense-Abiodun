@@ -46,6 +46,21 @@
       "sha256": "99b0c9b7cfb1527d782db86b91d207f00547c792fb4103fc612b651d0a07b9e7"
     },
     {
+      "name": "person_p025_train_qualification",
+      "relative_path": "experiments/splitfusion_fcos_person_p025_calibration_v1/train_holdout_qualification.json",
+      "sha256": "3d403dd481235aa50353747104dcb90339dcde322373975fba4498925f86b405"
+    },
+    {
+      "name": "perception_train_only_priors",
+      "relative_path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1/20260829_214123/TRAIN_ONLY_PRIORS.json",
+      "sha256": "90ce336604ff83ccd7ea813ae4c12434b6f122b90a906e83d36742ff7f6700f0"
+    },
+    {
+      "name": "run4_reward_spec",
+      "relative_path": "experiments/splitfusion_hybrid_sac_quality_grid_v1/20260918_exact_continuous_q_grid_a1b_full/reward_spec.json",
+      "sha256": "d5d1e0d2d435076dd53c740f8b0e632620144194c32baf7d24db6d5043fc74d9"
+    },
+    {
       "name": "compose_fusion_checkpoint",
       "relative_path": "checkpoints/fusion_object_best.pt",
       "sha256": "6a9d6a1041055e4a6461836d9a95a9a2d6c0b30b7e67984e87426456460478a5"
