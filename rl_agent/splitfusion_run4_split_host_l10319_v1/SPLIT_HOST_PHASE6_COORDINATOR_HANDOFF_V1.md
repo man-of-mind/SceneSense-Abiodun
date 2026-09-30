@@ -47,7 +47,7 @@ sideband `10.21.16.222 -> 192.168.70.140:51015`.
 3. After `oaitun_ue1` exists, collect exactly:
 
    ```text
-   ip -j route get 192.168.70.140 from 10.0.0.2 iif lo
+   ip -j route get 192.168.70.140 from 10.0.0.2
    ```
 
    It must resolve `dev oaitun_ue1 table 9999`, source `10.0.0.2`, and must
