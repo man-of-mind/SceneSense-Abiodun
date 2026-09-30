@@ -154,6 +154,25 @@ class SeparateProcessResumeTest(unittest.TestCase):
 
 
 class PreflightTest(unittest.TestCase):
+    def _host(self, apps: str, util: str, pgrep: str = "", docker: str = ""):
+        def fake(command, **_):
+            out = {"pgrep": pgrep, "docker": docker}.get(command[0], "")
+            if command[0] == "nvidia-smi":
+                out = util if "utilization" in command[1] else apps
+            return type("R", (), {"stdout": out, "returncode": 0})()
+        with mock.patch.object(CAMPAIGN.subprocess, "run", side_effect=fake), \
+                mock.patch.object(CAMPAIGN.Path, "read_text", return_value="0.5 0.5 0.5 1/1 1"):
+            return CAMPAIGN.host_state()
+
+    def test_cold_host_allowlist_is_exact_and_utilization_bound(self) -> None:
+        daemons = "3031, /usr/libexec/gnome-remote-desktop-daemon\n7, nvidia-cuda-mps-server\n"
+        self.assertTrue(self._host(daemons, "1\n")["cold"])
+        self.assertFalse(self._host(daemons, "40\n")["cold"])
+        self.assertFalse(self._host(daemons + "9, python3\n", "1\n")["cold"])
+        self.assertFalse(self._host("9, /opt/carla/CarlaUE4-Linux-Shipping\n", "1\n")["cold"])
+        self.assertFalse(self._host("", "0\n", pgrep="123 ./nr-softmodem --rfsim")["cold"])
+        self.assertFalse(self._host("", "0\n", docker="oai-amf\n")["cold"])
+
     def test_deep_mode_is_refused_without_authorization(self) -> None:
         self.assertFalse(CAMPAIGN.AUTHORIZATION.exists())
         code = CAMPAIGN.main(["--mode", "deep", "--campaign-dir", "/nonexistent", "--seed", "17",

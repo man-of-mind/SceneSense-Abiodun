@@ -130,6 +130,22 @@ DESIGN: dict[str, Any] = {
                  "deep_training_authorized": False},
 }
 
+AMENDMENTS = (
+    {
+        "id": "A1_COLD_HOST_GPU_SYSTEM_DAEMON_ALLOWLIST",
+        "made_before_any_smoke_data": True,
+        "superseded_seal_sha256": "8bd54c22f1852428767fbf4f4433001341aea4dfd2ce547bc630e79bc4b7a32e",
+        "reason": ("the first smoke launch refused at the cold-host gate because nvidia-smi "
+                   "lists two persistent host services (gnome-remote-desktop-daemon, up 85 days; "
+                   "nvidia-cuda-mps-server, up 35 days) as compute apps at 1 % GPU utilization; "
+                   "no training step ran"),
+        "change": ("exactly those two process names are allow-listed only while GPU "
+                   "utilization <= 5 % and no other compute app exists; CARLA/OAI/RFsim/"
+                   "Phase-6/container checks are unchanged"),
+        "config_or_design_changed": False,
+    },
+)
+
 RUN5_SOURCES = (
     "__init__.py", "run5_state_contract.py", "run5_snr_v2.py", "run5_models.py",
     "run5_channel.py", "run5_collector.py", "run5_training.py", "run5_bundle.py",
@@ -191,6 +207,7 @@ def document(root: Path = ROOT) -> dict[str, Any]:
         "written_before_any_run5_smoke": True,
         "config": {k: list(v) if isinstance(v, tuple) else v for k, v in asdict(CONFIG).items()},
         "design": DESIGN,
+        "amendments": list(AMENDMENTS),
         "feature_schema_sha256": SNR.FEATURE_SCHEMA_SHA256,
         "feature_schema": SNR.FEATURE_SCHEMA_DESCRIPTOR,
         "model_binding_sha256": RM.RUN5_TRAINING_MODEL_BINDING_SHA256,
@@ -213,7 +230,8 @@ def load_sealed(root: Path = ROOT) -> dict[str, Any]:
         raise PreregistrationError("Run-5 training preregistration is not sealed")
     sealed = json.loads(path.read_text())
     current = document(root)
-    for key in ("schema", "config", "design", "feature_schema_sha256", "feature_schema",
+    for key in ("schema", "config", "design", "amendments", "feature_schema_sha256",
+                "feature_schema",
                 "model_binding_sha256"):
         if sealed.get(key) != current[key]:
             raise PreregistrationError(f"preregistration {key} differs from the code")

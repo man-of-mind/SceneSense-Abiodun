@@ -54,6 +54,11 @@ EXIT_STOPPED = 75
 EXIT_REFUSED = 4
 HOT_PROCESS_PATTERN = (r"CarlaUE|CarlaUnreal|nr-softmodem|nr-uesoftmodem|lte-softmodem|"
                        r"phase6_live|live_route_b|rfsim")
+# Persistent host services that hold a GPU context without running CUDA work.
+# Allowed only by exact process name and only while GPU utilization is <= 5 %.
+GPU_SYSTEM_DAEMONS = frozenset({"/usr/libexec/gnome-remote-desktop-daemon",
+                                "nvidia-cuda-mps-server"})
+GPU_IDLE_UTILIZATION_PERCENT = 5
 
 # Conservative disk model (bytes).  Calibrated against the smoke and reported.
 FIXED_BUNDLE_BYTES = 8 * 2**20
@@ -88,12 +93,20 @@ def host_state() -> dict[str, Any]:
     containers = [n for n in docker.stdout.split() if "oai" in n.lower() or "carla" in n.lower()]
     gpu = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,process_name",
                           "--format=csv,noheader"], capture_output=True, text=True)
-    gpu_apps = [line for line in gpu.stdout.splitlines() if line.strip()]
+    apps = [line.strip() for line in gpu.stdout.splitlines() if line.strip()]
+    allowed = [a for a in apps if a.split(",", 1)[-1].strip() in GPU_SYSTEM_DAEMONS]
+    gpu_apps = [a for a in apps if a not in allowed]
+    utilization = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu",
+                                  "--format=csv,noheader,nounits"], capture_output=True, text=True)
+    util = [int(v) for v in utilization.stdout.split()] if utilization.returncode == 0 else []
     load = [float(v) for v in Path("/proc/loadavg").read_text().split()[:3]]
     cold = (not processes and not containers and not gpu_apps and docker.returncode == 0
-            and gpu.returncode == 0 and load[0] < 0.5 * (os.cpu_count() or 1))
+            and gpu.returncode == 0 and bool(util)
+            and max(util) <= GPU_IDLE_UTILIZATION_PERCENT
+            and load[0] < 0.5 * (os.cpu_count() or 1))
     return {"cold": cold, "hot_processes": processes, "hot_containers": containers,
-            "gpu_compute_apps": gpu_apps, "loadavg": load, "cpu_count": os.cpu_count(),
+            "gpu_compute_apps": gpu_apps, "allowlisted_gpu_system_daemons": allowed,
+            "gpu_utilization_percent": util, "loadavg": load, "cpu_count": os.cpu_count(),
             "docker_ok": docker.returncode == 0, "nvidia_smi_ok": gpu.returncode == 0}
 
 

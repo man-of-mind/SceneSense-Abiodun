@@ -1,4 +1,14 @@
 {
+ "amendments": [
+  {
+   "change": "exactly those two process names are allow-listed only while GPU utilization <= 5 % and no other compute app exists; CARLA/OAI/RFsim/Phase-6/container checks are unchanged",
+   "config_or_design_changed": false,
+   "id": "A1_COLD_HOST_GPU_SYSTEM_DAEMON_ALLOWLIST",
+   "made_before_any_smoke_data": true,
+   "reason": "the first smoke launch refused at the cold-host gate because nvidia-smi lists two persistent host services (gnome-remote-desktop-daemon, up 85 days; nvidia-cuda-mps-server, up 35 days) as compute apps at 1 % GPU utilization; no training step ran",
+   "superseded_seal_sha256": "8bd54c22f1852428767fbf4f4433001341aea4dfd2ce547bc630e79bc4b7a32e"
+  }
+ ],
  "config": {
   "actor_learning_rate": 0.0003,
   "alpha_c": 0.02,
@@ -256,11 +266,11 @@
   "rl_agent/splitfusion_hybrid_sac_run5_v1/SUCCESSOR_MCS_SNR_AUDIT.json": "295ca76206d9dc9a5181a871c7644f9545edff384213d3e3a01c0886e4b683a6",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/__init__.py": "8468acc07597a41bccb957bf851ffef44a86ec93ef96e55a48cb5d9f224b83d4",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_bundle.py": "41fb8400af0e53489eec9b8f6ded6b5cb1c94780158962906abb36ecbc4d736d",
-  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_campaign.py": "4b7cfdc2d122938d93841b5ea3cb5d6cd6ae7c13f5bf0d45a939375ee5a605f3",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_campaign.py": "605aa063f2f1bc7c3987321a7b780e707c148c936156ca832f7c8af620e40041",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_channel.py": "6ed62c78ac8b6a1a0e29e8f72525589ed7274780a54fbf458b84b35ae1578118",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_collector.py": "8f6132eac5592c61619f218aa3fd6b692ae18872a6cc66431a10b8bfcd564221",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_models.py": "01358dcbadfd30e32bd0febdb24b1eb20258ff17a04ad6be27bdb59cfc0049db",
-  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_preregistration.py": "438c29cdb6e9e3fbb9ba9af37ce7124607f6a70751bf8391d2403bafef8d527a",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_preregistration.py": "bb97e1d35b344b171de8e3356df719b2e850e4202e1f7209da58df817a35db56",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_snr_v2.py": "94d68d5a0e048c35b02a04932c3594185da4977eb2f1d18f62e371bd9a9c1846",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_state_contract.py": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae",
   "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_training.py": "c7cb244095b36e944261d26e29c0ad68fbcfc390a3753d12bba5811ea05871f0",
