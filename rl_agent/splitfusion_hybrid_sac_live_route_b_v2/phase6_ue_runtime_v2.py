@@ -510,6 +510,10 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
             self.scene_hooks: Optional[Callable[[int, float], tuple]] = None
             # Addendum 9: called at decision open with (frame, carla ts, reward?).
             self.reward_planned_hook: Optional[Callable[[int, float, bool], None]] = None
+            from . import phase6_object_gt_v2 as OG
+
+            # Addendum 10: reward GT may be enqueued only after this mark exists.
+            self.last_datagram = OG.LastDatagramMarksV2()
             super().__init__(ledger=ledger, **kwargs)     # preloads models once
             self.contract = dec.load_dynamic_execution_contract()
             self.actor = FA.load_registered_actor()
@@ -656,6 +660,9 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                 for chunk in chunks:
                     self.sender.sendto(chunk, self.remote)
                 stages["last_packet_send_raw_ns"] = T.raw_now_ns()
+                # Addendum 10: record-only mark; the pinned worker enqueues the
+                # object-GT ticket after submit returns, never from here.
+                self.last_datagram.mark(int(frame_id), stages["last_packet_send_raw_ns"])
             except Exception as exc:  # noqa: BLE001
                 with self._engine_lock:
                     self.engine.transport_failed(prepared.plan, f"{type(exc).__name__}: {exc}")
@@ -803,19 +810,16 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
             return report
 
         def _run4_object_gt_evidence(self) -> dict[str, Any]:
-            """Addendum 9: reward gate, prefetch and builder/front overlap."""
+            """Addenda 9/10: reward gate, last-datagram marks, builder/front overlap."""
             from . import phase6_object_gt_v2 as OG
 
             gate = getattr(self, "gt_gate", None)
-            prefetcher = getattr(self, "gt_prefetcher", None)
-            if prefetcher is not None:
-                prefetcher.close()
             profiles = {int(row["frame_id"]): row["object_builder"]
                         for row in self.gt_log.snapshot()["tickets"]
                         if row.get("object_builder")}
             return {"gt_reward_gate": None if gate is None else {
                         "events": list(gate.events), "pending_at_close": gate.pending()},
-                    "gt_prefetch": None if prefetcher is None else list(prefetcher.records),
+                    "gt_last_datagram": self.last_datagram.snapshot(),
                     "gt_builder_overlap": OG.overlap_report(profiles, self.pipeline.decisions)}
 
     return Run4LiveRuntimeV2
@@ -853,10 +857,6 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             self._run4_window: "collections.OrderedDict[float, Any]" = collections.OrderedDict()
             self._run4_window_ready: "collections.OrderedDict[float, int]" = (
                 collections.OrderedDict())
-            # addendum 9: carla ts -> (camera inverse, radar world xyz) of the
-            # rasterization that feeds this frame's object-GT ticket
-            self._run4_gt_inputs: "collections.OrderedDict[float, tuple]" = (
-                collections.OrderedDict())
             super().__init__(**kwargs)
             original = self.aggregator.window_detections
 
@@ -890,13 +890,12 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             GP.install_timed_refresh(self.scene_source, log)
             # Addendum 9: the reward gate opens at decision open and closes when
             # the HIGH ticket is written (or the frame is never sent); LOW
-            # never starts, and yields, while it is open.
+            # never starts, and yields, while it is open. Addendum 10: no
+            # reward-GT work starts at decision open (the gate only).
             from . import phase6_object_gt_v2 as OG
 
             self._run4_gate = OG.RewardPendingGateV2()
-            self._run4_prefetcher = OG.RewardGtPrefetcherV2(self.parked._parked)
             self.live.gt_gate = self._run4_gate
-            self.live.gt_prefetcher = self._run4_prefetcher
             self.live.reward_planned_hook = self._run4_on_planned
             queue = OG.DeferringRewardPriorityGtQueueV2(
                 classify=self._run4_gt_class, maxsize_high=64, maxsize_low=64,
@@ -916,33 +915,10 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
 
         def _run4_on_planned(self, frame_id: int, carla_timestamp: float,
                              reward_requested: bool) -> None:
-            """Decision open: raise the gate and start reward-GT preparation."""
-            from . import phase6_object_gt_v2 as OG
-
-            if not reward_requested:
-                return
-            self._run4_gate.open(frame_id)
-            try:
-                with self._quality_scene_lock:
-                    world = self._quality_scenes.get(int(frame_id))   # peek, never pop
-                with self._run4_lock:
-                    inputs = self._run4_gt_inputs.get(float(carla_timestamp))
-                if world is None or inputs is None:
-                    self.live.gt_log.note(frame_id, prefetch_start="INPUTS_UNAVAILABLE")
-                    return
-                camera_inverse, radar_xyz = inputs
-                self._run4_prefetcher.start(
-                    frame_id, world=world, ego_id=int(self.ego.id),
-                    camera_inverse=camera_inverse, radar_world_xyz=radar_xyz,
-                    intrinsics=self.intrinsics, width=int(self.model_size[0]),
-                    height=int(self.model_size[1]),
-                    support=OG.support_parameters(self._run4_support_kwargs()),
-                    eligibility_distance_m=float(self.max_gt_distance_m))
-                self.live.gt_log.note(frame_id, prefetch_start="STARTED",
-                                      reward_gate_open_raw_ns=T.raw_now_ns())
-            except Exception as exc:  # noqa: BLE001 - an optimization never faults the action
-                self.live.gt_log.note(
-                    frame_id, prefetch_start=f"ERROR:{type(exc).__name__}: {exc}"[:200])
+            """Decision open: raise the reward gate only (LOW deferral)."""
+            del carla_timestamp
+            if reward_requested:
+                self._run4_gate.open(frame_id)
 
         @staticmethod
         def _run4_support_kwargs() -> dict[str, Any]:
@@ -964,29 +940,17 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             high = identity.get("reward_requested") is True
             klass = GP.HIGH if high else GP.LOW
             profile = OG.ObjectGtProfileV2(frame_id=frame_id, queue_class=klass)
-            precomputed, status = None, "LOW_NO_PREFETCH"
-            if high:
-                precomputed, status = self._run4_prefetcher.take(frame_id)
-                if precomputed is not None and not precomputed.matches(
-                        world=kwargs["world"], camera_inverse=kwargs["camera_inverse_matrix"],
-                        radar_world_xyz=kwargs["radar_world_xyz"],
-                        intrinsics=kwargs["intrinsics"], width=kwargs["width"],
-                        height=kwargs["height"], support=OG.support_parameters(kwargs)):
-                    precomputed, status = None, "PREFETCH_INPUT_MISMATCH"
             profile.begin()
             try:
                 rows = OG.build_object_rows_v2(
                     self.parked._parked, **kwargs,
                     eligibility_distance_m=float(self.max_gt_distance_m),
-                    precomputed=precomputed, profile=profile,
+                    profile=profile,
                     preempt=None if high else self._run4_gate.blocked)
             except OG.LowObjectGtPreempted:
-                self.live.gt_log.object_profile(frame_id, {
-                    **profile.end(outcome="LOW_PREEMPTED"), "prefetch": status})
+                self.live.gt_log.object_profile(frame_id, profile.end(outcome="LOW_PREEMPTED"))
                 raise
-            self.live.gt_log.object_profile(frame_id, {
-                **profile.end(), "prefetch": status,
-                "prefetch_timing": None if precomputed is None else precomputed.timing})
+            self.live.gt_log.object_profile(frame_id, profile.end())
             return rows
 
         def _run4_gt_class(self, item: Mapping[str, Any]) -> str:
@@ -996,7 +960,17 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             identity = self.live._run4_identity.get(frame_id)
             if identity is None or frame_id not in self.live._gt_identity:
                 raise GP.GtQueueError(f"object-GT ticket for foreign frame {frame_id}")
-            return GP.HIGH if identity.get("reward_requested") is True else GP.LOW
+            if identity.get("reward_requested") is not True:
+                return GP.LOW
+            # Addendum 10: reward GT is admitted only after the exact
+            # last-datagram-sent mark of the same frame exists.
+            sent_raw = self.live.last_datagram.get(frame_id)
+            if sent_raw is None:
+                raise GP.GtQueueError(
+                    f"reward object-GT for frame {frame_id} before last-datagram-sent")
+            self.live.gt_log.note(frame_id, last_datagram_raw_ns=sent_raw,
+                                  gt_enqueue_raw_ns=T.raw_now_ns())
+            return GP.HIGH
 
         def _ground_truth(self, **kwargs: Any):
             exact = kwargs.get("world") is not None and hasattr(self.live, "gt_log")
@@ -1026,14 +1000,6 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             started = T.raw_now_ns()
             result = real_build(**kwargs)
             ended = T.raw_now_ns()
-            import numpy as np
-
-            with self._run4_lock:                    # addendum 9: reward-GT inputs
-                self._run4_gt_inputs[timestamp] = (
-                    kwargs["camera_inverse_matrix"],
-                    np.asarray(result[1].get("world_xyz", np.zeros((0, 3)))))
-                while len(self._run4_gt_inputs) > 64:
-                    self._run4_gt_inputs.popitem(last=False)
             stages = self.live.sensor_stages
             stages[timestamp] = {
                 "radar_window_ready_raw_ns": ready_raw,

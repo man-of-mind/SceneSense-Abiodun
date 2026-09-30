@@ -166,18 +166,16 @@ COLLECTOR = U.build_run4_collector_class(type("Base", (), {}))
 class RepairedHost:
     """Exactly the attributes ``_run4_object_rows`` touches."""
 
-    def __init__(self, tracker, *, reward_frames=(), prefetch=True) -> None:
+    def __init__(self, tracker, *, reward_frames=()) -> None:
         self.world = object()
         self.max_gt_distance_m = 40.0
         self.live = types.SimpleNamespace(
             _run4_identity={f: {"reward_requested": f in reward_frames} for f in range(64)},
             gt_log=OG.GtTicketLogV3())
         self._run4_gate = OG.RewardPendingGateV2()
-        self._run4_prefetcher = OG.RewardGtPrefetcherV2(parked)
         self.parked = U._PreparationTimer(parked, lambda real, **kw: real(**kw),
                                           self._object_rows)
         self.gt = gt_host(self.parked, tracker)
-        self.prefetch = prefetch
 
     def _object_rows(self, real_build, **kwargs):
         return COLLECTOR._run4_object_rows(self, real_build, **kwargs)
@@ -187,15 +185,6 @@ class RepairedHost:
             self.gt, frame_id=frame, timestamp=frame / 10.0, camera_matrix=CAMERA_MATRIX,
             camera_inverse=CAMERA_INVERSE, radar_points=radar, world=world,
             camera_location=CAMERA.location)
-
-    def start_prefetch(self, frame, world, radar):
-        self._run4_prefetcher.start(
-            frame, world=world, ego_id=EGO.id, camera_inverse=CAMERA_INVERSE,
-            radar_world_xyz=np.asarray(radar["world_xyz"]), intrinsics=INTRINSICS,
-            width=WIDTH, height=HEIGHT,
-            support=OG.support_parameters(COLLECTOR._run4_support_kwargs()),
-            eligibility_distance_m=40.0)
-
 
 def reference_ground_truth(tracker, frame, world, radar):
     return pinned.PassiveSplitCollector._ground_truth(
@@ -272,8 +261,7 @@ class BuilderParityTest(unittest.TestCase):
                 self.assertEqual(counts["runtime_error_dropped"], 1)
             # tracker updated for every projected actor up to 140 m, exactly as before
             self.assertEqual(tracker_state(t_ref), tracker_state(host.gt.actor_tracker))
-            host._run4_prefetcher.close()
-
+    
     def test_limit_is_the_identical_actor_origin_distance_comparison(self) -> None:
         actor = pinned.FrozenActor(actor_id=5, type_id="vehicle.x", bounding_box=BBox(2, 1, 1),
                                    transform=Tf(Loc(40.0, 0.0, 1.8), 0.0),
@@ -288,67 +276,6 @@ class BuilderParityTest(unittest.TestCase):
         host = RepairedHost(copy.deepcopy(t_ref))
         self.assertEqual(exact(reference_ground_truth(t_ref, 0, world, radar)),
                          exact(host.ground_truth(0, world, radar)))
-        host._run4_prefetcher.close()
-
-    def test_prefetched_geometry_gives_identical_targets(self) -> None:
-        worlds, radar = scene_sequence(5)
-        t_ref = parked.ActorStationaryTracker(0.35, 5.0)
-        host = RepairedHost(copy.deepcopy(t_ref), reward_frames=set(range(5)))
-        for frame, (world, points) in enumerate(zip(worlds, radar)):
-            host.start_prefetch(frame, world, points)
-            new = host.ground_truth(frame, world, points)
-            self.assertEqual(exact(reference_ground_truth(t_ref, frame, world, points)),
-                             exact(new))
-            prof = host.live.gt_log.snapshot()["tickets"][-1]["object_builder"]
-            self.assertEqual(prof["prefetch"], "PREFETCH_READY")
-            self.assertGreater(prof["actor_counts"]["geometry_cache_hits"], 0)
-            self.assertGreater(prof["actor_counts"]["radar_cache_hits"], 0)
-        self.assertEqual(tracker_state(t_ref), tracker_state(host.gt.actor_tracker))
-        host._run4_prefetcher.close()
-
-    def test_prefetch_is_bound_to_the_exact_snapshot_and_arrays(self) -> None:
-        worlds, radar = scene_sequence(6, frames=2)
-        host = RepairedHost(parked.ActorStationaryTracker(0.35, 5.0), reward_frames={0})
-        host.start_prefetch(0, worlds[1], radar[0])            # wrong snapshot object
-        t_ref = parked.ActorStationaryTracker(0.35, 5.0)
-        new = host.ground_truth(0, worlds[0], radar[0])
-        prof = host.live.gt_log.snapshot()["tickets"][-1]["object_builder"]
-        self.assertEqual(prof["prefetch"], "PREFETCH_INPUT_MISMATCH")
-        self.assertEqual(exact(reference_ground_truth(t_ref, 0, worlds[0], radar[0])),
-                         exact(new))
-        cache, status = host._run4_prefetcher.take(7)
-        self.assertIsNone(cache)
-        self.assertEqual(status, "NO_PREFETCH")
-        other = OG.RewardGtPrecomputeV2(
-            world=worlds[0], camera_inverse=CAMERA_INVERSE,
-            radar_world_xyz=radar[0]["world_xyz"], intrinsics=INTRINSICS, width=WIDTH,
-            height=HEIGHT, support=OG.support_parameters(COLLECTOR._run4_support_kwargs()))
-        shifted = radar[0]["world_xyz"].copy()
-        shifted[0, 0] = np.nextafter(shifted[0, 0], np.inf)
-        self.assertFalse(other.matches(
-            world=worlds[0], camera_inverse=CAMERA_INVERSE, radar_world_xyz=shifted,
-            intrinsics=INTRINSICS, width=WIDTH, height=HEIGHT,
-            support=OG.support_parameters(COLLECTOR._run4_support_kwargs())))
-        host._run4_prefetcher.close()
-
-    def test_prefetch_never_mutates_the_tracker_or_scene(self) -> None:
-        worlds, radar = scene_sequence(7, frames=1)
-        tracker = parked.ActorStationaryTracker(0.35, 5.0)
-        before = tracker_state(tracker)
-        snapshot = [(a.id, a.get_location().x) for a in worlds[0].get_actors()
-                    if not isinstance(a, BrokenActor)]
-        cache = OG.RewardGtPrecomputeV2(
-            world=worlds[0], camera_inverse=CAMERA_INVERSE,
-            radar_world_xyz=radar[0]["world_xyz"], intrinsics=INTRINSICS, width=WIDTH,
-            height=HEIGHT, support=OG.support_parameters(COLLECTOR._run4_support_kwargs()))
-        cache.compute(parked, ego_id=1, camera_inverse=CAMERA_INVERSE,
-                      radar_world_xyz=radar[0]["world_xyz"], intrinsics=INTRINSICS,
-                      radar_range_m=50.0)
-        self.assertIsNone(cache.error)
-        self.assertEqual(tracker_state(tracker), before)
-        self.assertEqual(snapshot, [(a.id, a.get_location().x)
-                                    for a in worlds[0].get_actors()
-                                    if not isinstance(a, BrokenActor)])
 
     def test_identical_prediction_inputs_give_bit_identical_q_perc(self) -> None:
         from rl_agent.splitfusion_hybrid_sac_v1.offline_quality_grid import quality as Q
@@ -380,7 +307,6 @@ class BuilderParityTest(unittest.TestCase):
             self.assertEqual(exact(q_ref), exact(q_new))
             defined += q_ref is not None
         self.assertGreater(defined, 0)
-        host._run4_prefetcher.close()
 
     def test_live_q_perc_consumes_only_class_and_world_xy(self) -> None:
         """Velocity, stationary tracking and radar support are carried, not used."""
@@ -423,7 +349,6 @@ class SemanticAndIdentityTest(unittest.TestCase):
                                              world=host.world, sample_base={"frame_id": 1})
         self.assertEqual(result, ["x"])
         self.assertEqual(len(calls), 1)
-        host._run4_prefetcher.close()
 
 
 # ---------------------------------------------------------------------------
@@ -487,7 +412,6 @@ class LowDeferralTest(unittest.TestCase):
         prof = host.live.gt_log.snapshot()["tickets"][-1]["object_builder"]
         self.assertEqual(prof["outcome"], "LOW_PREEMPTED")
         self.assertEqual(prof["actor_counts"]["preempted_at_actor"], 10)
-        host._run4_prefetcher.close()
 
     def test_high_is_never_preempted(self) -> None:
         worlds, radar = scene_sequence(11, frames=1)
@@ -495,7 +419,6 @@ class LowDeferralTest(unittest.TestCase):
         host._run4_gate.open(3)
         host._run4_gate.open(4)
         self.assertTrue(host.ground_truth(3, worlds[0], radar[0]))
-        host._run4_prefetcher.close()
 
     def test_pinned_worker_accounts_every_ticket_with_skips(self) -> None:
         from .test_phase6_prewarm_gt_priority_v2 import FakeHost, _drain
@@ -543,7 +466,6 @@ class InstrumentationTest(unittest.TestCase):
         self.assertGreater(prof["actor_counts"]["actors_total"], 90)
         self.assertEqual(prof["queue_class"], "LOW")
         self.assertEqual(prof["outcome"], "COMPLETED")
-        host._run4_prefetcher.close()
 
     def test_overlap_with_front_codec_and_send_uses_one_raw_clock(self) -> None:
         profiles = {7: {"start_raw_ns": 1_000, "end_raw_ns": 5_000_000,
@@ -566,6 +488,191 @@ class InstrumentationTest(unittest.TestCase):
         out = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True,
                              text=True, timeout=120, check=True)
         self.assertEqual(out.stdout.strip(), "1")
+
+
+# ---------------------------------------------------------------------------
+# Addendum 10: reward GT is admitted only after the last datagram is sent
+# ---------------------------------------------------------------------------
+
+SEMANTIC_FILES_AT_00DC504 = {
+    "reward_hold_controller_v2.py": "ea90b149d84a29a3a008472891246384cec4431f52a4c159ee8a0ea4a05d3f3c",
+    "phase6_decision_engine_v2.py": "bea2e8467c4d1dd1a7d1b26d59faa3c48af127bd6b83a4f42f6757c5b96d0a16",
+    "run4_live_wire_v2.py": "2337edbfa2613a418a76a76235c190638cc088576903a61b5e408aabba669924",
+    "run4_map_protocol_v2.py": "ef6489f266ef3ca523b596edcece445f55b78eb24367a2789b4697089d02a6b5",
+    "phase6_edge_runtime_v2.py": "8446eaa50ec881028ff66e0718060410edf1c066b1f1589fc985457eb1111cd6",
+    "continuous_execution_v2.py": "3dd0ec16cf70e52585b5d20e23d1fe47a443eb6a1e01c4304ac7ce07728f9184",
+    "live_state_v2.py": "c74b2d1c43ef878651c5394802bd80213d41ea4baf3e67c59b23822e80c0a21a",
+    "frozen_actor_v2.py": "8851e3a0e10008ecd36b2be842a599c51d1de234584baa3581787e490cd29c8d",
+}
+
+
+class SendOrderHost:
+    """The attributes ``_run4_gt_class`` and the pinned GT worker touch."""
+
+    def __init__(self, *, reward_frames=(), compute_s=0.0) -> None:
+        from .test_phase6_prewarm_gt_priority_v2 import FakeHost
+
+        identities = {f: {"reward_requested": f in reward_frames, "frame_id": f,
+                          "session_uuid": "s-1", "decision_seq": f, "ticket_seq": f}
+                      for f in range(32)}
+        self.live = types.SimpleNamespace(
+            _run4_identity=identities,
+            _gt_identity={f: {"frame_id": f, "run_id": "r"} for f in range(32)},
+            last_datagram=OG.LastDatagramMarksV2(), gt_log=OG.GtTicketLogV3())
+        self.gate = OG.RewardPendingGateV2()
+        self.skipped: list = []
+        self.queue = OG.DeferringRewardPriorityGtQueueV2(
+            classify=lambda item: COLLECTOR._run4_gt_class(self, item),
+            low_blocked=self.gate.blocked,
+            on_skip=lambda frame, reason: self.skipped.append((frame, reason)),
+            on_enqueue=self.live.gt_log.enqueued, on_dequeue=self.live.gt_log.dequeued)
+        self.worker = FakeHost(self.queue, compute_s=compute_s)
+
+
+def _gt_ticket(frame: int) -> dict:
+    return {"frame_id": frame, "timestamp": frame / 10.0, "camera_matrix": None,
+            "camera_inverse": None, "radar_points": {}, "scene": object(),
+            "camera_location": None}
+
+
+class SendOrderedRewardGtTest(unittest.TestCase):
+    def test_reward_gt_cannot_start_before_last_datagram_sent(self) -> None:
+        from .test_phase6_prewarm_gt_priority_v2 import _drain
+
+        host = SendOrderHost(reward_frames={4})
+        thread = host.worker.run()
+        with self.assertRaisesRegex(GP.GtQueueError, "before last-datagram-sent"):
+            host.queue.put_nowait(_gt_ticket(4))
+        time.sleep(0.05)
+        self.assertEqual(host.worker.order, [])            # never started
+        self.assertEqual(host.queue.unfinished_tasks, 0)
+        self.assertTrue(_drain(host.worker, thread))
+
+    def test_reward_gt_starts_exactly_once_after_the_mark(self) -> None:
+        from .test_phase6_prewarm_gt_priority_v2 import _drain
+
+        host = SendOrderHost(reward_frames={4})
+        thread = host.worker.run()
+        self.assertTrue(host.live.last_datagram.mark(4, 1_000))
+        host.queue.put_nowait(_gt_ticket(4))
+        with self.assertRaises(GP.GtQueueError):            # a second ticket is refused
+            host.queue.put_nowait(_gt_ticket(4))
+        self.assertTrue(_drain(host.worker, thread))
+        self.assertEqual(host.worker.order, [4])
+        self.assertEqual(sorted(host.worker.source_gt), [4])
+        row = {r["frame_id"]: r for r in host.live.gt_log.snapshot()["tickets"]}[4]
+        self.assertEqual(row["last_datagram_raw_ns"], 1_000)
+        self.assertEqual(row["queue_class"], "HIGH")
+        self.assertGreaterEqual(row["gt_enqueue_raw_ns"], 1_000)
+
+    def test_duplicate_send_completion_cannot_duplicate_gt(self) -> None:
+        from .test_phase6_prewarm_gt_priority_v2 import _drain
+
+        host = SendOrderHost(reward_frames={6})
+        thread = host.worker.run()
+        self.assertTrue(host.live.last_datagram.mark(6, 500))
+        self.assertFalse(host.live.last_datagram.mark(6, 900))    # duplicate completion
+        self.assertEqual(host.live.last_datagram.get(6), 500)       # first instant kept
+        self.assertEqual(host.live.last_datagram.snapshot()["duplicates"], {"6": 1})
+        self.assertEqual(host.queue.qsize(), 0)                     # marking enqueues nothing
+        host.queue.put_nowait(_gt_ticket(6))
+        self.assertTrue(_drain(host.worker, thread))
+        self.assertEqual(host.worker.order, [6])
+
+    def test_marking_never_enqueues_computes_or_touches_identity(self) -> None:
+        host = SendOrderHost(reward_frames={2})
+        before = copy.deepcopy((host.live._run4_identity, host.live._gt_identity))
+        host.live.last_datagram.mark(2, 42)
+        self.assertEqual(host.queue.qsize(), 0)
+        self.assertEqual(host.worker.order, [])
+        self.assertEqual(before, (host.live._run4_identity, host.live._gt_identity))
+        self.assertEqual(COLLECTOR._run4_gt_class(host, {"frame_id": 2}), GP.HIGH)
+        self.assertEqual(host.live._run4_identity[2]["ticket_seq"], 2)
+
+    def test_low_work_cannot_delay_reward_gt(self) -> None:
+        from .test_phase6_prewarm_gt_priority_v2 import _drain
+
+        host = SendOrderHost(reward_frames={5}, compute_s=0.002)
+        host.queue.put_nowait(_gt_ticket(1))            # LOW queued before decision open
+        host.gate.open(5)                               # decision open (reward)
+        host.queue.put_nowait(_gt_ticket(3))            # LOW during the reward window
+        host.live.last_datagram.mark(5, 10)
+        host.queue.put_nowait(_gt_ticket(5))
+        thread = host.worker.run()
+        deadline = time.monotonic() + 2.0
+        while 5 not in host.worker.source_gt and time.monotonic() < deadline:
+            time.sleep(0.002)
+        host.gate.close(5, "OBJECT_GT_DONE")
+        self.assertTrue(_drain(host.worker, thread))
+        self.assertEqual(host.worker.order, [5])        # no LOW ran before or during it
+        self.assertEqual(sorted(host.skipped), [(1, "REWARD_PENDING_WHILE_QUEUED"),
+                                                (3, "REWARD_PENDING_AT_ENQUEUE")])
+        row = {r["frame_id"]: r for r in host.live.gt_log.snapshot()["tickets"]}[5]
+        self.assertLess(row["queue_wait_ms"], 50.0)
+
+    def test_low_tickets_need_no_send_mark(self) -> None:
+        host = SendOrderHost()
+        self.assertEqual(COLLECTOR._run4_gt_class(host, {"frame_id": 3}), GP.LOW)
+
+    def test_submit_marks_after_the_last_sendto_and_before_return(self) -> None:
+        import inspect
+
+        src = inspect.getsource(U.build_run4_runtime_class)
+        submit = src[src.index("        def submit("):src.index("        def _result_loop(")]
+        last = submit.index('stages["last_packet_send_raw_ns"] = T.raw_now_ns()')
+        mark = submit.index("self.last_datagram.mark(int(frame_id)")
+        loop = submit.index("self.sender.sendto(chunk, self.remote)")
+        ret = submit.index('return {"sent": True')
+        self.assertLess(loop, last)
+        self.assertLess(last, mark)
+        self.assertLess(mark, ret)
+        self.assertNotIn("evaluation_queue", submit)
+        self.assertNotIn("gt_queue", submit)
+        self.assertNotIn("_ground_truth", submit)
+
+    def test_no_helper_thread_pool_or_new_queue_remains(self) -> None:
+        import inspect
+
+        og = Path(OG.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("threading.Thread(", og)
+        self.assertNotIn("Prefetch", og)
+        self.assertNotIn("Precompute", og)
+        for forbidden in ("concurrent.futures", "import multiprocessing", "ProcessPool",
+                          "ThreadPool"):
+            self.assertNotIn(forbidden, og)
+        collector_src = inspect.getsource(U.build_run4_collector_class)
+        self.assertNotIn("prefetch", collector_src.lower())
+        self.assertNotIn("threading.Thread(", collector_src)
+        self.assertEqual(collector_src.count("DeferringRewardPriorityGtQueueV2("), 1)
+        planned = inspect.getsource(COLLECTOR._run4_on_planned)
+        self.assertNotIn("_quality_scenes", planned)          # no GT input at decision open
+
+    def test_reward_deadline_and_terminal_semantics_unchanged(self) -> None:
+        import hashlib
+
+        from . import reward_hold_controller_v2 as R
+
+        for name, digest in SEMANTIC_FILES_AT_00DC504.items():
+            data = (Path(__file__).parent / name).read_bytes()
+            self.assertEqual(hashlib.sha256(data).hexdigest(), digest, name)
+        self.assertEqual(R.REWARD_DEADLINE_NS, 170_000_000)
+        self.assertEqual(R.K_MIN, 2)
+
+    def test_addendum_10_binds_v8_v9_evidence_and_is_prospective(self) -> None:
+        import hashlib
+
+        doc = json.loads((Path(__file__).parent / "phase6_gt_send_order_addendum_10.json")
+                         .read_text(encoding="utf-8"))
+        self.assertEqual(doc["status"], "REGISTERED_BEFORE_ANY_NEW_PHASE6_EVIDENCE")
+        self.assertEqual(doc["base_commit_prefix"], "00dc504")
+        self.assertEqual(doc["handshake"]["acceptance"]["feedback_after_action_open_ms_max"],
+                         170.0)
+        self.assertTrue(doc["handshake"]["no_300_frame_run"])
+        self.assertEqual(len(doc["evidence_sha256_v8_v9"]), 116)
+        for rel, digest in doc["evidence_sha256_v8_v9"].items():
+            path = ROOT / rel
+            if path.is_file():             # evidence is kept off Git; verify when present
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest, rel)
 
 
 class CarlaProbeOfflineTest(unittest.TestCase):
@@ -592,7 +699,7 @@ class CarlaProbeOfflineTest(unittest.TestCase):
                                    "start_raw_ns": ao_raw + 28_000_000,
                                    "end_raw_ns": ao_raw + 48_000_000,
                                    "end_wall_ns": ready - 2_000_000,
-                                   "outcome": "COMPLETED", "prefetch": "PREFETCH_READY"}})
+                                   "outcome": "COMPLETED"}})
             if reward:
                 events += [{"frame_id": frame, "event": "open", "raw_ns": ao_raw},
                            {"frame_id": frame, "event": "close", "raw_ns": ao_raw + 60_000_000}]
@@ -744,23 +851,12 @@ class RealCarlaTypesParityTest(unittest.TestCase):
             kwargs = dict(frame_id=frame, timestamp=frame / 10.0, camera_matrix=matrix,
                           camera_inverse=inverse, radar_points=radar, world=world,
                           camera_location=cam.location)
-            if frame in (1, 3):
-                self._prefetch(host, frame, world, inverse, radar)
             ref = pinned.PassiveSplitCollector._ground_truth(gt_host(parked, t_ref), **kwargs)
             new = pinned.PassiveSplitCollector._ground_truth(host.gt, **kwargs)
             self.assertTrue(ref)
             self.assertEqual(exact(ref), exact(new))
         self.assertEqual(tracker_state(t_ref), tracker_state(host.gt.actor_tracker))
-        host._run4_prefetcher.close()
 
-    @staticmethod
-    def _prefetch(host, frame, world, inverse, radar) -> None:
-        host._run4_prefetcher.start(
-            frame, world=world, ego_id=EGO.id, camera_inverse=inverse,
-            radar_world_xyz=np.asarray(radar["world_xyz"]), intrinsics=INTRINSICS,
-            width=WIDTH, height=HEIGHT,
-            support=OG.support_parameters(COLLECTOR._run4_support_kwargs()),
-            eligibility_distance_m=40.0)
 
 
 if __name__ == "__main__":  # pragma: no cover

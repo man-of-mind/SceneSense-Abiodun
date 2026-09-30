@@ -1,5 +1,5 @@
-"""Addendum 9: instrumented, range-limited object-GT construction with a
-reward-only early start and LOW deferral.
+"""Addenda 9/10: instrumented, range-limited object-GT construction with LOW
+deferral, admitted to the HIGH queue only after the last datagram is sent.
 
 The v8 handshake showed the reward ACK missing 170 ms because simulator
 object-GT generation for the reward frame took 372 ms. The pinned builder
@@ -25,26 +25,22 @@ following:
   exactly as before, and every surviving row is bit-identical.
 * Per-stage wall time, thread CPU time, context switches and actor counts
   (:class:`ObjectGtProfileV2`).
-* An optional :class:`RewardGtPrecomputeV2` cache. Once the reward-requested
-  decision opens, a dedicated thread computes the camera-location-independent
-  pure functions for each actor of the immutable same-frame frozen snapshot
-  (corners, projection, radar support). Distance, the tracker and row
-  assembly always run later on the evaluation worker, with the exact
-  ``camera_location`` the pinned ticket carries. Cache entries are bound to
-  the same frozen-world object, camera inverse and radar window. A cache miss
-  is computed inline, so the output never depends on timing.
+* Addendum 10 removed the addendum-9 decision-open prefetch thread (it
+  contended with the reward frame's 7-channel preparation in v9). Reward GT
+  is admitted to the existing HIGH queue only after the frame's exact
+  last-datagram-sent mark (:class:`LastDatagramMarksV2`) exists; the mark is
+  record-only and never enqueues or computes anything.
 * Cooperative LOW preemption. A non-reward ticket stops as soon as a reward
   ticket becomes pending (:class:`LowObjectGtPreempted`), so LOW never runs
   while HIGH is pending or running.
 
-It uses no multiprocessing and makes no approximation. GT definitions are
+It starts no thread or process and makes no approximation. GT definitions are
 unchanged. Importing this module performs no I/O.
 """
 
 from __future__ import annotations
 
 import collections
-import hashlib
 import math
 import resource
 import threading
@@ -58,7 +54,6 @@ from . import phase6_gt_priority_v2 as GP
 PATTERNS = (("vehicle", "vehicle.*"), ("person", "walker.pedestrian.*"))
 STAGES = ("actor_list", "filter", "distance", "bbox_corners", "projection", "tracker",
           "radar_support", "row_build")
-PRECOMPUTE_RANGE_MARGIN_M = 10.0
 LOW_SKIPPED_STATUS = "OBJECT_GT_LOW_SKIPPED_REWARD_PRIORITY"
 
 
@@ -117,102 +112,8 @@ class ObjectGtProfileV2:
         return out
 
 
-def _array_digest(array: Any) -> str:
-    arr = np.ascontiguousarray(np.asarray(array))
-    return hashlib.sha256(str(arr.dtype).encode() + str(arr.shape).encode()
-                          + arr.tobytes()).hexdigest()
-
-
-def _camera_position(camera_inverse: np.ndarray) -> np.ndarray:
-    """World position of the camera from its world->camera matrix."""
-    inv = np.asarray(camera_inverse, dtype=np.float64)
-    return -inv[:3, :3].T @ inv[:3, 3]
-
-
 def _person_support(label: str, mode: str) -> str:
     return "person_radius" if label == "person" and mode == "radius" else "bbox"
-
-
-class RewardGtPrecomputeV2:
-    """Camera-location-independent per-actor geometry for one frozen frame.
-
-    Holds only values that are pure functions of (frozen actor, camera
-    inverse, intrinsics, image size, radar window, support parameters). It is
-    bound to the exact inputs and is never consulted for a different world
-    object or different arrays.
-    """
-
-    def __init__(self, *, world: Any, camera_inverse: np.ndarray, radar_world_xyz: np.ndarray,
-                 intrinsics: np.ndarray, width: int, height: int,
-                 support: Mapping[str, Any]) -> None:
-        self.world = world
-        self.camera_inverse_digest = _array_digest(camera_inverse)
-        self.radar_digest = _array_digest(radar_world_xyz)
-        self.intrinsics_digest = _array_digest(intrinsics)
-        self.size = (int(width), int(height))
-        self.support = dict(support)
-        self.geometry: dict[int, Any] = {}       # id -> None | (center, corners, projection)
-        self.radar_support: dict[int, int] = {}
-        self.completed = threading.Event()
-        self.error: Optional[str] = None
-        self.timing: dict[str, Any] = {}
-
-    def matches(self, *, world: Any, camera_inverse: np.ndarray, radar_world_xyz: np.ndarray,
-                intrinsics: np.ndarray, width: int, height: int,
-                support: Mapping[str, Any]) -> bool:
-        return (world is self.world
-                and _array_digest(camera_inverse) == self.camera_inverse_digest
-                and _array_digest(radar_world_xyz) == self.radar_digest
-                and _array_digest(intrinsics) == self.intrinsics_digest
-                and (int(width), int(height)) == self.size
-                and dict(support) == self.support)
-
-    def compute(self, parked: Any, *, ego_id: int, camera_inverse: np.ndarray,
-                radar_world_xyz: np.ndarray, intrinsics: np.ndarray,
-                radar_range_m: float) -> None:
-        """Fill the cache (the reward-GT prefetch thread; never mutates state)."""
-        started_perf, started_cpu = time.perf_counter_ns(), time.thread_time_ns()
-        started_raw = raw_now_ns()
-        try:
-            camera_pos = _camera_position(camera_inverse)
-            actors = self.world.get_actors()
-            width, height = self.size
-            for label, pattern in PATTERNS:
-                for actor in actors.filter(pattern):
-                    actor_id = int(actor.id)
-                    if actor_id == int(ego_id):
-                        continue
-                    try:
-                        center, corners = parked.actor_bbox_world_points(actor)
-                    except RuntimeError:
-                        continue          # the worker handles it identically inline
-                    projection = parked.project_world_points_to_bbox(
-                        corners, camera_inverse, intrinsics, width, height)
-                    self.geometry[actor_id] = (center, corners, projection)
-                    if projection is None:
-                        continue
-                    location = actor.get_location()
-                    offset = np.asarray([float(location.x), float(location.y),
-                                         float(location.z)]) - camera_pos
-                    if float(np.sqrt(offset @ offset)) > float(radar_range_m):
-                        continue
-                    self.radar_support[actor_id] = parked.radar_support_count(
-                        actor=actor, label=label, radar_world_xyz=radar_world_xyz,
-                        margin_m=float(self.support["margin_m"]),
-                        person_support_mode=str(self.support["person_mode"]),
-                        person_radius_m=float(self.support["person_radius_m"]),
-                        person_z_down_m=float(self.support["person_z_down_m"]),
-                        person_z_up_m=float(self.support["person_z_up_m"]))
-        except Exception as exc:  # noqa: BLE001 - the worker recomputes inline
-            self.error = f"{type(exc).__name__}: {exc}"[:300]
-        finally:
-            self.timing = {"start_raw_ns": started_raw, "end_raw_ns": raw_now_ns(),
-                           "wall_ms": (time.perf_counter_ns() - started_perf) / 1e6,
-                           "thread_cpu_ms": (time.thread_time_ns() - started_cpu) / 1e6,
-                           "geometry_actors": len(self.geometry),
-                           "radar_support_actors": len(self.radar_support),
-                           "error": self.error}
-            self.completed.set()
 
 
 def build_object_rows_v2(parked: Any, *, world: Any, ego_vehicle: Any,
@@ -227,12 +128,11 @@ def build_object_rows_v2(parked: Any, *, world: Any, ego_vehicle: Any,
                          radar_person_support_z_down_m: float = 0.5,
                          radar_person_support_z_up_m: float = 2.0,
                          eligibility_distance_m: Optional[float] = None,
-                         precomputed: Optional[RewardGtPrecomputeV2] = None,
                          profile: Optional[ObjectGtProfileV2] = None,
                          preempt: Optional[Callable[[], bool]] = None) -> list[dict[str, Any]]:
     """The pinned ``build_object_rows`` with range-limited post-projection work.
 
-    With ``eligibility_distance_m=None`` and no cache this returns exactly the
+    With ``eligibility_distance_m=None`` this returns exactly the
     pinned rows. With it, it returns exactly the pinned rows whose
     ``gt_distance_m`` is not greater than it, and it leaves the tracker in the
     identical state.
@@ -241,8 +141,6 @@ def build_object_rows_v2(parked: Any, *, world: Any, ego_vehicle: Any,
     perf = time.perf_counter_ns
     prof = profile
     counts = prof.counts if prof is not None else collections.Counter()
-    geometry = precomputed.geometry if precomputed is not None else {}
-    support_cache = precomputed.radar_support if precomputed is not None else {}
     rows: list[dict[str, Any]] = []
     patterns = [PATTERNS[0]] + ([PATTERNS[1]] if include_pedestrians else [])
     t0 = perf()
@@ -269,7 +167,6 @@ def build_object_rows_v2(parked: Any, *, world: Any, ego_vehicle: Any,
             if int(actor.id) == int(ego_vehicle.id):
                 counts["ego_skipped"] += 1
                 continue
-            actor_id = int(actor.id)
             # Same try-scope semantics as the pinned function: any RuntimeError
             # from transform/bbox/corners/distance drops the actor.
             t0 = perf()
@@ -287,23 +184,18 @@ def build_object_rows_v2(parked: Any, *, world: Any, ego_vehicle: Any,
                 counts["beyond_builder_limit"] += 1
                 continue
             counts["within_builder_limit"] += 1
-            cached = geometry.get(actor_id)
-            if cached is not None:
-                center_world, corners_world, projection = cached
-                counts["geometry_cache_hits"] += 1
-            else:
-                try:
-                    center_world, corners_world = parked.actor_bbox_world_points(actor)
-                except RuntimeError:
-                    counts["runtime_error_dropped"] += 1
-                    continue
-                t2 = perf()
-                if prof is not None:
-                    prof.add("bbox_corners", t2 - t1)
-                projection = parked.project_world_points_to_bbox(
-                    corners_world, camera_inverse_matrix, intrinsics, int(width), int(height))
-                if prof is not None:
-                    prof.add("projection", perf() - t2)
+            try:
+                center_world, corners_world = parked.actor_bbox_world_points(actor)
+            except RuntimeError:
+                counts["runtime_error_dropped"] += 1
+                continue
+            t2 = perf()
+            if prof is not None:
+                prof.add("bbox_corners", t2 - t1)
+            projection = parked.project_world_points_to_bbox(
+                corners_world, camera_inverse_matrix, intrinsics, int(width), int(height))
+            if prof is not None:
+                prof.add("projection", perf() - t2)
             if projection is None:
                 counts["not_projected"] += 1
                 continue
@@ -321,17 +213,13 @@ def build_object_rows_v2(parked: Any, *, world: Any, ego_vehicle: Any,
                 counts["beyond_eligibility_limit"] += 1
                 continue
             counts["within_eligibility_limit"] += 1
-            support = support_cache.get(actor_id)
-            if support is not None:
-                counts["radar_cache_hits"] += 1
-            else:
-                support = parked.radar_support_count(
-                    actor=actor, label=label, radar_world_xyz=radar_world_xyz,
-                    margin_m=float(radar_support_margin_m),
-                    person_support_mode=str(radar_person_support_mode),
-                    person_radius_m=float(radar_person_support_radius_m),
-                    person_z_down_m=float(radar_person_support_z_down_m),
-                    person_z_up_m=float(radar_person_support_z_up_m))
+            support = parked.radar_support_count(
+                actor=actor, label=label, radar_world_xyz=radar_world_xyz,
+                margin_m=float(radar_support_margin_m),
+                person_support_mode=str(radar_person_support_mode),
+                person_radius_m=float(radar_person_support_radius_m),
+                person_z_down_m=float(radar_person_support_z_down_m),
+                person_z_up_m=float(radar_person_support_z_up_m))
             t5 = perf()
             if prof is not None:
                 prof.add("radar_support", t5 - t4)
@@ -428,67 +316,34 @@ class RewardPendingGateV2:
             return sorted(self._pending)
 
 
-class RewardGtPrefetcherV2:
-    """One thread (not a process) that fills reward-frame precompute caches."""
+class LastDatagramMarksV2:
+    """Record-only, first-wins last-datagram-sent instant per frame (raw clock).
 
-    def __init__(self, parked: Any, *, maxlen: int = 8) -> None:
-        self._parked = parked
-        self._jobs: "collections.deque" = collections.deque()
-        self._cond = threading.Condition()
-        self._caches: "collections.OrderedDict[int, RewardGtPrecomputeV2]" = (
-            collections.OrderedDict())
-        self._maxlen = int(maxlen)
-        self._stop = False
-        self.records: list[dict[str, Any]] = []
-        self._thread = threading.Thread(target=self._run, name="run4-reward-gt-prefetch",
-                                        daemon=True)
-        self._thread.start()
+    Marking never enqueues or computes object GT; a repeated completion for
+    the same frame keeps the first instant and is only counted.
+    """
 
-    def start(self, frame_id: int, *, world: Any, ego_id: int, camera_inverse: np.ndarray,
-              radar_world_xyz: np.ndarray, intrinsics: np.ndarray, width: int, height: int,
-              support: Mapping[str, Any], eligibility_distance_m: float) -> None:
-        cache = RewardGtPrecomputeV2(world=world, camera_inverse=camera_inverse,
-                                     radar_world_xyz=radar_world_xyz, intrinsics=intrinsics,
-                                     width=width, height=height, support=support)
-        job = dict(ego_id=int(ego_id), camera_inverse=camera_inverse,
-                   radar_world_xyz=radar_world_xyz, intrinsics=intrinsics,
-                   radar_range_m=float(eligibility_distance_m) + PRECOMPUTE_RANGE_MARGIN_M)
-        with self._cond:
-            self._caches[int(frame_id)] = cache
-            while len(self._caches) > self._maxlen:
-                self._caches.popitem(last=False)
-            self._jobs.append((int(frame_id), cache, job, raw_now_ns()))
-            self._cond.notify_all()
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._marks: dict[int, int] = {}
+        self.duplicates: dict[int, int] = {}
 
-    def _run(self) -> None:
-        while True:
-            with self._cond:
-                while not self._jobs and not self._stop:
-                    self._cond.wait()
-                if self._stop and not self._jobs:
-                    return
-                frame_id, cache, job, opened = self._jobs.popleft()
-            cache.compute(self._parked, **job)
-            self.records.append({"frame_id": frame_id, "opened_raw_ns": opened,
-                                 **cache.timing})
+    def mark(self, frame_id: int, raw_ns: int) -> bool:
+        with self._lock:
+            if int(frame_id) in self._marks:
+                self.duplicates[int(frame_id)] = self.duplicates.get(int(frame_id), 0) + 1
+                return False
+            self._marks[int(frame_id)] = int(raw_ns)
+            return True
 
-    def take(self, frame_id: int, *, timeout_s: float = 1.0
-             ) -> tuple[Optional[RewardGtPrecomputeV2], str]:
-        with self._cond:
-            cache = self._caches.pop(int(frame_id), None)
-        if cache is None:
-            return None, "NO_PREFETCH"
-        if not cache.completed.wait(timeout_s):
-            return None, "PREFETCH_TIMEOUT"
-        if cache.error:
-            return None, "PREFETCH_ERROR"
-        return cache, "PREFETCH_READY"
+    def get(self, frame_id: int) -> Optional[int]:
+        with self._lock:
+            return self._marks.get(int(frame_id))
 
-    def close(self) -> None:
-        with self._cond:
-            self._stop = True
-            self._cond.notify_all()
-        self._thread.join(timeout=2.0)
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {"marks": {str(k): v for k, v in sorted(self._marks.items())},
+                    "duplicates": {str(k): v for k, v in sorted(self.duplicates.items())}}
 
 
 class DeferringRewardPriorityGtQueueV2(GP.RewardPriorityGtQueueV2):
@@ -591,6 +446,6 @@ def overlap_report(profiles: Mapping[int, Mapping[str, Any]],
 
 
 __all__ = ["PATTERNS", "STAGES", "LowObjectGtPreempted", "ObjectGtProfileV2",
-           "RewardGtPrecomputeV2", "build_object_rows_v2", "support_parameters",
-           "RewardPendingGateV2", "RewardGtPrefetcherV2", "DeferringRewardPriorityGtQueueV2",
+           "build_object_rows_v2", "support_parameters", "LastDatagramMarksV2",
+           "RewardPendingGateV2", "DeferringRewardPriorityGtQueueV2",
            "GtTicketLogV3", "overlap_report", "raw_now_ns", "LOW_SKIPPED_STATUS"]

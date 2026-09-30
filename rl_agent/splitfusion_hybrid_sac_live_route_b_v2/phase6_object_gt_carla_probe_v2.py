@@ -10,7 +10,7 @@ The child drives the real Route-B collector chain,
 ``build_run4_collector_class(QualityPassiveSplitCollector)`` over the pinned
 ``PassiveSplitCollector``: the real sensors, radar window, rasterization,
 scene freezing, the pinned evaluation worker, the pinned ``_ground_truth``,
-the repaired object-row hook, the reward gate, prefetch and LOW skip, and the
+the repaired object-row hook, the reward gate and LOW skip, and the
 real object/semantic GT writers. Only the UE runtime is replaced, by
 :class:`ProbeRuntimeV2`. That stub alternates reward-requested and hold
 frames, opens the decision (the ``reward_planned_hook``), and then sleeps the
@@ -132,6 +132,7 @@ class ProbeRuntimeV2:
         self.infrastructure_fault = None
         self.counters = _NoCounters()
         self.gt_log = OG.GtTicketLogV3()
+        self.last_datagram = OG.LastDatagramMarksV2()
         self.records: dict[int, dict[str, Any]] = {}
         self.sent = 0
         self._lock = threading.Lock()
@@ -174,6 +175,7 @@ class ProbeRuntimeV2:
             anchor_profile_id=None, capture_timestamp_ns=int(capture_timestamp_ns))
         if on_commit is not None:
             on_commit()
+        self.last_datagram.mark(int(frame_id), T.raw_now_ns())   # emulated last datagram
         done_raw, done_wall = T.raw_now_ns(), time.time_ns()
         with self._lock:
             self.records[int(frame_id)] = {
@@ -190,14 +192,11 @@ class ProbeRuntimeV2:
         from . import phase6_object_gt_v2 as OG
 
         gate = getattr(self, "gt_gate", None)
-        prefetcher = getattr(self, "gt_prefetcher", None)
-        if prefetcher is not None:
-            prefetcher.close()
         evidence = {"records": [self.records[k] for k in sorted(self.records)],
                     "gt_objects": self.gt_log.snapshot(),
                     "gt_reward_gate": None if gate is None else {
                         "events": list(gate.events), "pending_at_close": gate.pending()},
-                    "gt_prefetch": None if prefetcher is None else list(prefetcher.records),
+                    "gt_last_datagram": self.last_datagram.snapshot(),
                     "gt_queue": None if getattr(self, "gt_queue", None) is None else {
                         "counters": dict(self.gt_queue.counters),
                         "unfinished_tasks": self.gt_queue.unfinished_tasks},
@@ -319,13 +318,11 @@ def timing_summary(evidence: Mapping[str, Any]) -> dict[str, Any]:
         row = {"frame_id": frame, "reward_requested": rec["reward_requested"],
                "queue_class": t.get("queue_class"), "queue_wait_ms": t.get("queue_wait_ms"),
                "low_skipped": t.get("low_skipped"), "outcome": prof.get("outcome"),
-               "prefetch": prof.get("prefetch"),
                "builder_wall_ms": prof.get("wall_ms"),
                "builder_thread_cpu_ms": prof.get("thread_cpu_ms"),
                "voluntary_ctx_switches": prof.get("voluntary_ctx_switches"),
                "involuntary_ctx_switches": prof.get("involuntary_ctx_switches"),
-               "stage_ms": prof.get("stage_ms"), "actor_counts": prof.get("actor_counts"),
-               "prefetch_timing": prof.get("prefetch_timing")}
+               "stage_ms": prof.get("stage_ms"), "actor_counts": prof.get("actor_counts")}
         ao_wall = rec["action_open_wall_ns"]
         for key, name in (("enqueue_wall_ns", "enqueue"), ("worker_start_wall_ns", "dequeue"),
                           ("object_rows_start_wall_ns", "gt_call_start"),

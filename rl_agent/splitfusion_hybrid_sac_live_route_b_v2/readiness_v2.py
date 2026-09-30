@@ -68,6 +68,8 @@ PACKAGE_SOURCES = (
     # Addendum 9: instrumented, range-limited object GT; reward gate; early start.
     "phase6_object_gt_v2.py", "phase6_object_gt_carla_probe_v2.py",
     "test_phase6_object_gt_v2.py", "phase6_object_gt_repair_addendum_9.json",
+    # Addendum 10: reward GT admitted only after last-datagram-sent (no prefetch).
+    "phase6_object_gt_repair_results_v9.json", "phase6_gt_send_order_addendum_10.json",
 )
 
 
