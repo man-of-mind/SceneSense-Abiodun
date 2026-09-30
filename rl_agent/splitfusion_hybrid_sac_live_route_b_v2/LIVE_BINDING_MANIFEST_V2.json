@@ -90,7 +90,7 @@
     },
     "startup_artifact_count": 27
   },
-  "manifest_sha256": "e42c8b3a2e212ab0bc3deeb7dac16f165840ef248d014f676ec4ee0b2f44ac29",
+  "manifest_sha256": "12ae8dd26446007bcd18e4c3b79aa865364a6ca634209c6657e17ddd12bc1335",
   "package_sources": {
     "ACTOR_BINDING_V2.json": "3a59d1caaa0f7cd26fe22d7ebeab4466c99ae80b1664d14d398cdcb91ffab5f6",
     "continuous_execution_v2.py": "3dd0ec16cf70e52585b5d20e23d1fe47a443eb6a1e01c4304ac7ce07728f9184",
@@ -108,6 +108,7 @@
     "phase6_gt_handoff_v2.py": "60a4d5a4cf28c6ea05543ed0f8b5e33f283bb040c6a984d106335ccb254b5020",
     "phase6_gt_priority_v2.py": "44f3720487b9db19e6525e467e948e44a803b03aeb2262f94a2337268188bd4d",
     "phase6_gt_send_order_addendum_10.json": "26b6e18806ca96df9bfd31b76c3bc283b870aaeb17df1c81fff5911a1573279d",
+    "phase6_gt_send_order_results_v10.json": "912daed47ae08f8dbc8fff292dabfa20c309540a9962c49e86dbbb30a3d97e63",
     "phase6_handshake_manifest_v7.json": "5ab14afea39bf0e8601bd6b4365d65517daf740e5e2673163bb520389d0eb531",
     "phase6_live_child_nobuild_v2.py": "6ec099b08db4a698d04885086b4a76e27cba18a75f205184a926ebfc56022475",
     "phase6_live_child_v2.py": "36d23244c86d3470b3d266cf27ecfd8fa3b65761f745eb729c2164cac7ff2550",
@@ -125,7 +126,9 @@
     "phase6_result_reporting_v2.py": "e09428b91c5ed0813bcf785418937928adf8772677f465c7f8d2b9723603fc7f",
     "phase6_setup_repair_addendum_3.json": "eba95a703d41ab70764f45ffc1a99cf3aa19a4b931e170ac8de3e89e8716aaef",
     "phase6_setup_repair_addendum_4.json": "a1848751c51fe93aa03806409933331a7cf70729aa2984e6c247ff4540dc23aa",
-    "phase6_ue_runtime_v2.py": "c5aab59f9f99468f27bd5a29f6347dd27238aa97b334786e8721444d5d8ad33a",
+    "phase6_timing_characterization_addendum_11.json": "ebd6f12a7cdda28bd27756a8c8667c627063197f1271709726f6be1d0f5366aa",
+    "phase6_timing_characterization_v2.py": "a10a57b58bc858eacd51b50cc5bfd992c270bdb6efbd780ac813f34dfb7ceb4e",
+    "phase6_ue_runtime_v2.py": "c97103645d4e55dea3a35a7be8b942ec15d1320223d83996c04bcb5d5ebc3e66",
     "reward_hold_controller_v2.py": "ea90b149d84a29a3a008472891246384cec4431f52a4c159ee8a0ea4a05d3f3c",
     "run4_live_wire_v2.py": "2337edbfa2613a418a76a76235c190638cc088576903a61b5e408aabba669924",
     "run4_map_protocol_v2.py": "ef6489f266ef3ca523b596edcece445f55b78eb24367a2789b4697089d02a6b5",
@@ -136,6 +139,7 @@
     "test_phase6_ready_contract_v2.py": "610e28e91d7f0e85bb2181c1a3e07561c2855f2dd0122c074e04feae634b8834",
     "test_phase6_repair_diagnostic_v2.py": "eb020b99e93d2179c5552cf8d36beea54335a95618791992dd1913143075dc1d",
     "test_phase6_route_diagnostic_hot_repeat_v2.py": "ffcb5af166cee3e4aa839926d39b2b4d87ca9c3d8947be26b8c53541730b2d98",
+    "test_phase6_timing_characterization_v2.py": "e030ad4f860d701cc35892da952b134380b1520a58700d060775558422a8c226",
     "ue_telemetry_provider_v2.py": "7bcd8bcc82fc3b085c999719d18968a097acfb1f854f16e28cc19fbb63008217"
   },
   "radio": {

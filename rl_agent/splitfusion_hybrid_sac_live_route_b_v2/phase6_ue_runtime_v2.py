@@ -788,6 +788,7 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                 "prewarm_ue_completed": bool(self.prewarm_report.get("completed")),
                 "gt_refresh_startup": getattr(self, "gt_refresh_startup", None),
                 "gt_objects": self.gt_log.snapshot(),
+                "carla_trace": getattr(self, "carla_trace", None),
                 **self._run4_object_gt_evidence(),
                 "gt_missing_high_outputs": self.gt_log.missing_high_outputs(),
                 "gt_queue": ({"counters": dict(self.gt_queue.counters),
@@ -857,7 +858,11 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             self._run4_window: "collections.OrderedDict[float, Any]" = collections.OrderedDict()
             self._run4_window_ready: "collections.OrderedDict[float, int]" = (
                 collections.OrderedDict())
+            # Addendum 11: every world tick and RGB receipt (raw clock), for the
+            # CARLA side of the GPU-overlap measurement; record-only.
+            self._run4_carla_trace: dict[str, list] = {"ticks": [], "rgb": []}
             super().__init__(**kwargs)
+            self.live.carla_trace = self._run4_carla_trace
             original = self.aggregator.window_detections
 
             def recorded(*args: Any, **keywords: Any):
@@ -1026,8 +1031,10 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
                 self._request_probe_stop("DECISION_CYCLE_BOUNDARY")
 
         def _on_rgb(self, image: Any) -> None:
+            received = T.raw_now_ns()
+            self._run4_carla_trace["rgb"].append((int(image.frame), received))
             with self._run4_lock:
-                self._run4_rgb_raw[int(image.frame)] = T.raw_now_ns()
+                self._run4_rgb_raw[int(image.frame)] = received
                 while len(self._run4_rgb_raw) > 64:
                     self._run4_rgb_raw.popitem(last=False)
             super()._on_rgb(image)
@@ -1041,6 +1048,8 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             return meta, rgb_raw
 
         def on_world_tick(self, frame_id: int, route_tick: int) -> None:
+            self._run4_carla_trace["ticks"].append((int(frame_id), int(route_tick),
+                                                    T.raw_now_ns()))
             fault = getattr(self.live, "infrastructure_fault", None)
             if fault:
                 self.failures.append(fault)

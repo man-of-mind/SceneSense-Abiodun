@@ -70,6 +70,9 @@ PACKAGE_SOURCES = (
     "test_phase6_object_gt_v2.py", "phase6_object_gt_repair_addendum_9.json",
     # Addendum 10: reward GT admitted only after last-datagram-sent (no prefetch).
     "phase6_object_gt_repair_results_v9.json", "phase6_gt_send_order_addendum_10.json",
+    # Addendum 11: 300-frame timing characterization (analysis + CARLA trace).
+    "phase6_gt_send_order_results_v10.json", "phase6_timing_characterization_v2.py",
+    "test_phase6_timing_characterization_v2.py", "phase6_timing_characterization_addendum_11.json",
 )
 
 
