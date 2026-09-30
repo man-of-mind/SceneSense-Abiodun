@@ -16,10 +16,16 @@ Docker, CUDA, a route, or a firewall change.
 
 `contract.network_plan()` produces exact argv vectors. A reviewed executor
 must first save the old route, `net.ipv4.ip_forward`, and tagged-rule presence.
-It may add only the two source/destination-scoped `DOCKER-USER` rules bearing
-`scenesense-run4-l10319-v1`; it must remove only rules it added and restore the
-measured prior route/forwarding value. There is no NAT, chain flush, policy
-change, or firewall disable.
+It may add exactly three source/destination-scoped rules bearing
+`scenesense-run4-l10319-v1`: one `raw/PREROUTING` ACCEPT for
+`10.21.16.222/32 -> 192.168.70.128/26`, followed by the two existing-direction
+`filter/DOCKER-USER` ACCEPT rules. The raw rule must be inserted before Docker
+29.6's per-container `! -i oai-cn5g -j DROP` rules: those drops otherwise reject
+W10275 traffic to unpublished AMF/UPF/ext-DN/edge addresses before
+`DOCKER-USER`, even though container-to-W10275 succeeds. The executor must
+remove only rules it actually added and restore the measured prior
+route/forwarding value. There is no global `allow-direct-routing`,
+`nat-unprotected`, NAT rule, chain flush, policy change, or firewall disable.
 
 ## Required facts before any startup
 

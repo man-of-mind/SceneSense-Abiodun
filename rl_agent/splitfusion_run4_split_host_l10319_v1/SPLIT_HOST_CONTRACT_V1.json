@@ -20,9 +20,17 @@
   },
   "network_policy": {
     "nat": false,
+    "allow_direct_routing_global": false,
+    "nat_unprotected_global": false,
     "blanket_firewall_disable": false,
+    "chain_flush": false,
     "forward_rule_tag": "scenesense-run4-l10319-v1",
-    "rules_are_removed_only_if_added_by_this_attempt": true
+    "rules_are_removed_only_if_added_by_this_attempt": true,
+    "rules": [
+      {"table": "raw", "chain": "PREROUTING", "source": "10.21.16.222/32", "destination": "192.168.70.128/26", "target": "ACCEPT", "reason": "precede Docker per-container unpublished-address drops"},
+      {"table": "filter", "chain": "DOCKER-USER", "source": "10.21.16.222/32", "destination": "192.168.70.128/26", "target": "ACCEPT"},
+      {"table": "filter", "chain": "DOCKER-USER", "source": "192.168.70.128/26", "destination": "10.21.16.222/32", "target": "ACCEPT"}
+    ]
   },
   "remote_image_identity": {
     "tag": "oai-perception-rx:latest",

@@ -40,14 +40,37 @@ class NetworkPlanTests(unittest.TestCase):
             + tuple(rule.remove() for rule in plan.rules)
         ))
         self.assertIn("192.168.70.128/26 via 10.21.16.162", rendered)
-        self.assertEqual(rendered.count(C.RULE_TAG), 6)
+        self.assertEqual(rendered.count(C.RULE_TAG), 9)
         self.assertNotIn(" -F", rendered)
         self.assertNotIn("--flush", rendered)
         self.assertNotIn(" -P ", rendered)
         self.assertNotIn(" nat ", rendered.lower())
         self.assertNotIn("MASQUERADE", rendered)
+        self.assertNotIn("allow-direct-routing", rendered.lower())
+        self.assertNotIn("nat-unprotected", rendered.lower())
+        self.assertEqual([(rule.table, rule.chain) for rule in plan.rules], [
+            ("raw", "PREROUTING"),
+            ("filter", "DOCKER-USER"),
+            ("filter", "DOCKER-USER"),
+        ])
+        raw_add = plan.rules[0].add().argv
+        self.assertEqual(raw_add[:8], (
+            "sudo", "iptables", "-t", "raw", "-I", "PREROUTING", "1", "-s",
+        ))
+        self.assertIn(("-s", "10.21.16.222/32"), tuple(zip(raw_add, raw_add[1:])))
+        self.assertIn(("-d", "192.168.70.128/26"), tuple(zip(raw_add, raw_add[1:])))
+        for rule in plan.rules[1:]:
+            self.assertEqual(rule.add().argv[:7], (
+                "sudo", "iptables", "-t", "filter", "-I", "DOCKER-USER", "1",
+            ))
         for rule in plan.rules:
             self.assertIn("10.21.16.222/32", rule.rule_args)
+
+    def test_rules_reject_unregistered_table_or_missing_tag(self) -> None:
+        with self.assertRaises(C.SplitHostContractError):
+            C.TaggedRule("bad", "nat", "PREROUTING", ("-j", "ACCEPT"))
+        with self.assertRaises(C.SplitHostContractError):
+            C.TaggedRule("untagged", "raw", "PREROUTING", ("-j", "ACCEPT"))
 
     def test_forwarding_and_route_restore_measured_prior_state(self) -> None:
         prior = ("ip", "route", "replace", "192.168.70.128/26", "via", "10.21.16.9")

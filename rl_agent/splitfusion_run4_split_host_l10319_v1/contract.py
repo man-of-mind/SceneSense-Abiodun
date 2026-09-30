@@ -196,20 +196,32 @@ class Command:
 @dataclass(frozen=True)
 class TaggedRule:
     description: str
+    table: str
+    chain: str
     rule_args: tuple[str, ...]
 
+    def __post_init__(self) -> None:
+        _require((self.table, self.chain) in (
+            ("raw", "PREROUTING"), ("filter", "DOCKER-USER"),
+        ), "unregistered firewall table or chain")
+        _require("--comment" in self.rule_args,
+                 "firewall rule lacks the registered ownership tag")
+        comment_at = self.rule_args.index("--comment")
+        _require(self.rule_args[comment_at:comment_at + 2] == ("--comment", RULE_TAG),
+                 "firewall rule ownership tag drift")
+
+    def _command(self, action: str, *position: str) -> tuple[str, ...]:
+        return (("sudo", "iptables", "-t", self.table, action, self.chain)
+                + tuple(position) + self.rule_args)
+
     def check(self) -> Command:
-        return Command("L10319", f"check {self.description}",
-                       ("sudo", "iptables", "-C", "DOCKER-USER") + self.rule_args)
+        return Command("L10319", f"check {self.description}", self._command("-C"))
 
     def add(self) -> Command:
-        return Command("L10319", f"add {self.description}",
-                       ("sudo", "iptables", "-I", "DOCKER-USER", "1")
-                       + self.rule_args)
+        return Command("L10319", f"add {self.description}", self._command("-I", "1"))
 
     def remove(self) -> Command:
-        return Command("L10319", f"remove {self.description}",
-                       ("sudo", "iptables", "-D", "DOCKER-USER") + self.rule_args)
+        return Command("L10319", f"remove {self.description}", self._command("-D"))
 
 
 @dataclass(frozen=True)
@@ -255,11 +267,18 @@ def network_plan(*, previous_ip_forward: int,
     )
     rules = (
         TaggedRule(
+            "allow W10275 before Docker raw-table direct-address drops",
+            "raw", "PREROUTING",
+            ("-s", f"{topology.local_lan_ip}/32", "-d", topology.cn_subnet) + common,
+        ),
+        TaggedRule(
             "W10275 to routed CN/edge subnet",
+            "filter", "DOCKER-USER",
             ("-s", f"{topology.local_lan_ip}/32", "-d", topology.cn_subnet) + common,
         ),
         TaggedRule(
             "routed CN/edge subnet to W10275",
+            "filter", "DOCKER-USER",
             ("-s", topology.cn_subnet, "-d", f"{topology.local_lan_ip}/32") + common,
         ),
     )
@@ -270,7 +289,9 @@ def network_plan(*, previous_ip_forward: int,
             Command("L10319", "record prior forwarding state",
                     ("sysctl", "-n", "net.ipv4.ip_forward")),
             Command("L10319", "record Docker forward chain",
-                    ("sudo", "iptables", "-S", "DOCKER-USER")),
+                    ("sudo", "iptables", "-t", "filter", "-S", "DOCKER-USER")),
+            Command("L10319", "record Docker raw pre-routing chain",
+                    ("sudo", "iptables", "-t", "raw", "-S", "PREROUTING")),
         ),
         local_apply=Command(
             "W10275", "route CN subnet through L10319",
