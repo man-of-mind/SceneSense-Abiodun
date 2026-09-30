@@ -23,9 +23,17 @@ from typing import Any, Mapping, Optional, Sequence
 SCHEMA = "scenesense.run4.split_host_l10319.v1"
 RULE_TAG = "scenesense-run4-l10319-v1"
 EDGE_IMAGE_TAG = "oai-perception-rx:latest"
-EDGE_IMAGE_ID = (
+EDGE_IMAGE_CONFIG_DIGEST = (
     "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba"
 )
+EDGE_IMAGE_MANIFEST_DIGEST = (
+    "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c"
+)
+EDGE_IMAGE_CANONICAL_INSPECT_SHA256 = (
+    "7f8a14571eb00426d98b7084175de1180d4a50300c01150a5c2390c55bba3d91"
+)
+REMOTE_IMAGE_ID = EDGE_IMAGE_MANIFEST_DIGEST
+REMOTE_CONTAINER_IMAGE_ID = EDGE_IMAGE_MANIFEST_DIGEST
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -359,13 +367,19 @@ class RemoteRuntimeBinding:
     host_ipv4: str
     gpu: RemoteGpuIdentity
     image_tag: str
-    image_id: str
+    image_manifest_digest: str
+    image_config_digest: str
+    remote_image_id: str
+    remote_container_image_id: str
+    canonical_inspect_fields_sha256: str
     artifacts: tuple[ArtifactIdentity, ...]
 
     @classmethod
     def from_mapping(cls, raw: Mapping[str, Any]) -> "RemoteRuntimeBinding":
         required = {
-            "schema", "hostname", "host_ipv4", "gpu", "image_tag", "image_id",
+            "schema", "hostname", "host_ipv4", "gpu", "image_tag",
+            "image_manifest_digest", "image_config_digest", "remote_image_id",
+            "remote_container_image_id", "canonical_inspect_fields_sha256",
             "artifacts",
         }
         _require(set(raw) == required, "remote runtime binding fields are incomplete or foreign")
@@ -386,7 +400,12 @@ class RemoteRuntimeBinding:
             schema=str(raw["schema"]), hostname=str(raw["hostname"]),
             host_ipv4=str(raw["host_ipv4"]),
             gpu=RemoteGpuIdentity.from_mapping(raw["gpu"]),
-            image_tag=str(raw["image_tag"]), image_id=str(raw["image_id"]),
+            image_tag=str(raw["image_tag"]),
+            image_manifest_digest=str(raw["image_manifest_digest"]),
+            image_config_digest=str(raw["image_config_digest"]),
+            remote_image_id=str(raw["remote_image_id"]),
+            remote_container_image_id=str(raw["remote_container_image_id"]),
+            canonical_inspect_fields_sha256=str(raw["canonical_inspect_fields_sha256"]),
             artifacts=artifacts,
         )
         result.validate()
@@ -400,7 +419,17 @@ class RemoteRuntimeBinding:
                  == (topology.remote_name, topology.remote_lan_ip),
                  "remote host identity drift")
         _require(self.image_tag == EDGE_IMAGE_TAG, "edge image tag drift")
-        _require(self.image_id == EDGE_IMAGE_ID, "edge image ID drift")
+        _require(self.image_manifest_digest == EDGE_IMAGE_MANIFEST_DIGEST,
+                 "edge OCI manifest digest drift")
+        _require(self.image_config_digest == EDGE_IMAGE_CONFIG_DIGEST,
+                 "edge OCI config digest drift")
+        _require(self.remote_image_id == REMOTE_IMAGE_ID,
+                 "remote image inspect ID drift")
+        _require(self.remote_container_image_id == REMOTE_CONTAINER_IMAGE_ID,
+                 "remote container image ID drift")
+        _require(self.canonical_inspect_fields_sha256
+                 == EDGE_IMAGE_CANONICAL_INSPECT_SHA256,
+                 "portable canonical image metadata drift")
         _require(self.artifacts == ARTIFACTS,
                  "remote artifact set/order/path/hash drift")
         return self

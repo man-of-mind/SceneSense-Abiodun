@@ -95,7 +95,11 @@ def valid_binding_dict() -> dict:
             "driver_version": "AUDITED_DRIVER",
         },
         "image_tag": C.EDGE_IMAGE_TAG,
-        "image_id": C.EDGE_IMAGE_ID,
+        "image_manifest_digest": C.EDGE_IMAGE_MANIFEST_DIGEST,
+        "image_config_digest": C.EDGE_IMAGE_CONFIG_DIGEST,
+        "remote_image_id": C.REMOTE_IMAGE_ID,
+        "remote_container_image_id": C.REMOTE_CONTAINER_IMAGE_ID,
+        "canonical_inspect_fields_sha256": C.EDGE_IMAGE_CANONICAL_INSPECT_SHA256,
         "artifacts": [
             {"name": item.name, "relative_path": item.relative_path,
              "sha256": item.sha256}
@@ -122,11 +126,19 @@ class RemoteBindingTests(unittest.TestCase):
         with self.assertRaises(C.SplitHostContractError):
             C.RemoteRuntimeBinding.from_mapping(raw)
 
-    def test_wrong_image_or_missing_checkpoint_is_refused(self) -> None:
-        raw = valid_binding_dict()
-        raw["image_id"] = "sha256:" + "0" * 64
-        with self.assertRaises(C.SplitHostContractError):
-            C.RemoteRuntimeBinding.from_mapping(raw)
+    def test_manifest_config_and_remote_ids_each_refuse_drift(self) -> None:
+        for field in (
+            "image_manifest_digest", "image_config_digest", "remote_image_id",
+            "remote_container_image_id", "canonical_inspect_fields_sha256",
+        ):
+            with self.subTest(field=field):
+                raw = valid_binding_dict()
+                raw[field] = ("0" * 64 if field == "canonical_inspect_fields_sha256"
+                              else "sha256:" + "0" * 64)
+                with self.assertRaises(C.SplitHostContractError):
+                    C.RemoteRuntimeBinding.from_mapping(raw)
+
+    def test_missing_checkpoint_is_refused(self) -> None:
         raw = valid_binding_dict()
         raw["artifacts"].pop()
         with self.assertRaises(C.SplitHostContractError):
@@ -141,6 +153,16 @@ class RemoteBindingTests(unittest.TestCase):
                          {"model", "uuid", "memory_total_mib", "driver_version"})
         self.assertEqual(schema["properties"]["artifacts"]["minItems"], 7)
         self.assertEqual(schema["properties"]["artifacts"]["maxItems"], 7)
+        self.assertEqual(schema["properties"]["image_manifest_digest"]["const"],
+                         C.EDGE_IMAGE_MANIFEST_DIGEST)
+        self.assertEqual(schema["properties"]["image_config_digest"]["const"],
+                         C.EDGE_IMAGE_CONFIG_DIGEST)
+        self.assertEqual(schema["properties"]["remote_image_id"]["const"],
+                         C.REMOTE_IMAGE_ID)
+        self.assertEqual(schema["properties"]["remote_container_image_id"]["const"],
+                         C.REMOTE_CONTAINER_IMAGE_ID)
+        self.assertEqual(schema["properties"]["canonical_inspect_fields_sha256"]["const"],
+                         C.EDGE_IMAGE_CANONICAL_INSPECT_SHA256)
 
 
 class ReadinessTests(unittest.TestCase):

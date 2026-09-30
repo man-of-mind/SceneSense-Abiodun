@@ -3,7 +3,7 @@
   "$id": "scenesense.run4.remote_runtime_binding.v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "hostname", "host_ipv4", "gpu", "image_tag", "image_id", "artifacts"],
+  "required": ["schema", "hostname", "host_ipv4", "gpu", "image_tag", "image_manifest_digest", "image_config_digest", "remote_image_id", "remote_container_image_id", "canonical_inspect_fields_sha256", "artifacts"],
   "properties": {
     "schema": {"const": "scenesense.run4.remote_runtime_binding.v1"},
     "hostname": {"const": "L10319"},
@@ -20,7 +20,11 @@
       }
     },
     "image_tag": {"const": "oai-perception-rx:latest"},
-    "image_id": {"const": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba"},
+    "image_manifest_digest": {"const": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c"},
+    "image_config_digest": {"const": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba"},
+    "remote_image_id": {"const": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c"},
+    "remote_container_image_id": {"const": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c"},
+    "canonical_inspect_fields_sha256": {"const": "7f8a14571eb00426d98b7084175de1180d4a50300c01150a5c2390c55bba3d91"},
     "artifacts": {
       "type": "array",
       "minItems": 7,

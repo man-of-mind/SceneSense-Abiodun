@@ -2,7 +2,11 @@
 
 from .contract import (  # noqa: F401
     ARTIFACTS,
-    EDGE_IMAGE_ID,
+    EDGE_IMAGE_CANONICAL_INSPECT_SHA256,
+    EDGE_IMAGE_CONFIG_DIGEST,
+    EDGE_IMAGE_MANIFEST_DIGEST,
+    REMOTE_CONTAINER_IMAGE_ID,
+    REMOTE_IMAGE_ID,
     LOCAL_ACTOR_ARTIFACT,
     SplitHostContractError,
     default_topology,

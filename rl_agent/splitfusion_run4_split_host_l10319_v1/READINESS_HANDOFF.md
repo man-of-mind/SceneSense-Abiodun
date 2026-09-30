@@ -26,8 +26,15 @@ change, or firewall disable.
 1. Populate a remote binding from **measured** L10319 GPU model, UUID, total
    VRAM and driver. There are intentionally no GPU defaults and no RTX 5090
    assumption.
-2. Verify exact edge image ID
-   `sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba`.
+2. Verify the portable OCI image identity at all three boundaries:
+   - source classic-store `.Id`/OCI config digest: `sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba`;
+   - `docker save` index manifest digest: `sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c`, whose config points to `2be62d...`;
+   - L10319 containerd-store image `.Id` and created container `.Image`: the same `ac143760...` manifest digest.
+   The selected portable inspect fields (`Architecture`, `Created`, `Config`,
+   `RootFS`, `History`, `Os`, `Variant`) must hash to
+   `7f8a14571eb00426d98b7084175de1180d4a50300c01150a5c2390c55bba3d91`.
+   A differing Docker store `.Id` alone is therefore not content drift. Preserve
+   and record any pre-existing L10319 tag/image as a backup; do not prune it.
 3. Transfer and hash all seven edge-host files in `contract.ARTIFACTS`:
    perception, ranker, AE128/64/32, the Phase-15 FCOS constructor weight, and
    `checkpoints/fusion_object_best.pt` required by the compose mount. Git does
