@@ -164,6 +164,14 @@ class EvidenceTests(unittest.TestCase):
         "dev": "wlp130s0f0", "prefsrc": "10.21.16.222",
     }])
 
+    def test_route_get_explicit_source_field_is_accepted(self) -> None:
+        observed = json.dumps([{
+            "dst": "192.168.70.132", "from": "10.21.16.222",
+            "gateway": "10.21.16.162", "dev": "wlp130s0f0",
+        }])
+        result = L.validate_route_evidence("192.168.70.132", observed, 0)
+        self.assertEqual(result["source"], "10.21.16.222")
+
     def test_routed_reachability_passes_only_exact_gateway_and_source(self) -> None:
         result = L.validate_route_evidence("192.168.70.132", self.ROUTE, 0)
         self.assertEqual(result["reachability"], "PASS")

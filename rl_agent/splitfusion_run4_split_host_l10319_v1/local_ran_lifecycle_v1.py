@@ -499,7 +499,7 @@ def validate_route_evidence(destination: str, route_json: str,
     _require(str(row.get("dst")) == destination, "route destination drift")
     _require(str(row.get("gateway")) == topology.remote_lan_ip,
              "CN route does not traverse L10319")
-    preferred = str(row.get("prefsrc") or row.get("src") or "")
+    preferred = str(row.get("prefsrc") or row.get("src") or row.get("from") or "")
     _require(preferred == topology.local_lan_ip, "CN route source is not W10275")
     device = str(row.get("dev") or "")
     _require(bool(device) and device not in {"lo", "docker0", "oai-cn5g"},
