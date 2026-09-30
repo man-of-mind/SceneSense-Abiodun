@@ -25,9 +25,6 @@ import time
 from typing import Any, Mapping, Optional
 import uuid
 
-from rl_agent.splitfusion_quality_feedback_probe_v1 import gt_evidence as GE
-
-
 REQUEST_SCHEMA = "scenesense.run4.split_host.gt_transfer_request.v1"
 ACK_SCHEMA = "scenesense.run4.split_host.gt_transfer_ack.v1"
 RECEIPT_SCHEMA = "scenesense.run4.split_host.gt_transfer_receipt.v1"
@@ -74,6 +71,18 @@ class IdentityConflictError(GtTransportError):
 
 class StorageError(GtTransportError):
     pass
+
+
+def _authoritative_gt_evidence():
+    """Import the unchanged GT authority only when GT bytes are processed.
+
+    The L10319 startup qualifier runs under the system Python before the CUDA
+    container exists.  Deferring this import avoids pulling the authority's
+    Torch-backed scoring dependency into host-only preparation while keeping
+    every GT schema, reader, and filename decision authoritative.
+    """
+    from rl_agent.splitfusion_quality_feedback_probe_v1 import gt_evidence
+    return gt_evidence
 
 
 def _require(condition: bool, message: str,
@@ -326,6 +335,7 @@ def bundle_from_phase6_paths(identity: GtTransportIdentityV1,
                              paths: Mapping[str, Path]) -> GtBundleV1:
     """Read only the three paths returned by the existing Phase-6 writers."""
     _require(set(paths) == set(COMPONENT_NAMES), "GT path set is incomplete or foreign")
+    GE = _authoritative_gt_evidence()
     stem = GE._stem(identity.stream_id, identity.frame_id)
     components = []
     for name in COMPONENT_NAMES:
@@ -339,6 +349,7 @@ def bundle_from_phase6_paths(identity: GtTransportIdentityV1,
 def _validate_phase6_bytes(identity: GtTransportIdentityV1,
                            components: Mapping[str, bytes]) -> None:
     """Verify the exact existing writer formats without re-encoding them."""
+    GE = _authoritative_gt_evidence()
     objects = _strict_json(components["objects.json"])
     semantic = _strict_json(components["semantic.json"])
     _require(_canonical(objects) == components["objects.json"],
@@ -503,6 +514,7 @@ class GtIngressStoreV1:
                     raise IdentityConflictError("replayed ticket has conflicting bytes")
                 return GtAckV1("DUPLICATE_IDENTICAL", bundle.identity.exact_digest(),
                                bundle.bundle_sha256, previous[1])
+            GE = _authoritative_gt_evidence()
             stem = GE._stem(bundle.identity.stream_id, bundle.identity.frame_id)
             for name, payload in bundle.components:
                 self._create_identical_or_fail(self.root / f"{stem}.{name}", payload)

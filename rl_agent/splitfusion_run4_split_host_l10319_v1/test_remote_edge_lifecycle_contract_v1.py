@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from . import contract as C
+from . import remote_edge_gt_entry_v1 as RGT
 from . import remote_edge_lifecycle_v1 as E
 
 
@@ -210,6 +211,31 @@ class ObservationTests(unittest.TestCase):
                 bad[field] = "drift"
                 with self.assertRaises(E.RemoteEdgeLifecycleError):
                     E.validate_ready_record(bad, plan=self.plan)
+
+    def test_gt_final_record_proves_listener_stopped_for_this_attempt(self) -> None:
+        final = {
+            "schema": RGT.SCHEMA,
+            "status": "STOPPED",
+            "run_id": self.plan.invocation.run_id,
+            "cell_id": self.plan.invocation.cell_id,
+            "advertised_endpoint": "192.168.70.140:51015",
+            "edge_ready_health_checked": True,
+            "failure": None,
+            "counters": {"connections": 0, "authorized": 0},
+            "thread_alive": False,
+            "cross_host_clock_subtraction": False,
+            "policy_deadline_clock_owner": "W10275",
+        }
+        E.validate_gt_final_record(final, plan=self.plan)
+        for field, value in (("status", "FAILED"),
+                             ("run_id", "foreign-run"),
+                             ("thread_alive", True),
+                             ("cross_host_clock_subtraction", True)):
+            with self.subTest(field=field):
+                bad = dict(final)
+                bad[field] = value
+                with self.assertRaises(E.RemoteEdgeLifecycleError):
+                    E.validate_gt_final_record(bad, plan=self.plan)
 
     def test_broad_or_foreign_commands_are_refused(self) -> None:
         for argv in (

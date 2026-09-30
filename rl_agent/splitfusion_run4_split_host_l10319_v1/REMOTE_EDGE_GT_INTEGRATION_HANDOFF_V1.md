@@ -14,7 +14,9 @@ RAN, CARLA, or live qualification was started.
   directory.
 - A process-local subclass of the frozen `Run4EvaluatorV2` authorizes the exact
   verified `EvaluationTicketV2` identity immediately before delegating to the
-  unchanged evaluator `submit`. No frozen Phase-6 or GT transport file changes.
+  unchanged evaluator `submit`. No frozen Phase-6 source changed. The GT
+  authority import is lazy solely so host-only preparation does not require
+  Torch; every actual GT operation still calls the unchanged authority.
 - The listener binds/listens before evaluator construction completes. Its health
   is checked again immediately before the frozen pre-warm code publishes edge
   READY. A dead listener therefore prevents READY.
@@ -39,13 +41,26 @@ before interpreting cross-host wall timestamps.
 - Source config digest: `sha256:2be62d...d6ba`.
 - Portable inspect hash: `7f8a1457...3d91`.
 
-The lifecycle package still cannot authorize a full live run and contains no
-executor. A coordinator must create the per-attempt state/evidence directories,
-write the generated standalone Compose document, validate the recorded image,
-container, GT-ready, and edge-ready evidence, and own project-scoped teardown.
+## Startup-only qualifier
+
+`remote_edge_startup_qualifier_v1.py` is the bounded executor for one fresh
+attempt. Without `--execute` it only creates the attempt, seeds the registered
+FCOS checkpoint/config, writes the standalone Compose file and records the
+prospective commands. With the exact startup token it may start only the edge
+service, require both GT and frozen edge READY, capture bounded evidence, then
+tear down only that attempt's Compose project. It still cannot authorize a
+frame producer or full live run.
+
+The final PASS additionally requires the container to be absent and validates
+`remote_gt_listener_final.json` as `STOPPED`, healthy, joined, and bound to the
+same run/cell. A partial `compose up` error also triggers project teardown.
+Preparation verifies the actual frozen campaign SHA-256 before creating the
+attempt; the host-only module import is regression-tested with Torch forbidden.
 
 ## Offline verification
 
 Focused tests cover exact identity authorization before evaluator submission,
 READY ordering, listener success/failure and idempotent shutdown, current
-worktree/endpoint CLI binding, and the absence of cross-host time subtraction.
+worktree/endpoint CLI binding, create-only preparation, partial-launch cleanup,
+validated final teardown evidence, and the absence of cross-host time
+subtraction.

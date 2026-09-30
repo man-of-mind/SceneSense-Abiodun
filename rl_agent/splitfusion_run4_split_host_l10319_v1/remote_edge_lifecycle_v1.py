@@ -511,6 +511,34 @@ def validate_gt_ready_record(document: Mapping[str, Any], *,
     _require(dict(document) == expected, "remote GT listener ready record drift")
 
 
+def validate_gt_final_record(document: Mapping[str, Any], *,
+                             plan: RemoteEdgeLifecyclePlan) -> None:
+    """Prove the attempt-owned listener stopped cleanly during project teardown."""
+    required = {
+        "schema", "status", "run_id", "cell_id", "advertised_endpoint",
+        "edge_ready_health_checked", "failure", "counters", "thread_alive",
+        "cross_host_clock_subtraction", "policy_deadline_clock_owner",
+    }
+    topology = C.default_topology()
+    checks = {
+        "fields": set(document) == required,
+        "schema": document.get("schema") == RGT.SCHEMA,
+        "status": document.get("status") == "STOPPED",
+        "run": document.get("run_id") == plan.invocation.run_id,
+        "cell": document.get("cell_id") == plan.invocation.cell_id,
+        "endpoint": document.get("advertised_endpoint")
+                    == f"{topology.edge_ip}:{GT_PORT}",
+        "ready_checked": document.get("edge_ready_health_checked") is True,
+        "failure": document.get("failure") is None,
+        "counters": isinstance(document.get("counters"), Mapping),
+        "thread_stopped": document.get("thread_alive") is False,
+        "clock": document.get("cross_host_clock_subtraction") is False
+                 and document.get("policy_deadline_clock_owner") == "W10275",
+    }
+    failed = sorted(name for name, passed in checks.items() if not passed)
+    _require(not failed, f"remote GT listener final record drift: {failed}")
+
+
 def authorize_full_live_run(*_args: Any, **_kwargs: Any) -> None:
     """This package cannot authorize a frame-producing qualification."""
     raise RemoteEdgeLifecycleError(
@@ -524,5 +552,6 @@ __all__ = [
     "LifecycleCommand", "RemoteEdgeLifecyclePlan", "edge_command",
     "compose_document", "build_plan", "canonical_image_inspect_sha256",
     "validate_remote_image_observation", "validate_container_observation",
-    "validate_ready_record", "validate_gt_ready_record", "authorize_full_live_run",
+    "validate_ready_record", "validate_gt_ready_record", "validate_gt_final_record",
+    "authorize_full_live_run",
 ]
