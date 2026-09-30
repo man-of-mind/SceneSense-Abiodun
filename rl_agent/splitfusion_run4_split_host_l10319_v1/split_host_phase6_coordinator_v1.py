@@ -104,14 +104,14 @@ def source_route_probe_argv() -> tuple[str, ...]:
     """The post-attach lookup for a locally generated source-bound socket."""
     return (
         "ip", "-j", "route", "get", C.default_topology().edge_ip,
-        "from", UE_CONTROL_HOST, "iif", "lo",
+        "from", UE_CONTROL_HOST,
     )
 
 
 def validate_ue_source_route(route_json: str) -> Mapping[str, Any]:
     """Prove UE tensor traffic uses table 9999 and the OAI tunnel.
 
-    A normal host lookup without ``from 10.0.0.2 iif lo`` is not equivalent
+    A normal host lookup without ``from 10.0.0.2`` is not equivalent
     and is deliberately inadmissible.  The LAN route through L10319 is valid
     only for the GT sideband, never for UE payload traffic.
     """
@@ -123,7 +123,7 @@ def validate_ue_source_route(route_json: str) -> Mapping[str, Any]:
              "UE source route must contain exactly one route")
     row = rows[0]
     topology = C.default_topology()
-    source = str(row.get("prefsrc") or row.get("src") or "")
+    source = str(row.get("prefsrc") or row.get("src") or row.get("from") or "")
     table = str(row.get("table") or "")
     gateway = str(row.get("gateway") or "")
     checks = {

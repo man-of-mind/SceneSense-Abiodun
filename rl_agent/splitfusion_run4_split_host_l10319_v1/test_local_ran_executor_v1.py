@@ -64,6 +64,9 @@ class FakeOps(E.LocalRanOps):
         if "--prepare-runtime" in argv:
             self._hit("derive")
             return E.CommandResultV1(0)
+        if argv == S.source_route_probe_argv():
+            self._hit("source-route")
+            return E.CommandResultV1(0, SOURCE_ROUTE)
         if argv[:4] == ("ip", "-j", "route", "get") and "from" in argv and "iif" not in argv:
             destination = argv[4]
             self._hit(f"preflight-route:{destination}")
@@ -99,9 +102,6 @@ class FakeOps(E.LocalRanOps):
             self._hit("add-rule")
             self.rule_present = True
             return E.CommandResultV1(0)
-        if argv == S.source_route_probe_argv():
-            self._hit("source-route")
-            return E.CommandResultV1(0, SOURCE_ROUTE)
         if argv[:6] == ("sudo", "-n", "ip", "rule", "del", "priority"):
             self._hit("remove-rule")
             self.rule_present = False

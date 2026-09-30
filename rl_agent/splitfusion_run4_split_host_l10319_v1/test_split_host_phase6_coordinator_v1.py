@@ -86,8 +86,13 @@ class RouteAndOwnershipTests(unittest.TestCase):
     def test_probe_is_source_bound_and_requires_tunnel_table(self) -> None:
         self.assertEqual(S.source_route_probe_argv(), (
             "ip", "-j", "route", "get", "192.168.70.140",
-            "from", "10.0.0.2", "iif", "lo",
+            "from", "10.0.0.2",
         ))
+        observed = json.dumps([{
+            "dst": "192.168.70.140", "from": "10.0.0.2",
+            "dev": "oaitun_ue1", "table": "9999",
+        }])
+        self.assertEqual(S.validate_ue_source_route(observed)["radio_path"], "PASS")
         self.assertEqual(source_route()["radio_path"], "PASS")
         base = {"dst": "192.168.70.140", "dev": "oaitun_ue1",
                 "table": 9999, "prefsrc": "10.0.0.2"}
