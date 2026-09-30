@@ -202,6 +202,17 @@ def load_run5_model_state(
                 f"critic input width {critic_width} is not {RUN5_CRITIC_INPUT_WIDTH}"
             )
     refuse_run4_binding(binding)
+    # A 21-D Run-4 matrix zero-padded to 22 columns is a relabel, even under a
+    # forged Run-5 binding.  No initialized or trained Run-5 layer has an
+    # identically zero SNR input column.
+    padded = [ACTOR_INPUT_KEY] if not bool(
+        actor_state[ACTOR_INPUT_KEY][:, C.SNR_FEATURE_INDEX].abs().sum() > 0) else []
+    padded += [key for key in CRITIC_INPUT_KEYS if not bool(
+        critic_state[key][:, C.SNR_FEATURE_INDEX].abs().sum() > 0)]
+    if padded:
+        raise Run5CheckpointRefused(
+            f"SNR input column is identically zero in {padded}: padded 21-D "
+            "Run-4 weights cannot become a Run-5 checkpoint")
     actor, critics = build_run5_models(actor_seed=0, critic_seed=0)
     try:
         actor.load_state_dict(dict(actor_state), strict=True)

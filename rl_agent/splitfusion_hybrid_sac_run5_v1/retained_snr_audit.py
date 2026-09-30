@@ -577,6 +577,8 @@ COEFFICIENT = {
 
 
 def grouped_comparison(fit_rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    require(all(row["partition"] == V1.FIT for row in fit_rows),
+            "validation rows must never enter the grouped comparison")
     cells = sorted({row["cell_id"] for row in fit_rows})
     folds = []
     pooled: dict[str, dict[str, list]] = {
