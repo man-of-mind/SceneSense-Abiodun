@@ -134,7 +134,7 @@ class SeparateProcessResumeTest(unittest.TestCase):
             cwd=WORKTREE, capture_output=True, text=True,
             env={**os.environ, "CUDA_VISIBLE_DEVICES": ""})
         self.assertEqual(code.returncode, 0, code.stderr)
-        result = json.loads(code.stdout.strip().splitlines()[-1])
+        result = json.loads(code.stdout.strip().splitlines()[-1])[0]
         self.assertTrue(result["verified"])
         self.assertEqual(result["loader"], "torch.load(weights_only=True)")
 
@@ -172,6 +172,51 @@ class PreflightTest(unittest.TestCase):
         self.assertFalse(self._host("9, /opt/carla/CarlaUE4-Linux-Shipping\n", "1\n")["cold"])
         self.assertFalse(self._host("", "0\n", pgrep="123 ./nr-softmodem --rfsim")["cold"])
         self.assertFalse(self._host("", "0\n", docker="oai-amf\n")["cold"])
+
+    def test_deep_checkpoints_must_be_on_a_durable_path(self) -> None:
+        for bad in ("/tmp/run5_deep", "/var/tmp/x", "/dev/shm/x",
+                    str(WORKTREE / ".staging-run" / "campaign")):
+            with self.assertRaises(CAMPAIGN.CampaignRefused):
+                CAMPAIGN.require_durable_directory(Path(bad))
+        report = CAMPAIGN.require_durable_directory(
+            WORKTREE / "rl_agent/splitfusion_hybrid_sac_run5_v1/campaign_runs/x")
+        self.assertNotIn(report["fstype"], CAMPAIGN.VOLATILE_FILESYSTEMS)
+
+    def test_evaluation_checkpoint_actors_cold_load_in_a_fresh_process(self) -> None:
+        smoke = (WORKTREE / "rl_agent/splitfusion_hybrid_sac_run5_v1/smoke_runs/"
+                 "20260929_seed17_uninterrupted/seed_17")
+        results = CAMPAIGN.fresh_verify(
+            [(smoke / "final_actor_000500", 500),
+             (smoke / "checkpoints/checkpoint_000500", 500),
+             (smoke / "checkpoints/checkpoint_000250", 250)], 17)
+        self.assertEqual([r["bundle"] for r in results],
+                         ["final_actor_000500", "checkpoint_000500", "checkpoint_000250"])
+        self.assertEqual(results[0]["tree_sha256"], results[1]["tree_sha256"])
+        with self.assertRaises(CAMPAIGN.CampaignRefused):
+            CAMPAIGN.fresh_verify([(smoke / "checkpoints/checkpoint_000250", 500)], 17)
+
+    def test_disk_preflight_accepts_a_nested_uncreated_campaign_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = CAMPAIGN.disk_preflight(Path(tmp) / "a" / "b" / "c", seeds=[17], target=500,
+                                             checkpoints=PR.CONFIG.smoke_checkpoints)
+            self.assertGreater(report["free_bytes"], 0)
+            self.assertFalse((Path(tmp) / "a").exists())
+
+    def test_deep_disk_reservation_covers_every_incomplete_seed(self) -> None:
+        source = Path(CAMPAIGN.__file__).read_text()
+        self.assertIn("reserve_seeds = [seed for seed in PR.CONFIG.seed_order", source)
+        three = CAMPAIGN.disk_preflight(WORKTREE, seeds=PR.CONFIG.seed_order, target=10_000,
+                                        checkpoints=PR.CONFIG.deep_checkpoints)
+        one = CAMPAIGN.disk_preflight(WORKTREE, seeds=[17], target=10_000,
+                                      checkpoints=PR.CONFIG.deep_checkpoints)
+        self.assertEqual(three["estimate_bytes"], 3 * one["estimate_bytes"])
+
+    def test_rehearsal_and_finalize_refuse_misuse(self) -> None:
+        self.assertEqual(CAMPAIGN.main(["--mode", "smoke", "--rehearsal", "--rehearsal-report",
+                                        "/dev/null", "--seed", "17"]), CAMPAIGN.EXIT_REFUSED)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(CAMPAIGN.main(["--finalize-campaign", "--campaign-dir", tmp]),
+                             CAMPAIGN.EXIT_REFUSED)
 
     def test_deep_mode_is_refused_without_authorization(self) -> None:
         self.assertFalse(CAMPAIGN.AUTHORIZATION.exists())

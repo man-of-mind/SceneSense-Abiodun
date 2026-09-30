@@ -144,6 +144,25 @@ AMENDMENTS = (
                    "Phase-6/container checks are unchanged"),
         "config_or_design_changed": False,
     },
+    {
+        "id": "A2_DEEP_LAUNCH_OPERATIONAL_FIXES",
+        "made_before_any_deep_training": True,
+        "superseded_seal_sha256": "d6b91ffee294ef89c8971a2596fd7294090705cc5d52aa01a65aa9254c107936",
+        "reason": ("pre-launch readiness pass found five operational gaps in run5_campaign.py: "
+                   "single-seed disk reservation, no automatic cold-load of intermediate "
+                   "evaluation actors, no CAMPAIGN_COMPLETE entry point, no durable-path guard, "
+                   "no zero-update rehearsal"),
+        "change": ("deep disk preflight reserves every incomplete seed; completion cold-loads "
+                   "the final and all evaluation-checkpoint actors in one fresh process; "
+                   "--finalize-campaign writes CAMPAIGN_COMPLETE after re-verification; deep "
+                   "campaign paths must be persistent (no /tmp, /var/tmp, /dev/shm, /run, "
+                   "hidden components or volatile filesystems); --rehearsal runs the launch "
+                   "preflight with zero optimizer steps; the disk preflight probes the nearest "
+                   "existing ancestor so a nested, not-yet-created campaign path no longer "
+                   "crashes (found by the rehearsal)"),
+        "training_path_changed": False,
+        "config_or_design_changed": False,
+    },
 )
 
 RUN5_SOURCES = (

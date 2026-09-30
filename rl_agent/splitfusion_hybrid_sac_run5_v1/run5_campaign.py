@@ -110,6 +110,29 @@ def host_state() -> dict[str, Any]:
             "docker_ok": docker.returncode == 0, "nvidia_smi_ok": gpu.returncode == 0}
 
 
+TEMPORARY_ROOTS = ("/tmp", "/var/tmp", "/dev/shm", "/run")
+VOLATILE_FILESYSTEMS = frozenset({"tmpfs", "ramfs", "overlay", "squashfs"})
+
+
+def require_durable_directory(path: Path) -> dict[str, Any]:
+    """Deep checkpoints must live on a persistent filesystem, never a temp tree."""
+    resolved = Path(path).resolve()
+    text = str(resolved)
+    require(not any(text == root or text.startswith(root + "/") for root in TEMPORARY_ROOTS),
+            f"campaign directory {resolved} is under a temporary root")
+    require(not any(part.startswith(".") for part in resolved.parts[1:]),
+            f"campaign directory {resolved} has a hidden/staging-like component")
+    best, fstype = "", None
+    for line in Path("/proc/mounts").read_text().splitlines():
+        fields = line.split()
+        mount = fields[1]
+        if (text == mount or text.startswith(mount.rstrip("/") + "/")) and len(mount) > len(best):
+            best, fstype = mount, fields[2]
+    require(fstype is not None and fstype not in VOLATILE_FILESYSTEMS,
+            f"campaign directory {resolved} is on a volatile filesystem ({fstype})")
+    return {"path": text, "mount": best, "fstype": fstype}
+
+
 def bundle_bytes(update: int) -> int:
     decisions = PR.CONFIG.warmup_decision_count + PR.CONFIG.environment_transitions_per_update * update
     return FIXED_BUNDLE_BYTES + PER_DECISION_EVENT_BYTES * decisions
@@ -129,7 +152,9 @@ def disk_preflight(directory: Path, *, seeds: Sequence[int], target: int,
                    checkpoints: Sequence[int]) -> dict[str, Any]:
     estimate = sum(seed_bytes(target, checkpoints) for _ in seeds)
     reserve = max(estimate, MIN_RESERVE_BYTES)
-    probe = directory if directory.exists() else directory.parent
+    probe = Path(directory).resolve()
+    while not probe.exists():            # a nested, not-yet-created campaign path
+        probe = probe.parent
     free = shutil.disk_usage(probe).free
     deep = 3 * seed_bytes(PR.CONFIG.deep_target_update, PR.CONFIG.deep_checkpoints)
     return {"seeds": list(seeds), "target_update": target, "estimate_bytes": estimate,
@@ -153,7 +178,8 @@ def disk_preflight(directory: Path, *, seeds: Sequence[int], target: int,
 def verify_actor_bundle(path: Path, *, seed: int, update: int) -> dict[str, Any]:
     bundle = B.verify_bundle(path)
     manifest = bundle.manifest
-    require(bundle.kind == "final_actor" and bundle.update == update, "actor bundle identity")
+    require(bundle.kind in ("final_actor", "checkpoint") and bundle.update == update,
+            "actor bundle identity")
     require(manifest["seed"] == seed and manifest["update_count"] == update, "seed/update")
     require(manifest["model_binding_sha256"] == RM.RUN5_TRAINING_MODEL_BINDING_SHA256,
             "actor bundle model binding differs")
@@ -172,7 +198,8 @@ def verify_actor_bundle(path: Path, *, seed: int, update: int) -> dict[str, Any]
     return {"verified": True, "pid": os.getpid(), "file_sha256": B.sha256_bytes(data),
             "tree_sha256": tree, "seed": seed, "update": update,
             "model_binding_sha256": manifest["model_binding_sha256"],
-            "manifest_sha256": bundle.manifest_sha256, "loader": "torch.load(weights_only=True)"}
+            "manifest_sha256": bundle.manifest_sha256, "bundle": bundle.name,
+            "loader": "torch.load(weights_only=True)"}
 
 
 # ---------------------------------------------------------------------------
@@ -351,7 +378,14 @@ def run(args) -> int:
     campaign = Path(args.campaign_dir)
     seed_dir = campaign / f"seed_{args.seed}"
     checkpoint_dir = seed_dir / "checkpoints"
-    disk = disk_preflight(campaign, seeds=[args.seed], target=target, checkpoints=checkpoints)
+    if smoke:
+        reserve_seeds = [args.seed]
+    else:
+        durable = require_durable_directory(campaign)
+        reserve_seeds = [seed for seed in PR.CONFIG.seed_order
+                         if not (campaign / f"seed_{seed}" / "SEED_COMPLETE.json").exists()]
+    disk = disk_preflight(campaign, seeds=reserve_seeds or [args.seed], target=target,
+                          checkpoints=checkpoints)
     if not disk["passed"]:
         print(json.dumps({"DISK_PREFLIGHT_FAILED": disk}), file=sys.stderr)
         return EXIT_REFUSED
@@ -460,13 +494,11 @@ def complete(args, orchestrator, seed_dir, checkpoint_dir, target, checkpoints, 
                           "actor_fixtures": chosen.manifest["actor_fixtures"],
                           "selection_rule": PR.DESIGN["deep_validation"]["checkpoint_selection"]},
                          update_latest=False)
-    fresh = subprocess.run(
-        [sys.executable, "-m", "rl_agent.splitfusion_hybrid_sac_run5_v1.run5_campaign",
-         "--verify-actor", str(seed_dir / actor_name), "--seed", str(args.seed),
-         "--expect-update", str(target)],
-        cwd=ROOT, capture_output=True, text=True, env={**os.environ, "CUDA_VISIBLE_DEVICES": ""})
-    require(fresh.returncode == 0, f"fresh-process actor verification failed: {fresh.stderr}")
-    fresh_result = json.loads(fresh.stdout.strip().splitlines()[-1])
+    evaluation = [(checkpoint_dir / B.bundle_name("checkpoint", u), u)
+                  for u in PR.CONFIG.evaluation_checkpoints if u <= target]
+    fresh_results = fresh_verify([(seed_dir / actor_name, target), *evaluation], args.seed)
+    fresh_result = fresh_results[0]
+    evaluation_actors = fresh_results[1:]
     require(fresh_result["verified"] and fresh_result["pid"] != os.getpid()
             and fresh_result["tree_sha256"] == chosen.manifest["actor_tree_sha256"],
             "fresh-process verification does not match the chosen actor")
@@ -474,7 +506,9 @@ def complete(args, orchestrator, seed_dir, checkpoint_dir, target, checkpoints, 
     report = None
     if smoke:
         resume_proof = {"committed_bundles_verified": len(verified) == len(checkpoints),
-                        "fresh_process_weights_only_actor_load": True}
+                        "fresh_process_weights_only_actor_load": True,
+                        "evaluation_checkpoint_actors_cold_loadable":
+                            all(r["verified"] for r in evaluation_actors)}
         report = {
             "schema": "splitfusion.run5.smoke_report.v1", "seed": args.seed, "target": target,
             "host": host, "disk_preflight": disk, "preflight": orchestrator.preflight,
@@ -495,6 +529,7 @@ def complete(args, orchestrator, seed_dir, checkpoint_dir, target, checkpoints, 
         "binding_sha256": orchestrator.binding_sha256,
         "model_binding_sha256": RM.RUN5_TRAINING_MODEL_BINDING_SHA256,
         "boundaries": verified, "final_actor": fresh_result,
+        "evaluation_checkpoint_actors": evaluation_actors,
         "metrics_prefix": metrics_log.prefix(target),
         "decisions_prefix": decisions_log.prefix(orchestrator.decision_count),
         "smoke_all_gates_passed": None if report is None else report["all_gates_passed"],
@@ -507,16 +542,110 @@ def complete(args, orchestrator, seed_dir, checkpoint_dir, target, checkpoints, 
     return 0 if report is None or report["all_gates_passed"] else 2
 
 
+def fresh_verify(items, seed: int) -> list[dict[str, Any]]:
+    """Cold-load every (bundle, update) in ONE new interpreter with weights_only."""
+    command = [sys.executable, "-m", "rl_agent.splitfusion_hybrid_sac_run5_v1.run5_campaign",
+               "--seed", str(seed)]
+    for path, update in items:
+        command += ["--verify-actor", str(path), "--expect-update", str(update)]
+    fresh = subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
+                           env={**os.environ, "CUDA_VISIBLE_DEVICES": ""})
+    require(fresh.returncode == 0, f"fresh-process actor verification failed: {fresh.stderr}")
+    results = json.loads(fresh.stdout.strip().splitlines()[-1])
+    require(len(results) == len(items) and all(r["verified"] for r in results)
+            and all(r["pid"] != os.getpid() for r in results),
+            "fresh-process verification incomplete")
+    return results
+
+
 def campaign_complete(campaign_dir: Path) -> dict[str, Any]:
-    """Bind three SEED_COMPLETE manifests (deep campaign only; not run here)."""
+    """Bind all three deep SEED_COMPLETE manifests after re-verifying every actor."""
+    prereg = PR.load_sealed()
     seeds = {}
     for seed in PR.CONFIG.seed_order:
-        path = Path(campaign_dir) / f"seed_{seed}" / "SEED_COMPLETE.json"
+        seed_dir = Path(campaign_dir) / f"seed_{seed}"
+        path = seed_dir / "SEED_COMPLETE.json"
         require(path.is_file(), f"seed {seed} is not complete")
-        seeds[str(seed)] = {"sha256": B.sha256_bytes(path.read_bytes())}
-    document = {"schema": "splitfusion.run5.campaign_complete.v1", "seeds": seeds}
+        completion = json.loads(path.read_text())
+        require(completion["mode"] == "deep"
+                and completion["target_update"] == PR.CONFIG.deep_target_update
+                and completion["preregistration_sha256"] == prereg["sha256"],
+                f"seed {seed} completion is not a deep run under this preregistration")
+        for update in PR.CONFIG.deep_checkpoints:
+            B.verify_bundle(seed_dir / "checkpoints" / B.bundle_name("checkpoint", update))
+        items = [(seed_dir / B.bundle_name("final_actor", PR.CONFIG.deep_target_update),
+                  PR.CONFIG.deep_target_update)] + [
+            (seed_dir / "checkpoints" / B.bundle_name("checkpoint", u), u)
+            for u in PR.CONFIG.evaluation_checkpoints]
+        seeds[str(seed)] = {"seed_complete_sha256": B.sha256_bytes(path.read_bytes()),
+                            "actors": fresh_verify(items, seed)}
+    document = {"schema": "splitfusion.run5.campaign_complete.v1",
+                "preregistration_sha256": prereg["sha256"], "seeds": seeds,
+                "registered_actor_rule": PR.DESIGN["deep_validation"]["checkpoint_selection"]}
     B.atomic_write_file(Path(campaign_dir) / "CAMPAIGN_COMPLETE.json", B.canonical_bytes(document))
     return document
+
+
+def rehearsal(args) -> int:
+    """Clean-process, zero-update launch rehearsal for one deep seed.
+
+    Performs the full deep launch preflight (seal, host, durable path, disk,
+    evidence, models, collector) plus the 288-decision no-gradient warm-up
+    preflight, then stops.  It creates no campaign or checkpoint directory,
+    takes no optimizer step, and writes only ``--rehearsal-report``.
+    """
+    prereg = PR.load_sealed()
+    campaign = Path(args.campaign_dir)
+    require(not campaign.exists(), "rehearsal must not touch an existing campaign directory")
+    durable = require_durable_directory(campaign)
+    host = host_state()
+    disk = disk_preflight(campaign, seeds=PR.CONFIG.seed_order,
+                          target=PR.CONFIG.deep_target_update,
+                          checkpoints=PR.CONFIG.deep_checkpoints)
+    torch.set_num_threads(PR.CONFIG.torch_intraop_threads)
+    shared = RC.build_shared_sources(ARTIFACT, Path(args.evidence_root))
+    factory = lambda: RC.Run5ModeledCollectorV1(
+        artifact_path=ARTIFACT, seed=args.seed, evidence_root=Path(args.evidence_root),
+        shared_sources=shared)
+    started = time.time()
+    steps = {"adam": 0}
+    original_step = torch.optim.Adam.step
+
+    def counted(self, *a, **k):
+        steps["adam"] += 1
+        return original_step(self, *a, **k)
+
+    torch.optim.Adam.step = counted
+    try:
+        orchestrator = RT.Run5OrchestratorV1(
+            collector_factory=factory, seed=args.seed, checkpoint_updates=PR.CONFIG.deep_checkpoints,
+            preregistration_sha256=prereg["sha256"])
+        preflight = orchestrator.run_preflight()
+    finally:
+        torch.optim.Adam.step = original_step
+    document = {
+        "schema": "splitfusion.run5.launch_rehearsal.v1", "seed": args.seed, "pid": os.getpid(),
+        "preregistration_sha256": prereg["sha256"], "binding_sha256": orchestrator.binding_sha256,
+        "host": host, "durable_path": durable, "disk_preflight": disk,
+        "update_count": orchestrator.update_count, "optimizer_steps": steps["adam"],
+        "optimizer_states_empty": (not orchestrator.trainer.actor_optimizer.state
+                                   and not orchestrator.trainer.critic_optimizer.state),
+        "campaign_directory_created": campaign.exists(),
+        "preflight_passed": preflight["passed"], "preflight": preflight,
+        "warmup_seconds": time.time() - started,
+        "checkpoint_updates": list(PR.CONFIG.deep_checkpoints),
+        "evaluation_checkpoints": list(PR.CONFIG.evaluation_checkpoints),
+        "target_update": PR.CONFIG.deep_target_update}
+    document["passed"] = (host["cold"] and disk["passed"] and preflight["passed"]
+                          and document["optimizer_steps"] == 0
+                          and document["optimizer_states_empty"]
+                          and not document["campaign_directory_created"]
+                          and orchestrator.update_count == 0)
+    B.atomic_write_file(Path(args.rehearsal_report),
+                        json.dumps(document, indent=1, sort_keys=True, default=str).encode())
+    print(json.dumps({"passed": document["passed"], "seed": args.seed,
+                      "optimizer_steps": steps["adam"]}))
+    return 0 if document["passed"] else 2
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -528,14 +657,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--stop-after-update", type=int, default=None)
     parser.add_argument("--skip-host-check-for-tests", action="store_true")
-    parser.add_argument("--verify-actor")
-    parser.add_argument("--expect-update", type=int)
+    parser.add_argument("--verify-actor", action="append")
+    parser.add_argument("--expect-update", type=int, action="append")
+    parser.add_argument("--rehearsal", action="store_true")
+    parser.add_argument("--rehearsal-report")
+    parser.add_argument("--finalize-campaign", action="store_true")
     args = parser.parse_args(argv)
     if args.verify_actor:
-        print(json.dumps(verify_actor_bundle(Path(args.verify_actor), seed=args.seed,
-                                             update=args.expect_update)))
+        require(len(args.verify_actor) == len(args.expect_update or []),
+                "each --verify-actor needs one --expect-update")
+        print(json.dumps([verify_actor_bundle(Path(path), seed=args.seed, update=update)
+                          for path, update in zip(args.verify_actor, args.expect_update)]))
         return 0
     try:
+        if args.rehearsal:
+            require(args.mode == "deep" and args.rehearsal_report, "rehearsal is deep-mode only")
+            return rehearsal(args)
+        if args.finalize_campaign:
+            print(json.dumps(campaign_complete(Path(args.campaign_dir))))
+            return 0
         return run(args)
     except (CampaignRefused, B.BundleError, PR.PreregistrationError) as exc:
         print(f"RUN5_REFUSED: {exc}", file=sys.stderr)
