@@ -267,6 +267,11 @@ class LifecycleBindingTests(unittest.TestCase):
                              Path(E.GT_FINAL_DESTINATION))
             self.assertIn("--edge", remaining)
             self.assertNotIn("--remote-gt-ready-evidence", remaining)
+            identity = RGT.parse_edge_identity_args(remaining)
+            self.assertEqual(identity.run_id, fixture.invocation.run_id)
+            self.assertEqual(identity.cell_id, fixture.invocation.cell_id)
+            self.assertEqual(identity.edge_segmentation_evidence_dir,
+                             Path(E.EVIDENCE_DESTINATION))
             self.assertEqual(command[command.index("--remote-gt-bind-host") + 1],
                              "192.168.70.140")
             self.assertEqual(command[command.index("--remote-gt-port") + 1], "51015")

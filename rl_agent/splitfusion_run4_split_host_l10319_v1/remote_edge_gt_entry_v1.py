@@ -355,7 +355,8 @@ def parse_remote_gt_args(
         argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
     """Parse only the additive GT options; importing torch/services is unnecessary."""
     values = list(argv) if argv is not None else None
-    parser = argparse.ArgumentParser(add_help=False)
+    # Do not abbreviate downstream options such as ``--edge``.
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     parser.add_argument("--remote-gt-bind-host", required=True)
     parser.add_argument("--remote-gt-advertised-host", required=True)
     parser.add_argument("--remote-gt-port", type=int, required=True)
@@ -366,14 +367,24 @@ def parse_remote_gt_args(
     return parser.parse_known_args(values)
 
 
+def parse_edge_identity_args(argv: Sequence[str]) -> argparse.Namespace:
+    """Read shared identity fields without consuming downstream edge flags.
+
+    With abbreviation enabled, ``--edge`` is misread as an abbreviation of
+    ``--edge-segmentation-evidence-dir`` and startup fails before CUDA loads.
+    """
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--cell-id", required=True)
+    parser.add_argument("--edge-segmentation-evidence-dir", type=Path,
+                        required=True)
+    identity, _ignored = parser.parse_known_args(list(argv))
+    return identity
+
+
 def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live seam
     known, remaining = parse_remote_gt_args(argv)
-    identity_parser = argparse.ArgumentParser(add_help=False)
-    identity_parser.add_argument("--run-id", required=True)
-    identity_parser.add_argument("--cell-id", required=True)
-    identity_parser.add_argument("--edge-segmentation-evidence-dir", type=Path,
-                                 required=True)
-    identity, _ignored = identity_parser.parse_known_args(remaining)
+    identity = parse_edge_identity_args(remaining)
 
     from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_edge_runtime_v2
     from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_prewarm_v2
