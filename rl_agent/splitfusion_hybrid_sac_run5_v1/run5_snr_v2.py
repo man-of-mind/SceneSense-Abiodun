@@ -356,20 +356,21 @@ class RfsimLeaseSnrAdapterV1:
         self._command_ids: set[str] = set()
         self._sample_seq = 0
 
-    def _stamp(self) -> int:
-        now = int(self._clock())
-        if now < self._last_ns:
-            raise MetadataError("CLOCK_MONOTONIC_RAW went backwards")
-        self._last_ns = now
-        return now
+    def _accept_time(self, at_ns: int) -> int:
+        if type(at_ns) is not int or at_ns < 0:
+            raise MetadataError("event time must be an exact int >= 0")
+        if at_ns < self._last_ns:
+            raise MetadataError(f"{self.CLOCK_DOMAIN} went backwards")
+        self._last_ns = at_ns
+        return at_ns
 
-    def record_command_ack(self, *, command_id: str, status: str, clamped: Optional[bool],
-                           target_snr_db: Optional[float]) -> int:
+    def _record_ack_at(self, at_ns: int, command_id: str, status: str,
+                       clamped: Optional[bool], target_snr_db: Optional[float]) -> int:
         _non_empty_str(command_id, "command_id")
         if command_id in self._command_ids:
             raise MetadataError("duplicate RFsim command_id")
+        now = self._accept_time(at_ns)
         self._command_ids.add(command_id)
-        now = self._stamp()
         reason = None
         if status != "ACK":
             reason = "ACTIVE_COMMAND_ERRORED"
@@ -381,11 +382,20 @@ class RfsimLeaseSnrAdapterV1:
                                reason is None, reason))
         return now
 
-    def record_heartbeat(self, *, active_command_id: str) -> int:
+    def _record_heartbeat_at(self, at_ns: int, active_command_id: str) -> int:
         _non_empty_str(active_command_id, "active_command_id")
-        now = self._stamp()
+        now = self._accept_time(at_ns)
         self._heartbeats.append((now, active_command_id))
         return now
+
+    # Live controller API: every event is stamped here from CLOCK_MONOTONIC_RAW.
+    def record_command_ack(self, *, command_id: str, status: str, clamped: Optional[bool],
+                           target_snr_db: Optional[float]) -> int:
+        return self._record_ack_at(int(self._clock()), command_id, status, clamped,
+                                   target_snr_db)
+
+    def record_heartbeat(self, *, active_command_id: str) -> int:
+        return self._record_heartbeat_at(int(self._clock()), active_command_id)
 
     def observe(self, boundary: R4.DecisionBoundaryV1) -> UlSnrLeaseObservationV1:
         if not isinstance(boundary, R4.DecisionBoundaryV1):
@@ -425,3 +435,23 @@ class RfsimLeaseSnrAdapterV1:
             heartbeat_command_id=None if beat is None else beat[1],
             heartbeat_ns=None if beat is None else beat[0],
             clock_domain=self.CLOCK_DOMAIN, valid=value is not None, missing_reason=reason)
+
+
+class ModeledLeaseSnrAdapterV1(RfsimLeaseSnrAdapterV1):
+    """Modeled-training twin of the live adapter.
+
+    Same records, same ``observe`` and the same guard.  The only difference is
+    that the modeled controller supplies event times explicitly on the
+    collector's virtual ``CLOCK_MONOTONIC_RAW`` timeline; it cannot read the
+    host clock and has no bridge to one.
+    """
+
+    def _clock(self) -> int:  # type: ignore[override]
+        raise MetadataError("the modeled adapter has no wall clock; pass at_ns explicitly")
+
+    def record_command_ack_at(self, *, at_ns: int, command_id: str, status: str,
+                              clamped: Optional[bool], target_snr_db: Optional[float]) -> int:
+        return self._record_ack_at(at_ns, command_id, status, clamped, target_snr_db)
+
+    def record_heartbeat_at(self, *, at_ns: int, active_command_id: str) -> int:
+        return self._record_heartbeat_at(at_ns, active_command_id)

@@ -220,7 +220,12 @@ class Run5ModeledCollectorV1(CV.RealModeledTransitionCollectorV1):
         self._transport_rng = random.Random(self._seed * 1_000_003 + 23)
         self._residual_rng = random.Random(self._seed * 1_000_003 + 37)
         self._channel = J.JointSnrMcsChannelV1(
-            kernel=self._snr_kernel, design=self._design, seed=self._seed * 1_000_003 + 53)
+            kernel=self._snr_kernel, design=self._design,
+            seed=J.derive_seed(self._seed, "train-channel"))
+        # The same causal interface the live controller uses; only the event
+        # times come from the modeled CLOCK_MONOTONIC_RAW timeline.
+        self._snr_adapter = SNR.ModeledLeaseSnrAdapterV1(
+            provider_id=SCHEMA, session_uuid=self._session_uuid(), ue_id=CV.UE_ID)
         self._take_channel_observation()
         self._backlog_bytes = 0
         self._history = []
@@ -265,19 +270,23 @@ class Run5ModeledCollectorV1(CV.RealModeledTransitionCollectorV1):
 
     # -- 22-D features ---------------------------------------------------
     def _snr_observation(self, bundle, snr_db: float) -> SNR.UlSnrLeaseObservationV1:
+        """Modeled controller: ACK the active command, renew its lease, then observe.
+
+        The command carrying the current tick's target is ACKed 20 ms and the
+        lease renewed 5 ms before state commit; ``observe`` then applies the
+        exact live selection rule at the commit cutoff.
+        """
         boundary = bundle.state.boundary
-        identity = boundary.identity
+        require(boundary.clock_domain == SNR.LIVE_CLOCK_DOMAIN,
+                "modeled decisions must use CLOCK_MONOTONIC_RAW")
         commit = boundary.state_commit_timestamp_ns
-        command_id = f"run5-modeled-effective-command-{identity.decision_seq}"
-        return SNR.UlSnrLeaseObservationV1(
-            identity=R4.SampleIdentityV1(identity.session_uuid, identity.ue_id,
-                                         400 + identity.decision_seq),
-            kind=SNR.V1.SnrProxyKind.SIMULATOR_EFFECTIVE_UL_SNR_PROXY_DB,
-            provider_id=SCHEMA, controller_session_uuid=identity.session_uuid,
-            value_db=float(snr_db), active_command_id=command_id,
-            effective_since_ns=commit - SNR_EFFECTIVE_LEAD_NS,
-            heartbeat_command_id=command_id, heartbeat_ns=commit - SNR_HEARTBEAT_LEAD_NS,
-            clock_domain=boundary.clock_domain, valid=True, missing_reason=None)
+        command_id = f"run5-modeled-effective-command-{boundary.identity.decision_seq}"
+        self._snr_adapter.record_command_ack_at(
+            at_ns=commit - SNR_EFFECTIVE_LEAD_NS, command_id=command_id, status="ACK",
+            clamped=False, target_snr_db=float(snr_db))
+        self._snr_adapter.record_heartbeat_at(at_ns=commit - SNR_HEARTBEAT_LEAD_NS,
+                                              active_command_id=command_id)
+        return self._snr_adapter.observe(boundary)
 
     def _run5_features(self, bundle, snr_db: float) -> Tuple[float, ...]:
         guarded = SNR.guard_run5_state_v2(

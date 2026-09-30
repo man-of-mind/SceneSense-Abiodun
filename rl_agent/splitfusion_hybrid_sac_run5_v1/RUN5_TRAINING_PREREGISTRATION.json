@@ -1,0 +1,279 @@
+{
+ "config": {
+  "actor_learning_rate": 0.0003,
+  "alpha_c": 0.02,
+  "alpha_d": 0.05,
+  "batch_size": 256,
+  "critic_learning_rate": 0.0003,
+  "deep_checkpoints": [
+   0,
+   100,
+   250,
+   500,
+   1000,
+   1500,
+   2000,
+   2500,
+   3000,
+   3500,
+   4000,
+   4500,
+   5000,
+   5500,
+   6000,
+   6500,
+   7000,
+   7500,
+   8000,
+   8500,
+   9000,
+   9500,
+   10000
+  ],
+  "deep_target_update": 10000,
+  "duration_tensors": 2,
+  "environment_transitions_per_update": 4,
+  "evaluation_checkpoints": [
+   500,
+   1500,
+   2500,
+   5000,
+   7500,
+   10000
+  ],
+  "gamma_per_tensor": 0.99,
+  "hidden_depth": 2,
+  "hidden_width": 128,
+  "log_std_max": 2.0,
+  "log_std_min": -5.0,
+  "polyak_tau": 0.005,
+  "replay_capacity": 65536,
+  "seed_order": [
+   17,
+   29,
+   43
+  ],
+  "smoke_checkpoints": [
+   0,
+   100,
+   250,
+   500
+  ],
+  "smoke_seed": 17,
+  "smoke_stop_update": 500,
+  "torch_intraop_threads": 4,
+  "validation_seeds": [
+   9017,
+   9029,
+   9043
+  ],
+  "warmup_decision_count": 288,
+  "warmup_mode_count": 12,
+  "warmup_q_bin_count": 6,
+  "warmup_samples_per_mode_q_bin": 4
+ },
+ "design": {
+  "campaign": {
+   "deep_training_authorized": false,
+   "recovery_checkpoint_max_gap_updates": 500,
+   "seeds": [
+    17,
+    29,
+    43
+   ],
+   "target_update": 10000
+  },
+  "channel": {
+   "kernel_transfer": {
+    "ADVERSE_STABLE": "PROFILE_TRANSFER_UNVALIDATED",
+    "FAVORABLE_STABLE": "PROFILE_TRANSFER_UNVALIDATED"
+   },
+   "profiles": [
+    "FAVORABLE_STABLE",
+    "MID_VARIABLE",
+    "ADVERSE_STABLE",
+    "FADE_RECOVERY"
+   ],
+   "sampling": "300-tick segments; every block of 4 consecutive segments holds each profile exactly once in a seeded order; hidden state continuous",
+   "successor_mcs": "accepted SNR-tilted Run-4 kernel (SUCCESSOR_MCS_SNR_AUDIT.json)",
+   "training_channel_seed": "derive(seed, 'train-channel')",
+   "validation_channel_seed": "derive(validation_seed, 'validation-channel')"
+  },
+  "deep_validation": {
+   "checkpoint_selection": "the update-10,000 actor of each seed is the registered actor; no validation-based checkpoint selection; emergency checkpoints are never candidates",
+   "contexts": "same independent contexts for Run-4 and Run-5: held-out scene partition x 4 profiles x validation seeds 9017/9029/9043",
+   "coverage": "all three seeds x all registered evaluation checkpoints",
+   "metrics": [
+    "reward",
+    "success/deadline rate",
+    "latency",
+    "Q_perc",
+    "mode and q distribution",
+    "oracle regret vs registered action catalogue",
+    "true causal SNR vs audit-only in-support shuffled-SNR actor input"
+   ],
+   "use": "diagnostics only; they never alter training or select hyper-parameters"
+  },
+  "reward": {
+   "absent_terms": [
+    "SNR",
+    "p_admit",
+    "payload",
+    "switching",
+    "aggression"
+   ],
+   "deadline_ms": 170.0,
+   "infrastructure_or_evaluator_fault": "excluded",
+   "registered_delivery_failure_or_timeout": -1.0,
+   "schema_sha256": "a47fff2fcdc103446952d57c98f22fd120f413b40cbdbc25b3cc6d6ed667d21b",
+   "success": "Q_perc - 0.25 * latency_ms / 170 (eligible feedback, latency <= 170 ms)"
+  },
+  "scenes": {
+   "eligible_gt": "all reported performance is conditional on eligible ground truth; no empty-scene reward is defined",
+   "live_reporting": "Option C: live session rollovers are counted and reported",
+   "training": "Run-4 FIT scene catalogue; scenes with undefined Q_perc excluded"
+  },
+  "smoke_gates": [
+   "all losses, gradients and parameters finite",
+   "all 12 modes selected by the post-warm-up stochastic actor",
+   "post-warm-up continuous q non-degenerate (distinct q, per-mode spread)",
+   "camera SI, radar P40, MCS, backlog, SNR, prev mode, prev q, prev Q_perc, prev latency, prev presence and prev success all vary",
+   "current SNR is never a sample generated after the action",
+   "every registered boundary bundle verifies; exact cold actor load",
+   "separate-process 250->500 resume bit-identical to uninterrupted run",
+   "controlled-SNR and shuffled-SNR diagnostics reported (no direction gate)"
+  ],
+  "state": {
+   "feature_count": 22,
+   "never_in_state": [
+    "profile id",
+    "hidden Markov state",
+    "trace index",
+    "future SNR",
+    "next channel command",
+    "RFsim noise command",
+    "gNB PUSCH SNR"
+   ],
+   "position_21": "effective_external_ul_snr_proxy_scaled = (snr_db - 5.5) / 19.0",
+   "positions_0_20": "unchanged Run-4 definitions, order and numeric semantics",
+   "previous_action_outcome": "Run-4 prev mode one-hot, prev q, prev Q_perc, prev latency, prev present, prev success",
+   "snr_semantics": "latest successful unclamped ACKed target active at state commit (< action-open) with a live controller lease; missing/invalid/foreign/out-of-support -> external fallback",
+   "snr_support_db": [
+    5.5,
+    24.5
+   ]
+  }
+ },
+ "feature_schema": {
+  "clock_domain": "CLOCK_MONOTONIC_RAW",
+  "feature_count": 22,
+  "feature_order": [
+   "camera_si_scaled",
+   "radar_p40",
+   "prior_ul_mcs_normalized",
+   "pre_action_rlc_backlog_log1p_scaled",
+   "prev_joint_mode_0_one_hot",
+   "prev_joint_mode_1_one_hot",
+   "prev_joint_mode_2_one_hot",
+   "prev_joint_mode_3_one_hot",
+   "prev_joint_mode_4_one_hot",
+   "prev_joint_mode_5_one_hot",
+   "prev_joint_mode_6_one_hot",
+   "prev_joint_mode_7_one_hot",
+   "prev_joint_mode_8_one_hot",
+   "prev_joint_mode_9_one_hot",
+   "prev_joint_mode_10_one_hot",
+   "prev_joint_mode_11_one_hot",
+   "prev_q_normalized",
+   "prev_quality_qperc",
+   "prev_latency_normalized",
+   "prev_present",
+   "prev_success",
+   "effective_external_ul_snr_proxy_scaled"
+  ],
+  "forbidden_feature_terms": [
+   "age",
+   "timestamp",
+   "fresh",
+   "valid",
+   "source",
+   "identity",
+   "tbs",
+   "grant",
+   "network_profile",
+   "gnb",
+   "pusch",
+   "frame_id",
+   "current_outcome",
+   "future_outcome",
+   "prev_reward",
+   "fps",
+   "profile",
+   "trace",
+   "markov",
+   "hidden",
+   "future",
+   "target",
+   "noise",
+   "command",
+   "measured"
+  ],
+  "freshness": "ACTIVE_EFFECTIVE_COMMAND_AT_STATE_COMMIT_WITH_MATCHING_CONTROLLER_LEASE",
+  "run4_prefix_feature_schema_sha256": "1f22b4f58a59a9ef96236564d4f2f8fe7e91fe1a99170e7f990b40bc1632ac23",
+  "schema_id": "splitfusion_run5_policy_features_v2",
+  "snr_label": "SIMULATOR_EFFECTIVE_UL_SNR_PROXY_DB",
+  "snr_scaling": "(snr_db - 5.5) / 19.0; outside support -> ExternalFallbackRequired",
+  "snr_support_db": [
+   5.5,
+   24.5
+  ],
+  "state_only": true,
+  "support_source": {
+   "path": "rl_agent/configs/network_profile_design_v2.json",
+   "sha256": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483"
+  },
+  "v1_feature_schema_sha256": "e3219409eb3be82b22890691cbbe6321aeaec284635eb6a91d2b6e2ceb2153e1",
+  "version": 2
+ },
+ "feature_schema_sha256": "487015205070d0a5dac6e61b9fe7aa8f39351bda5d1710de3bbaadc78358e596",
+ "model_binding_sha256": "a402a64d4305e99d5dca51fa2832657af9438d34dc9523c2decf2cdb01a9bf9a",
+ "prospective": true,
+ "schema": "splitfusion.run5.training_preregistration.v1",
+ "source_sha256": {
+  "rl_agent/configs/network_profile_design_v2.json": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483",
+  "rl_agent/experiments/ue_production_queue_capture_v1/20260929_model_v2b/transport_model_v2.json": "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c",
+  "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/checkpoint_io.py": "0f2636cac2a0066244b558608d9517d69c23da014052526fc436e3d3c7102519",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/dynamic_mcs_273prb_evidence.py": "eb3b61efbd131835a6342aeddd0d253d124a189727d117b5f82f23ac400d3959",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/environment.py": "ed2423baebe74cd2bdae2400fa9916381015523da856c432f78a6c5bd7a96e2a",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/exploration.py": "1de3236a75d807d31f28684e2e9b665b1a5bd8dbd5971c2d3ccf8498508a4b85",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/mcs_transition_provider.py": "5b50480e76b9b0083276fba1e31a365135ba43946201500cfed8e14a7f9a8a73",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/modeled_smoke_orchestrator.py": "9cc98fbf153c7ca28104ccbf705fcf814930bc3b09eccc42267edb05ed738758",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/run4_contract.py": "c3aaf4450deb80e3427972d745bd171cacda517864860f1106ce9d140dc4c18b",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/sequential_kernel.py": "a1f6ab5df12cdc03f3fba1414c262e3fce93cacece04d04d4c9c7f10b9e0ab47",
+  "rl_agent/splitfusion_hybrid_sac_run4_v1/trainer.py": "12f84e9263c352cf24cbca59b9bc2340f2d0d2f613d5ebd46a6ca5eec178d511",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/RETAINED_SNR_RESIDUAL_AUDIT.json": "00471e73f34fb4ee4b21e5582cfbf6c47cc2ce6b3622c181433bf1176d2b42dd",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/SUCCESSOR_MCS_SNR_AUDIT.json": "295ca76206d9dc9a5181a871c7644f9545edff384213d3e3a01c0886e4b683a6",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/__init__.py": "8468acc07597a41bccb957bf851ffef44a86ec93ef96e55a48cb5d9f224b83d4",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_bundle.py": "41fb8400af0e53489eec9b8f6ded6b5cb1c94780158962906abb36ecbc4d736d",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_campaign.py": "4b7cfdc2d122938d93841b5ea3cb5d6cd6ae7c13f5bf0d45a939375ee5a605f3",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_channel.py": "6ed62c78ac8b6a1a0e29e8f72525589ed7274780a54fbf458b84b35ae1578118",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_collector.py": "8f6132eac5592c61619f218aa3fd6b692ae18872a6cc66431a10b8bfcd564221",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_models.py": "01358dcbadfd30e32bd0febdb24b1eb20258ff17a04ad6be27bdb59cfc0049db",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_preregistration.py": "438c29cdb6e9e3fbb9ba9af37ce7124607f6a70751bf8391d2403bafef8d527a",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_snr_v2.py": "94d68d5a0e048c35b02a04932c3594185da4977eb2f1d18f62e371bd9a9c1846",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_state_contract.py": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_training.py": "c7cb244095b36e944261d26e29c0ad68fbcfc390a3753d12bba5811ea05871f0",
+  "rl_agent/splitfusion_hybrid_sac_run5_v1/successor_mcs_snr_audit.py": "08758309fa4d380777ce797aa84c86d13059d277f4d470d97cb245a16a037ebb",
+  "rl_agent/splitfusion_hybrid_sac_v1/action_contract.py": "72ba342cb9c4772c152f56ae00a490bc5048c154047e9f7944c4614cb1a9d6fe",
+  "rl_agent/splitfusion_hybrid_sac_v1/hybrid_sac_models.py": "f5c5c39391c7970ae22428e542b48704a7542915ca8fe2a19f97b99555dba65b",
+  "rl_agent/splitfusion_hybrid_sac_v1/modeled_smoke_support.py": "d588d2ceda83be750fcb5df4dfece6c85c6c2b033ab47be2d7bd97eb47ea03dc",
+  "rl_agent/splitfusion_hybrid_sac_v1/transaction_identity.py": "56635daff1bf4b38737be902a3dfd5bbabe21559cbae5375f4e2307bb485c7dc",
+  "rl_agent/ue_production_transport_model_v2/artifact_v2.py": "28ca8336fc6839fab4d0bc2e6c7dc28b76a8986502a4f8bb666da0ee84be41f2",
+  "rl_agent/ue_production_transport_model_v2/collector_v1.py": "6ff7766923d16c03ed7c4e31ebe2c4c7198acc0b4f06dc3a194e4657ad173385",
+  "rl_agent/ue_production_transport_model_v2/contract_v2.py": "e1e5d731e163e2bd4a9237847867f45443ac0200f024ba5f420d2b8932f1d682",
+  "rl_agent/ue_production_transport_model_v2/scene_source.py": "d63c4355d511bdfa9110209f1b466d58b4e54c574a2c17969f5e7ea3c3239fca",
+  "rl_agent/ue_production_transport_model_v2/smoke_runner.py": "1e54be6b8151ca2ccf4aa2b9d39bc31aed90e9f88dbaddf88fdbfb6343d346db"
+ },
+ "written_before_any_run5_smoke": true
+}

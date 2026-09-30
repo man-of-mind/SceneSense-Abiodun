@@ -84,34 +84,49 @@ RUN5_MODEL_BINDING: Mapping[str, Any] = MappingProxyType(
 )
 RUN5_MODEL_BINDING_SHA256 = canonical_sha256(RUN5_MODEL_BINDING)
 
-# Training binding: identical networks, v2 feature schema (registered SNR
-# support/scaling and controller lease).  Imported lazily-free: run5_snr_v2
-# performs no I/O.
+# Native Run-5 training binding.  Networks are built for 22 inputs from the
+# Run-5 preregistration's explicit hyper-parameters.  The only Run-4 identity
+# referenced is the feature schema that defines positions 0-20.
+from . import run5_preregistration as _PREREG  # noqa: E402
 from . import run5_snr_v2 as _SNR2  # noqa: E402
 
-RUN5_V2_MODEL_BINDING: Mapping[str, Any] = MappingProxyType(
+RUN5_TRAINING_MODEL_SCHEMA = "splitfusion.run5.native_hybrid_sac_models.v1"
+RUN5_TRAINING_MODEL_BINDING: Mapping[str, Any] = MappingProxyType(
     {
-        **dict(RUN5_MODEL_BINDING),
+        "schema": RUN5_TRAINING_MODEL_SCHEMA,
+        "action_catalog_sha256": CATALOG_SHA256,
+        "continuous_q_support_sha256": MODELED_SMOKE_SUPPORT_SHA256,
+        "dtype": "torch.float32",
+        "mode_count": EXPECTED_MODE_COUNT,
+        "hidden_width": _PREREG.CONFIG.hidden_width,
+        "hidden_depth": _PREREG.CONFIG.hidden_depth,
+        "log_std_bounds": (_PREREG.CONFIG.log_std_min, _PREREG.CONFIG.log_std_max),
+        "actor_input_width": C.RUN5_POLICY_FEATURE_COUNT,
+        "critic_input_width": C.RUN5_POLICY_FEATURE_COUNT + EXPECTED_MODE_COUNT + 1,
+        "policy_feature_count": C.RUN5_POLICY_FEATURE_COUNT,
+        "policy_feature_order": tuple(C.RUN5_POLICY_FEATURE_ORDER),
         "feature_schema_id": _SNR2.FEATURE_SCHEMA_ID,
         "feature_schema_sha256": _SNR2.FEATURE_SCHEMA_SHA256,
         "feature_schema_version": _SNR2.FEATURE_SCHEMA_VERSION,
-        "schema": RUN5_MODEL_SCHEMA + "+feature_schema_v2",
+        "snr_scaling": "(snr_db - 5.5) / 19.0 on [5.5, 24.5]",
+        "positions_0_20_feature_schema_sha256": C.R4.FEATURE_SCHEMA_SHA256,
     }
 )
-RUN5_V2_MODEL_BINDING_SHA256 = canonical_sha256(RUN5_V2_MODEL_BINDING)
+RUN5_TRAINING_MODEL_BINDING_SHA256 = canonical_sha256(RUN5_TRAINING_MODEL_BINDING)
 
 
 def run5_model_config() -> HybridSacModelConfig:
-    """Run 4's configuration with ``state_dim`` = 22 and nothing else changed."""
-    run4 = R4M.run4_model_config()
+    """Native 22-input configuration from the Run-5 preregistration."""
+    from . import run5_preregistration as prereg
+
     return HybridSacModelConfig(
         state_dim=C.RUN5_POLICY_FEATURE_COUNT,
-        mode_count=run4.mode_count,
-        hidden_width=run4.hidden_width,
-        hidden_depth=run4.hidden_depth,
-        log_std_min=run4.log_std_min,
-        log_std_max=run4.log_std_max,
-        dtype=run4.dtype,
+        mode_count=EXPECTED_MODE_COUNT,
+        hidden_width=prereg.CONFIG.hidden_width,
+        hidden_depth=prereg.CONFIG.hidden_depth,
+        log_std_min=prereg.CONFIG.log_std_min,
+        log_std_max=prereg.CONFIG.log_std_max,
+        dtype=torch.float32,
         modeled_smoke_support=MODELED_SMOKE_SUPPORT,
     )
 

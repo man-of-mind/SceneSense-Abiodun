@@ -120,20 +120,34 @@ class ChannelTest(unittest.TestCase):
         fields = set(J.ChannelObservationV1.__dataclass_fields__)
         self.assertEqual(fields, {"snr_db", "mcs", "tick"})
         a, b = self.channel(), self.channel()
-        b._profile = 1 - a._profile
+        b._profile = (a._profile + 1) % 4
         oa, ob = a.observe(), b.observe()
         self.assertEqual((oa.snr_db, oa.mcs), (ob.snr_db, ob.mcs))
 
-    def test_support_and_segment_profile_redraw(self) -> None:
+    def test_support_and_balanced_four_profile_blocks(self) -> None:
         channel = self.channel()
-        profiles = set()
-        for _ in range(1500):
+        sequence = []
+        for _ in range(3000):                    # 6000 ticks = 20 segments = 5 blocks
             observation = channel.observe()
             self.assertTrue(5.5 <= observation.snr_db <= 24.5)
             self.assertTrue(P.MCS_MIN <= observation.mcs <= P.MCS_MAX)
-            profiles.add(channel._profile)
+            if not sequence or sequence[-1] != channel._profile or channel._segment_left == 300:
+                sequence.append(channel._profile)
             channel.advance(2)
-        self.assertEqual(profiles, {0, 1})
+        balance = channel.profile_balance()
+        self.assertEqual(set(balance), set(J.TRAINING_PROFILES))
+        self.assertLessEqual(max(balance.values()) - min(balance.values()), 1)
+        starts = channel._segments_started
+        self.assertGreaterEqual(starts, 20)
+        for count in balance.values():
+            self.assertIn(count, (starts // 4, starts // 4 + 1))
+        self.assertEqual(J.PROFILE_KERNEL_STATUS["FAVORABLE_STABLE"], "PROFILE_TRANSFER_UNVALIDATED")
+        self.assertEqual(J.PROFILE_KERNEL_STATUS["MID_VARIABLE"], "KERNEL_FIT_SUPPORT")
+        train = J.JointSnrMcsChannelV1(kernel=self.kernel, design=self.design,
+                                       seed=J.derive_seed(17, "train-channel"))
+        validation = J.JointSnrMcsChannelV1(kernel=self.kernel, design=self.design,
+                                            seed=J.derive_seed(9017, "validation-channel"))
+        self.assertNotEqual(train.observe().snr_db, validation.observe().snr_db)
 
     def test_checkpoint_restore_is_exact(self) -> None:
         a = self.channel()

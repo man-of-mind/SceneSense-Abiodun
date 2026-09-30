@@ -1,29 +1,31 @@
-"""Run-5 training mechanics: 22-D replay, Run-4 SAC update, event checkpoints, sidecars.
+"""Run-5 training mechanics: 22-D replay, Run-4 SAC update, atomic boundary bundles.
 
 Reused from Run 4 without modification
 --------------------------------------
 * the SAC numerical update ``trainer._Run4TrainerCore.update_once`` (critic,
-  actor, Polyak), inherited verbatim; only construction and preflight change
-  width from 21 to 22, exactly as Run 4's own modeled trainer did;
-* ``smoke_preregistration.FROZEN_CONFIG``: gamma 0.99/tensor, alpha_d 0.05,
-  alpha_c 0.02, lr 3e-4, tau 0.005, batch 256, capacity 65,536, 4 environment
-  transitions per update, 4 intra-op threads, seeds (17, 29, 43);
-* ``RunnerSeedPlanV1`` stream derivation and the frozen 288-decision
-  12x6x4 stratified warm-up schedule;
+  actor, Polyak), inherited verbatim; construction and preflight are Run-5's,
+  the pattern Run 4's own modeled trainer used;
+* the stratified warm-up schedule class and the registered continuous-q
+  action support (the action space is unchanged);
 * stochastic training actions (categorical mode + conditional q from
   ``sample_all_modes``), identical to Run 4's ``_actor_request``;
 * uniform-without-replacement replay sampling on a private generator, FIFO
   eviction and lifetime duplicate indexes.
 
-Checkpoints
------------
-Every registered boundary emits (1) an event-sourced JSON checkpoint with a
-full boundary fingerprint including the joint-channel state digest and (2) a
-materialized sidecar (actor, online and target critics, both Adam states, all
-five generators, and the joint-channel document).  Two resume paths are
-provided and both must reproduce the fingerprint bit-for-bit: replay from
-genesis, and the sidecar fast path (tensors and generators from the sidecar,
-replay contents and channel state reconstructed from the ledger).
+Every number (gamma, alphas, learning rates, tau, batch, capacity, warm-up,
+transitions per update, seeds, checkpoint cadence) comes from the Run-5
+preregistration; no Run-4 smoke-preregistration identity is bound.
+
+Checkpoints and resume
+----------------------
+A boundary bundle (``run5_bundle``) holds the event record, the actor, both
+online and target critics, both Adam states, all five private generators, the
+joint-channel state and every identity.  ``restore_from_bundle`` performs no
+gradient step: tensors, optimizers and generators are loaded from the bundle;
+the collector (environment, queue, scene streams, channel) and the replay
+contents are rebuilt by re-executing the recorded *actions* through the
+environment, which is deterministic and verified against every digest in the
+bundle.
 
 Importing performs no I/O and initializes no accelerator.
 """
@@ -33,44 +35,45 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import os
-import secrets
-import shutil
-import stat
 from collections import deque
 from dataclasses import dataclass
 from itertools import chain
-from pathlib import Path
 from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
 import torch
 
-from rl_agent.splitfusion_hybrid_sac_checkpoint_sidecar_v1 import sidecar as SC
-from rl_agent.splitfusion_hybrid_sac_run4_v1 import checkpoint_io
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import exploration
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import modeled_smoke_orchestrator as orch
-from rl_agent.splitfusion_hybrid_sac_run4_v1 import smoke_preregistration
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract as R4
 from rl_agent.splitfusion_hybrid_sac_run4_v1 import trainer as T
 from rl_agent.splitfusion_hybrid_sac_v1.action_contract import (
     EXPECTED_MODE_COUNT, Q_E4_MAX, Q_E4_MIN, Q_E4_SCALE, load_contract,
 )
 from rl_agent.splitfusion_hybrid_sac_v1.hybrid_sac_models import (
-    ConditionalHybridActor, TwinHybridCritics, build_actor,
+    ConditionalHybridActor, TwinHybridCritics,
+)
+from rl_agent.splitfusion_hybrid_sac_v1.modeled_smoke_support import (
+    MODELED_SMOKE_SUPPORT, MODELED_SMOKE_SUPPORT_SHA256,
 )
 from rl_agent.splitfusion_hybrid_sac_v1.transaction_identity import (
     ACTION_IDENTITY_SCHEMA_SHA256, MINIMUM_HOLD_TENSORS, ExecutedActionIdentity,
 )
 
+from . import run5_bundle as B
 from . import run5_collector as RC
 from . import run5_models as RM
+from . import run5_preregistration as PR
 from . import run5_snr_v2 as SNR
 
-CONFIG = smoke_preregistration.FROZEN_CONFIG
+CONFIG = PR.CONFIG
 WIDTH = 22
 SCHEMA = "splitfusion.run5.training.v1"
-CHECKPOINT_SCHEMA = "splitfusion.run5.event_checkpoint.v1"
-SIDECAR_SCHEMA = "splitfusion.run5.materialized_checkpoint_sidecar.v1"
-SMOKE_CHECKPOINTS = (0, 100, 250, 500)
+EVENT_SCHEMA = "splitfusion.run5.event_record.v1"
+TRAINING_STATE_SCHEMA = "splitfusion.run5.training_state.v1"
 SNR_INDEX = 21
+GENERATOR_NAMES = ("decision_q", "decision_mode", "replay", "trainer_target", "trainer_actor")
+ONLINE_PREFIXES = ("critic_1.", "critic_2.")
+TARGET_PREFIXES = ("target_1.", "target_2.")
 _tree_sha256 = orch._tree_sha256
 _tensor_sha256 = orch._tensor_sha256
 
@@ -85,9 +88,7 @@ def require(condition: bool, message: str) -> None:
 
 
 def _sha(value: Any) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
-                                     ensure_ascii=True, allow_nan=False)
-                          .encode("ascii")).hexdigest()
+    return hashlib.sha256(B.canonical_bytes(value)).hexdigest()
 
 
 def trainer_config() -> T.TrainerConfigV1:
@@ -95,6 +96,31 @@ def trainer_config() -> T.TrainerConfigV1:
                              tau=CONFIG.polyak_tau, actor_lr=CONFIG.actor_learning_rate,
                              critic_lr=CONFIG.critic_learning_rate,
                              nominal_batch_size=CONFIG.batch_size)
+
+
+def derive_seed(master: int, label: str) -> int:
+    material = B.canonical_bytes({"domain": "RUN5_TRAINING_RNG_STREAM_V1", "label": label,
+                                  "master_seed": master})
+    return int.from_bytes(hashlib.sha256(material).digest()[:8], "big") & ((1 << 63) - 1)
+
+
+def seed_plan(master: int) -> dict[str, int]:
+    require(master in CONFIG.seed_order, "seed is not registered in the Run-5 preregistration")
+    plan = {"master_seed": master}
+    for name in ("actor", "critics", *GENERATOR_NAMES):
+        plan[f"{name}_seed"] = derive_seed(master, name)
+    require(len(set(plan.values()) - {master}) == len(plan) - 1, "RNG stream seeds collide")
+    return plan
+
+
+def warmup_schedule(master: int) -> exploration.StratifiedWarmupSchedule:
+    schedule = exploration.StratifiedWarmupSchedule(exploration.WarmupScheduleConfig(
+        mode_q_e4_bounds=MODELED_SMOKE_SUPPORT.mode_q_e4_bounds,
+        q_bin_count=CONFIG.warmup_q_bin_count,
+        samples_per_q_bin=CONFIG.warmup_samples_per_mode_q_bin,
+        master_seed=master, support_contract_id=MODELED_SMOKE_SUPPORT_SHA256))
+    require(len(schedule) == CONFIG.warmup_decision_count, "warm-up is not 288 decisions")
+    return schedule
 
 
 # ---------------------------------------------------------------------------
@@ -163,9 +189,6 @@ class Run5ReplayBufferV1:
         require(digest not in self._seen_digests, "duplicate transition digest")
         require(key not in self._seen_identities, "duplicate logical decision identity")
         require(record.duration >= MINIMUM_HOLD_TENSORS, "duration violates minimum hold")
-        for value in (record.reward, record.discount):
-            require(math.isfinite(float(torch.tensor(value, dtype=torch.float32))),
-                    "reward/discount is not finite in float32")
         self._seen_digests.add(digest)
         self._seen_identities[key] = digest
         self._rows.append(record)
@@ -280,97 +303,44 @@ class Run5HybridSacTrainerV1(T._Run4TrainerCore):
 
 
 # ---------------------------------------------------------------------------
-# Event checkpoint
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True, slots=True)
-class Run5CheckpointV1:
-    document: Mapping[str, Any]
-
-    @property
-    def update_count(self) -> int:
-        return int(self.document["update_count"])
-
-    @property
-    def decision_count(self) -> int:
-        return int(self.document["decision_count"])
-
-    @property
-    def boundary(self) -> Mapping[str, Any]:
-        return self.document["boundary"]
-
-    @property
-    def canonical_sha256(self) -> str:
-        return _sha(dict(self.document))
-
-    def to_bytes(self) -> bytes:
-        return json.dumps(dict(self.document), sort_keys=True, separators=(",", ":"),
-                          ensure_ascii=True, allow_nan=False).encode("ascii")
-
-
-def write_event_checkpoint(path: Path, checkpoint: Run5CheckpointV1) -> str:
-    data = checkpoint.to_bytes()
-    with Path(path).open("xb") as stream:
-        stream.write(data)
-        stream.flush()
-        os.fsync(stream.fileno())
-    return hashlib.sha256(data).hexdigest()
-
-
-def read_event_checkpoint(path: Path) -> Run5CheckpointV1:
-    data = Path(path).read_bytes()
-    document = json.loads(data)
-    require(document.get("schema") == CHECKPOINT_SCHEMA,
-            "not a Run-5 event checkpoint (a Run-4 checkpoint is refused)")
-    checkpoint = Run5CheckpointV1(document)
-    require(checkpoint.to_bytes() == data, "event checkpoint is not canonical")
-    return checkpoint
-
-
-# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 
 
 class Run5OrchestratorV1:
     def __init__(self, *, collector_factory: Callable[[], RC.Run5ModeledCollectorV1],
-                 seed: int, checkpoint_updates: Sequence[int] = SMOKE_CHECKPOINTS) -> None:
+                 seed: int, checkpoint_updates: Sequence[int],
+                 preregistration_sha256: str) -> None:
         require(torch.get_num_threads() == CONFIG.torch_intraop_threads,
                 "torch intra-op threads must be exactly 4")
-        self.seed_plan = orch.RunnerSeedPlanV1.for_registered_seed(seed)
-        self.schedule = orch.build_frozen_warmup_schedule(seed)
-        self.checkpoint_updates = tuple(checkpoint_updates)
-        require(set(self.checkpoint_updates) <= set(CONFIG.checkpoint_updates),
-                "checkpoint updates must be registered Run-4 boundaries")
-        self.collector_factory = collector_factory
+        registered = set(CONFIG.smoke_checkpoints) | set(CONFIG.deep_checkpoints)
+        require(set(checkpoint_updates) <= registered and 0 in checkpoint_updates,
+                "checkpoint updates must be registered Run-5 boundaries")
+        self.checkpoint_updates = tuple(sorted(checkpoint_updates))
+        self.seed = seed
+        self.seed_plan = seed_plan(seed)
+        self.schedule = warmup_schedule(seed)
         self.collector = collector_factory()
         require(type(self.collector) is RC.Run5ModeledCollectorV1, "collector is foreign")
         require(self.collector.decision_count == 0, "collector is not at genesis")
-        plan = self.seed_plan
-        self.actor, self.critics = RM.build_run5_models(actor_seed=plan.actor_seed,
-                                                       critic_seed=plan.critic_seed)
+        self.actor, self.critics = RM.build_run5_models(
+            actor_seed=self.seed_plan["actor_seed"], critic_seed=self.seed_plan["critics_seed"])
         self.binding_document = {
-            "schema": SCHEMA, "model_binding_sha256": RM.RUN5_V2_MODEL_BINDING_SHA256,
+            "schema": SCHEMA, "preregistration_sha256": preregistration_sha256,
+            "model_binding_sha256": RM.RUN5_TRAINING_MODEL_BINDING_SHA256,
             "feature_schema_sha256": SNR.FEATURE_SCHEMA_SHA256,
+            "reward_schema_sha256": R4.REWARD_SCHEMA_SHA256,
             "collector_binding_sha256": self.collector.collector_binding_sha256,
-            "preregistration_sha256": smoke_preregistration.PREREGISTRATION_SHA256,
-            "gamma_per_tensor": CONFIG.gamma_per_tensor, "capacity": CONFIG.replay_capacity,
-            "trainer_config": {"alpha_d": CONFIG.alpha_d, "alpha_c": CONFIG.alpha_c,
-                               "tau": CONFIG.polyak_tau, "lr": CONFIG.actor_learning_rate,
-                               "batch_size": CONFIG.batch_size},
-            "seed_plan": plan.to_dict(), "schedule_id": self.schedule.config.schedule_id,
             "action_identity_schema_sha256": ACTION_IDENTITY_SCHEMA_SHA256,
+            "continuous_q_support_sha256": MODELED_SMOKE_SUPPORT_SHA256,
+            "seed_plan": self.seed_plan, "schedule_id": self.schedule.config.schedule_id,
         }
         self.binding_sha256 = _sha(self.binding_document)
         self.replay = Run5ReplayBufferV1(CONFIG.replay_capacity, self.binding_sha256)
-        self.generators = {}
-        for name, value in (("decision_q", plan.decision_q_seed),
-                            ("decision_mode", plan.decision_mode_seed),
-                            ("replay", plan.replay_seed), ("trainer_target", plan.target_seed),
-                            ("trainer_actor", plan.trainer_actor_seed)):
+        self.generators: dict[str, torch.Generator] = {}
+        for name in GENERATOR_NAMES:
             generator = torch.Generator(device="cpu")
-            generator.manual_seed(value)
+            generator.manual_seed(self.seed_plan[f"{name}_seed"])
             self.generators[name] = generator
         self.trainer = Run5HybridSacTrainerV1(
             actor=self.actor, critics=self.critics, config=trainer_config(),
@@ -381,7 +351,8 @@ class Run5OrchestratorV1:
         self.ledger: list[dict[str, Any]] = []
         self.history: list[RC.Run5CollectedTransitionV1] = []
         self.preflight: Optional[dict[str, Any]] = None
-        self.metrics: list[T.UpdateMetricsV1] = []
+        self.last_metrics: Optional[T.UpdateMetricsV1] = None
+        self.stop_requested = False
         self._model_before = self._model_sha256()
 
     @property
@@ -438,7 +409,6 @@ class Run5OrchestratorV1:
         require(self.collector.decision_count == self.decision_count, "count mismatch")
         return record
 
-    # -- preflight ------------------------------------------------------
     def run_preflight(self) -> dict[str, Any]:
         require(self.decision_count == 0 and self.update_count == 0, "preflight runs at genesis")
         for _ in range(len(self.schedule)):
@@ -450,131 +420,183 @@ class Run5OrchestratorV1:
         self.preflight = report
         return report
 
-    # -- boundary / checkpoint ------------------------------------------
+    def train_once(self) -> T.UpdateMetricsV1:
+        batch = self.replay.sample(CONFIG.batch_size, self.generators["replay"])
+        metrics = self.trainer.update_once(batch)
+        metrics.require_finite()
+        self.last_metrics = metrics
+        return metrics
+
+    def run_to(self, target_update: int, *,
+               on_decision: Callable[[int, RC.Run5CollectedTransitionV1], None],
+               on_update: Callable[[T.UpdateMetricsV1], None],
+               on_boundary: Callable[[str], None]) -> str:
+        """Advance to ``target_update``; returns 'TARGET' or 'STOPPED'.
+
+        ``on_boundary(kind)`` is called at every registered boundary with
+        kind 'checkpoint', and once with 'emergency' when a stop request is
+        honoured after a completed update.
+        """
+        require(target_update >= self.update_count, "target precedes current state")
+        if self.preflight is None:
+            self.run_preflight()
+            for ordinal, record in enumerate(self.history):
+                on_decision(ordinal, record)
+            on_boundary("checkpoint")
+        while self.update_count < target_update:
+            if self.stop_requested:
+                if self.update_count not in self.checkpoint_updates:
+                    on_boundary("emergency")
+                return "STOPPED"
+            before = self.update_count
+            for _ in range(CONFIG.environment_transitions_per_update):
+                record = self.collect_one()
+                on_decision(self.decision_count - 1, record)
+            metrics = self.train_once()
+            require(self.update_count == before + 1, "one loop did not make one update")
+            on_update(metrics)
+            if self.update_count in self.checkpoint_updates:
+                on_boundary("checkpoint")
+        return "TARGET"
+
+    # -- boundary ---------------------------------------------------------
     def boundary(self) -> dict[str, Any]:
-        collector_checkpoint = self.collector.checkpoint()
         return {
             "update_count": self.update_count, "decision_count": self.decision_count,
             "actor_sha256": _tree_sha256(self.actor.state_dict()),
             "critics_sha256": _tree_sha256(self.critics.state_dict()),
             "actor_optimizer_sha256": _tree_sha256(self.trainer.actor_optimizer.state_dict()),
             "critic_optimizer_sha256": _tree_sha256(self.trainer.critic_optimizer.state_dict()),
-            **{f"{name}_rng_sha256": _tensor_sha256(generator.get_state())
-               for name, generator in sorted(self.generators.items())},
+            **{f"{name}_rng_sha256": _tensor_sha256(self.generators[name].get_state())
+               for name in GENERATOR_NAMES},
             "replay_resident_sha256": _sha(list(self.replay.resident_digests())),
             "replay_accepted_count": self.replay.accepted_count,
             "replay_evicted_count": self.replay.evicted_count,
-            "collector_checkpoint_sha256": _sha(collector_checkpoint.to_dict()),
+            "collector_checkpoint_sha256": _sha(self.collector.checkpoint().to_dict()),
             "joint_channel_sha256": self.collector._channel.checkpoint_sha256(),
             "ledger_sha256": _sha(self.ledger),
         }
 
-    def checkpoint(self) -> Run5CheckpointV1:
+    def event_record(self) -> dict[str, Any]:
         require(self.preflight is not None, "preflight has not passed")
         require(self.decision_count == len(self.schedule)
                 + CONFIG.environment_transitions_per_update * self.update_count,
                 "checkpoint ratio differs")
-        return Run5CheckpointV1({
-            "schema": CHECKPOINT_SCHEMA, "binding": self.binding_document,
-            "binding_sha256": self.binding_sha256, "seed": self.seed_plan.master_seed,
-            "update_count": self.update_count, "decision_count": self.decision_count,
-            "ledger": list(self.ledger),
-            "collector_checkpoint": self.collector.checkpoint().to_dict(),
-            "preflight_sha256": _sha(self.preflight), "preflight": self.preflight,
-            "boundary": self.boundary()})
+        return {"schema": EVENT_SCHEMA, "binding": self.binding_document,
+                "binding_sha256": self.binding_sha256, "seed": self.seed,
+                "update_count": self.update_count, "decision_count": self.decision_count,
+                "checkpoint_updates": list(self.checkpoint_updates),
+                "ledger": list(self.ledger),
+                "collector_checkpoint": self.collector.checkpoint().to_dict(),
+                "preflight": self.preflight, "boundary": self.boundary()}
 
-    def train_once(self) -> T.UpdateMetricsV1:
-        batch = self.replay.sample(CONFIG.batch_size, self.generators["replay"])
-        metrics = self.trainer.update_once(batch)
-        metrics.require_finite()
-        self.metrics.append(metrics)
-        return metrics
+    def training_state(self) -> dict[str, Any]:
+        online, target = {}, {}
+        for name, value in self.critics.state_dict().items():
+            destination = online if name.startswith(ONLINE_PREFIXES) else target
+            require(name.startswith(ONLINE_PREFIXES + TARGET_PREFIXES),
+                    f"critic tensor {name} has no registered prefix")
+            destination[name] = value.detach().clone()
+        return {"schema": TRAINING_STATE_SCHEMA, "seed": self.seed,
+                "update_count": self.update_count,
+                "online_critics": online, "target_critics": target,
+                "actor_optimizer": self.trainer.actor_optimizer.state_dict(),
+                "critic_optimizer": self.trainer.critic_optimizer.state_dict(),
+                "generators": {name: self.generators[name].get_state().clone()
+                               for name in GENERATOR_NAMES}}
 
-    def run_to(self, target_update: int, *,
-               checkpoint_callback: Callable[[Run5CheckpointV1], None],
-               emit_current: bool = False) -> None:
-        require(target_update in self.checkpoint_updates, "target is not a checkpoint boundary")
-        require(target_update >= self.update_count, "target precedes current state")
-        if self.preflight is None:
-            self.run_preflight()
-        if emit_current and self.update_count in self.checkpoint_updates:
-            checkpoint_callback(self.checkpoint())
-        while self.update_count < target_update:
-            before = self.update_count
-            for _ in range(CONFIG.environment_transitions_per_update):
-                self.collect_one()
-            self.train_once()
-            require(self.update_count == before + 1, "one loop did not make one update")
-            if self.update_count in self.checkpoint_updates:
-                checkpoint_callback(self.checkpoint())
+    def bundle_payloads(self) -> tuple[dict[str, bytes], dict[str, Any]]:
+        event = self.event_record()
+        payloads = {
+            "event.json": B.canonical_bytes(event),
+            "training_state.pt": B.torch_bytes(self.training_state()),
+            "actor_state_dict.pt": B.torch_bytes(
+                {k: v.detach().clone() for k, v in self.actor.state_dict().items()}),
+            "channel_state.json": B.canonical_bytes(self.collector.channel_checkpoint()),
+        }
+        identity = {
+            "seed": self.seed, "update_count": self.update_count,
+            "decision_count": self.decision_count, "binding_sha256": self.binding_sha256,
+            "preregistration_sha256": self.binding_document["preregistration_sha256"],
+            "model_binding": _plain(RM.RUN5_TRAINING_MODEL_BINDING),
+            "model_binding_sha256": RM.RUN5_TRAINING_MODEL_BINDING_SHA256,
+            "feature_schema_sha256": SNR.FEATURE_SCHEMA_SHA256,
+            "feature_order": list(RM.RUN5_TRAINING_MODEL_BINDING["policy_feature_order"]),
+            "reward_schema_sha256": R4.REWARD_SCHEMA_SHA256,
+            "event_sha256": _sha(event), "boundary": event["boundary"],
+            "actor_fixtures": actor_fixture_outputs(self.actor),
+            "replay_continuation": {
+                "method": "HASH_BOUND_DETERMINISTIC_RECONSTRUCTION_FROM_EVENT_ACTION_LEDGER",
+                "resident_sha256": event["boundary"]["replay_resident_sha256"],
+                "accepted": self.replay.accepted_count, "evicted": self.replay.evicted_count},
+        }
+        return payloads, identity
 
-    # -- restore -------------------------------------------------------
+    # -- restore (no gradient replay) ------------------------------------
     @classmethod
-    def _fresh_with_history(cls, checkpoint: Run5CheckpointV1, collector_factory,
-                            checkpoint_updates) -> "Run5OrchestratorV1":
-        document = checkpoint.document
-        require(document["schema"] == CHECKPOINT_SCHEMA, "foreign checkpoint")
-        candidate = cls(collector_factory=collector_factory, seed=int(document["seed"]),
-                        checkpoint_updates=checkpoint_updates)
-        require(candidate.binding_sha256 == document["binding_sha256"],
-                "checkpoint binding differs from this configuration")
+    def restore_from_bundle(cls, bundle: B.VerifiedBundle, *, collector_factory,
+                            preregistration_sha256: str) -> "Run5OrchestratorV1":
+        manifest = bundle.manifest
+        require(manifest.get("model_binding_sha256") == RM.RUN5_TRAINING_MODEL_BINDING_SHA256,
+                "bundle model binding is not the native Run-5 binding")
+        require(manifest.get("feature_schema_sha256") == SNR.FEATURE_SCHEMA_SHA256
+                and manifest.get("feature_order")
+                == list(RM.RUN5_TRAINING_MODEL_BINDING["policy_feature_order"]),
+                "bundle feature schema, order or scaling identity differs")
+        require(manifest.get("preregistration_sha256") == preregistration_sha256,
+                "bundle belongs to another preregistration")
+        event = json.loads(bundle.payload("event.json"))
+        require(event.get("schema") == EVENT_SCHEMA, "bundle event record is foreign")
+        require(_sha(event) == manifest["event_sha256"], "event record differs from manifest")
+        state = B.torch_from_bytes(bundle.payload("training_state.pt"))
+        actor_state = B.torch_from_bytes(bundle.payload("actor_state_dict.pt"))
+        channel = json.loads(bundle.payload("channel_state.json"))
+        require(state.get("schema") == TRAINING_STATE_SCHEMA and state["seed"] == event["seed"]
+                and state["update_count"] == event["update_count"],
+                "training state identity differs from the event record")
+        candidate = cls(collector_factory=collector_factory, seed=int(event["seed"]),
+                        checkpoint_updates=tuple(event["checkpoint_updates"]),
+                        preregistration_sha256=preregistration_sha256)
+        require(candidate.binding_sha256 == event["binding_sha256"],
+                "bundle binding differs from this configuration")
+        candidate.actor, candidate.critics = RM.load_run5_model_state(
+            binding=RM.RUN5_TRAINING_MODEL_BINDING, actor_state=actor_state,
+            critic_state={**state["online_critics"], **state["target_critics"]},
+            expected_binding_sha256=RM.RUN5_TRAINING_MODEL_BINDING_SHA256)
+        candidate.trainer = Run5HybridSacTrainerV1(
+            actor=candidate.actor, critics=candidate.critics, config=trainer_config(),
+            binding_sha256=candidate.binding_sha256,
+            target_generator=candidate.generators["trainer_target"],
+            actor_generator=candidate.generators["trainer_actor"])
+        candidate.trainer.actor_optimizer.load_state_dict(state["actor_optimizer"])
+        candidate.trainer.critic_optimizer.load_state_dict(state["critic_optimizer"])
+        require(set(state["generators"]) == set(GENERATOR_NAMES), "generator set differs")
+        for name in GENERATOR_NAMES:
+            candidate.generators[name].set_state(state["generators"][name])
+        candidate.trainer.update_count = int(event["update_count"])
         candidate.collector.restore(RC.Run5CollectorCheckpointV1.from_dict(
-            document["collector_checkpoint"]))
-        history = candidate.collector.history()
-        require(len(history) == checkpoint.decision_count, "collector history incomplete")
-        return candidate
-
-    @classmethod
-    def restore_by_replay(cls, checkpoint: Run5CheckpointV1, *, collector_factory,
-                          checkpoint_updates=SMOKE_CHECKPOINTS) -> "Run5OrchestratorV1":
-        """Event-sourced restore: replay actions and updates from genesis."""
-        candidate = cls._fresh_with_history(checkpoint, collector_factory, checkpoint_updates)
-        history = candidate.collector.history()
-        for ordinal, (record, row) in enumerate(zip(history, checkpoint.document["ledger"])):
-            if ordinal < len(candidate.schedule):
-                expected = candidate._warmup_request(ordinal)
-            else:
-                expected = candidate._actor_request(ordinal, record.state)
-            require(expected.to_dict() == row["request"], "replayed policy action differs")
-            require(record.digest == row["digest"], "replayed transition differs")
-            candidate.replay.insert(record)
-            candidate.history.append(record)
-            candidate.ledger.append(row)
-            completed = ordinal + 1 - len(candidate.schedule)
-            if completed > 0 and completed % CONFIG.environment_transitions_per_update == 0:
-                candidate.train_once()
-        candidate.preflight = checkpoint.document["preflight"]
-        require(candidate.boundary() == dict(checkpoint.boundary),
-                "event-sourced restore is not bit-identical")
-        return candidate
-
-    @classmethod
-    def restore_from_sidecar(cls, checkpoint: Run5CheckpointV1, sidecar_dir: Path, *,
-                             collector_factory,
-                             checkpoint_updates=SMOKE_CHECKPOINTS) -> "Run5OrchestratorV1":
-        """Fast path: sidecar tensors/optimizers/generators + ledger-rebuilt replay."""
-        material = read_sidecar(sidecar_dir, checkpoint)
-        candidate = cls._fresh_with_history(checkpoint, collector_factory, checkpoint_updates)
-        history = candidate.collector.history()
-        for record, row in zip(history, checkpoint.document["ledger"]):
+            event["collector_checkpoint"]))
+        for record, row in zip(candidate.collector.history(), event["ledger"]):
             require(record.digest == row["digest"], "rebuilt transition differs")
             candidate.replay.insert(record)
             candidate.history.append(record)
             candidate.ledger.append(row)
-        require(candidate.collector.channel_checkpoint() == material["joint_channel"],
-                "rebuilt joint-channel state differs from the sidecar")
-        candidate.actor.load_state_dict(material["actor"], strict=True)
-        candidate.critics.load_state_dict({**material["online_critics"],
-                                           **material["target_critics"]}, strict=True)
-        candidate.trainer.actor_optimizer.load_state_dict(material["actor_optimizer"])
-        candidate.trainer.critic_optimizer.load_state_dict(material["critic_optimizer"])
-        for name, state in material["generators"].items():
-            candidate.generators[name].set_state(state)
-        candidate.trainer.update_count = checkpoint.update_count
-        candidate.preflight = checkpoint.document["preflight"]
-        require(candidate.boundary() == dict(checkpoint.boundary),
-                "sidecar resume is not bit-identical to the event boundary")
+        require(candidate.collector.channel_checkpoint() == channel,
+                "rebuilt joint-channel state differs from the bundle")
+        candidate.preflight = event["preflight"]
+        require(candidate.boundary() == event["boundary"],
+                "bundle resume is not bit-identical to the recorded boundary")
+        require(actor_fixture_outputs(candidate.actor) == manifest["actor_fixtures"],
+                "restored actor fixture outputs differ")
         return candidate
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(k): _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -584,10 +606,21 @@ class Run5OrchestratorV1:
 PREVIOUS_SLICE = slice(4, 21)
 
 
+def expected_previous_features(previous: RC.Run5CollectedTransitionV1) -> tuple[float, ...]:
+    one_hot = [0.0] * EXPECTED_MODE_COUNT
+    one_hot[previous.mode_id] = 1.0
+    success = previous.terminal == "SUCCESS"
+    return tuple(float(v) for v in (
+        *one_hot, previous.q_e4 / float(Q_E4_MAX),
+        float(previous.q_perc) if success else 0.0,
+        float(previous.latency_ms) / R4.REWARD_DEADLINE_MS if success else 0.0,
+        1.0, 1.0 if success else 0.0))
+
+
 def preflight_report(history: Sequence[RC.Run5CollectedTransitionV1],
                      diagnostics: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     failures: list[str] = []
-    strata = {}
+    strata: dict[tuple, int] = {}
     for record in history:
         key = (record.mode_id, record.request.warmup_q_bin_index)
         strata[key] = strata.get(key, 0) + 1
@@ -596,43 +629,53 @@ def preflight_report(history: Sequence[RC.Run5CollectedTransitionV1],
     terminals = {record.terminal for record in history}
     if "SUCCESS" not in terminals or len(terminals) < 2:
         failures.append("warm-up lacks both success and failure/timeout")
-    columns = {name: [record.state[i] for record in history]
-               for name, i in (("camera_si", 0), ("radar_p40", 1), ("mcs", 2), ("backlog", 3),
-                               ("snr", SNR_INDEX), ("prev_q", 16), ("prev_quality", 17),
-                               ("prev_latency", 18), ("prev_present", 19), ("prev_success", 20))}
-    variation = {name: {"distinct": len(set(values)), "span": max(values) - min(values)}
-                 for name, values in columns.items()}
+    variation = state_variation(history)
     for name, item in variation.items():
         if item["distinct"] < 2 or not item["span"] > 0:
             failures.append(f"{name} does not vary")
-    mismatches = 0
-    for previous, record in zip(history, history[1:]):
-        prev = record.state[PREVIOUS_SLICE]
-        one_hot = [0.0] * EXPECTED_MODE_COUNT
-        one_hot[previous.mode_id] = 1.0
-        success = previous.terminal == "SUCCESS"
-        expected = (*one_hot, previous.q_e4 / float(Q_E4_MAX),
-                    float(previous.q_perc) if success else 0.0,
-                    float(previous.latency_ms) / 170.0 if success else 0.0, 1.0,
-                    1.0 if success else 0.0)
-        mismatches += int(tuple(prev) != tuple(float(v) for v in expected))
+    mismatches = sum(int(tuple(record.state[PREVIOUS_SLICE]) != expected_previous_features(prev))
+                     for prev, record in zip(history, history[1:]))
     if mismatches:
         failures.append(f"{mismatches} previous-outcome encodings differ from the prior record")
+    reward_errors = sum(int(not reward_matches(record)) for record in history)
+    if reward_errors:
+        failures.append(f"{reward_errors} rewards differ from the registered formula")
     future = sum(1 for d in diagnostics if not d["generated_ticks_after_observed"])
     if future:
         failures.append("a generated SNR tick was not after the observed tick")
     return {"decisions": len(history), "strata": len(strata),
             "terminals": sorted(terminals), "variation": variation,
-            "previous_outcome_mismatches": mismatches, "future_tick_violations": future,
-            "failures": failures, "passed": not failures}
+            "previous_outcome_mismatches": mismatches, "reward_formula_mismatches": reward_errors,
+            "future_tick_violations": future, "failures": failures, "passed": not failures}
+
+
+FEATURE_COLUMNS = {"camera_si": 0, "radar_p40": 1, "mcs": 2, "backlog": 3, "snr": SNR_INDEX,
+                   "prev_q": 16, "prev_quality": 17, "prev_latency": 18, "prev_present": 19,
+                   "prev_success": 20}
+
+
+def state_variation(history: Sequence[RC.Run5CollectedTransitionV1]) -> dict[str, dict[str, Any]]:
+    out = {name: {"distinct": len({r.state[i] for r in history}),
+                  "span": max(r.state[i] for r in history) - min(r.state[i] for r in history)}
+           for name, i in FEATURE_COLUMNS.items()}
+    modes = [max(range(EXPECTED_MODE_COUNT), key=lambda k: r.state[4 + k])
+             for r in history if r.state[19] == 1.0]
+    out["prev_mode"] = {"distinct": len(set(modes)),
+                        "span": (max(modes) - min(modes)) if modes else 0}
+    return out
+
+
+def reward_matches(record: RC.Run5CollectedTransitionV1) -> bool:
+    if record.terminal == "SUCCESS":
+        expected = record.q_perc - R4.REWARD_LATENCY_WEIGHT * (record.latency_ms
+                                                               / R4.REWARD_DEADLINE_MS)
+        return (record.reward == expected and 0.0 <= record.latency_ms <= R4.REWARD_DEADLINE_MS)
+    return record.reward == R4.REGISTERED_FAILURE_REWARD and record.q_perc is None
 
 
 # ---------------------------------------------------------------------------
-# Materialized sidecar (Run-5 22-D; primitives reused from the Run-4 sidecar)
+# Deterministic actor probe
 # ---------------------------------------------------------------------------
-
-GENERATOR_NAMES = SC.GENERATOR_NAMES
-ARTIFACT_NAMES = SC.ARTIFACT_NAMES
 
 
 def _fixtures() -> torch.Tensor:
@@ -653,128 +696,3 @@ def actor_fixture_outputs(actor: ConditionalHybridActor) -> list[dict[str, Any]]
         logits = actor(_fixtures()).logits
     return [{"mode_id": int(execution.mode_index[i]), "q_e4": int(execution.q_e4[i]),
              "logits_sha256": _tensor_sha256(logits[i].contiguous())} for i in range(20)]
-
-
-def capture_material(orchestrator: Run5OrchestratorV1) -> dict[str, Any]:
-    online, target = SC._split_critics(orchestrator.critics.state_dict())
-    return {
-        "actor": SC._cpu_tree(orchestrator.actor.state_dict()),
-        "online_critics": SC._cpu_tree(online), "target_critics": SC._cpu_tree(target),
-        "actor_optimizer": SC._cpu_tree(orchestrator.trainer.actor_optimizer.state_dict()),
-        "critic_optimizer": SC._cpu_tree(orchestrator.trainer.critic_optimizer.state_dict()),
-        "generators": {name: orchestrator.generators[name].get_state().clone()
-                       for name in GENERATOR_NAMES},
-    }
-
-
-def _boundary_view(material: Mapping[str, Any]) -> dict[str, str]:
-    return {
-        "actor_sha256": _tree_sha256(material["actor"]),
-        "critics_sha256": _tree_sha256({**material["online_critics"],
-                                        **material["target_critics"]}),
-        "actor_optimizer_sha256": _tree_sha256(material["actor_optimizer"]),
-        "critic_optimizer_sha256": _tree_sha256(material["critic_optimizer"]),
-        **{f"{name}_rng_sha256": _tensor_sha256(material["generators"][name])
-           for name in GENERATOR_NAMES},
-    }
-
-
-def write_sidecar(directory: Path, orchestrator: Run5OrchestratorV1,
-                  checkpoint: Run5CheckpointV1) -> str:
-    target = Path(directory)
-    require(not (target.exists() or target.is_symlink()), "sidecar target already exists")
-    material = capture_material(orchestrator)
-    for name, digest in _boundary_view(material).items():
-        require(checkpoint.boundary[name] == digest, f"{name} differs from the event boundary")
-    channel = orchestrator.collector.channel_checkpoint()
-    require(_sha(channel) == checkpoint.boundary["joint_channel_sha256"],
-            "joint-channel state differs from the event boundary")
-    staging = target.parent / f".{target.name}.tmp-{os.getpid()}-{secrets.token_hex(8)}"
-    try:
-        staging.mkdir(mode=0o700)
-        artifacts = {}
-        for name in ARTIFACT_NAMES:
-            path = staging / SC.ARTIFACT_FILENAMES[name]
-            SC._write_create_only(path, lambda stream, n=name: torch.save(material[n], stream))
-            digest, size = checkpoint_io._sha256_file(path)
-            artifacts[name] = {"filename": SC.ARTIFACT_FILENAMES[name], "sha256": digest,
-                               "size_bytes": size, "tree_sha256": _tree_sha256(material[name]),
-                               "tensors": SC._tensor_leaves(material[name])}
-        manifest = {
-            "schema_id": SIDECAR_SCHEMA, "loader": SC.LOADER,
-            "identity": {"seed": orchestrator.seed_plan.master_seed,
-                         "seed_plan": orchestrator.seed_plan.to_dict(),
-                         "update_count": checkpoint.update_count,
-                         "decision_count": checkpoint.decision_count,
-                         "event_checkpoint_sha256": checkpoint.canonical_sha256,
-                         "boundary": dict(checkpoint.boundary)},
-            "schema_identity": {"model_binding": dict(RM.RUN5_V2_MODEL_BINDING)
-                                | {"policy_feature_order":
-                                   list(RM.RUN5_V2_MODEL_BINDING["policy_feature_order"])},
-                                "model_binding_sha256": RM.RUN5_V2_MODEL_BINDING_SHA256,
-                                "feature_schema_sha256": SNR.FEATURE_SCHEMA_SHA256,
-                                "action_identity_schema_sha256": ACTION_IDENTITY_SCHEMA_SHA256,
-                                "event_checkpoint_schema": CHECKPOINT_SCHEMA},
-            "artifacts": artifacts, "generator_names": list(GENERATOR_NAMES),
-            "joint_channel": channel,
-            "actor_fixtures": actor_fixture_outputs(orchestrator.actor),
-            "scope": "tensors, optimizers, generators and joint-channel state at the "
-                     "event boundary; replay contents are rebuilt from the ledger",
-        }
-        manifest_bytes = checkpoint_io._canonical_json_bytes(manifest)
-        SC._write_create_only(staging / SC.MANIFEST_FILENAME,
-                              lambda stream: stream.write(manifest_bytes))
-        SC._fsync_directory(staging)
-        require(not (target.exists() or target.is_symlink()), "sidecar target appeared")
-        os.rename(staging, target)
-        SC._fsync_directory(target.parent)
-    except Exception:
-        if staging.exists():
-            shutil.rmtree(staging)
-        raise
-    return checkpoint_io._sha256_bytes(manifest_bytes)
-
-
-def read_sidecar(directory: Path, checkpoint: Run5CheckpointV1) -> dict[str, Any]:
-    root = Path(directory)
-    manifest_bytes = (root / SC.MANIFEST_FILENAME).read_bytes()
-    manifest = json.loads(manifest_bytes)
-    require(manifest.get("schema_id") == SIDECAR_SCHEMA,
-            "not a Run-5 sidecar (Run-4 21-D sidecars are refused)")
-    require(checkpoint_io._canonical_json_bytes(manifest) == manifest_bytes,
-            "sidecar manifest is not canonical")
-    require(manifest["identity"]["event_checkpoint_sha256"] == checkpoint.canonical_sha256,
-            "sidecar names a different event checkpoint")
-    require(manifest["schema_identity"]["model_binding_sha256"]
-            == RM.RUN5_V2_MODEL_BINDING_SHA256, "sidecar model binding is not Run-5 v2")
-    names = {item.name for item in root.iterdir()}
-    require(names == {SC.MANIFEST_FILENAME, *SC.ARTIFACT_FILENAMES.values()},
-            "sidecar member set differs")
-    material: dict[str, Any] = {}
-    for name in ARTIFACT_NAMES:
-        path = root / SC.ARTIFACT_FILENAMES[name]
-        require(stat.S_ISREG(path.lstat().st_mode), f"{name} is not a regular file")
-        digest, size = checkpoint_io._sha256_file(path)
-        entry = manifest["artifacts"][name]
-        require(digest == entry["sha256"] and size == entry["size_bytes"], f"{name} tampered")
-        material[name] = torch.load(path, map_location="cpu", weights_only=True)
-        require(_tree_sha256(material[name]) == entry["tree_sha256"], f"{name} tree differs")
-    for name, digest in _boundary_view(material).items():
-        require(checkpoint.boundary[name] == digest, f"sidecar {name} differs from boundary")
-    material["joint_channel"] = manifest["joint_channel"]
-    require(_sha(material["joint_channel"]) == checkpoint.boundary["joint_channel_sha256"],
-            "sidecar joint-channel state differs from boundary")
-    material["manifest"] = manifest
-    return material
-
-
-def cold_load_actor(directory: Path, checkpoint: Run5CheckpointV1) -> ConditionalHybridActor:
-    """Fresh 22-D actor from the sidecar alone; refuses any 21-D state."""
-    material = read_sidecar(directory, checkpoint)
-    critics = {**material["online_critics"], **material["target_critics"]}
-    actor, _ = RM.load_run5_model_state(
-        binding=RM.RUN5_V2_MODEL_BINDING, actor_state=material["actor"],
-        critic_state=critics, expected_binding_sha256=RM.RUN5_V2_MODEL_BINDING_SHA256)
-    require(actor_fixture_outputs(actor) == material["manifest"]["actor_fixtures"],
-            "cold-loaded actor fixtures differ from the manifest")
-    return actor

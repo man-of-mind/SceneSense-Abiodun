@@ -5,11 +5,18 @@ Hidden process
 The target SNR follows the registered network-profile design v2 exactly: a
 three-state hidden Markov chain (ADVERSE / INTERMEDIATE / FAVORABLE) advanced
 once per 100-ms tick, emitting an independent truncated normal on the
-registered ``[5.5, 24.5]`` dB support.  The hidden *profile* (transition
-matrix) is drawn uniformly from the two profiles that support the accepted
-SNR-conditioned MCS kernel (``MID_VARIABLE``, ``FADE_RECOVERY``) and redrawn
-every ``SEGMENT_TICKS`` = 300 ticks, the registered capture length; the
-hidden state itself is continuous across a redraw.
+registered ``[5.5, 24.5]`` dB support.  All four registered profiles are
+used in balanced blocks: the timeline is cut into ``SEGMENT_TICKS`` = 300-tick
+segments (the registered capture length) and every consecutive block of four
+segments contains each of FAVORABLE_STABLE, MID_VARIABLE, ADVERSE_STABLE and
+FADE_RECOVERY exactly once, in a seeded order.  Only the transition matrix
+changes at a segment boundary; the hidden state is continuous.
+
+The accepted MCS kernel was fitted on MID_VARIABLE and FADE_RECOVERY.  It
+conditions on (MCS, SNR) only and all four profiles share the same three
+emission states and support, so FAVORABLE_STABLE and ADVERSE_STABLE use it
+under an explicit ``PROFILE_TRANSFER_UNVALIDATED`` label (different dwell
+structure, same SNR support).
 
 Successor MCS
 -------------
@@ -51,7 +58,11 @@ PACKAGE = Path(__file__).resolve().parent
 WORKTREE_ROOT = PACKAGE.parents[1]
 ACCEPTED_AUDIT_FILENAME = SA.AUDIT_FILENAME
 ACCEPTED_AUDIT_SHA256 = "295ca76206d9dc9a5181a871c7644f9545edff384213d3e3a01c0886e4b683a6"
-KERNEL_PROFILES = ("MID_VARIABLE", "FADE_RECOVERY")
+TRAINING_PROFILES = ("FAVORABLE_STABLE", "MID_VARIABLE", "ADVERSE_STABLE", "FADE_RECOVERY")
+KERNEL_FIT_PROFILES = ("MID_VARIABLE", "FADE_RECOVERY")
+PROFILE_KERNEL_STATUS = {
+    profile: ("KERNEL_FIT_SUPPORT" if profile in KERNEL_FIT_PROFILES
+              else "PROFILE_TRANSFER_UNVALIDATED") for profile in TRAINING_PROFILES}
 SEGMENT_TICKS = 300
 BURN_IN_TRANSITIONS = 10
 TICKS_PER_TENSOR = 1
@@ -152,13 +163,16 @@ class JointSnrMcsChannelV1:
         self._means = [float(v) for v in target["state_means_db"]]
         self._sigmas = [float(v) for v in target["state_sigma_db"]]
         profiles = {p["profile_id"]: p for p in design["profiles"]}
+        require(set(profiles) == set(TRAINING_PROFILES),
+                "the design must register exactly the four training profiles")
         self._matrices = [np.asarray(profiles[p]["transition_matrix"], dtype=float)
-                          for p in KERNEL_PROFILES]
+                          for p in TRAINING_PROFILES]
         self._seed = seed
         self.binding_sha256 = _sha({
             "schema": SCHEMA_ID, "kernel": kernel.document(),
             "design_sha256": SNR.NETWORK_PROFILE_DESIGN_SHA256,
-            "profiles": list(KERNEL_PROFILES), "segment_ticks": SEGMENT_TICKS,
+            "profiles": list(TRAINING_PROFILES), "profile_block": "balanced_4_segment_permutation",
+            "profile_kernel_status": PROFILE_KERNEL_STATUS, "segment_ticks": SEGMENT_TICKS,
             "burn_in_transitions": BURN_IN_TRANSITIONS,
             "ticks_per_tensor": TICKS_PER_TENSOR,
             "accepted_audit_sha256": ACCEPTED_AUDIT_SHA256})
@@ -169,7 +183,10 @@ class JointSnrMcsChannelV1:
         self._profile_rng = random.Random(derive_seed(self._seed, "profile"))
         self._snr_rng = random.Random(derive_seed(self._seed, "snr"))
         self._mcs_rng = random.Random(derive_seed(self._seed, "mcs"))
-        self._profile = self._profile_rng.randrange(len(KERNEL_PROFILES))
+        self._block: list[int] = []
+        self._segments_started = 0
+        self._profile_segments = [0] * len(TRAINING_PROFILES)
+        self._profile = self._next_block_profile()
         self._segment_left = SEGMENT_TICKS
         self._state = _choice(_stationary(self._matrices[self._profile]), self._snr_rng)
         self._tick = 0
@@ -191,10 +208,19 @@ class JointSnrMcsChannelV1:
                 "emitted SNR left the registered support")
         return float(value)
 
+    def _next_block_profile(self) -> int:
+        if not self._block:
+            self._block = list(range(len(TRAINING_PROFILES)))
+            self._profile_rng.shuffle(self._block)
+        profile = self._block.pop(0)
+        self._segments_started += 1
+        self._profile_segments[profile] += 1
+        return profile
+
     def _tick_once(self) -> int:
         self._segment_left -= 1
         if self._segment_left == 0:
-            self._profile = self._profile_rng.randrange(len(KERNEL_PROFILES))
+            self._profile = self._next_block_profile()
             self._segment_left = SEGMENT_TICKS
         self._state = _choice(self._matrices[self._profile][self._state], self._snr_rng)
         self._tick += 1
@@ -233,6 +259,10 @@ class JointSnrMcsChannelV1:
     def future_sample_violations(self) -> int:
         return self._future_violations
 
+    def profile_balance(self) -> dict[str, int]:
+        """Audit-only segment counts; never an actor input."""
+        return {name: count for name, count in zip(TRAINING_PROFILES, self._profile_segments)}
+
     @property
     def transitions(self) -> int:
         return self._transitions
@@ -244,6 +274,9 @@ class JointSnrMcsChannelV1:
             "tick": self._tick, "observed_tick": self._observed_tick,
             "hidden_state": self._state, "hidden_profile_index": self._profile,
             "segment_left": self._segment_left, "snr_db_hex": float(self._snr).hex(),
+            "profile_block_remaining": list(self._block),
+            "segments_started": self._segments_started,
+            "profile_segments": list(self._profile_segments),
             "mcs": self._mcs, "transitions": self._transitions,
             "future_violations": self._future_violations,
             "rng_states": {name: _state_document(getattr(self, f"_{name}_rng"))
@@ -265,6 +298,9 @@ class JointSnrMcsChannelV1:
         self._state = int(document["hidden_state"])
         self._profile = int(document["hidden_profile_index"])
         self._segment_left = int(document["segment_left"])
+        self._block = [int(v) for v in document["profile_block_remaining"]]
+        self._segments_started = int(document["segments_started"])
+        self._profile_segments = [int(v) for v in document["profile_segments"]]
         self._snr = float.fromhex(document["snr_db_hex"])
         self._mcs = int(document["mcs"])
         self._transitions = int(document["transitions"])
