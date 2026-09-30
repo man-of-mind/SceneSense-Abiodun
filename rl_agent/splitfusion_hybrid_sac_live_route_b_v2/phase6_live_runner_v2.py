@@ -37,7 +37,8 @@ from typing import Any, Callable, Mapping, Sequence
 
 ROOT = Path(__file__).resolve().parents[2]
 EXECUTE_TOKEN = "SPLITFUSION_RUN4_PHASE6_LIVE_QUALIFICATION_V2_EXECUTE"
-CHILD_MODULE = "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.phase6_live_child_v2"
+# Addendum 3: the unchanged child plus the no-build, image-bound edge launch seam.
+CHILD_MODULE = "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.phase6_live_child_nobuild_v2"
 DEFAULT_CONFIG = ROOT / "rl_agent/configs/splitfusion_direct_edge_map_live_validation_v1.json"
 TELEMETRY_CONFIG = ROOT / "rl_agent/ue_production_queue_capture_v1/config_v1.json"
 FALLBACK_ACTION = 71
@@ -77,6 +78,22 @@ def telemetry_bindings() -> dict[str, Any]:
 
 
 ADDENDUM_PATH = Path(__file__).resolve().with_name("phase6_prospective_addendum_2.json")
+SETUP_ADDENDUM_PATH = Path(__file__).resolve().with_name("phase6_setup_repair_addendum_3.json")
+
+
+def verify_setup_addendum(path: Path = SETUP_ADDENDUM_PATH) -> dict[str, Any]:
+    """Addendum 3 must bind exactly the admitted image ID the launcher enforces."""
+    from . import phase6_edge_launch_v2 as EL
+
+    addendum = json.loads(Path(path).read_text(encoding="utf-8"))
+    require(addendum.get("id") == "PHASE6_SETUP_REPAIR_ADDENDUM_3_NO_BUILD_EDGE",
+            "foreign Phase-6 setup addendum")
+    require(addendum.get("admitted_image_id") == EL.ADMITTED_IMAGE_ID,
+            "setup addendum image ID differs from the launcher")
+    require(addendum.get("scientific_protocol_changed") is False,
+            "setup addendum must not change the scientific protocol")
+    return {"id": addendum["id"], "admitted_image_id": EL.ADMITTED_IMAGE_ID,
+            "sha256": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
 
 
 def verify_addendum(path: Path = ADDENDUM_PATH) -> dict[str, Any]:
@@ -122,6 +139,10 @@ def offline_preflight(config_path: Path, *, output_root: Path | None,
             "fixed fallback does not reconcile with the catalog")
     spec = W.load_run4_quality_spec(ROOT)
     addendum = verify_addendum()
+    setup_addendum = verify_setup_addendum()
+    from . import phase6_edge_launch_v2 as EL
+
+    edge_image = EL.resolve_admitted_image()     # read-only docker image inspect
     report.update({
         "schema": "scenesense.run4_live_v2.phase6_preflight.v1",
         "readiness_manifest_sha256": readiness["manifest_sha256"],
@@ -136,6 +157,9 @@ def offline_preflight(config_path: Path, *, output_root: Path | None,
         "cuda_initialized": torch.cuda.is_initialized(),
         "live_command_executed": False,
         "addendum": addendum,
+        "setup_addendum": setup_addendum,
+        "edge_image": edge_image,
+        "child_module": CHILD_MODULE,
     })
     require(not report["cuda_initialized"], "preflight initialized CUDA")
     return config, cells, report
@@ -320,7 +344,8 @@ def stop_processes(processes: Sequence[Any], timeout_s: float = 5.0) -> bool:
 def run_one_cell(*, base_config: Mapping[str, Any], registered: Any, output_root: Path,
                  run_id: str, transmitted_budget: int, safety_timeout_s: float,
                  carla_port: int, child_timeout_s: float,
-                 supervisor: Any = None, capture_class: Any = None) -> dict[str, Any]:
+                 supervisor: Any = None, capture_class: Any = None,
+                 image_resolver: Callable[[], dict] | None = None) -> dict[str, Any]:
     """One fresh OAI/CARLA cell; teardown is attempted for every resource."""
     from rl_agent import ue_288_campaign_supervisor as default_supervisor
     from rl_agent.splitfusion_quality_feedback_probe_v1 import live_probe as LP
@@ -361,6 +386,13 @@ def run_one_cell(*, base_config: Mapping[str, Any], registered: Any, output_root
     tracer: list[Any] = []
     try:
         report["cold_before"] = supervisor._require_phase15_application_cold(campaign)
+        # Addendum 3: refuse before any OAI/CARLA start if the image is missing/drifted.
+        from . import phase6_edge_launch_v2 as EL
+
+        resolve_image = image_resolver or EL.resolve_admitted_image
+        report["edge_image_prelaunch"] = resolve_image()
+        LP._atomic_create_json(attempt / "edge_image_prelaunch.json",
+                               report["edge_image_prelaunch"])
         namespace, radio_state, attached = supervisor._start_live_radio(
             campaign, cell, 1, service)
         tracer = start_ue_tracer({**tel}, attempt / "ttracer" / "ue" / "ue.raw",
@@ -428,6 +460,12 @@ def run_one_cell(*, base_config: Mapping[str, Any], registered: Any, output_root
             cleanup["cold_after"] = supervisor._require_phase15_application_cold(campaign)
         except BaseException as exc:
             cleanup["cold_after_error"] = f"{type(exc).__name__}: {exc}"
+        try:
+            from . import phase6_edge_launch_v2 as EL
+
+            cleanup["edge_image_post_run"] = (image_resolver or EL.resolve_admitted_image)()
+        except BaseException as exc:
+            cleanup["edge_image_post_run_failure"] = f"{type(exc).__name__}: {exc}"
         cleanup["all_gates_passed"] = bool(
             not any(k.endswith("_error") for k in cleanup)
             and cleanup.get("tracer_stopped")

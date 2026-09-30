@@ -1,0 +1,110 @@
+{
+  "admitted_image_id": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+  "admitted_image_record": {
+    "architecture": "amd64",
+    "config_entrypoint": [
+      "/entrypoint.sh"
+    ],
+    "config_sha256": "54ef34896a349502b7097442f71048bc120edda3a75d339c7a80f63a7066cc85",
+    "created": "2026-09-05T20:55:11.167624449-07:00",
+    "os": "linux",
+    "repo_digests": [],
+    "repo_tags": [
+      "oai-perception-rx:latest"
+    ],
+    "rootfs_layers": [
+      "sha256:270a1170e7e398434ff1b31e17e233f7d7b71aa99a40473615860068e86720af",
+      "sha256:fb456a9e7760e7e4481d3d9eddee3ef62358753326d669c3efe6b0cc254ab9c3",
+      "sha256:981a144d9fa2efffdbdfbdcfd3881dccb4fbf07867d4fa326a386126ca11b50f",
+      "sha256:583f1d6040fc90a1380cb4d11d46b78bbbd4ad7d6274b9656ab9832ef7ba6342",
+      "sha256:6020d84069cf575521faca653d2817e2195b8233b8c4e2d7bc65f3296296c2bb",
+      "sha256:eb0143fcce68bd06a29bf314125d30f2a1f44d606fc419e7a54ab602bc26b2d0",
+      "sha256:cb395f276e984728ca05fdee4e1dc203e1310a9e943a2d16d7aa87e5b2cf754b",
+      "sha256:70a158f70e3777a129c15ffe51399bb6c226218c08ff6819948b9b1f26a46277",
+      "sha256:9bb0510c7b4b74b056648f24e0a55c26f7521a1a1b766250a0776e14ce9d93f6",
+      "sha256:3301a038c8ffa31fd0e48f49c5ca5fe3da1de345379f4ee7a50e4d07ef4dcf13",
+      "sha256:673523228a2440ebae96fcefd5877d98cfad108ad5ed7c37328e5eb936088058",
+      "sha256:2e737e59a488cca0b46e7b5d7bc9c74ecb0a2c4600a2bc517938655c77143b62",
+      "sha256:093bda3ae9eb61612d2b550e38fb67f9515e665da306ed27830a198bcd4e3dbc",
+      "sha256:72f9716a78959589c25542b54691854972d015f5bc9eeae015fc1a176d908a3e",
+      "sha256:5651b6d579ebf7a108f5a5398131996846fb3d91087ce8da9c8f6de620d9022b",
+      "sha256:5651b6d579ebf7a108f5a5398131996846fb3d91087ce8da9c8f6de620d9022b"
+    ],
+    "rootfs_layers_sha256": "29e796b4aa9a89869243d7c08970d33022a83136a90c5e32106c428e47b770df",
+    "rootfs_type": "layers",
+    "tag": "oai-perception-rx:latest"
+  },
+  "base_commit": "4f2e68d13dcb9d8aec09a63e7617b722e5be0b9a",
+  "cause": "The first authorized attempt (20260930T000922Z) failed at setup with zero frames sent: the shared launcher runs `docker compose up -d --build --force-recreate`; the host build cache and base image nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04 had been pruned, so BuildKit re-ran Dockerfile step [3/7] (pip torch cu128) and the adapter's 180-s launch timeout cancelled it.",
+  "date": "2026-09-30",
+  "id": "PHASE6_SETUP_REPAIR_ADDENDUM_3_NO_BUILD_EDGE",
+  "image_authority": "Full content-addressed image ID only; the mutable tag is resolved and must equal it before launch (else refuse before OAI/CARLA start); the created container's .Image must equal it before readiness is accepted. Both are durable evidence (edge_image_prelaunch.json, run4_phase6/edge_image_launch.json).",
+  "preserved_failed_attempt": {
+    "classification": "SETUP_FAILURE_ZERO_FRAMES_P0_P8_NOT_EVALUATED",
+    "sha256": {
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.docker_cache_state_after.txt": "c7863238306c7f839a52ec84e6da56e5716a78007a728ed067135fed2a1a60d9",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.dockerd_journal_17-09_17-15.txt": "0ccbafcba2f73619e33e49d79b36fb9dba82acca801559aa63cb4afc3813f4b8",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.launcher.log": "7624c5edb9f140f23cd175ca18f5ca88dfd0c3b1c019428d90b0cf574b8d1605",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/CELL_RESULT.json": "0903017ff5ad97cb7c44a159c22ea67ebcf461f8623ea9778bd94f6a34422255",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/child_stdout_stderr.log": "ad65df21f76b3e121dbeedfa285e58b54fc017811d233891509f790476e9b6b8",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "01a0abc798f4e40bddcbd803cd04fc9bf26bc7a386eed0efbaf0a4fa0f53c6eb",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ready.json": "d34b9e54fe27c216970a7d3499185bd0e7260d225ca6a0aca44eff5d599bd1fe",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_report.json": "5cbf8d859dcd60defba80bcb29197eb27c0149a97c91fce62ffb16bb4d310cbc",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/run4_map_identity.csv": "4dcedf018e1a8b6970a8c1282477cd28915d4adabb254c35de1ad1207a308245",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_record.log": "11358f2ea1a0ce5eafb2fb6c09536c9d5ea4b9faa57f7b3ef2c9c352ccfc2ad7",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_relay.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/phase6_artifacts/child_result.json": "6ea6bae2054dae0b87cb52015d00bd874bcd1aaa795003151581c5366056e4b6",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap": "1a9822ce1040178d2ec5b6dc63494cb4e1482b40377c3178e447813451a38800",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_tcpdump.log": "a0bccf29552a1a74902784d38887193cca1f5685d01eb2eea064e5535feccb75",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/ttracer/ue/ue.raw": "d564788541ddaa53b5bda847014e0a3680cd08c057055684fa033ff0a6a9495f"
+    }
+  },
+  "repair": {
+    "compose_files": [
+      "receiver_container/docker-compose.yaml",
+      "receiver_container/docker-compose.fusion-back.yaml"
+    ],
+    "compose_up_arguments": [
+      "up",
+      "-d",
+      "--no-build",
+      "--pull",
+      "never",
+      "--force-recreate"
+    ],
+    "implementation": [
+      "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/phase6_edge_launch_v2.py",
+      "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/phase6_live_child_nobuild_v2.py"
+    ],
+    "legacy_launcher_sha256": "abf532c88d27fcf101dcecbfcf55f4994fd44cd287d5d1a9245ce0ca3b333610",
+    "never": [
+      "build",
+      "pull",
+      "retag",
+      "download"
+    ],
+    "unchanged_files": [
+      "scripts/receiver_container_fusion_back_up.sh",
+      "receiver_container/docker-compose.yaml",
+      "receiver_container/docker-compose.fusion-back.yaml",
+      "receiver_container/Dockerfile"
+    ]
+  },
+  "retained_checks": [
+    "repository -> /work/abiodun read-only",
+    "per-attempt state -> /work/torch_cache read-write",
+    "FCOS constructor checkpoint read-only with pinned SHA-256",
+    "existing CUDA cuda:0 / preload / ready-record checks in adapter_direct_v1",
+    "existing pinned inspect_live_edge_mounts"
+  ],
+  "schema": "scenesense.run4_live_v2.phase6_setup_repair_addendum.v1",
+  "scientific_protocol_changed": false,
+  "scope": "Image-launch mechanics and image provenance only. Actor, 21-D state, fallback, reward, 170-ms timeout, k_min/hold, action execution, SFD4/map/reward protocols, quality evaluation, P0-P8 gates and verdict, and the Option-C exclusion/rollover handling are unchanged; addendum 2 still governs claim scope.",
+  "sequence": [
+    "offline tests",
+    "bounded edge-startup qualification (core network + edge only; no CARLA/scientific frame; teardown to cold)",
+    "only if it passes: one fresh 300-frame FAVORABLE_STABLE Option-C qualification",
+    "no further attempt"
+  ],
+  "status": "REGISTERED_BEFORE_ANY_NEW_PHASE6_EVIDENCE"
+}

@@ -46,6 +46,9 @@ PACKAGE_SOURCES = (
     "phase6_ue_runtime_v2.py", "phase6_live_child_v2.py", "phase6_live_runner_v2.py",
     # Prospective addendum 2 (option c): reporting only.
     "phase6_result_reporting_v2.py", "phase6_prospective_addendum_2.json",
+    # Setup-repair addendum 3: no-build, image-bound edge launch (mechanics only).
+    "phase6_edge_launch_v2.py", "phase6_live_child_nobuild_v2.py",
+    "phase6_edge_startup_qualification_v2.py", "phase6_setup_repair_addendum_3.json",
 )
 
 
