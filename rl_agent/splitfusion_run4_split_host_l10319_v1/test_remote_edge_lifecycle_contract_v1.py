@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -55,7 +56,7 @@ class Fixture:
         )
         self.invocation = E.RemoteEdgeInvocation(
             attempt_id="split-host-smoke-001",
-            run_id="run4/split-host/smoke",
+            run_id="run4-split-host-smoke",
             cell_id="a71__favorable_stable",
             action_id=71,
             allowed_action_ids=(71,),
@@ -142,6 +143,16 @@ class PlanTests(unittest.TestCase):
         self.assertIn(self.fixture.invocation.project_name, argv)
         self.assertEqual(argv[-4:], ("down", "--remove-orphans", "--timeout", "30"))
         self.assertNotIn("docker stop", " ".join(argv))
+
+    def test_lifecycle_identity_rule_matches_gt_transport_safety(self) -> None:
+        with self.assertRaises(E.RemoteEdgeLifecycleError):
+            replace(self.fixture.invocation,
+                    run_id="run4/split-host/smoke").validate()
+        accepted = replace(
+            self.fixture.invocation, run_id="run4+split@v1:smoke").validate()
+        self.assertEqual(accepted.run_id, "run4+split@v1:smoke")
+        self.assertEqual(E.IDENTITY_RE.pattern, RGT.GT.SAFE_ID_RE.pattern)
+
 
 
 class ObservationTests(unittest.TestCase):

@@ -56,7 +56,7 @@ QUALITY_SPEC_SHA256 = (
     "d5d1e0d2d435076dd53c740f8b0e632620144194c32baf7d24db6d5043fc74d9"
 )
 ATTEMPT_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{2,47}$")
-IDENTITY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,191}$")
+IDENTITY_RE = re.compile(r"^[A-Za-z0-9_.:@+-]{1,192}$")
 
 
 class RemoteEdgeLifecycleError(ValueError):
