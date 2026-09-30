@@ -25,7 +25,8 @@ from typing import Any, Optional, Sequence
 
 from . import phase6_edge_launch_v2 as EL
 from . import phase6_gt_handoff_v2 as GH
-from . import phase6_gt_priority_v2 as GP
+from . import phase6_gt_priority_v2 as GP  # noqa: F401
+from . import phase6_object_gt_v2 as OG
 from . import phase6_live_child_v2 as C
 
 EVIDENCE_RELPATH = Path("run4_phase6") / "edge_image_launch.json"
@@ -47,7 +48,7 @@ def install_run4_seams_nobuild(campaign: Any, *, attempt_dir: Path, **kwargs: An
 
     budget = kwargs.get("transmitted_budget")
     factory = pinned.LivePilotCellRuntime
-    ticket_log = GP.GtTicketLogV2()          # addendum 7: object-GT ticket timeline
+    ticket_log = OG.GtTicketLogV3()          # addendum 7/9: object-GT ticket timeline
 
     def budgeted_factory(**factory_kwargs: Any) -> Any:
         runtime = factory(**factory_kwargs)
