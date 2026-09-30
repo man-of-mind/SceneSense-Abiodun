@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -57,6 +58,14 @@ def prerequisites() -> S.SplitHostCoordinatorPrerequisitesV1:
         source_route=source_route(),
         radio_tensor_path=S.validate_radio_tensor_path(capture, receipt),
         policy_ownership=policy_ownership(),
+    ).validate()
+
+
+def pre_run() -> S.SplitHostCoordinatorPreRunV1:
+    full = prerequisites()
+    return S.SplitHostCoordinatorPreRunV1(
+        remote=full.remote, source_route=full.source_route,
+        policy_ownership=full.policy_ownership,
     ).validate()
 
 
@@ -325,7 +334,10 @@ class ContextAdapterTests(unittest.TestCase):
             quality.write_semantic_ground_truth = recorded_semantic
             return {"endpoint": endpoint.as_dict()}
 
-        nobuild = SimpleNamespace(install_run4_seams_nobuild=base_installer)
+        nobuild = SimpleNamespace(
+            install_run4_seams_nobuild=base_installer,
+            _DECISION_CAP={"value": 73},
+        )
         return (SimpleNamespace(child=child, nobuild=nobuild, pinned=pinned,
                                 direct=direct, quality=quality, feedback=feedback),
                 events, forbidden_edge, original_objects, original_semantic)
@@ -368,8 +380,13 @@ class ContextAdapterTests(unittest.TestCase):
                                  root / "attempt" / S.LOCAL_PROXY_ROOT)
                 self.assertTrue((scratch / S.EDGE_EVIDENCE_LEAF).is_dir())
                 self.assertTrue(made[0].connected)
+                self.assertTrue(context.sender_ever_connected)
+                with self.assertRaises(AttributeError):
+                    context.sender_ever_connected = False
                 with self.assertRaises(S.SplitHostCoordinatorError):
                     context.remote_teardown_release()
+                with self.assertRaises(S.SplitHostCoordinatorError):
+                    context.remote_abort_release()
                 route = modules.child.verify_feedback_path(
                     map_host="10.21.16.222", map_port=39320,
                     ue_host="10.0.0.2", ue_port=51014)
@@ -377,12 +394,32 @@ class ContextAdapterTests(unittest.TestCase):
                 self.assertTrue(modules.pinned.stop_live_edge(scratch))
                 self.assertTrue(made[0].closed)
                 release = context.remote_teardown_release()
+                self.assertEqual(release, context.remote_teardown_release())
+                self.assertEqual(release["schema"], S.REMOTE_TEARDOWN_RELEASE_SCHEMA)
                 self.assertTrue(release["local_gt_sender_closed"])
+                self.assertEqual(release["remote_attempt_id"], "attempt-1")
+                self.assertEqual(release["remote_project_name"],
+                                 "run4-edge-l10319-attempt-1")
+                self.assertEqual(release["remote_plan_sha256"], "4" * 64)
+                expected_radio = hashlib.sha256(json.dumps(
+                    prerequisites().radio_tensor_path, sort_keys=True,
+                    separators=(",", ":"), allow_nan=False,
+                ).encode("utf-8")).hexdigest()
+                self.assertEqual(release["radio_tensor_path_sha256"], expected_radio)
                 self.assertEqual(release["remote_teardown_owner"],
                                  "REMOTE_LIFECYCLE_OWNER_ONLY")
                 self.assertFalse(
                     release["remote_cn_teardown_permitted_to_local_coordinator"])
-                self.assertTrue((root / "attempt" / S.LOCAL_GT_FINAL).is_file())
+                final_path = root / "attempt" / S.LOCAL_GT_FINAL
+                self.assertTrue(final_path.is_file())
+                abort = context.remote_abort_release()
+                self.assertEqual(abort["schema"], S.REMOTE_ABORT_RELEASE_SCHEMA)
+                self.assertTrue(abort["local_gt_sender_was_connected"])
+                self.assertTrue(abort["local_gt_sender_closed"])
+                self.assertFalse(abort["scientific_pass"])
+                self.assertNotIn("radio_tensor_path_sha256", abort)
+                self.assertEqual(abort["local_gt_sender_final_sha256"],
+                                 hashlib.sha256(final_path.read_bytes()).hexdigest())
                 self.assertTrue(modules.pinned.stop_tail())
             self.assertIs(modules.child.install_run4_seams, original_install)
             self.assertIs(modules.child.verify_feedback_path, original_verify)
@@ -392,6 +429,101 @@ class ContextAdapterTests(unittest.TestCase):
             self.assertEqual(modules.direct._ENDPOINT, {})
             self.assertEqual(made[0].events.count("close"), 1)
         self.assertNotIn("original_objects", events)
+
+    def test_direct_context_restores_decision_cap_on_exception(self) -> None:
+        modules, _events, _forbidden, _objects, _semantic = self.make_modules()
+        self.assertEqual(modules.nobuild._DECISION_CAP["value"], 73)
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaisesRegex(RuntimeError, "intentional"):
+                with S.SplitHostPhase6ChildContextV1(
+                        prerequisites=pre_run(), retrieval=retrieval(root),
+                        modules=modules, sender_factory=FakeSender,
+                        decision_cap=1):
+                    self.assertEqual(modules.nobuild._DECISION_CAP["value"], 1)
+                    raise RuntimeError("intentional")
+        self.assertEqual(modules.nobuild._DECISION_CAP["value"], 73)
+
+    def test_generic_child_helper_refuses_pre_run_prerequisites(self) -> None:
+        modules, _events, _forbidden, _objects, _semantic = self.make_modules()
+        calls = []
+        modules.child.run = lambda args: calls.append(args) or 0
+        with TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(
+                    S.SplitHostCoordinatorError, "full radio-proof"):
+                S.run_unchanged_child(
+                    object(), prerequisites=pre_run(),
+                    retrieval=retrieval(Path(temporary)), modules=modules,
+                    sender_factory=FakeSender)
+        self.assertEqual(calls, [])
+        self.assertEqual(modules.nobuild._DECISION_CAP["value"], 73)
+
+    def test_abort_release_never_connected_is_none_and_connected_is_bound(self) -> None:
+        remote = prerequisites().remote
+        self.assertIsNone(S.build_remote_abort_release(
+            remote=remote, sender_ever_connected=False,
+            local_gt_sender_final_sha256=None))
+        with self.assertRaises(S.SplitHostCoordinatorError):
+            S.build_remote_abort_release(
+                remote=remote, sender_ever_connected=False,
+                local_gt_sender_final_sha256="8" * 64)
+        with self.assertRaises(S.SplitHostCoordinatorError):
+            S.build_remote_abort_release(
+                remote=remote, sender_ever_connected=True,
+                local_gt_sender_final_sha256=None)
+        release = S.build_remote_abort_release(
+            remote=remote, sender_ever_connected=True,
+            local_gt_sender_final_sha256="8" * 64)
+        self.assertEqual(set(release), {
+            "schema", "local_gt_sender_was_connected", "local_gt_sender_closed",
+            "local_gt_sender_final_sha256", "remote_attempt_id",
+            "remote_project_name", "remote_plan_sha256", "scientific_pass",
+            "remote_cn_teardown_permitted_to_local_coordinator",
+        })
+        self.assertEqual(release["remote_attempt_id"], remote.attempt_id)
+        self.assertEqual(release["remote_project_name"], remote.project_name)
+        self.assertEqual(release["remote_plan_sha256"], remote.plan_sha256)
+        self.assertFalse(release["scientific_pass"])
+        self.assertNotIn("radio_tensor_path_sha256", release)
+
+    def test_context_never_connected_emits_no_abort_release(self) -> None:
+        modules, _events, _forbidden, _objects, _semantic = self.make_modules()
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with S.SplitHostPhase6ChildContextV1(
+                    prerequisites=pre_run(), retrieval=retrieval(root),
+                    modules=modules, sender_factory=FakeSender,
+                    decision_cap=1) as context:
+                context.install(self.campaign(), attempt_dir=root / "attempt")
+                self.assertFalse(context.sender_ever_connected)
+                self.assertIsNone(context.remote_abort_release())
+                with self.assertRaises(S.SplitHostCoordinatorError):
+                    context.remote_teardown_release()
+
+    def test_pre_run_full_release_remains_radio_proof_gated(self) -> None:
+        modules, _events, _forbidden, _objects, _semantic = self.make_modules()
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with S.SplitHostPhase6ChildContextV1(
+                    prerequisites=pre_run(), retrieval=retrieval(root),
+                    modules=modules, sender_factory=FakeSender,
+                    decision_cap=1) as context:
+                context.install(self.campaign(), attempt_dir=root / "attempt")
+                scratch = modules.pinned.start_live_edge({}, {}, root / "tmp")
+                self.assertTrue(modules.pinned.stop_live_edge(scratch))
+                with self.assertRaisesRegex(
+                        S.SplitHostCoordinatorError, "radio tensor-path proof"):
+                    context.remote_teardown_release()
+                capture, receipt = radio_observations()
+                final = context.finalize_radio_tensor_path(capture, receipt)
+                release = context.remote_teardown_release()
+                self.assertEqual(release["remote_attempt_id"],
+                                 final.remote.attempt_id)
+                self.assertEqual(release["remote_plan_sha256"],
+                                 final.remote.plan_sha256)
+                with self.assertRaisesRegex(
+                        S.SplitHostCoordinatorError, "already finalized"):
+                    context.finalize_radio_tensor_path(capture, receipt)
 
     def test_sender_wrap_is_installed_after_recorder(self) -> None:
         modules, events, _forbidden, _objects, _semantic = self.make_modules()

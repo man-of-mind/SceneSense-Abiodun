@@ -33,6 +33,12 @@ FEEDBACK_ROUTE_SCHEMA = "scenesense.run4.remote_feedback_route.v1"
 RADIO_PROOF_SCHEMA = "scenesense.run4.radio_tensor_path_proof.v1"
 POLICY_OWNERSHIP_SCHEMA = "scenesense.run4.ue_policy_ownership.v1"
 REMOTE_RETRIEVAL_SCHEMA = "scenesense.run4.remote_evidence_retrieval.v1"
+REMOTE_TEARDOWN_RELEASE_SCHEMA = (
+    "scenesense.run4.split_host_remote_teardown_release.v1"
+)
+REMOTE_ABORT_RELEASE_SCHEMA = (
+    "scenesense.run4.split_host_remote_abort_release.v1"
+)
 EDGE_RECEIVE_PORT = 51002
 UE_CONTROL_HOST = "10.0.0.2"
 UE_CONTROL_PORT = 51014
@@ -66,6 +72,11 @@ def _sha256_file(path: Path) -> str:
         for block in iter(lambda: handle.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _is_sha256(value: Any) -> bool:
+    return (type(value) is str and len(value) == 64
+            and all(character in "0123456789abcdef" for character in value))
 
 
 def validate_campaign_binding(campaign: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -426,6 +437,76 @@ class SplitHostCoordinatorPrerequisitesV1:
 
 
 @dataclass(frozen=True)
+class SplitHostCoordinatorPreRunV1:
+    """Facts sufficient to arm the first real split-host decision.
+
+    The tensor-path proof cannot exist until that decision is transmitted.
+    Keeping this type distinct from ``SplitHostCoordinatorPrerequisitesV1``
+    prevents an observer from fabricating a pre-run PASS merely to satisfy a
+    circular prerequisite.  ``finalize`` is the only transition to the full
+    release contract.
+    """
+
+    remote: PrestartedRemoteEdgeV1
+    source_route: Mapping[str, Any]
+    policy_ownership: PolicyRoutingOwnershipV1
+
+    def validate(self) -> "SplitHostCoordinatorPreRunV1":
+        _require(self.source_route.get("radio_path") == "PASS"
+                 and self.source_route.get("device") == POLICY_INTERFACE
+                 and self.source_route.get("table") == POLICY_TABLE,
+                 "UE source-route release gate is absent")
+        self.policy_ownership.validate()
+        self.remote.validate()
+        return self
+
+    def finalize(
+        self, capture: "RadioTensorObservationV1",
+        receipt: "RadioTensorObservationV1",
+    ) -> SplitHostCoordinatorPrerequisitesV1:
+        self.validate()
+        return SplitHostCoordinatorPrerequisitesV1(
+            remote=self.remote,
+            source_route=self.source_route,
+            radio_tensor_path=validate_radio_tensor_path(capture, receipt),
+            policy_ownership=self.policy_ownership,
+        ).validate()
+
+
+def build_remote_abort_release(
+    *, remote: PrestartedRemoteEdgeV1,
+    sender_ever_connected: bool,
+    local_gt_sender_final_sha256: Optional[str],
+) -> Optional[Mapping[str, Any]]:
+    """Build the exact-attempt abort release, or no release if never connected.
+
+    This function performs no cleanup and cannot authorize a scientific PASS.
+    A never-connected local sender has nothing to release; supplying a digest
+    in that case is refused instead of creating misleading closure evidence.
+    """
+    remote.validate()
+    _require(type(sender_ever_connected) is bool,
+             "abort sender-connected fact must be exact bool")
+    if not sender_ever_connected:
+        _require(local_gt_sender_final_sha256 is None,
+                 "never-connected sender cannot have an abort-release digest")
+        return None
+    _require(_is_sha256(local_gt_sender_final_sha256),
+             "connected sender lacks a valid final-evidence digest")
+    return {
+        "schema": REMOTE_ABORT_RELEASE_SCHEMA,
+        "local_gt_sender_was_connected": True,
+        "local_gt_sender_closed": True,
+        "local_gt_sender_final_sha256": local_gt_sender_final_sha256,
+        "remote_attempt_id": remote.attempt_id,
+        "remote_project_name": remote.project_name,
+        "remote_plan_sha256": remote.plan_sha256,
+        "scientific_pass": False,
+        "remote_cn_teardown_permitted_to_local_coordinator": False,
+    }
+
+
+@dataclass(frozen=True)
 class SplitHostCoordinatorPlanV1:
     schema: str
     local_ran: LR.LocalRanPlan
@@ -529,21 +610,35 @@ class SplitHostPhase6ChildContextV1:
     """
 
     def __init__(
-        self, *, prerequisites: SplitHostCoordinatorPrerequisitesV1,
+        self, *, prerequisites: (
+            SplitHostCoordinatorPrerequisitesV1 | SplitHostCoordinatorPreRunV1
+        ),
         retrieval: RemoteEvidenceRetrievalPlanV1,
         modules: Any = None,
         sender_factory: Callable[..., Any] = GSI.HighWorkerGtSenderV1,
+        decision_cap: Optional[int] = None,
     ) -> None:
         self.prerequisites = prerequisites.validate()
+        self._final_prerequisites = (
+            self.prerequisites
+            if type(self.prerequisites) is SplitHostCoordinatorPrerequisitesV1
+            else None
+        )
         self.retrieval = retrieval.validate()
         self.modules = modules if modules is not None else _default_modules()
         self.sender_factory = sender_factory
+        _require(decision_cap is None or type(decision_cap) is int and decision_cap == 1,
+                 "bounded split-host decision cap must be exactly one")
+        self.decision_cap = decision_cap
         self._saved: list[tuple[Any, str, Any]] = []
         self._saved_endpoint: Optional[dict[str, Any]] = None
+        self._decision_cap_active = False
+        self._saved_decision_cap: Any = None
         self._installed = False
         self._closed = False
         self._sender: Any = None
         self._sender_connected = False
+        self._sender_ever_connected = False
         self._sender_snapshot_written = False
         self._runtime: Any = None
         self._attempt_dir: Optional[Path] = None
@@ -568,6 +663,13 @@ class SplitHostPhase6ChildContextV1:
             for name in names:
                 self._remember(owner, name)
         self._saved_endpoint = dict(M.direct._ENDPOINT)
+        if self.decision_cap is not None:
+            cap = getattr(M.nobuild, "_DECISION_CAP", None)
+            _require(type(cap) is dict and set(cap) == {"value"},
+                     "frozen child decision-cap seam is absent or drifted")
+            self._saved_decision_cap = cap["value"]
+            cap["value"] = self.decision_cap
+            self._decision_cap_active = True
         M.child.install_run4_seams = self.install
         M.child.verify_feedback_path = self.verify_feedback_path
         self._installed = True
@@ -645,6 +747,7 @@ class SplitHostPhase6ChildContextV1:
             evidence.mkdir(parents=True, exist_ok=False)
             self._sender.connect()
             self._sender_connected = True
+            self._sender_ever_connected = True
             return root
 
         def stop_remote_proxy(_scratch: Optional[Path]) -> bool:
@@ -693,16 +796,57 @@ class SplitHostPhase6ChildContextV1:
             handle.write(json.dumps(snapshot, sort_keys=True, indent=2) + "\n")
         self._sender_snapshot_written = True
 
+    def finalize_radio_tensor_path(
+        self, capture: RadioTensorObservationV1,
+        receipt: RadioTensorObservationV1,
+    ) -> SplitHostCoordinatorPrerequisitesV1:
+        """Bind the first real decision proof after both captures close."""
+        _require(self._installed and not self._closed,
+                 "radio tensor-path proof finalized outside active context")
+        _require(self._final_prerequisites is None,
+                 "radio tensor-path proof was already finalized")
+        _require(type(self.prerequisites) is SplitHostCoordinatorPreRunV1,
+                 "full prerequisites cannot be finalized a second time")
+        self._final_prerequisites = self.prerequisites.finalize(capture, receipt)
+        return self._final_prerequisites
+
+    @property
+    def sender_ever_connected(self) -> bool:
+        """Whether this attempt ever completed the local GT sender connect."""
+        return self._sender_ever_connected
+
+    def remote_abort_release(self) -> Optional[Mapping[str, Any]]:
+        """Return exact-attempt abort evidence; never a scientific release."""
+        digest: Optional[str] = None
+        if self._sender_ever_connected:
+            _require(self._sender_snapshot_written and self._attempt_dir is not None,
+                     "connected sender was not closed before abort release")
+            path = self._attempt_dir / LOCAL_GT_FINAL
+            _require(path.is_file(), "local GT sender final evidence is absent")
+            digest = _sha256_file(path)
+        return build_remote_abort_release(
+            remote=self.prerequisites.remote,
+            sender_ever_connected=self._sender_ever_connected,
+            local_gt_sender_final_sha256=digest,
+        )
+
     def remote_teardown_release(self) -> Mapping[str, Any]:
-        """Release the external remote owner only after local GT closure."""
+        """Release only after local GT closure and first-real tensor proof."""
         _require(self._sender_snapshot_written and self._attempt_dir is not None,
                  "remote teardown requested before local GT sender snapshot")
+        _require(self._final_prerequisites is not None,
+                 "remote teardown requested before radio tensor-path proof")
         path = self._attempt_dir / LOCAL_GT_FINAL
         _require(path.is_file(), "local GT sender final evidence is absent")
         return {
-            "schema": "scenesense.run4.split_host_remote_teardown_release.v1",
+            "schema": REMOTE_TEARDOWN_RELEASE_SCHEMA,
             "local_gt_sender_closed": True,
             "local_gt_sender_final_sha256": _sha256_file(path),
+            "radio_tensor_path_sha256": _canonical_sha256(
+                self._final_prerequisites.radio_tensor_path),
+            "remote_attempt_id": self._final_prerequisites.remote.attempt_id,
+            "remote_project_name": self._final_prerequisites.remote.project_name,
+            "remote_plan_sha256": self._final_prerequisites.remote.plan_sha256,
             "remote_teardown_owner": "REMOTE_LIFECYCLE_OWNER_ONLY",
             "remote_cn_teardown_permitted_to_local_coordinator": False,
         }
@@ -714,6 +858,9 @@ class SplitHostPhase6ChildContextV1:
             self._close_and_snapshot_sender()
         finally:
             M = self.modules
+            if self._decision_cap_active:
+                M.nobuild._DECISION_CAP["value"] = self._saved_decision_cap
+                self._decision_cap_active = False
             for owner, name, value in reversed(self._saved):
                 setattr(owner, name, value)
             M.direct._ENDPOINT.clear()
@@ -734,6 +881,8 @@ def run_unchanged_child(args: Any, *,
     This function does not start the local RAN or the remote CN/edge.  Those
     are independently owned prerequisites.  It also cannot stop them.
     """
+    _require(type(prerequisites) is SplitHostCoordinatorPrerequisitesV1,
+             "generic child helper requires full radio-proof prerequisites")
     context = SplitHostPhase6ChildContextV1(
         prerequisites=prerequisites, retrieval=retrieval,
         modules=modules, sender_factory=sender_factory,
@@ -745,6 +894,7 @@ def run_unchanged_child(args: Any, *,
 __all__ = [
     "SCHEMA", "FEEDBACK_ROUTE_SCHEMA", "RADIO_PROOF_SCHEMA",
     "POLICY_OWNERSHIP_SCHEMA", "REMOTE_RETRIEVAL_SCHEMA",
+    "REMOTE_TEARDOWN_RELEASE_SCHEMA", "REMOTE_ABORT_RELEASE_SCHEMA",
     "EDGE_RECEIVE_PORT", "UE_CONTROL_HOST", "UE_CONTROL_PORT",
     "POLICY_TABLE", "POLICY_INTERFACE", "SplitHostCoordinatorError",
     "validate_campaign_binding", "source_route_probe_argv",
@@ -753,6 +903,7 @@ __all__ = [
     "RadioTensorObservationV1", "validate_radio_tensor_path",
     "PrestartedRemoteEdgeV1", "validate_prestarted_remote_edge",
     "RemoteEvidenceRetrievalPlanV1", "SplitHostCoordinatorPrerequisitesV1",
+    "SplitHostCoordinatorPreRunV1", "build_remote_abort_release",
     "SplitHostCoordinatorPlanV1", "build_coordinator_plan",
     "split_host_map_endpoint", "SplitHostPhase6ChildContextV1",
     "run_unchanged_child",
