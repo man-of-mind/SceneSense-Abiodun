@@ -1,0 +1,116 @@
+{
+  "authoritative_failed_run": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c",
+  "base_commit": "8cfb4eda3561b69282b400aa0471f5bfb562096a",
+  "claim_scope": "SYSTEMS_INTEGRATION_QUALIFICATION_ONLY",
+  "date": "2026-09-30",
+  "engineering_gates_120": [
+    "E1 P0 scored admission >= 95%",
+    "E2 no camera-age fallback caused by post-plan work (planning precedes radar preparation on every frame)",
+    "E3 exact terminal accounting, zero unresolved tickets",
+    "E4 no reward-requested service-terminal frame lacking its registered terminal",
+    "E5 no evaluator head-of-line blocking",
+    "E6 zero identity conflict / conflicting duplicate / unknown orphan / infrastructure fault",
+    "E7 actor called only for admitted decisions",
+    "E8 actor/checkpoint digest unchanged",
+    "E9 host and channel restored cold"
+  ],
+  "id": "PHASE6_LIVE_PATH_REPAIR_ADDENDUM_5",
+  "interpretation_notes": [
+    "Action-open now precedes radar-tensor preparation, so radar rasterization and RGB conversion fall inside the 170-ms action-open-to-feedback window; RUN4_CONTRACT.md placed sensor preparation before the reward clock. This is stricter, not looser, and is required by the task (the clock is not restarted).",
+    "E5 (no evaluator head-of-line blocking) is operationalized as: every evaluated ticket's evaluator start is <= 250 ms after its GT became ready (pre-repair stall ~2,000 ms)."
+  ],
+  "preserved_attempts_sha256": {
+    "20260930T000922Z_phase6_live_qualification_option_c": {
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.docker_cache_state_after.txt": "c7863238306c7f839a52ec84e6da56e5716a78007a728ed067135fed2a1a60d9",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.dockerd_journal_17-09_17-15.txt": "0ccbafcba2f73619e33e49d79b36fb9dba82acca801559aa63cb4afc3813f4b8",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c.launcher.log": "7624c5edb9f140f23cd175ca18f5ca88dfd0c3b1c019428d90b0cf574b8d1605",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/CELL_RESULT.json": "0903017ff5ad97cb7c44a159c22ea67ebcf461f8623ea9778bd94f6a34422255",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/child_stdout_stderr.log": "ad65df21f76b3e121dbeedfa285e58b54fc017811d233891509f790476e9b6b8",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "01a0abc798f4e40bddcbd803cd04fc9bf26bc7a386eed0efbaf0a4fa0f53c6eb",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ready.json": "d34b9e54fe27c216970a7d3499185bd0e7260d225ca6a0aca44eff5d599bd1fe",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_report.json": "5cbf8d859dcd60defba80bcb29197eb27c0149a97c91fce62ffb16bb4d310cbc",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/run4_map_identity.csv": "4dcedf018e1a8b6970a8c1282477cd28915d4adabb254c35de1ad1207a308245",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_record.log": "11358f2ea1a0ce5eafb2fb6c09536c9d5ea4b9faa57f7b3ef2c9c352ccfc2ad7",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_relay.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/phase6_artifacts/child_result.json": "6ea6bae2054dae0b87cb52015d00bd874bcd1aaa795003151581c5366056e4b6",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap": "1a9822ce1040178d2ec5b6dc63494cb4e1482b40377c3178e447813451a38800",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_tcpdump.log": "a0bccf29552a1a74902784d38887193cca1f5685d01eb2eea064e5535feccb75",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T000922Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/ttracer/ue/ue.raw": "d564788541ddaa53b5bda847014e0a3680cd08c057055684fa033ff0a6a9495f"
+    },
+    "20260930T003718Z_phase6_edge_startup_qualification": {
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification.launcher.log": "39ad8af6ef6c40b733d15e8f41670ccdee7f1e7d19af7581fd81094e1717e094",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/EDGE_STARTUP_QUALIFICATION.json": "79b9950f58e728e639505ea8d00877c644c29c45dea8ee978029ea57eea323e1",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/direct_edge_map/direct_edge_ready.json": "25360231367dcf0336f1b7caf0104eb8acbb44014706b66e6f274a26b34f81d9",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/infrastructure.log": "d45bc28401393492846c2f2ab558b54f44b93540dabfb710c29b7ca64d7c407d",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/run4_phase6/edge_image_launch.json": "28bd004cec30457cd312a0405fb6544b351f90db8d3b0f17df30ba4d3d3b640a",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T003718Z_phase6_edge_startup_qualification/run4_phase6/edge_report.json": "96840d442081eb476de190aa2594097d9e35c23318e819a8288896950a5dfac9"
+    },
+    "20260930T010128Z_phase6_edge_startup_qualification_r2": {
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010128Z_phase6_edge_startup_qualification_r2.launcher.log": "9ae9f0a942cd47999a63ab5e732b1fdf03cc2adc497bdf669569c00d6ab96f26",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010128Z_phase6_edge_startup_qualification_r2/EDGE_STARTUP_QUALIFICATION.json": "ab08c720337f493853f6a1442daa5d7a18c505b7ed19d5429cde89d7cfab0b0c",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010128Z_phase6_edge_startup_qualification_r2/direct_edge_map/direct_edge_ready.json": "1902b7f7af67e1e989585bdad307110560a3044189ec75d50e389721d26f46e1",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010128Z_phase6_edge_startup_qualification_r2/edge_ready_record.json": "e8f04e5dc1a7ec7f59c75e032d7be01455d7850177f908e6afdf372ac8c89773",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010128Z_phase6_edge_startup_qualification_r2/infrastructure.log": "94c906b9879ae097d81a261c04b89a658efdab7be7222e1585d833c2c8c05f97",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010128Z_phase6_edge_startup_qualification_r2/run4_phase6/edge_image_launch.json": "87b74e0602b8b6e0d714dacb900c9e75ab7e43ffe55cc178125afbf0a203a176",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010128Z_phase6_edge_startup_qualification_r2/run4_phase6/edge_report.json": "2241a7b21a5cc58a9ca47980eddfe2b4f2f3037dd0ff103f774390db875665f1"
+    },
+    "20260930T010207Z_phase6_live_qualification_option_c": {
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c.analysis.json": "452a8da950a44a3a6a8f417584944914dd8c2020c67f73d087eb6d2593d9d6f8",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c.artifact_sha256.txt": "f3119f31f649db48a3bb936198bd2dfe2cac4a26a2eca51cb47914605220677f",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c.launcher.log": "ecc9bf901366914b95f77851604db364c2907d52ec0f706bb35f40c65797d1ed",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/CELL_RESULT.json": "1fa90913224c46d95244bca9db27a75875252742bdafe30a8c98f2f8ef0aed17",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/PHASE6_RESULT_SUMMARY.md": "25fd3e8719c5bf87c6cb81b2fe72b01574b0f5b97538efb3aee5ebf9484ca1bb",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/child_stdout_stderr.log": "b441219b2fee72e39f1c48f7cdd7e76ccc96d45610d90fa4f4079e3ed7282b54",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_edge_ready.json": "1902b7f7af67e1e989585bdad307110560a3044189ec75d50e389721d26f46e1",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "76c34c0da31c65fa81b5235c85185e985670d2908cdf2c166374131146b32fe9",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_ready.json": "353aba5443fbe0e78a81d3d52a38051762975deeceaac6dd8fb5cbbafdb8a79c",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/direct_map_report.json": "5421c95ecd4b3a0dc88e76abeb453f6fc7f1715eb0d6577fe6ce90a9d03b8d42",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/direct_edge_map/run4_map_identity.csv": "9978ab645e073a7c9d4b92c33ae3afb128c17a69ea470c1663bfbbd4e868a49f",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/edge_image_prelaunch.json": "8615b86c005a5a39b7bab1dd2b5fc291d47c6785082bdf23ae293b39e6a10861",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_record.log": "11358f2ea1a0ce5eafb2fb6c09536c9d5ea4b9faa57f7b3ef2c9c352ccfc2ad7",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/logs/ue_relay.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/map_feedback.csv": "995880967d18398bb05c4aa7b880e8bdf8605534da0592e7e7588af846eb5267",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/per_frame_metrics.csv": "9bc9c40db055b75babd42665cc72e680f0dea8614054d9d4286ab2c298a11762",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/perception_metrics.csv": "0d661776bacfb1348155b643644f02ca9f5227a0238b1151ce3bd634573f9e18",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/phase6_artifacts/budget_reached.json": "15058882669c0126d95eb73f31fe0eb4409b94954a0fe40340e53f6a3db69c4d",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/phase6_artifacts/child_result.json": "57b495bb0bdebbfd0a6e226075941ad09c78940cd69b7ac160bae65bc09ce84f",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/phase6_artifacts/collector_summary.json": "297034ad19971487e905254d7504dd9840bfe4a98b013f22fb5c167192a738a3",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap": "ee28524e8f602374000941654c08c23905d7e909a3fda2614bf20b4dead6c251",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/quality_ack_tcpdump.log": "776f1cfa86c7483104b38b60af9aff96f936a86bc9c778a1c21e3498608936de",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/radio_trace.csv": "fa99793ba68307df72fdd873f3083f6c5554c421d252a575a64fcb976aed238a",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json": "3c2359fe44dc361633ec7a1f25d864affbebcbb7a3f39640c0e379bb62a48e48",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/run4_phase6/edge_image_launch.json": "e73363b604fd70973314dcd08b59f8b31698861e10eec4d3a35b4753f4a4f34f",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/run4_phase6/edge_report.json": "d09ae5194b30e075473fb89db9dce79ec6d28889f20541ccafd63f0940857c33",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_DCI_GRANT_live.csv": "107c1bdc8501d101fd148517cc6bf082cc9336d624477507a70d9763e38baa08",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_RLC_BUFFER_STATUS_live.csv": "867bc0a335b63118f9859ef528dfc874fb0277a28b353db20df38c24590d904b",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/run4_phase6/telemetry_live/NR_PDCP_TX_SDU_live.csv": "000e4b9466912d6fc1930e879d14c3d6eb2a0bba76a8fd3537df5fd1b1a9176f",
+      "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260930T010207Z_phase6_live_qualification_option_c/cells/a71__favorable_stable/ttracer/ue/ue.raw": "bdba3853c339faa8d32b315a97e2d3ae6287b0c51c973ceb4fe6624801dc42af"
+    }
+  },
+  "repairs": {
+    "R1_plan_before_preparation": "Complete 4-sweep window + synchronized RGB -> existing SI/P40 -> telemetry/guard -> immutable PlannedRun4FrameV2 (frame, capture ts, CARLA ts, radar-window digest, tensor seq, session/decision/ticket, reward_requested, mode, q_e4, bundle, anchor) -> radar tensor -> 7-channel/front/codec/send. Implemented as an instance-local hook in the Phase-6 collector subclass (pinned adapter unchanged). The RGB receipt instant stays the scene source timestamp; nothing is re-stamped. Materialization fails closed on any identity drift; post-plan failures go through the existing transport_failed (infrastructure-fault) path.",
+    "R2_evaluator_without_head_of_line_blocking": "Bounded pending set with short GT probes; ready tickets are evaluated as soon as their GT exists; tickets whose GT is absent gt_timeout_s (local edge GT wait, not the RL deadline) after submission emit GROUND_TRUTH_UNAVAILABLE (EVALUATOR_FAULT, excluded). At-most-once emission; shutdown drains or expires every pending ticket. Quality calculation byte-for-byte unchanged.",
+    "R3_registered_terminals_to_reward": "RUN4 edge terminals for the active reward-requested policy frame resolve through RewardHoldControllerV2.on_registered_terminal with full identity match as the existing REGISTERED_SERVICE_FAILURE (reward -1, no q_perc). Outcomes: SUPERSEDED_PENDING (decided) and the other two edge-control terminals the Phase-6 edge emits only for never-processed frames (STALE_BEFORE_EDGE, pre-decode STALE_BEFORE_MAP). CREDIT_SUPERSEDED_BY_FRESHER is recorded separately and is not a network loss. Hold/fallback terminals and map feedback stay ledger-only; identical duplicates ignored; conflicts fail closed; post-timeout terminals are late orphans."
+  },
+  "schema": "scenesense.run4_live_v2.phase6_live_path_repair_addendum.v1",
+  "sequence": [
+    "offline tests + real preflight",
+    "one create-only 120-frame engineering qualification (no retry)",
+    "only if every engineering gate passes: one create-only 300-frame Phase-6 qualification (no retry)"
+  ],
+  "status": "REGISTERED_BEFORE_ANY_NEW_PHASE6_EVIDENCE",
+  "unchanged": [
+    "seed-43/update-10000 actor and weights (boundary b61f27a9...cebd3)",
+    "21-D state, feature order, scaling, freshness bounds",
+    "100 ms SI/P40 and radio freshness",
+    "reward formula/weights",
+    "170 ms reward deadline",
+    "k_min=2",
+    "fallback mode 11 / q_e4 9800",
+    "continuous-q execution",
+    "latest-only edge/map scheduler",
+    "quality formula",
+    "Option-C undefined-quality semantics",
+    "P0-P8 denominators, thresholds and verdict"
+  ]
+}

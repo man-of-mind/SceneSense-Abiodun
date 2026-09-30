@@ -52,6 +52,10 @@ PACKAGE_SOURCES = (
     # Setup-repair addendum 4: metadata-only ready-record contract repair.
     "phase6_edge_runtime_v2.py", "test_phase6_ready_contract_v2.py",
     "phase6_setup_repair_addendum_4.json",
+    # Addendum 5: the three live-path repairs (reward/state/thresholds unchanged);
+    # the repaired runtime/controller/engine files are already pinned above.
+    "phase6_engineering_gates_v2.py", "test_phase6_live_path_repair_v2.py",
+    "phase6_live_path_repair_addendum_5.json",
 )
 
 

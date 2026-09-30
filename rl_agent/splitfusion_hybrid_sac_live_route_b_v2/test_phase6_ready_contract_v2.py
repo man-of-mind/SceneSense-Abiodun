@@ -42,10 +42,12 @@ EXPECTED_KEYS = {
 RESULT_TERMS = ("q_perc", "reward", "latency", "success", "iou", "recall", "tp", "fp",
                 "fn", "error", "score", "quality_value", "measurement")
 FROZEN_SCIENTIFIC = (
-    "phase6_live_child_v2.py", "phase6_decision_engine_v2.py", "reward_hold_controller_v2.py",
+    # addendum 5 authorizes phase6_decision_engine_v2 / reward_hold_controller_v2 /
+    # phase6_ue_runtime_v2 changes; test_phase6_live_path_repair_v2 bounds them.
+    "phase6_live_child_v2.py",
     "live_state_v2.py", "run4_live_wire_v2.py", "run4_map_protocol_v2.py",
     "run4_ue_ledger_v2.py", "continuous_execution_v2.py", "frozen_actor_v2.py",
-    "phase6_ue_runtime_v2.py", "phase6_map_server_v2.py", "phase6_result_reporting_v2.py",
+    "phase6_map_server_v2.py", "phase6_result_reporting_v2.py",
     "phase6_prospective_addendum_2.json", "live_qualification_300_v2.json",
     "ACTOR_BINDING_V2.json", "phase6_edge_launch_v2.py", "phase6_live_child_nobuild_v2.py",
     "phase6_setup_repair_addendum_3.json",
@@ -227,11 +229,16 @@ class BoundedDiffTest(unittest.TestCase):
         old_nodes = list(self._tree(old).body)
         new_nodes = [n for n in self._tree(new).body
                      if getattr(n, "name", None) != "ready_document"]
+        # Addendum 5 replaces the evaluator's worker loop (quality calculation
+        # proven unchanged by test_phase6_live_path_repair_v2.test_10b).
+        evaluator = "Run4EvaluatorV2"
         self.assertEqual(len(new_nodes), len(self._tree(new).body) - 1)   # one addition
         self.assertEqual(len(old_nodes), len(new_nodes))
         for before, after in zip(old_nodes, new_nodes):
             name = getattr(before, "name", type(before).__name__)
             self.assertEqual(getattr(after, "name", type(after).__name__), name)
+            if name == evaluator:
+                continue
             if name == "run_run4_edge_service":
                 self.assertEqual(self._normalize_ready_write(before),
                                  self._normalize_ready_write(after))

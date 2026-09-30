@@ -50,6 +50,8 @@ __all__ = [
     "SessionBreakRequired",
     "FeedbackClass",
     "RewardFeedbackV2",
+    "RegisteredTerminalV2",
+    "SERVICE_FAILURE_EDGE_OUTCOMES",
     "FrameAssignmentV2",
     "RewardHoldControllerV2",
     "REWARD_DEADLINE_NS",
@@ -114,6 +116,53 @@ class RewardFeedbackV2:
 
     def canonical_bytes(self) -> bytes:
         body = {"schema": FEEDBACK_SCHEMA,
+                **{name: getattr(self, name) for name in self.__dataclass_fields__}}
+        return json.dumps(body, sort_keys=True, separators=(",", ":"),
+                          ensure_ascii=True, allow_nan=False).encode("ascii")
+
+    @property
+    def request_key(self) -> Tuple[str, str, int, int]:
+        return (self.session_uuid, self.controller_lineage_sha256,
+                self.decision_seq, self.ticket_seq)
+
+
+# Addendum 5: exact edge terminals for an active reward-requested policy frame.
+# The Phase-6 edge emits these only for frames it never processed, so no
+# quality feedback can exist for them; each resolves the ticket as the
+# existing REGISTERED_SERVICE_FAILURE (reward -1, no q_perc). Agent credit
+# (e.g. CREDIT_SUPERSEDED_BY_FRESHER) is recorded separately, never as loss.
+SERVICE_FAILURE_EDGE_OUTCOMES = ("SUPERSEDED_PENDING", "STALE_BEFORE_EDGE",
+                                 "STALE_BEFORE_MAP")
+TERMINAL_SCHEMA = "scenesense.run4_live_v2.registered_terminal.v1"
+
+
+@dataclass(frozen=True, slots=True)
+class RegisteredTerminalV2:
+    """An exact registered edge terminal for one reward-requested policy frame."""
+
+    session_uuid: str
+    controller_lineage_sha256: str
+    decision_seq: int
+    ticket_seq: int
+    frame_id: int
+    tensor_seq: int
+    capture_timestamp_ns: int
+    mode_id: int
+    q_e4: int
+    execution_bundle_sha256: str
+    anchor_action_id: Optional[int]
+    reward_requested: bool
+    outcome: str
+    agent_credit: str
+    stage: str
+
+    def __post_init__(self) -> None:
+        if self.outcome not in SERVICE_FAILURE_EDGE_OUTCOMES:
+            raise ControllerError(f"terminal outcome {self.outcome!r} is not a "
+                                  "registered service failure")
+
+    def canonical_bytes(self) -> bytes:
+        body = {"schema": TERMINAL_SCHEMA,
                 **{name: getattr(self, name) for name in self.__dataclass_fields__}}
         return json.dumps(body, sort_keys=True, separators=(",", ":"),
                           ensure_ascii=True, allow_nan=False).encode("ascii")
@@ -327,6 +376,61 @@ class RewardHoldControllerV2:
             return FeedbackClass.LATE_ORPHAN
         self._resolve(target, kind=_FEEDBACK_KINDS[fb.kind], resolution_ns=receipt_ns,
                       q_perc=fb.q_perc, by="FEEDBACK")
+        target.accepted_bytes = payload
+        record["class"] = FeedbackClass.ACCEPTED.value
+        self.ledger.feedback.append(record)
+        return FeedbackClass.ACCEPTED
+
+    def on_registered_terminal(self, terminal: RegisteredTerminalV2, *,
+                               receipt_ns: int) -> FeedbackClass:
+        """Resolve an exact edge service terminal as REGISTERED_SERVICE_FAILURE.
+
+        Same discipline as :meth:`on_feedback`: full identity match (frame ID
+        alone is insufficient), identical duplicates ignored, conflicting
+        duplicates fail closed, and a terminal after the timeout is a late
+        orphan that never attaches to a newer action. No q_perc is fabricated.
+        """
+        self._require_healthy()
+        if type(terminal) is not RegisteredTerminalV2:
+            raise ControllerError("terminal has a foreign type")
+        self.poll(receipt_ns)
+        payload = terminal.canonical_bytes()
+        record = {"receipt_ns": receipt_ns, "request_key": list(terminal.request_key),
+                  "sha256": hashlib.sha256(payload).hexdigest(),
+                  "source": "REGISTERED_TERMINAL", "outcome": terminal.outcome,
+                  "agent_credit": terminal.agent_credit}
+        key = terminal.request_key
+        ticket = self._ticket
+        live_key = None if ticket is None else (
+            self.session_uuid, self.lineage, ticket.identity.decision_seq,
+            ticket.ticket_seq)
+        target = ticket if key == live_key else self._closed.get(key)
+        if target is None:
+            record["class"] = FeedbackClass.UNKNOWN_ORPHAN.value
+            self.ledger.feedback.append(record)
+            return FeedbackClass.UNKNOWN_ORPHAN
+        if target.accepted_bytes is not None:
+            if payload == target.accepted_bytes:
+                record["class"] = FeedbackClass.DUPLICATE_IGNORED.value
+                self.ledger.feedback.append(record)
+                return FeedbackClass.DUPLICATE_IGNORED
+            self._faulted = f"conflicting terminal for {key}"
+            raise ConflictingFeedbackError(self._faulted)
+        frame = target.reward_frame
+        if not (frame is not None and terminal.reward_requested is True
+                and (terminal.frame_id, terminal.tensor_seq, terminal.capture_timestamp_ns)
+                == (frame.frame_id, frame.tensor_seq, frame.capture_timestamp_ns)
+                and (terminal.mode_id, terminal.q_e4, terminal.anchor_action_id)
+                == (target.action.mode_id, target.action.q_e4, target.action.action_id)
+                and terminal.execution_bundle_sha256 == target.bundle_sha256):
+            self._faulted = f"terminal identity disagrees with request {key}"
+            raise ConflictingFeedbackError(self._faulted)
+        if target.resolution is not None:   # timed out before this arrived
+            record["class"] = FeedbackClass.LATE_ORPHAN.value
+            self.ledger.feedback.append(record)
+            return FeedbackClass.LATE_ORPHAN
+        self._resolve(target, kind=contract.RewardEventKind.REGISTERED_SERVICE_FAILURE,
+                      resolution_ns=receipt_ns, q_perc=None, by="REGISTERED_TERMINAL")
         target.accepted_bytes = payload
         record["class"] = FeedbackClass.ACCEPTED.value
         self.ledger.feedback.append(record)

@@ -43,6 +43,10 @@ __all__ = [
     "compute_scene_descriptors",
     "PreparedRun4FrameV2",
     "Run4FramePipelineV2",
+    "PlannedRun4FrameV2",
+    "PlanFirstCoordinatorV2",
+    "radar_window_sha256",
+    "registered_terminal_from_message",
     "Run4LiveBindingsV2",
     "build_run4_runtime_class",
     "build_run4_collector_class",
@@ -134,10 +138,21 @@ class Run4FramePipelineV2:
         self.run_id, self.cell_id = str(run_id), str(cell_id)
         self._clock = clock
         self.decisions: list[dict[str, Any]] = []
+        self._records: dict[int, dict[str, Any]] = {}
 
     def process(self, *, frame_id: int, capture_wall_ns: int,
                 ego_pose: Sequence[float], scene: SceneDescriptorsV2,
                 input_7ch: Callable[[], Any]) -> PreparedRun4FrameV2:
+        """Legacy single-step path: exactly plan followed by materialize."""
+        planned = self.plan(frame_id=frame_id, capture_wall_ns=capture_wall_ns, scene=scene)
+        return self.materialize(planned, frame_id=frame_id, capture_wall_ns=capture_wall_ns,
+                                ego_pose=ego_pose, input_7ch=input_7ch)
+
+    def plan(self, *, frame_id: int, capture_wall_ns: int, scene: SceneDescriptorsV2,
+             carla_timestamp: Optional[float] = None,
+             radar_window_sha256: Optional[str] = None,
+             stages: Optional[Mapping[str, Any]] = None) -> "PlannedRun4FrameV2":
+        """Guard, state, actor (at most once), hold/fallback: the immutable plan."""
         record: dict[str, Any] = {"frame_id": int(frame_id),
                                   "capture": W.wall(int(capture_wall_ns)).to_dict()}
 
@@ -181,16 +196,40 @@ class Run4FramePipelineV2:
                        "anchor_action_id": plan.profile.action_id,
                        "fallback_reasons": list(plan.fallback_reasons),
                        "decision_session_uuid": plan.decision_session_uuid})
+        if stages is not None:
+            record["stages"] = dict(stages)
+        if carla_timestamp is not None:
+            record["carla_timestamp"] = float(carla_timestamp)
+            record["radar_window_sha256"] = radar_window_sha256
         self.decisions.append(record)
+        planned = PlannedRun4FrameV2.bind(
+            plan, carla_timestamp=carla_timestamp, radar_window_sha256=radar_window_sha256)
+        self._records[planned.tensor_seq] = record
+        return planned
+
+    def materialize(self, planned: "PlannedRun4FrameV2", *, frame_id: int,
+                    capture_wall_ns: int, ego_pose: Sequence[float],
+                    input_7ch: Callable[[], Any], carla_timestamp: Optional[float] = None,
+                    radar_window_sha256: Optional[str] = None) -> PreparedRun4FrameV2:
+        """Front/codec/SFD4 for exactly the planned frame; fails closed on drift."""
+        plan = planned.plan
+        stages = self._records.get(planned.tensor_seq, {}).setdefault("stages", {})
         # From here the tensor is assigned: any failure is an infrastructure fault.
         try:
+            planned.verify(frame_id=frame_id, capture_wall_ns=capture_wall_ns,
+                           carla_timestamp=carla_timestamp,
+                           radar_window_sha256=radar_window_sha256)
             context = build_frame_context_v1(
                 stream_id=self.stream_id, frame_id=int(frame_id),
                 sequence_id=int(plan.tensor_seq), capture_timestamp_ns=int(capture_wall_ns),
                 ego_world_x=ego_pose[0], ego_world_y=ego_pose[1], ego_world_z=ego_pose[2],
                 ego_world_pitch=ego_pose[3], ego_world_yaw=ego_pose[4],
                 ego_world_roll=ego_pose[5])
-            prepared = self._ue.prepare(plan.profile, input_7ch(), plan.frame_identity)
+            stages["input_7ch_start_raw_ns"] = T.raw_now_ns()
+            tensor = input_7ch()
+            stages["front_start_raw_ns"] = T.raw_now_ns()
+            prepared = self._ue.prepare(plan.profile, tensor, plan.frame_identity)
+            stages["front_end_raw_ns"] = T.raw_now_ns()
             wire = W.pack_sfd4(prepared.envelope, context)
             identity = MP.run4_identity(prepared.envelope)
             MP.validate_run4_identity(identity)
@@ -205,6 +244,220 @@ class Run4FramePipelineV2:
                 anchor_profile_id=plan.profile.profile_id,
                 capture_timestamp_ns=int(capture_wall_ns)),
             anchor_profile_id=plan.profile.profile_id)
+
+    def stages_for(self, tensor_seq: int) -> dict[str, Any]:
+        return self._records.get(int(tensor_seq), {}).setdefault("stages", {})
+
+
+def radar_window_sha256(window_meta: Mapping[str, Any], reference_timestamp_s: float) -> str:
+    """Identity of one complete radar window (the exact window P40 uses)."""
+    document = {"reference_timestamp_s": float(reference_timestamp_s),
+                "sweep_indices": [int(v) for v in window_meta["sweep_indices"]],
+                "callbacks": int(window_meta["callbacks"]),
+                "returns": int(window_meta["returns"]),
+                "window_span_s": float(window_meta["window_span_s"])}
+    return hashlib.sha256(json.dumps(document, sort_keys=True).encode()).hexdigest()
+
+
+@dataclasses.dataclass(frozen=True)
+class PlannedRun4FrameV2:
+    """Immutable action plan made before expensive tensor preparation.
+
+    Binds frame, capture and CARLA timestamps, radar-window identity, tensor
+    sequence, session/decision/ticket identity, mode, q_e4 and execution bundle;
+    :meth:`verify` refuses any drift at materialization.
+    """
+
+    plan: E.FramePlanV2
+    frame_id: int
+    capture_wall_ns: int
+    carla_timestamp: Optional[float]
+    radar_window_sha256: Optional[str]
+    tensor_seq: int
+    session_uuid: str
+    decision_seq: int
+    ticket_seq: int
+    reward_requested: bool
+    mode_id: int
+    q_e4: int
+    execution_bundle_sha256: str
+    anchor_action_id: Optional[int]
+    digest: str
+
+    @staticmethod
+    def _binding(fields: Mapping[str, Any]) -> str:
+        return hashlib.sha256(json.dumps(dict(fields), sort_keys=True,
+                                         default=str).encode()).hexdigest()
+
+    @classmethod
+    def bind(cls, plan: E.FramePlanV2, *, carla_timestamp: Optional[float],
+             radar_window_sha256: Optional[str]) -> "PlannedRun4FrameV2":
+        ident = plan.frame_identity
+        fields = {
+            "frame_id": int(plan.frame_id), "capture_wall_ns": int(plan.capture_wall_ns),
+            "carla_timestamp": None if carla_timestamp is None else float(carla_timestamp),
+            "radar_window_sha256": radar_window_sha256, "tensor_seq": int(plan.tensor_seq),
+            "session_uuid": ident.session_uuid, "decision_seq": int(ident.decision_seq),
+            "ticket_seq": int(ident.ticket_seq),
+            "reward_requested": bool(ident.reward_requested),
+            "mode_id": int(plan.profile.mode_id), "q_e4": int(plan.profile.q_e4),
+            "execution_bundle_sha256": plan.profile.execution_bundle_sha256,
+            "anchor_action_id": plan.profile.action_id}
+        return cls(plan=plan, digest=cls._binding(fields), **fields)
+
+    def binding_fields(self) -> dict[str, Any]:
+        return {name: getattr(self, name) for name in (
+            "frame_id", "capture_wall_ns", "carla_timestamp", "radar_window_sha256",
+            "tensor_seq", "session_uuid", "decision_seq", "ticket_seq", "reward_requested",
+            "mode_id", "q_e4", "execution_bundle_sha256", "anchor_action_id")}
+
+    def verify(self, *, frame_id: int, capture_wall_ns: int,
+               carla_timestamp: Optional[float], radar_window_sha256: Optional[str]) -> None:
+        _require(self._binding(self.binding_fields()) == self.digest,
+                 "planned frame binding digest drift")
+        plan, ident = self.plan, self.plan.frame_identity
+        _require((plan.frame_id, plan.tensor_seq, plan.capture_wall_ns,
+                  plan.profile.mode_id, plan.profile.q_e4,
+                  plan.profile.execution_bundle_sha256, ident.session_uuid,
+                  ident.decision_seq, ident.ticket_seq)
+                 == (self.frame_id, self.tensor_seq, self.capture_wall_ns, self.mode_id,
+                     self.q_e4, self.execution_bundle_sha256, self.session_uuid,
+                     self.decision_seq, self.ticket_seq),
+                 "planned frame disagrees with its engine plan")
+        _require(int(frame_id) == self.frame_id, "materialized frame ID differs from plan")
+        _require(int(capture_wall_ns) == self.capture_wall_ns,
+                 "materialized capture timestamp differs from plan")
+        if self.carla_timestamp is not None or carla_timestamp is not None:
+            _require(carla_timestamp is not None and self.carla_timestamp is not None
+                     and float(carla_timestamp) == self.carla_timestamp,
+                     "materialized CARLA timestamp differs from plan")
+        if self.radar_window_sha256 is not None or radar_window_sha256 is not None:
+            _require(radar_window_sha256 == self.radar_window_sha256,
+                     "materialized radar window differs from plan")
+
+
+class PlanFirstCoordinatorV2:
+    """Addendum 5: plan the action before expensive radar/7-channel preparation.
+
+    Order: complete window + synchronized RGB -> SI/P40 -> telemetry/guard ->
+    immutable plan (actor at most once; action-open is the reward clock start)
+    -> radar tensor -> front/codec/send using exactly that plan. The RGB
+    receipt instant stays the scene source timestamp; nothing is re-stamped.
+    """
+
+    def __init__(self, *, pipeline: Run4FramePipelineV2, lock: Any,
+                 deadline_ok: Callable[[int], bool],
+                 scene_fn: Callable[..., SceneDescriptorsV2] = compute_scene_descriptors,
+                 clock: Callable[[], int] = T.raw_now_ns) -> None:
+        self._pipeline = pipeline
+        self._lock = lock
+        self._deadline_ok = deadline_ok
+        self._scene_fn = scene_fn
+        self._clock = clock
+        self._pending: dict[int, dict[str, Any]] = {}
+        self.counters: dict[str, int] = collections.Counter()
+
+    def _fail(self, planned: "PlannedRun4FrameV2", detail: str) -> None:
+        self.counters["post_plan_failures"] += 1
+        with self._lock:
+            self._pipeline.engine.transport_failed(planned.plan, detail)
+
+    def abandon_unmaterialized(self, reason: str) -> None:
+        """Close any plan whose preparation never reached materialization."""
+        while self._pending:
+            frame_id, entry = self._pending.popitem()
+            try:
+                self._fail(entry["planned"], f"PLANNED_FRAME_NOT_MATERIALIZED:{reason}")
+            except E.InfrastructureFault:
+                pass
+
+    def plan_before_preparation(self, *, frame_id: int, capture_wall_ns: int,
+                                carla_timestamp: float, frame_bgr: Any, window_meta: Any,
+                                rgb_raw_ns: int, window_ready_raw_ns: Optional[int]
+                                ) -> Optional["PlannedRun4FrameV2"]:
+        if self._pending:
+            self.abandon_unmaterialized("NEXT_FRAME_PLANNED")
+            raise E.InfrastructureFault(str(self._pipeline.engine.faulted))
+        _require(int(window_meta["callbacks"]) == 4,
+                 "refusing to plan from an incomplete radar window")
+        if not self._deadline_ok(int(capture_wall_ns)):
+            self.counters["stale_before_plan"] += 1
+            return None          # pre-assignment: the legacy stale drop applies
+        stages: dict[str, Any] = {"rgb_receipt_raw_ns": int(rgb_raw_ns),
+                                  "radar_window_ready_raw_ns": window_ready_raw_ns,
+                                  "si_p40_start_raw_ns": self._clock()}
+        scene = self._scene_fn(frame_bgr, window_meta, source_raw_ns=int(rgb_raw_ns))
+        stages["si_p40_end_raw_ns"] = self._clock()
+        window = radar_window_sha256(window_meta, carla_timestamp)
+        with self._lock:
+            planned = self._pipeline.plan(
+                frame_id=frame_id, capture_wall_ns=capture_wall_ns, scene=scene,
+                carla_timestamp=carla_timestamp, radar_window_sha256=window, stages=stages)
+        self._pending[int(frame_id)] = {"planned": planned, "rasterized_window": None}
+        self.counters["planned"] += 1
+        return planned
+
+    def has_plan(self, frame_id: int) -> bool:
+        return int(frame_id) in self._pending
+
+    def prepare_radar(self, *, frame_id: int, carla_timestamp: float,
+                      build: Callable[[], Any]) -> Any:
+        entry = self._pending.get(int(frame_id))
+        _require(entry is not None, f"no plan for frame {frame_id} before radar preparation")
+        planned = entry["planned"]
+        stages = self._pipeline.stages_for(planned.tensor_seq)
+        if float(carla_timestamp) != planned.carla_timestamp:
+            del self._pending[int(frame_id)]
+            self._fail(planned, "radar preparation CARLA timestamp differs from plan")
+        stages["radar_tensor_start_raw_ns"] = self._clock()
+        try:
+            result = build()
+        except Exception as exc:  # noqa: BLE001 - post-plan failure is registered
+            del self._pending[int(frame_id)]
+            self._fail(planned, f"radar preparation failed: {type(exc).__name__}: {exc}")
+        stages["radar_tensor_end_raw_ns"] = self._clock()
+        entry["rasterized_window"] = planned.radar_window_sha256
+        return result
+
+    def materialize(self, *, frame_id: int, capture_wall_ns: int, carla_timestamp: float,
+                    ego_pose: Sequence[float], input_7ch: Callable[[], Any]
+                    ) -> PreparedRun4FrameV2:
+        entry = self._pending.pop(int(frame_id), None)
+        _require(entry is not None, f"no pending plan for frame {frame_id}")
+        with self._lock:
+            return self._pipeline.materialize(
+                entry["planned"], frame_id=frame_id, capture_wall_ns=capture_wall_ns,
+                ego_pose=ego_pose, input_7ch=input_7ch, carla_timestamp=carla_timestamp,
+                radar_window_sha256=entry["rasterized_window"])
+
+
+def registered_terminal_from_message(message: Mapping[str, Any]
+                                     ) -> Optional["R.RegisteredTerminalV2"]:
+    """RUN4 edge terminal -> exact registered terminal, only for reward frames.
+
+    Hold/fallback terminals (``reward_requested`` false) and non-service
+    outcomes stay ledger-only (``None``).
+    """
+    from . import reward_hold_controller_v2 as R
+
+    if str(message.get("schema")) != MP.RUN4_TERMINAL_SCHEMA:
+        return None
+    identity = dict(message.get("run4_identity") or {})
+    if identity.get("reward_requested") is not True:
+        return None
+    if str(message.get("outcome")) not in R.SERVICE_FAILURE_EDGE_OUTCOMES:
+        return None
+    return R.RegisteredTerminalV2(
+        session_uuid=str(identity["session_uuid"]),
+        controller_lineage_sha256=str(identity["controller_lineage_sha256"]),
+        decision_seq=int(identity["decision_seq"]), ticket_seq=int(identity["ticket_seq"]),
+        frame_id=int(identity["frame_id"]), tensor_seq=int(identity["tensor_seq"]),
+        capture_timestamp_ns=int(message["capture_timestamp_ns"]),
+        mode_id=int(identity["mode_id"]), q_e4=int(identity["q_e4"]),
+        execution_bundle_sha256=str(identity["execution_bundle_sha256"]),
+        anchor_action_id=identity["anchor_action_id"], reward_requested=True,
+        outcome=str(message["outcome"]), agent_credit=str(message.get("agent_credit")),
+        stage=str(message.get("stage") or ""))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -289,7 +542,19 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                 stream_id=f"ue288_{self.cell['cell_id']}",
                 run_id=str(self.campaign["campaign_id"]), cell_id=str(self.cell["cell_id"]))
             self._chunk_payload = chunk_payload
+            self._terminal_rows: list[dict[str, Any]] = []
+            self.plan_first = PlanFirstCoordinatorV2(
+                pipeline=self.pipeline, lock=self._engine_lock,
+                deadline_ok=self._pre_assignment_deadline_ok)
             self._run4_ready.set()
+
+        def _pre_assignment_deadline_ok(self, capture_timestamp_ns: int) -> bool:
+            try:
+                base.check_deadline(base.UE_STAGE_AFTER_PREPARATION,
+                                    capture_timestamp_ns, self.deadline_s)
+            except base.DeadlineExpired:
+                return False
+            return True
 
         @property
         def infrastructure_fault(self) -> Optional[str]:
@@ -308,23 +573,35 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
             base._require(not self.errors, self.errors[0] if self.errors else "failed")
             base._require(self.thread.is_alive(), "control receiver exited")
             _require(self.engine.faulted is None, str(self.engine.faulted))
-            try:
-                base.check_deadline(base.UE_STAGE_AFTER_PREPARATION,
-                                    capture_timestamp_ns, self.deadline_s)
-            except base.DeadlineExpired as expired:   # before any assignment
-                return self._record_stale(expired, frame_id=frame_id,
-                                          capture_id=capture_id, stream_id=stream_id,
-                                          profile=self.profile)
-            window_meta, rgb_raw_ns = self.scene_hooks(int(frame_id), float(carla_timestamp))
-            scene = compute_scene_descriptors(frame_bgr, window_meta,
-                                              source_raw_ns=rgb_raw_ns)
             started = time.perf_counter_ns()
-            with self._engine_lock:
-                prepared = self.pipeline.process(
+            if self.plan_first.has_plan(int(frame_id)):
+                # Addendum 5: the action was planned before radar preparation;
+                # the tensor is already assigned, so lateness is the reward
+                # deadline's job (no pre-assignment stale drop here).
+                prepared = self.plan_first.materialize(
                     frame_id=int(frame_id), capture_wall_ns=int(capture_timestamp_ns),
-                    ego_pose=ego_pose, scene=scene,
+                    carla_timestamp=float(carla_timestamp), ego_pose=ego_pose,
                     input_7ch=lambda: base._prepare_live_input(frame_bgr, radar_tensor,
                                                                self.device))
+            else:
+                try:
+                    base.check_deadline(base.UE_STAGE_AFTER_PREPARATION,
+                                        capture_timestamp_ns, self.deadline_s)
+                except base.DeadlineExpired as expired:   # before any assignment
+                    return self._record_stale(expired, frame_id=frame_id,
+                                              capture_id=capture_id, stream_id=stream_id,
+                                              profile=self.profile)
+                window_meta, rgb_raw_ns = self.scene_hooks(int(frame_id),
+                                                           float(carla_timestamp))
+                scene = compute_scene_descriptors(frame_bgr, window_meta,
+                                                  source_raw_ns=rgb_raw_ns)
+                with self._engine_lock:
+                    prepared = self.pipeline.process(
+                        frame_id=int(frame_id), capture_wall_ns=int(capture_timestamp_ns),
+                        ego_pose=ego_pose, scene=scene,
+                        input_7ch=lambda: base._prepare_live_input(frame_bgr, radar_tensor,
+                                                                   self.device))
+            stages = self.pipeline.stages_for(prepared.plan.tensor_seq)
             try:
                 chunks = self._chunk_payload(prepared.wire, message_id=int(frame_id),
                                              chunk_bytes=self.chunk_bytes)
@@ -351,8 +628,10 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                         "capture_started_ns": started, "sfd4_bytes": len(prepared.wire),
                         "datagrams": len(chunks),
                     }
+                stages["first_packet_send_raw_ns"] = T.raw_now_ns()
                 for chunk in chunks:
                     self.sender.sendto(chunk, self.remote)
+                stages["last_packet_send_raw_ns"] = T.raw_now_ns()
             except Exception as exc:  # noqa: BLE001
                 with self._engine_lock:
                     self.engine.transport_failed(prepared.plan, f"{type(exc).__name__}: {exc}")
@@ -405,6 +684,17 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                              "control message Run-4 identity drift")
                     message["_feedback_bytes"] = len(datagram)
                     self.ledger.enqueue(message, received_at)
+                    terminal = registered_terminal_from_message(message)
+                    if terminal is not None:      # addendum 5: exact service terminal
+                        with self._engine_lock:
+                            klass = self.engine.on_registered_terminal(
+                                terminal, receipt_raw_ns=receipt_raw)
+                        self._terminal_rows.append({
+                            "frame_id": terminal.frame_id, "class": klass.value,
+                            "outcome": terminal.outcome,
+                            "agent_credit": terminal.agent_credit,
+                            "stage": terminal.stage, "request_key": list(terminal.request_key),
+                            "receipt": W.raw(receipt_raw).to_dict()})
                     with self.lock:
                         if bool(message.get("terminal")) and frame_id not in self._terminal_frames:
                             self._terminal_frames[frame_id] = str(message.get("outcome") or "")
@@ -419,6 +709,8 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                     return
 
         def close(self) -> dict[str, Any]:
+            if hasattr(self, "plan_first"):
+                self.plan_first.abandon_unmaterialized("CLOSE")
             with self._engine_lock:
                 for controller in self.engine.controllers:
                     controller.poll(T.raw_now_ns())
@@ -449,6 +741,8 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
                 "fallback_log": list(self.engine.fallback_log),
                 "decisions": list(self.pipeline.decisions),
                 "feedback_rows": list(self._feedback_rows),
+                "terminal_rows": list(self._terminal_rows),
+                "plan_first_counters": dict(self.plan_first.counters),
                 "telemetry_counters": dict(self.provider.counters),
                 "bridge_counters": dict(self.provider.bridge.counters),
                 "reader_counters": {r.event: dict(r.counters) for r in self.readers},
@@ -464,6 +758,20 @@ def build_run4_runtime_class(bindings: Run4LiveBindingsV2):  # pragma: no cover 
     return Run4LiveRuntimeV2
 
 
+class _PlanFirstParked:
+    """Instance-local proxy: only ``build_radar_sample`` gains the plan-first hook."""
+
+    def __init__(self, parked: Any, hook: Callable[..., Any]) -> None:
+        self._parked = parked
+        self._hook = hook
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._parked, name)
+
+    def build_radar_sample(self, **kwargs: Any) -> Any:
+        return self._hook(self._parked.build_radar_sample, **kwargs)
+
+
 def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cover - live
     """Collector that records the RGB receipt instant and the P40 radar window."""
 
@@ -472,6 +780,8 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
             self._run4_lock = threading.Lock()
             self._run4_rgb_raw: "collections.OrderedDict[int, int]" = collections.OrderedDict()
             self._run4_window: "collections.OrderedDict[float, Any]" = collections.OrderedDict()
+            self._run4_window_ready: "collections.OrderedDict[float, int]" = (
+                collections.OrderedDict())
             super().__init__(**kwargs)
             original = self.aggregator.window_detections
 
@@ -479,12 +789,50 @@ def build_run4_collector_class(base_collector: type) -> type:  # pragma: no cove
                 detections, meta = original(*args, **keywords)
                 with self._run4_lock:
                     self._run4_window[float(keywords["reference_timestamp_s"])] = meta
+                    self._run4_window_ready[float(keywords["reference_timestamp_s"])] = (
+                        T.raw_now_ns())
                     while len(self._run4_window) > 64:
                         self._run4_window.popitem(last=False)
+                    while len(self._run4_window_ready) > 64:
+                        self._run4_window_ready.popitem(last=False)
                 return detections, meta
 
             self.aggregator.window_detections = recorded
             self.live.scene_hooks = self._run4_scene_inputs
+            self._run4_current: Optional[tuple] = None
+            self.parked = _PlanFirstParked(self.parked, self._run4_plan_then_build)
+
+        def _records_for(self, frame_id: int, *args: Any, **kwargs: Any):
+            records = super()._records_for(frame_id, *args, **kwargs)
+            self._run4_current = None if records is None else (int(frame_id), records)
+            return records
+
+        def _run4_plan_then_build(self, real_build: Callable[..., Any], **kwargs: Any):
+            """Plan from the exact window + RGB, then run the expensive raster."""
+            from rl_agent import ue_route_b_split_cell_adapter_v1 as pinned
+
+            current = self._run4_current
+            _require(current is not None, "radar preparation without a current token")
+            frame_id, (image, capture_wall, _perf, radar) = current
+            carla_timestamp = float(kwargs["frame_time_s"])
+            _require(float(radar.timestamp) == carla_timestamp,
+                     "radar preparation timestamp differs from the current token")
+            with self._run4_lock:
+                meta = self._run4_window.pop(carla_timestamp, None)
+                ready_raw = self._run4_window_ready.pop(carla_timestamp, None)
+                rgb_raw = self._run4_rgb_raw.pop(int(frame_id), None)
+            _require(meta is not None and rgb_raw is not None,
+                     f"sensor inputs missing for frame {frame_id}")
+            planned = self.live.plan_first.plan_before_preparation(
+                frame_id=int(frame_id),
+                capture_wall_ns=int(round(float(capture_wall) * 1_000_000_000)),
+                carla_timestamp=carla_timestamp, frame_bgr=pinned.carla_image_to_bgr(image),
+                window_meta=meta, rgb_raw_ns=int(rgb_raw), window_ready_raw_ns=ready_raw)
+            if planned is None:                       # stale before assignment
+                return real_build(**kwargs)
+            return self.live.plan_first.prepare_radar(
+                frame_id=int(frame_id), carla_timestamp=carla_timestamp,
+                build=lambda: real_build(**kwargs))
 
         def _on_rgb(self, image: Any) -> None:
             with self._run4_lock:

@@ -305,5 +305,12 @@ class Run4DecisionEngineV2:
         target = controller if controller is not None else self.controller
         return target.on_feedback(fb, receipt_ns=receipt_raw_ns)
 
+    def on_registered_terminal(self, terminal: R.RegisteredTerminalV2, *,
+                               receipt_raw_ns: int) -> R.FeedbackClass:
+        """Addendum 5: exact edge service terminal -> its own session's controller."""
+        controller = self.controller_for(terminal.session_uuid)
+        target = controller if controller is not None else self.controller
+        return target.on_registered_terminal(terminal, receipt_ns=receipt_raw_ns)
+
     def coverage(self) -> dict[str, Any]:
         return policy_coverage(self.opportunities)

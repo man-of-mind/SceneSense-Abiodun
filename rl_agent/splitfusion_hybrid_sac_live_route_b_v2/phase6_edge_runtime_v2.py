@@ -240,21 +240,41 @@ class Run4EdgeProcessorV2:
 
 
 class Run4EvaluatorV2:
-    """Bounded asynchronous exact-quality evaluator emitting R4FB feedback."""
+    """Bounded asynchronous exact-quality evaluator emitting R4FB feedback.
+
+    Addendum 5: no head-of-line blocking. Submitted tickets enter a bounded
+    pending set; one worker repeatedly probes each ticket's GT with a short
+    bounded read (``probe_timeout_s``), evaluates whichever tickets are ready,
+    and emits ``GROUND_TRUTH_UNAVAILABLE`` for tickets whose GT is still absent
+    ``gt_timeout_s`` after submission. A slow or missing GT ticket therefore
+    never delays a later ready one. ``gt_timeout_s`` is a local edge GT wait,
+    not the RL deadline. Emission is at most once per ticket, and shutdown
+    drains (evaluates or expires) every pending ticket. The quality calculation
+    is unchanged (:meth:`_evaluate_with`).
+    """
 
     def __init__(self, *, spec: Any, read_ground_truth: Callable[..., Mapping[str, Any]],
                  send: Callable[[bytes], None], match_distance_m: float,
-                 gt_timeout_s: float, queue_depth: int = 64) -> None:
+                 gt_timeout_s: float, queue_depth: int = 64,
+                 probe_timeout_s: float = 0.002, poll_interval_s: float = 0.005,
+                 clock: Callable[[], float] = time.monotonic) -> None:
         self._spec = spec
         self._read = read_ground_truth
         self._send = send
         self._match = float(match_distance_m)
         self._gt_timeout = float(gt_timeout_s)
+        self._probe_timeout = float(probe_timeout_s)
+        self._poll = float(poll_interval_s)
+        self._clock = clock
+        self._depth = int(queue_depth)
         self._queue: "queue.Queue[Optional[EvaluationTicketV2]]" = queue.Queue(
             maxsize=int(queue_depth))
         self.records: list[dict[str, Any]] = []
         self.counters: dict[str, int] = {"submitted": 0, "emitted": 0,
-                                         "queue_overflow": 0, "excluded": 0}
+                                         "queue_overflow": 0, "excluded": 0,
+                                         "gt_expired": 0, "drained_at_shutdown": 0,
+                                         "max_pending": 0}
+        self._emitted_keys: set = set()
         self._lock = threading.Lock()
         self._thread = threading.Thread(target=self._run, name="run4-evaluator",
                                         daemon=True)
@@ -277,23 +297,44 @@ class Run4EvaluatorV2:
             self.counters["submitted"] += 1
 
     def evaluate(self, ticket: EvaluationTicketV2) -> None:
+        """Synchronous single-ticket evaluation (blocking GT wait)."""
         try:
             gt = self._read(expected_identity=ticket.gt_identity,
                             timeout_s=self._gt_timeout)
         except Exception:  # noqa: BLE001 - GT absence is an evaluator fault
             self._emit(ticket, None, W.EvaluatorReason.GROUND_TRUTH_UNAVAILABLE)
             return
+        self._evaluate_with(ticket, gt, {})
+
+    def _evaluate_with(self, ticket: EvaluationTicketV2, gt: Mapping[str, Any],
+                       timing: dict[str, Any]) -> None:
+        timing["evaluator_start_wall_ns"] = time.time_ns()
         measurement = W.live_measurement(
             frame_id=ticket.context.frame_id, predicted_mask=ticket.predicted_mask,
             ground_truth_mask=gt["semantic"], predictions=list(ticket.records),
             ground_truth_objects=list(gt["objects"]), match_distance_m=self._match)
         feedback, reason = W.quality_feedback(self._spec, measurement, ticket.envelope)
-        self._emit(ticket, feedback, reason, measurement=measurement)
+        timing["evaluator_end_wall_ns"] = time.time_ns()
+        timing["gt_ready_wall_ns"] = gt.get("gt_ready_wall_ns")
+        self._emit(ticket, feedback, reason, measurement=measurement, timing=timing)
+
+    @staticmethod
+    def _key(ticket: EvaluationTicketV2) -> tuple:
+        env = ticket.envelope
+        return (env.session_uuid, env.controller_lineage_sha256, env.decision_seq,
+                env.ticket_seq, env.frame_id, env.tensor_seq)
 
     def _emit(self, ticket, feedback, reason, *, measurement=None,
-              infrastructure: bool = False) -> None:
+              infrastructure: bool = False, timing: Optional[dict] = None) -> None:
         from . import reward_hold_controller_v2 as R
 
+        key = self._key(ticket)
+        with self._lock:
+            if key in self._emitted_keys:          # at-most-once per exact ticket
+                self.counters["duplicate_emission_refused"] = (
+                    self.counters.get("duplicate_emission_refused", 0) + 1)
+                return
+            self._emitted_keys.add(key)
         if feedback is None:
             env = ticket.envelope
             feedback = R.RewardFeedbackV2(
@@ -318,24 +359,77 @@ class Run4EvaluatorV2:
                 "kind": feedback.kind, "q_perc": feedback.q_perc,
                 "reason": reason.name, "emit_wall_ns": time.time_ns(),
                 "enqueued_wall_ns": ticket.enqueued_wall_ns,
+                "timing": dict(timing or {}),
                 "feedback_sha256": hashlib.sha256(payload).hexdigest(),
                 "measurement": measurement,
                 "measurement_semantics": W.LIVE_MEASUREMENT_SEMANTICS,
             })
 
-    def _run(self) -> None:
-        while True:
-            ticket = self._queue.get()
-            if ticket is None:
-                return
+    def _service(self, pending: "collections.OrderedDict", *, draining: bool) -> None:
+        """One pass: evaluate every ready ticket, expire timed-out ones."""
+        for key, (ticket, submitted, timing) in list(pending.items()):
             try:
-                self.evaluate(ticket)
+                gt = self._read(expected_identity=ticket.gt_identity,
+                                timeout_s=self._probe_timeout)
+            except Exception as exc:  # noqa: BLE001 - not ready (or unreadable) yet
+                if self._clock() - submitted >= self._gt_timeout:
+                    del pending[key]
+                    timing["gt_expired_wall_ns"] = time.time_ns()
+                    timing["last_gt_error"] = f"{type(exc).__name__}: {exc}"[:200]
+                    with self._lock:
+                        self.counters["gt_expired"] += 1
+                        if draining:
+                            self.counters["drained_at_shutdown"] += 1
+                    self._emit(ticket, None, W.EvaluatorReason.GROUND_TRUTH_UNAVAILABLE,
+                               timing=timing)
+                continue
+            del pending[key]
+            timing["gt_ready_detected_wall_ns"] = time.time_ns()
+            if draining:
+                with self._lock:
+                    self.counters["drained_at_shutdown"] += 1
+            try:
+                self._evaluate_with(ticket, gt, timing)
             except Exception:  # noqa: BLE001
-                self._emit(ticket, None, W.EvaluatorReason.EVALUATOR_EXCEPTION)
+                self._emit(ticket, None, W.EvaluatorReason.EVALUATOR_EXCEPTION,
+                           timing=timing)
 
-    def close(self, timeout_s: float = 10.0) -> dict[str, Any]:
+    def _run(self) -> None:
+        import collections as _collections
+
+        pending: "_collections.OrderedDict" = _collections.OrderedDict()
+        stopping = False
+        while True:
+            if not stopping and len(pending) < self._depth:
+                try:
+                    item = self._queue.get(timeout=self._poll if pending else 0.25)
+                except queue.Empty:
+                    item = False
+                while item is not False:
+                    if item is None:
+                        stopping = True
+                        break
+                    pending[self._key(item)] = (item, self._clock(),
+                                                {"enqueued_wall_ns": item.enqueued_wall_ns})
+                    if len(pending) >= self._depth:
+                        break
+                    try:
+                        item = self._queue.get_nowait()
+                    except queue.Empty:
+                        item = False
+                with self._lock:
+                    self.counters["max_pending"] = max(self.counters["max_pending"],
+                                                       len(pending))
+            elif pending:
+                time.sleep(self._poll)
+            self._service(pending, draining=stopping)
+            if stopping and not pending:
+                return
+
+    def close(self, timeout_s: Optional[float] = None) -> dict[str, Any]:
         self._queue.put(None)
-        self._thread.join(timeout=timeout_s)
+        self._thread.join(timeout=(self._gt_timeout + 5.0) if timeout_s is None
+                          else timeout_s)
         with self._lock:
             return {**self.counters, "worker_alive": self._thread.is_alive(),
                     "records": len(self.records)}
