@@ -38,7 +38,7 @@ route/forwarding value. There is no global `allow-direct-routing`,
    - L10319 containerd-store image `.Id` and created container `.Image`: the same `ac143760...` manifest digest.
    The selected portable inspect fields (`Architecture`, `Created`, `Config`,
    `RootFS`, `History`, `Os`, `Variant`) must hash to
-   `7f8a14571eb00426d98b7084175de1180d4a50300c01150a5c2390c55bba3d91`.
+   `c5a6690923255163ccb090db0c6f278b1761e4c52e516f024ba88c970ee918d1`.
    A differing Docker store `.Id` alone is therefore not content drift. Preserve
    and record any pre-existing L10319 tag/image as a backup; do not prune it.
 3. Transfer and hash all seven edge-host files in `contract.ARTIFACTS`:

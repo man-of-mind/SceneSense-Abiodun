@@ -39,7 +39,7 @@ before interpreting cross-host wall timestamps.
   `GPU-b8c4646c-abb0-5d63-679b-49622ce057b6`, 24463 MiB, driver 610.43.02.
 - OCI manifest/container image ID: `sha256:ac143760...901c`.
 - Source config digest: `sha256:2be62d...d6ba`.
-- Portable inspect hash: `7f8a1457...3d91`.
+- Portable inspect hash: `c5a66909...918d1`.
 
 ## Startup-only qualifier
 

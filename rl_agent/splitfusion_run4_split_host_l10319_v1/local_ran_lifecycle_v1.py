@@ -116,12 +116,12 @@ SOURCE_PINS = (
     SourcePin(
         "split_host_contract_json",
         "rl_agent/splitfusion_run4_split_host_l10319_v1/SPLIT_HOST_CONTRACT_V1.json",
-        "93762d03a2b6fc4ae45c4537f7a6ab0e5dffd3ad3daac4602c0a011b4bdb72ab",
+        "8100883e29a89d55fbfdfb43ec619580ed3ed0f777dabd1b5f1b4818a3f4866c",
     ),
     SourcePin(
         "split_host_contract_python",
         "rl_agent/splitfusion_run4_split_host_l10319_v1/contract.py",
-        "30dcaac520da49665b30c2ec5d1bc06a47f3be589867a6dfd404d4f69026a460",
+        "8ed42f73f7fa2cfc47bb5cb28291e1a7b2674b0ee770044abba2b2404fdce85a",
     ),
     SourcePin(
         "nr_softmodem",

@@ -24,7 +24,7 @@
     "image_config_digest": {"const": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba"},
     "remote_image_id": {"const": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c"},
     "remote_container_image_id": {"const": "sha256:ac1437601cb1b4a52c761d762ba533fcb431e46f364073516697a89155cd901c"},
-    "canonical_inspect_fields_sha256": {"const": "7f8a14571eb00426d98b7084175de1180d4a50300c01150a5c2390c55bba3d91"},
+    "canonical_inspect_fields_sha256": {"const": "c5a6690923255163ccb090db0c6f278b1761e4c52e516f024ba88c970ee918d1"},
     "artifacts": {
       "type": "array",
       "minItems": 7,

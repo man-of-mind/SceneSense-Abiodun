@@ -23,7 +23,7 @@ project label, image ID, binding labels, ID, and mounts have been checked.
   `GPU-b8c4646c-abb0-5d63-679b-49622ce057b6`, 24463 MiB, driver 610.43.02;
 - remote OCI manifest/image/container identity `ac143760...`;
 - source OCI config identity `2be62d53...`;
-- canonical portable inspect hash `7f8a1457...`;
+- canonical portable inspect hash `c5a66909...`;
 - all seven ignored artifacts under their original relative paths.
 
 The frozen Phase-6 edge has a legacy exact-name check for the desktop RTX

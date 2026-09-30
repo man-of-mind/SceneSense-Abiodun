@@ -171,6 +171,31 @@ class ObservationTests(unittest.TestCase):
                 with self.assertRaises(E.RemoteEdgeLifecycleError):
                     E.validate_remote_image_observation(bad)
 
+    def test_selected_inspect_fixture_reproduces_digest_and_drift_refuses(self) -> None:
+        fixture = Path(__file__).with_name(
+            "PORTABLE_IMAGE_INSPECT_SELECTED_FIELDS_V1.json")
+        document = json.loads(fixture.read_text(encoding="utf-8"))
+        self.assertEqual(set(document), {
+            "Architecture", "Created", "Config", "RootFS", "History", "Os",
+            "Variant",
+        })
+        digest = E.canonical_image_inspect_sha256(document)
+        self.assertEqual(digest, C.EDGE_IMAGE_CANONICAL_INSPECT_SHA256)
+
+        drifted = json.loads(json.dumps(document))
+        drifted["Config"]["WorkingDir"] = "/foreign"
+        drifted_digest = E.canonical_image_inspect_sha256(drifted)
+        self.assertNotEqual(drifted_digest, digest)
+        observation = {
+            "tag": C.EDGE_IMAGE_TAG,
+            "image_id": C.REMOTE_IMAGE_ID,
+            "manifest_digest": C.EDGE_IMAGE_MANIFEST_DIGEST,
+            "config_digest": C.EDGE_IMAGE_CONFIG_DIGEST,
+            "canonical_inspect_fields_sha256": drifted_digest,
+        }
+        with self.assertRaises(E.RemoteEdgeLifecycleError):
+            E.validate_remote_image_observation(observation)
+
     def test_container_identity_mounts_and_attempt_ownership(self) -> None:
         service = self.plan.compose_document["services"][E.SERVICE]
         mounts = {row["target"]: (row["source"], not row["read_only"])
