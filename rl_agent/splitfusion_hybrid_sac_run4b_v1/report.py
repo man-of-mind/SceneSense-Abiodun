@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Run-4B learning report and hash-bound evidence index (read-only).
 
-Usage: python -m rl_agent.splitfusion_hybrid_sac_run4b_v1.report RUN_DIR
+Usage: python -m rl_agent.splitfusion_hybrid_sac_run4b_v1.report RUN_DIR [EVIDENCE]
 where RUN_DIR holds ``smoke/``, ``resume_test/`` and ``campaign/``.
-Writes textual evidence into this package's ``evidence/`` directory.
+Writes textual evidence into this package's EVIDENCE directory (default
+``evidence``, the SNR-free pilot).  The directory must not already hold a
+learning report from another run.
 """
 
 from __future__ import annotations
@@ -123,7 +125,8 @@ def _fmt(value, digits=3):
 
 def markdown(document: dict[str, Any]) -> str:
     lines = [
-        "# Run-4B learning report (offline modeled, exploratory)",
+        f"# Run-4B learning report: {document.get('variant')} "
+        "(offline modeled, exploratory)",
         "",
         "Scope: offline modeled training under "
         "`EXPLORATORY_POOLED_FAMILY_TRANSFER_ASSUMPTION`; not deployment "
@@ -159,7 +162,7 @@ def markdown(document: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main(run_dir: str) -> int:
+def main(run_dir: str, evidence_name: str = "evidence") -> int:
     run = Path(run_dir)
     campaign = run / "campaign"
     complete = campaign / "CAMPAIGN_COMPLETE.json"
@@ -172,13 +175,18 @@ def main(run_dir: str) -> int:
     document = {
         "schema": "splitfusion.run4b.learning_report.v1",
         "campaign_status": status_doc["status"],
+        "variant": status_doc.get("variant", "RUN4B_SNR_FREE_CHANNEL_PILOT"),
         "code_commit": status_doc["code_commit"],
         "live_actor_sha256": exports.get("43", {}).get(
             "actor_state_dict_sha256"),
         "smoke_seed_17": smoke, "seeds": seeds,
     }
-    evidence = PACKAGE / "evidence"
+    evidence = PACKAGE / evidence_name
     evidence.mkdir(exist_ok=True)
+    existing = evidence / "LEARNING_REPORT.json"
+    if existing.exists() and json.loads(existing.read_text()).get(
+            "code_commit") != status_doc["code_commit"]:
+        raise SystemExit(f"refusing to overwrite another run's report: {existing}")
     (evidence / "LEARNING_REPORT.json").write_text(
         json.dumps(document, indent=2, sort_keys=True) + "\n")
     (evidence / "LEARNING_REPORT.md").write_text(markdown(document))
@@ -211,4 +219,4 @@ def main(run_dir: str) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1]))
+    raise SystemExit(main(*sys.argv[1:3]))

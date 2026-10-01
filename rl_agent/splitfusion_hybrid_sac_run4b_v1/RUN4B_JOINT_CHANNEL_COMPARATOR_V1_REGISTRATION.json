@@ -1,0 +1,176 @@
+{
+  "campaign": "RUN4B_JOINT_CHANNEL_COMPARATOR_V1",
+  "comparison_policy": "pilot-vs-comparator differences are reported descriptively; no post-hoc change to either campaign",
+  "environment_binding": {
+    "action_catalog_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "channel_advance": "observe at genesis; advance(2) then observe per decision after the outcome",
+    "channel_binding_sha256": "870bf3558722291f51fac594eda41fba6aca3d9225165fb645de636287518e63",
+    "channel_schema": "splitfusion.run5.joint_snr_mcs_channel.v1",
+    "channel_seed_rule": "derive_seed(seed, 'train-channel')",
+    "duration": 2,
+    "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+    "gamma": 0.99,
+    "mcs_acceptance_sha256": "2a96b27d13b816dfdafe3c6369589d436a0a37fec5234320739e7acef9240be2",
+    "mcs_evidence_sha256": "7ec3edd93c67c5938188de8a24b838b5330970e357229b8a9e3eaa5000c796d5",
+    "mcs_model_binding_sha256": "20988f77b3439b46dece7fe02255a39125b01e83d161ddcc772f2a99c63148eb",
+    "mcs_process": "RUN5B_JOINT_SNR_MCS_CHANNEL",
+    "operational_latency_label": "EXPLORATORY_POOLED_FAMILY_TRANSFER_ASSUMPTION",
+    "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+    "reward_schema_sha256": "a065a5c1e6bc69c276c967b17d0a14bfcd4cabf78cefe4b97737cc1a0864a0b6",
+    "run5_imported_files": {
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/SUCCESSOR_MCS_SNR_AUDIT.json": "295ca76206d9dc9a5181a871c7644f9545edff384213d3e3a01c0886e4b683a6",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/__init__.py": "8468acc07597a41bccb957bf851ffef44a86ec93ef96e55a48cb5d9f224b83d4",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_channel.py": "6ed62c78ac8b6a1a0e29e8f72525589ed7274780a54fbf458b84b35ae1578118",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_snr_v2.py": "94d68d5a0e048c35b02a04932c3594185da4977eb2f1d18f62e371bd9a9c1846",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_state_contract.py": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/successor_mcs_snr_audit.py": "08758309fa4d380777ce797aa84c86d13059d277f4d470d97cb245a16a037ebb"
+    },
+    "run5b_source_branch": "run5b-no-qperc-v1",
+    "run5b_source_commit": "49430a8e4753387958093841c1896db25bf4c3c1",
+    "scaling_sha256": "b8a673047420408bbf6abf6d62226a336b8a966ef129a38bcd8699fd77ec04d7",
+    "scene_catalog_sha256": "b526c238b871865bc306f7a738027ed8d976fa06c06c3ecb97df958aac7516a8",
+    "schema": "splitfusion.run4b.joint_channel_environment.v1",
+    "snr_in_actor_state": false,
+    "stream_offsets": {
+      "held_scene": 67,
+      "mcs": 53,
+      "scene": 11,
+      "transport": 23
+    },
+    "transport_document_sha256": "38c3ec6a8f0c8a86e588310c027f306108189e1ccd0e592795ba71dad8cc7474",
+    "variant": "RUN4B_JOINT_CHANNEL_COMPARATOR_V1"
+  },
+  "environment_binding_sha256": "4003baa30d4f08746eb7f2c2c4165a6a17d6054accf219a1de06d61b3ef4c8a2",
+  "joint_channel": {
+    "channel_binding_sha256": "870bf3558722291f51fac594eda41fba6aca3d9225165fb645de636287518e63",
+    "channel_seed_rule": "derive_seed(seed, 'train-channel')",
+    "run5_imported_files": {
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/SUCCESSOR_MCS_SNR_AUDIT.json": "295ca76206d9dc9a5181a871c7644f9545edff384213d3e3a01c0886e4b683a6",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/__init__.py": "8468acc07597a41bccb957bf851ffef44a86ec93ef96e55a48cb5d9f224b83d4",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_channel.py": "6ed62c78ac8b6a1a0e29e8f72525589ed7274780a54fbf458b84b35ae1578118",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_snr_v2.py": "94d68d5a0e048c35b02a04932c3594185da4977eb2f1d18f62e371bd9a9c1846",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_state_contract.py": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae",
+      "rl_agent/splitfusion_hybrid_sac_run5_v1/successor_mcs_snr_audit.py": "08758309fa4d380777ce797aa84c86d13059d277f4d470d97cb245a16a037ebb"
+    },
+    "run5b_source_commit": "49430a8e4753387958093841c1896db25bf4c3c1",
+    "run5b_tape_crosscheck_sha256": "f41a0f5d4ee5f1c69cccd2bc6133c872efef57b29faec726e16b5d0c78df2861"
+  },
+  "pilot_equality_checks": {
+    "feature_schema": true,
+    "model_binding": true,
+    "provider": true,
+    "reward_schema": true,
+    "trainer": true
+  },
+  "pilot_reference": {
+    "code_commits": [
+      "a589250",
+      "5c1b8c9"
+    ],
+    "learning_report_sha256": "a1fc9a9c5c94aa788f5d414f0930586e1e04e1e265ee330ed9b6d06e790e3b0d",
+    "live_actor_sha256": "b4337f000be9acbd16113d0891ed40fdac28c4f0bcb31c5b970a52d901c2ebc2",
+    "mcs_process": "Run-4 SNR-free FIT MCS Markov provider",
+    "payload_index": "rl_agent/splitfusion_hybrid_sac_run4b_v1/evidence/PAYLOAD_INDEX.json",
+    "payload_index_sha256": "6973ae9ad26d4b09a9d703d270e830067823d2bc010be7107acdf5b6f3483773",
+    "run_dir": "rl_agent/experiments/splitfusion_hybrid_sac_run4b_v1/20261001_a589250",
+    "status": "COMPLETE_PRESERVED_UNCHANGED"
+  },
+  "registered_before_any_comparator_training": true,
+  "runner_binding_sha256_seed17": "f9fe9ebde00dea8fb0e339eb26cf988351ec6afb8d6ba75069986ac6a01f4c14",
+  "schema": "splitfusion.run4b.preregistration.v1",
+  "scope": "OFFLINE_MODELED_EXPLORATORY_TRAINING; EXPLORATORY_POOLED_FAMILY_TRANSFER_ASSUMPTION; NOT DEPLOYMENT AUTHORIZATION",
+  "single_change_vs_pilot": "MCS process: Run-4 SNR-free Markov provider -> frozen Run-5B joint SNR/MCS channel (same tapes and binding as Run-5B); SNR never enters the 20-D state",
+  "source_sha256": {
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/__init__.py": "9e93ec65f4976e4bf636a11b0a4ccc0eabebb259e133ea145692b6dff6ff358d",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/contract.py": "eb2bf505269f36569638192c5276dd1a2c3941597276fbb21c23594281ecd926",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/environment.py": "29610fcfdef4ba6859222b85a83fdbf18a92e00f2fbfc321405ce3015b5002de",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/joint_channel.py": "c58e210f2f913274ad903af35d5c19b74146df5975b9cbb549661a9ff59059ca",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/latency_boundary_audit.py": "17f20980ce022c23f8046f9733a59d4ddc0f63dff22da6d1a0728fa57a3754c5",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/learner.py": "a7969146f45d3360811590763f76331d71b91b7559dfc003b20cea352de38ce5",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/models.py": "26efc2248f570db555a31106b3ef7869a7cfce8fb569cf9997e60057e01d5036",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/report.py": "c018307d7784982b2699f9b3b50821d16c186c929efead7c049303fb4f08dbbb",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/runner.py": "d2da620cb74af6a007adfe255e40f5a0a6c69a730a32c8ff86763aa406ab25de",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/test_joint_channel.py": "9d378d8b6e996d4701c4366d42b8e66e3505a6f645a880ecbe6024f6788ef411",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/test_run4b.py": "0f62e6530beba9afa6f8071f5ce10b9400077dfea323afd45a1d397bed0c50e4",
+    "rl_agent/splitfusion_operational_latency_v1/__init__.py": "7263f3b68812bfaa2fc10b50be6159433c44727797149d4d2c6230b2613f1d35",
+    "rl_agent/splitfusion_operational_latency_v1/provider.py": "579e2f64a922159716530beeefb364d22d789cfd51afd3fa186584a30bacc0c4",
+    "rl_agent/splitfusion_operational_latency_v1/test_provider.py": "d55fe476a609cfa97f7d6ed1126dca3cf1d5cd4e45fdb64368f4cd96b30c9ffe"
+  },
+  "unchanged_from_pilot": {
+    "campaign_stop_rules": {
+      "family_dominance": {
+        "evaluated_at": "every registered checkpoint >= update 500",
+        "families": [
+          "noAE",
+          "AE128"
+        ],
+        "max_share": 0.5,
+        "statistic": "share of STOCHASTIC_ACTOR decisions executed since the previous registered checkpoint"
+      },
+      "numerical_failure": "any non-finite update metric, loss, gradient or parameter",
+      "provider_drift": "provider binding != registered digest or any source/pool pin drift",
+      "schema_mismatch": "any bundle/binding refusal"
+    },
+    "checkpoint_updates": [
+      0,
+      100,
+      250,
+      500,
+      1000,
+      1500,
+      2000,
+      2500,
+      3000,
+      3500,
+      4000,
+      4500,
+      5000,
+      5500,
+      6000,
+      6500,
+      7000,
+      7500,
+      8000,
+      8500,
+      9000,
+      9500,
+      10000
+    ],
+    "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+    "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+    "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+    "preregistered_live_actor": {
+      "seed": 43,
+      "update": 10000
+    },
+    "reward_schema_sha256": "a065a5c1e6bc69c276c967b17d0a14bfcd4cabf78cefe4b97737cc1a0864a0b6",
+    "seeds": [
+      17,
+      29,
+      43
+    ],
+    "smoke": {
+      "resume_procedure": "separate process genesis->250, separate process 250->500, bit-identical to uninterrupted 0->500",
+      "seed": 17,
+      "stop_update": 500
+    },
+    "trainer": {
+      "actor_lr": 0.0003,
+      "alpha_c": 0.02,
+      "alpha_d": 0.05,
+      "batch": 256,
+      "critic_lr": 0.0003,
+      "gamma": 0.99,
+      "replay_capacity": 65536,
+      "tau": 0.005,
+      "threads": 4,
+      "transitions_per_update": 4,
+      "warmup": 288
+    }
+  },
+  "variant_schemas": {
+    "bundle": "splitfusion.run4b_joint_channel.checkpoint_bundle.v1",
+    "export": "splitfusion.run4b_joint_channel.actor_export.v1",
+    "runner": "splitfusion.run4b_joint_channel.runner.v1"
+  }
+}

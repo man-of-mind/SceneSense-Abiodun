@@ -1,0 +1,21 @@
+{
+  "RUN4B_JOINT_CHANNEL_COMPARATOR_V1": {
+    "evidence_dir": "rl_agent/splitfusion_hybrid_sac_run4b_v1/evidence_joint_channel_v1",
+    "registration": "rl_agent/splitfusion_hybrid_sac_run4b_v1/RUN4B_JOINT_CHANNEL_COMPARATOR_V1_REGISTRATION.json",
+    "status": "PREREGISTERED"
+  },
+  "RUN4B_SNR_FREE_CHANNEL_PILOT": {
+    "code_commits": [
+      "a589250",
+      "5c1b8c9"
+    ],
+    "learning_report_sha256": "a1fc9a9c5c94aa788f5d414f0930586e1e04e1e265ee330ed9b6d06e790e3b0d",
+    "live_actor_sha256": "b4337f000be9acbd16113d0891ed40fdac28c4f0bcb31c5b970a52d901c2ebc2",
+    "mcs_process": "Run-4 SNR-free FIT MCS Markov provider",
+    "payload_index": "rl_agent/splitfusion_hybrid_sac_run4b_v1/evidence/PAYLOAD_INDEX.json",
+    "payload_index_sha256": "6973ae9ad26d4b09a9d703d270e830067823d2bc010be7107acdf5b6f3483773",
+    "run_dir": "rl_agent/experiments/splitfusion_hybrid_sac_run4b_v1/20261001_a589250",
+    "status": "COMPLETE_PRESERVED_UNCHANGED"
+  },
+  "schema": "splitfusion.run4b.campaign_designations.v1"
+}
