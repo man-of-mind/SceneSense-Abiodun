@@ -331,7 +331,7 @@ class ComposedLifecycleTest(unittest.TestCase):
                 mock.patch.object(ops, "_start_remote_edge", start_remote_edge),
                 mock.patch.object(ops, "_ssh", ssh),
                 mock.patch.object(ops, "_checked_ssh", lambda argv, label, timeout_s=60.0: b"edge log\n"),
-                mock.patch.object(ops, "_start_map", lambda campaign, root, port: ( (Path(root) / "map").mkdir(exist_ok=False) or SimpleNamespace(poll=lambda: None))),
+                mock.patch.object(ops, "_start_map", lambda campaign, root, port, **_: ( (Path(root) / "map").mkdir(exist_ok=False) or SimpleNamespace(poll=lambda: None))),
                 mock.patch.object(P.PIPE, "build_one_frame_pipeline_v2", build_pipeline),
                 mock.patch.object(UE, "UdpOperationalAckReceiverV1", Receiver),
                 mock.patch.object(torch.cuda, "is_available", return_value=True),
@@ -647,6 +647,83 @@ class OwnershipModelTest(unittest.TestCase):
             with self.assertRaisesRegex(UE.BUEProcessError, "create-only"):
                 UE.execute_300(request, pipeline,
                                UE._OfflineFakeReceiver(pipeline))
+
+
+class Run4DirectMapLaunchTest(unittest.TestCase):
+    """The map launched for the B path must ingest Run4MapPublisherV2."""
+
+    def test_map_is_run4_direct_server_with_local_feedback_sink(self) -> None:
+        launched = {}
+
+        class _Process:
+            def poll(self):
+                return None
+
+        def popen(argv, **_kwargs):
+            launched["argv"] = list(argv)
+            output = Path(argv[argv.index("--output-dir") + 1])
+            output.mkdir()
+            (output / "direct_map_ready.json").write_text("{}")
+            return _Process()
+
+        class _Response:
+            status = 200
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                return False
+
+        campaign = {"measurement_contract": {"installed_frame_history_size": 8},
+                    "cell": {"ack_timeout_ms": 500}}
+        with tempfile.TemporaryDirectory() as temporary, \
+                mock.patch.object(P.subprocess, "Popen", popen), \
+                mock.patch("urllib.request.urlopen",
+                           lambda *_a, **_k: _Response()):
+            P.RealProductionOpsV1._start_map(
+                campaign, Path(temporary), 2000, run_id="run_x", cell_id="cell_y")
+        argv = launched["argv"]
+        self.assertTrue(argv[1].endswith(P.RUN4_DIRECT_MAP_SERVER))
+        value = lambda flag: argv[argv.index(flag) + 1]
+        self.assertEqual(value("--direct-map-host"), P.O.LOCAL_LAN_IP)
+        self.assertEqual(int(value("--direct-map-port")), P.O.DIRECT_MAP_PORT)
+        self.assertEqual(value("--direct-run-id"), "run_x")
+        self.assertEqual(value("--direct-cell-id"), "cell_y")
+        feedback = (value("--ue-feedback-host"), int(value("--ue-feedback-port")))
+        self.assertNotEqual(feedback, (P.O.UE_TUNNEL_IP, P.O.ACK_PORT))
+        self.assertNotEqual(feedback[1], P.O.ACK_PORT)
+        self.assertNotIn("--udp-port", argv)
+
+    def test_map_waits_for_direct_ready_file(self) -> None:
+        class _Process:
+            def poll(self):
+                return None
+
+        def popen(argv, **_kwargs):
+            Path(argv[argv.index("--output-dir") + 1]).mkdir()
+            return _Process()
+
+        class _Response:
+            status = 200
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                return False
+
+        clock = iter(range(0, 1000, 10))
+        campaign = {"measurement_contract": {"installed_frame_history_size": 8},
+                    "cell": {"ack_timeout_ms": 500}}
+        with tempfile.TemporaryDirectory() as temporary, \
+                mock.patch.object(P.subprocess, "Popen", popen), \
+                mock.patch("urllib.request.urlopen",
+                           lambda *_a, **_k: _Response()), \
+                mock.patch.object(P.time, "monotonic", lambda: next(clock)), \
+                mock.patch.object(P.time, "sleep", lambda _s: None), \
+                mock.patch("rl_agent.ue_route_b_split_cell_adapter_v1.stop_process",
+                           lambda _p: True):
+            with self.assertRaisesRegex(P.ProductionOneFrameError,
+                                        "did not become ready"):
+                P.RealProductionOpsV1._start_map(
+                    campaign, Path(temporary), 2000, run_id="r", cell_id="c")
 
 
 if __name__ == "__main__":

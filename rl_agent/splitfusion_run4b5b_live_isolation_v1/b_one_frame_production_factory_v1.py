@@ -75,6 +75,15 @@ ATTEMPT_RE = re.compile(r"[a-z0-9][a-z0-9_-]{2,47}")
 QUEUE_DEPTH = 64
 MAP_API_PORT = 35001
 MAP_FEEDBACK_PORT = 39401
+# The edge publishes Run-4 map updates with ``Run4MapPublisherV2`` (chunked,
+# zlib, Run-4 identity); only the Run-4-aware direct map server ingests them.
+# The baseline ``map_install_runtime`` parses raw single datagrams and rejects
+# every chunk ("unknown compression method").
+RUN4_DIRECT_MAP_SERVER = (
+    "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/phase6_map_server_v2.py")
+# Map install feedback goes to a host-local sink, never the UE operational
+# ACK port: in this path the edge's tail-output ACK is the only UE terminal.
+MAP_FEEDBACK_SINK = ("127.0.0.1", MAP_FEEDBACK_PORT)
 SAFETY_TIMEOUT_S = 60.0
 WARMUP_DISCARD_PORT = 9  # UDP discard on the external DN; never the edge
 CARLA_STOP_GRACE_S = 1.0
@@ -114,7 +123,7 @@ ATTEMPT_PATH_OWNERSHIP: tuple[tuple[str, str, str, str, str], ...] = (
     ("prepared_bindings", "service/bindings.json",
      "split_host_one_decision_runner_v1.SystemOpsV1.prepare", "file", "start"),
     ("map_output", "service/map",
-     "map-install runtime --output-dir (RealProductionOpsV1._start_map)",
+     "Run-4 direct map server --output-dir (RealProductionOpsV1._start_map)",
      "dir", "start"),
     ("isolated_campaign", "service/one_frame_campaign.yaml",
      "RealProductionOpsV1.start", "file", "start"),
@@ -717,23 +726,31 @@ class RealProductionOpsV1:
 
     @staticmethod
     def _start_map(campaign: Mapping[str, Any], root: Path,
-                   carla_port: int) -> subprocess.Popen[Any]:
+                   carla_port: int, *, run_id: str,
+                   cell_id: str) -> subprocess.Popen[Any]:
         from rl_agent import ue_route_b_split_cell_adapter_v1 as pinned
-        runtime = pinned.repo_path(str(campaign["runtime"]["map_install_runtime"]))
+        runtime = pinned.repo_path(RUN4_DIRECT_MAP_SERVER)
         output = root / "map"
         argv = [
             sys.executable, str(runtime),
             "--api-host", "127.0.0.1", "--api-port", str(MAP_API_PORT),
-            "--udp-host", O.LOCAL_LAN_IP,
-            "--udp-port", str(O.DIRECT_MAP_PORT),
-            "--install-feedback-host", "127.0.0.1",
-            "--install-feedback-port", str(MAP_FEEDBACK_PORT),
             "--default-action-id", "71", "--carla-host", "127.0.0.1",
             "--carla-port", str(carla_port), "--output-dir", str(output),
             "--focus-follow-stream-id", "unused",
             "--installed-frame-history-size",
             str(int(campaign["measurement_contract"]
                     ["installed_frame_history_size"])),
+            "--direct-map-host", O.LOCAL_LAN_IP,
+            "--direct-map-port", str(O.DIRECT_MAP_PORT),
+            "--ue-feedback-host", MAP_FEEDBACK_SINK[0],
+            "--ue-feedback-port", str(MAP_FEEDBACK_SINK[1]),
+            "--direct-run-id", str(run_id),
+            "--direct-cell-id", str(cell_id),
+            "--direct-processing-horizon-ms",
+            str(float(campaign["cell"]["ack_timeout_ms"])),
+            "--direct-ingest-csv", str(output / "direct_map_ingest.csv"),
+            "--direct-ready-file", str(output / "direct_map_ready.json"),
+            "--direct-report-file", str(output / "direct_map_report.json"),
         ]
         process = subprocess.Popen(
             argv, cwd=str(pinned.ROOT), stdin=subprocess.DEVNULL)
@@ -747,7 +764,8 @@ class RealProductionOpsV1:
                     with urllib.request.urlopen(
                             f"http://127.0.0.1:{MAP_API_PORT}/healthz",
                             timeout=1.0) as response:
-                        if response.status == 200:
+                        if (response.status == 200 and
+                                (output / "direct_map_ready.json").is_file()):
                             return process
                 except OSError:
                     pass
@@ -798,7 +816,8 @@ class RealProductionOpsV1:
             paths = attempt_paths(config)
             state.map_process = self._start_map(
                 state.campaign, paths.get("service"),
-                config.network.carla_rpc_port)
+                config.network.carla_rpc_port, run_id=config.run_id,
+                cell_id=config.cell_id)
             from rl_agent import ue_route_b_split_cell_adapter_v1 as pinned
             import yaml
             service = paths.get("service")
