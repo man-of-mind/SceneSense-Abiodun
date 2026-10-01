@@ -993,8 +993,6 @@ class RealProductionOpsV1:
             ("map", (lambda: _require(bool(pinned.stop_process(
                 state.map_process)), "map stop failed"))
              if state.map_process is not None else None),
-            ("CARLA", (lambda: self.system.stop_carla(state.carla))
-             if state.carla is not None else None),
             ("RAN", (lambda: state.ran.close())
              if state.ran is not None else None),
         ):
@@ -1005,6 +1003,19 @@ class RealProductionOpsV1:
             except BaseException as exc:
                 errors.append(f"{label}: {type(exc).__name__}: {exc}")
         self._stop_remote_edge(state, errors)
+        # CARLA is stopped last.  The route runs in-process, and stopping the
+        # server while its CARLA client/sensor objects are still alive makes
+        # the client library abort the process (std::terminate).  Release the
+        # finished route's objects first, and order every other service's
+        # teardown before this step so an abort here cannot orphan them.
+        if state.carla is not None:
+            state.pipeline = None
+            import gc
+            gc.collect()
+            try:
+                self.system.stop_carla(state.carla)
+            except BaseException as exc:
+                errors.append(f"CARLA: {type(exc).__name__}: {exc}")
         if errors:
             raise ProductionOneFrameError(
                 "one-frame cleanup failed: " + "; ".join(errors))

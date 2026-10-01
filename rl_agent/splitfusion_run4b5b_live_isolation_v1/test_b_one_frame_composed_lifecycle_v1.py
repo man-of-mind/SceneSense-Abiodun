@@ -53,8 +53,12 @@ class _Telemetry:
     def __init__(self, *args, **kwargs):
         self.unbound_ue_candidates = {(0x4601, 0)}
 
+    warm = True
+
     def snapshot(self):
-        return SimpleNamespace(all_readers_alive=True)
+        return SimpleNamespace(all_readers_alive=True, bridge_warm=self.warm,
+                               dci=(object(),) if self.warm else (),
+                               rlc=(object(),) if self.warm else ())
 
     def bind_ue(self, *, rnti, oai_ue_id):
         self.bound = (rnti, oai_ue_id)
@@ -387,7 +391,7 @@ class ComposedLifecycleTest(unittest.TestCase):
                 self.assertTrue(paths.get("remote_edge_log").is_file())
                 self.assertTrue(paths.get("radio_restoration_trace").is_file())
                 self.assertEqual(system.events, [
-                    "prepare", "core", "ran", "carla", "carla-stop", "ran-stop"])
+                    "prepare", "core", "ran", "carla", "ran-stop", "carla-stop"])
                 self.assertLessEqual(_present_top(paths), _declared(paths))
                 self.assertFalse(paths.get("postrun_remote_prediction").exists())
 
@@ -434,6 +438,44 @@ class OwnershipModelTest(unittest.TestCase):
                              ["DROPPED_SENSOR_LATE_OR_MISSING",
                               "SPLIT_PROCESSING_FAILED"])
             self.assertEqual(len(collector.rows), 2)
+
+    def test_dependency_builder_waits_for_decision_ready_telemetry(self) -> None:
+        import torch
+        from rl_agent.splitfusion_live_dispatch_v1 import live_pilot_runtime as BASE
+
+        class Cold(_Telemetry):
+            warm = False
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "ue_telemetry"
+            stub = SimpleNamespace(_front=object(), _ranker=object(),
+                                   _ae_encoders={}, _codec=object())
+            with contextlib.ExitStack() as stack:
+                for patcher in (
+                        mock.patch.object(torch.cuda, "is_available", return_value=True),
+                        mock.patch.object(BASE, "_preload_ue", return_value=(stub, None, [])),
+                        mock.patch.object(D.DEC, "load_dynamic_execution_contract",
+                                          return_value=object()),
+                        mock.patch.object(D.X, "ContinuousUERuntimeV2", lambda *a, **k: object()),
+                        mock.patch.object(D.P6, "_SqueezedFront", lambda *a: object()),
+                        mock.patch.object(D.T, "UeTelemetryProviderV2", Cold),
+                        mock.patch.object(D.T, "CausalClockBridgeV2", lambda: None),
+                        mock.patch.object(D.T, "LiveEventReaderV2", _Reader),
+                        mock.patch.object(D.T, "csv_reader_argv", lambda *a: ["x"]),
+                        mock.patch.object(D.socket, "socket", _Socket)):
+                    stack.enter_context(patcher)
+                with self.assertRaisesRegex(D.ProductionDependencyError,
+                                            "not decision-ready.*bridge_warm=False"):
+                    D.build_production_dependencies_v1(
+                        variant=__import__(
+                            "rl_agent.splitfusion_run4b5b_live_isolation_v1.live_adapters_v1",
+                            fromlist=["ActorVariant"]).ActorVariant.RUN4B,
+                        tracer_dir=Path(directory), t_messages=Path(directory),
+                        ue_relay_port=4044, telemetry_root=root,
+                        ue_bind_host="10.0.0.2", edge_remote_host="192.168.70.140",
+                        edge_receive_port=51002, udp_chunk_bytes=1200,
+                        socket_buffer_request_bytes=1 << 20,
+                        telemetry_ready_timeout_s=0.2)
 
     def test_dependency_builder_refuses_existing_telemetry_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -99,6 +99,7 @@ def build_production_dependencies_v1(
         ue_bind_host: str, edge_remote_host: str, edge_receive_port: int,
         udp_chunk_bytes: int, socket_buffer_request_bytes: int,
         wait_timeout_s: float = 20.0,
+        telemetry_ready_timeout_s: float = 30.0,
         ) -> ProductionDependenciesV1:
     """Start the exact UE-side dependencies; no CARLA/route is started here.
 
@@ -165,6 +166,22 @@ def build_production_dependencies_v1(
                  "exactly one UE must be visible in live telemetry")
         rnti, ue_id = sorted(telemetry.unbound_ue_candidates)[0]
         telemetry.bind_ue(rnti=rnti, oai_ue_id=ue_id)
+        # Decision readiness: the causal radio guard refuses any decision until
+        # the clock bridge is warm and UL-grant/RLC samples exist.  Wait for
+        # that here (bounded, fail-closed) so the first route opportunity is
+        # not consumed by a warming telemetry pipeline.
+        ready_deadline = time.monotonic() + float(telemetry_ready_timeout_s)
+        while True:
+            snapshot = telemetry.snapshot()
+            if (snapshot.all_readers_alive and snapshot.bridge_warm
+                    and len(snapshot.dci) > 0 and len(snapshot.rlc) > 0):
+                break
+            _require(time.monotonic() < ready_deadline,
+                     "UE telemetry not decision-ready: "
+                     f"readers_alive={snapshot.all_readers_alive} "
+                     f"bridge_warm={snapshot.bridge_warm} "
+                     f"dci={len(snapshot.dci)} rlc={len(snapshot.rlc)}")
+            time.sleep(0.05)
         sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF,
                           socket_buffer_request_bytes)
