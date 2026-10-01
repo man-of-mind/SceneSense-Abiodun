@@ -99,12 +99,13 @@ def install_edge_seams(rec: Any) -> dict[str, Any]:
             except Exception:  # noqa: BLE001 - the base raises its own error below
                 pass
             if first is not None:
-                rec.mark("edge.datagram_first", frame_id=int(first[0]), chunks=int(first[1]))
+                rec.mark("edge.datagram_first", frame_id=first[0], chunks=first[1])
             complete = super().ingest(source_endpoint, datagram, received_at_s=received_at_s)
             if complete is not None:
-                rec.mark("edge.reassembly_complete", frame_id=int(complete.message_id),
-                         chunks=int(complete.chunk_count),
-                         duplicates=int(complete.duplicate_chunks))
+                rec.mark("edge.reassembly_complete", **RV.safe_fields(lambda: {
+                    "frame_id": int(complete.message_id),
+                    "chunks": int(complete.chunk_count),
+                    "duplicates": int(complete.duplicate_chunks)}))
             return complete
 
     E.ChunkReassembler = ProfiledReassemblerV1
@@ -116,14 +117,16 @@ def install_edge_seams(rec: Any) -> dict[str, Any]:
 
         def offer(self, stream_id: str, item: Any, *, sequence: int):
             admitted, displaced = super().offer(stream_id, item, sequence=sequence)
-            rec.mark("edge.queue_offer", frame_id=_frame(item), admitted=bool(admitted),
-                     displaced_frame_id=_frame(displaced))
+            rec.mark("edge.queue_offer", **RV.safe_fields(lambda: {
+                "frame_id": _frame(item), "admitted": bool(admitted),
+                "displaced_frame_id": _frame(displaced)}))
             return admitted, displaced
 
         def take(self, timeout: float):
             taken = super().take(timeout)
             if taken is not None:
-                rec.mark("edge.queue_take", frame_id=_frame(taken[1]))
+                rec.mark("edge.queue_take", **RV.safe_fields(lambda: {
+                    "frame_id": _frame(taken[1])}))
             return taken
 
     base.LatestFramePendingSlot = ProfiledPendingSlotV1
@@ -142,7 +145,7 @@ def install_edge_seams(rec: Any) -> dict[str, Any]:
         def verify(self, frame: bytes):
             with rec.span("edge.verify"):
                 result = super().verify(frame)
-            rec.bind(**envelope_identity(result[0]))
+                rec.bind(**RV.safe_fields(envelope_identity, result[0]))
             return result
 
         def process(self, frame: bytes, *, edge_timing: Mapping[str, Any],
@@ -163,16 +166,17 @@ def install_edge_seams(rec: Any) -> dict[str, Any]:
             finally:
                 rec.unbind()
                 rec.bind(**saved)
-            rec.mark("edge.terminal_built", **document_identity(document),
-                     outcome=str(outcome), terminal_stage=str(stage),
-                     superseded_by_frame_id=superseded_by_frame_id)
+            rec.mark("edge.terminal_built", **RV.safe_fields(lambda: {
+                **document_identity(document), "outcome": str(outcome),
+                "terminal_stage": str(stage),
+                "superseded_by_frame_id": superseded_by_frame_id}))
             return document
 
     E.Run4EdgeProcessorV2 = ProfiledProcessorV1
 
     class ProfiledPublisherV1(E.Run4MapPublisherV2):  # type: ignore[misc, valid-type]
         def publish(self, document: Mapping[str, Any]):
-            with rec.span("edge.map_publish", **document_identity(document)):
+            with rec.span("edge.map_publish", **RV.safe_fields(document_identity, document)):
                 return super().publish(document)
 
     E.Run4MapPublisherV2 = ProfiledPublisherV1
@@ -186,16 +190,19 @@ def install_edge_seams(rec: Any) -> dict[str, Any]:
                                - int(self.counters["emitted"]))
 
         def submit(self, ticket: Any) -> None:
-            rec.mark("edge.evaluator_submit", **envelope_identity(ticket.envelope))
+            rec.mark("edge.evaluator_submit",
+                     **RV.safe_fields(lambda: envelope_identity(ticket.envelope)))
             return super().submit(ticket)
 
         def _evaluate_with(self, ticket: Any, gt: Mapping[str, Any], timing: dict) -> None:
-            with rec.span("edge.qperc_evaluate", **envelope_identity(ticket.envelope)):
+            with rec.span("edge.qperc_evaluate",
+                          **RV.safe_fields(lambda: envelope_identity(ticket.envelope))):
                 return super()._evaluate_with(ticket, gt, timing)
 
         def _emit(self, ticket: Any, feedback: Any, reason: Any, **kwargs: Any) -> None:
-            with rec.span("edge.feedback_emit", **envelope_identity(ticket.envelope),
-                          reason=getattr(reason, "name", str(reason))):
+            with rec.span("edge.feedback_emit", **RV.safe_fields(lambda: {
+                    **envelope_identity(ticket.envelope),
+                    "reason": getattr(reason, "name", str(reason))})):
                 return super()._emit(ticket, feedback, reason, **kwargs)
 
         def _run(self) -> None:

@@ -97,15 +97,17 @@ class _ActorProxy:
         rec = self._profiled_rec
         if not self._profiled_vector_noted:
             self._profiled_vector_noted = True
-            rec.note("policy_state_vector", **IV.decision_vector_identity(features))
+            rec.note("policy_state_vector",
+                     **RV.safe_fields(IV.decision_vector_identity, features))
         with rec.span("agent.actor") as span:
             decision = self._profiled_actor.act(features)
-            span.annotate(decided_mode_id=getattr(decision, "mode_id", None),
-                          decided_q_e4=getattr(decision, "q_e4", None),
-                          state_sha256=getattr(decision, "state_sha256", None),
-                          heads_sha256=getattr(decision, "heads_sha256", None),
-                          features=list(features.as_tuple())
-                          if hasattr(features, "as_tuple") else None)
+            span.annotate(**RV.safe_fields(lambda: {
+                "decided_mode_id": getattr(decision, "mode_id", None),
+                "decided_q_e4": getattr(decision, "q_e4", None),
+                "state_sha256": getattr(decision, "state_sha256", None),
+                "heads_sha256": getattr(decision, "heads_sha256", None),
+                "features": (list(features.as_tuple()) if hasattr(features, "as_tuple")
+                             else None)}))
         return decision
 
 
@@ -119,7 +121,7 @@ class _TickTimer:
     def tick(self, *args: Any, **kwargs: Any) -> Any:
         with self._profiled_rec_fn().span("carla.world_tick") as span:
             frame = self._profiled_world.tick(*args, **kwargs)
-            span.annotate(carla_frame=int(frame))
+            span.annotate(**RV.safe_fields(lambda: {"carla_frame": int(frame)}))
         return frame
 
     def __getattr__(self, name: str) -> Any:
@@ -163,7 +165,7 @@ def instrument_runtime(runtime: Any, rec: Any, *, policy_identity: Mapping[str, 
     def plan(**kwargs: Any) -> Any:
         with rec.span("ue.plan"):
             planned = original_plan(**kwargs)
-            rec.bind(**planned_identity(planned))
+            rec.bind(**RV.safe_fields(planned_identity, planned))
         return planned
 
     pipeline.plan = plan
@@ -171,7 +173,7 @@ def instrument_runtime(runtime: Any, rec: Any, *, policy_identity: Mapping[str, 
     original_submit = runtime.submit
 
     def submit(*args: Any, **kwargs: Any) -> Any:
-        frame_id = int(kwargs["frame_id"])
+        frame_id = RV.safe_fields(lambda: {"frame_id": int(kwargs["frame_id"])}).get("frame_id")
         rec.bind(frame_id=frame_id)
         before = len(pipeline.decisions)
         with rec.span("ue.submit") as span:
@@ -204,17 +206,20 @@ def instrument_runtime(runtime: Any, rec: Any, *, policy_identity: Mapping[str, 
 
     def on_feedback(fb: Any, *, receipt_raw_ns: int) -> Any:
         outcome = original_feedback(fb, receipt_raw_ns=receipt_raw_ns)
-        rec.mark("ue.feedback_receipt", t_raw_ns=receipt_raw_ns, **feedback_identity(fb),
-                 feedback_class=getattr(outcome, "value", str(outcome)),
-                 feedback_kind=str(fb.kind))
+        rec.mark("ue.feedback_receipt", t_raw_ns=receipt_raw_ns,
+                 **RV.safe_fields(lambda: {**feedback_identity(fb),
+                                           "feedback_class": getattr(outcome, "value",
+                                                                     str(outcome)),
+                                           "feedback_kind": str(fb.kind)}))
         return outcome
 
     def on_registered_terminal(terminal: Any, *, receipt_raw_ns: int) -> Any:
         outcome = original_terminal(terminal, receipt_raw_ns=receipt_raw_ns)
         rec.mark("ue.terminal_receipt", t_raw_ns=receipt_raw_ns,
-                 **feedback_identity(terminal),
-                 terminal_class=getattr(outcome, "value", str(outcome)),
-                 outcome=str(terminal.outcome))
+                 **RV.safe_fields(lambda: {**feedback_identity(terminal),
+                                           "terminal_class": getattr(outcome, "value",
+                                                                     str(outcome)),
+                                           "outcome": str(terminal.outcome)}))
         return outcome
 
     engine.on_feedback = on_feedback
@@ -248,11 +253,15 @@ def build_collector_class(base: type, rec_fn: Callable[[], Any]) -> type:
                         rec_fn, "ue.scene_snapshot", self.scene_source.capture)
                 except Exception:  # noqa: BLE001 - slotted source: span omitted, counted
                     rec.note("seam_unavailable", seam="scene_source.capture")
-            rec.register_gauge("ue.prepared_queue_depth", self.prepared_queue.depth)
+            try:
+                rec.register_gauge("ue.prepared_queue_depth", self.prepared_queue.depth)
+            except Exception:  # noqa: BLE001 - a missing gauge never stops the run
+                rec.note("seam_unavailable", seam="prepared_queue.depth")
 
         def _process_token(self, token: Mapping[str, Any]) -> None:
             rec = rec_fn()
-            rec.bind(frame_id=int(token["frame_id"]), route_tick=token.get("route_tick"))
+            rec.bind(**RV.safe_fields(lambda: {"frame_id": int(token["frame_id"]),
+                                               "route_tick": token.get("route_tick")}))
             try:
                 with rec.span("ue.worker_frame"):
                     return super()._process_token(token)
@@ -264,14 +273,19 @@ def build_collector_class(base: type, rec_fn: Callable[[], Any]) -> type:
                 return super()._records_for(frame_id, *args, **kwargs)
 
         def _on_rgb(self, image: Any) -> None:
-            rec_fn().mark("carla.rgb_receipt", carla_frame=int(image.frame))
+            rec_fn().mark("carla.rgb_receipt",
+                          **RV.safe_fields(lambda: {"carla_frame": int(image.frame)}))
             super()._on_rgb(image)
 
         def _ground_truth(self, **kwargs: Any) -> Any:
             rec = rec_fn()
-            frame_id = int(kwargs["frame_id"])
-            identity = (getattr(self.live, "_run4_identity", {}) or {}).get(frame_id) or {}
-            rec.bind(frame_id=frame_id, **wire_identity(identity))
+
+            def fields() -> dict[str, Any]:
+                frame_id = int(kwargs["frame_id"])
+                identity = (getattr(self.live, "_run4_identity", {}) or {}).get(frame_id) or {}
+                return {**wire_identity(identity), "frame_id": frame_id}
+
+            rec.bind(**RV.safe_fields(fields))
             try:
                 with rec.span("ue.gt_build"):
                     return super()._ground_truth(**kwargs)

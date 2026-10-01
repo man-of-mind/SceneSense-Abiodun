@@ -35,7 +35,7 @@ def install_map_seams(server: Any, rec: Any) -> None:
     original_install = server.install_under_state_lock
 
     def install(document: Mapping[str, Any], ingest_at: float) -> dict[str, Any]:
-        with rec.span("map.install", **document_identity(document)):
+        with rec.span("map.install", **RV.safe_fields(document_identity, document)):
             return original_install(document, ingest_at)
 
     server.install_under_state_lock = install
@@ -47,12 +47,21 @@ def install_map_seams(server: Any, rec: Any) -> None:
             rec.register_gauge("map.ingest_queue_depth", self._ingest_queue.qsize)
 
         def _handle_complete(self, complete: Any, stamps: Mapping[str, Any]) -> None:
-            with rec.span("map.ingest_handle", frame_id=int(complete.message_id)):
+            with rec.span("map.ingest_handle", **RV.safe_fields(
+                    lambda: {"frame_id": int(complete.message_id)})):
                 return super()._handle_complete(complete, stamps)
 
         def _respond(self, document: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
-            with rec.span("map.respond", **document_identity(document)):
+            with rec.span("map.respond", **RV.safe_fields(document_identity, document)):
                 return super()._respond(document, **kwargs)
+
+        def close(self) -> dict[str, Any]:
+            # The map's signal handler calls service.close() and then os._exit(0),
+            # so this is the last code that runs: close the recorder (footer) here.
+            try:
+                return super().close()
+            finally:
+                rec.close()
 
     server.DirectMapIngestService = ProfiledMapIngestServiceV1
 

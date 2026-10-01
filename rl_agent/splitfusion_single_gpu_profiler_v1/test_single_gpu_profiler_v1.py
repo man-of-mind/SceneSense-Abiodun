@@ -752,6 +752,8 @@ class SeamInstallTest(unittest.TestCase):
                     self.assertIn(expected, stages)
                 process = next(r for r in rows if r.get("stage") == "edge.process")
                 self.assertEqual(process["tensor_seq"], plain.envelope.tensor_seq)
+                verify = next(r for r in rows if r.get("stage") == "edge.verify")
+                self.assertEqual(verify["frame_id"], plain.envelope.frame_id)
                 self.assertTrue(AN.validate_stream(rows, source="edge")["passed"])
         finally:
             saved.restore()
@@ -791,6 +793,100 @@ class SeamInstallTest(unittest.TestCase):
             result = SU.copy_edge_profile(str(scratch), target)
             self.assertEqual(result["copied"], [])
             self.assertEqual((target / "edge.profile.jsonl").read_text(), "old\n")
+
+
+class AttemptTwoRegressionTest(unittest.TestCase):
+    """Defects found in live attempt 20261001T224406Z (each must stay fixed)."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.rec = RV.activate(RV.ProfileRecorderV1(Path(self.tmp.name) / "p.jsonl",
+                                                    role="t", flush_interval_s=0.01).start())
+
+    def tearDown(self) -> None:
+        self.rec.close()
+        RV.deactivate()
+        self.tmp.cleanup()
+
+    def _collector(self, live):
+        class Base:
+            def __init__(self, **kwargs):
+                self.aggregator = SimpleNamespace(window_detections=lambda **kw: ([], {}))
+                self.parked = SimpleNamespace(build_radar_sample=lambda **kw: None)
+                self.scene_source = None
+                self.prepared_queue = SimpleNamespace(depth=lambda: 0)
+                self.live = live
+                self.calls = []
+
+            def _ground_truth(self, **kwargs):
+                self.calls.append(kwargs)
+                return ["rows"]
+
+        return SU.build_collector_class(Base, RV.active)()
+
+    def test_ground_truth_seam_runs_the_original_when_identity_has_frame_id(self) -> None:
+        live = SimpleNamespace(_run4_identity={1435: {"frame_id": 1435, "tensor_seq": 9,
+                                                      "reward_requested": True}})
+        collector = self._collector(live)
+        self.assertEqual(collector._ground_truth(frame_id=1435, world=None), ["rows"])
+        self.assertEqual(collector.calls, [{"frame_id": 1435, "world": None}])
+        self.assertFalse(self.rec.bound())                  # context released
+        self.assertEqual(self.rec.counters.get("seam_field_errors", 0), 0)
+
+    def test_ground_truth_seam_survives_a_broken_identity_source(self) -> None:
+        class Exploding:
+            def __getattr__(self, name):
+                raise RuntimeError("identity source broken")
+
+        collector = self._collector(Exploding())
+        self.assertEqual(collector._ground_truth(frame_id=7), ["rows"])
+        self.assertEqual(collector.calls, [{"frame_id": 7}])
+        self.assertEqual(self.rec.counters["seam_field_errors"], 1)
+
+    def test_receipt_seam_returns_the_original_outcome_for_a_malformed_message(self) -> None:
+        engine = SimpleNamespace(on_feedback=lambda fb, *, receipt_raw_ns: "ACCEPTED",
+                                 on_registered_terminal=lambda t, *, receipt_raw_ns: "X",
+                                 controller=SimpleNamespace(current=None),
+                                 _actor=SimpleNamespace())
+        runtime = SimpleNamespace(engine=engine, pipeline=SimpleNamespace(
+            plan=lambda **kw: None, decisions=[]), submit=lambda **kw: {},
+            _run4_identity={}, sent=0, sensor_stages={})
+        SU.instrument_runtime(runtime, self.rec, policy_identity={})
+        self.assertEqual(engine.on_feedback(object(), receipt_raw_ns=5), "ACCEPTED")
+        self.assertEqual(engine.on_registered_terminal(object(), receipt_raw_ns=6), "X")
+        self.assertEqual(self.rec.counters["seam_field_errors"], 2)
+
+    def test_hot_path_cost_is_summed_over_every_thread(self) -> None:
+        def work():
+            for _ in range(10):
+                with self.rec.span("s"):
+                    pass
+
+        threads = [threading.Thread(target=work) for _ in range(3)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        summary = self.rec.summary()
+        self.assertEqual(summary["hot_path_calls"], 3 * 10 * 2)   # enter + exit per span
+        self.assertEqual(len(summary["hot_path_per_thread_top32"]), 3)
+        self.assertEqual(sum(r["calls"] for r in summary["hot_path_per_thread_top32"]), 60)
+
+    def test_map_service_close_writes_the_recorder_footer(self) -> None:
+        from . import map_profiled_v1 as MPF
+
+        class Service:
+            def __init__(self, **kwargs):
+                self._ingest_queue = SimpleNamespace(qsize=lambda: 0)
+
+            def close(self):
+                return {"closed": True}
+
+        server = SimpleNamespace(install_under_state_lock=lambda d, at: {},
+                                 DirectMapIngestService=Service)
+        MPF.install_map_seams(server, self.rec)
+        self.assertEqual(server.DirectMapIngestService().close(), {"closed": True})
+        self.assertEqual(records(Path(self.tmp.name) / "p.jsonl")[-1]["r"], "footer")
 
 
 class DisabledBehaviourTest(unittest.TestCase):

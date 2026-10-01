@@ -207,6 +207,24 @@ class _Span:
         return False
 
 
+class _ThreadCost:
+    __slots__ = ("tid", "ns", "calls")
+
+    def __init__(self, tid: int) -> None:
+        self.tid, self.ns, self.calls = tid, 0, 0
+
+
+def safe_fields(fn: Callable[..., Mapping[str, Any]], *args: Any) -> dict[str, Any]:
+    """Evidence-field extraction that can never raise into the instrumented path."""
+    try:
+        return dict(fn(*args))
+    except Exception:  # noqa: BLE001 - a profiler bug must not change behaviour
+        rec = active()
+        if getattr(rec, "enabled", False):
+            rec._internal_error("seam_field_errors")
+        return {}
+
+
 class ProfileRecorderV1:
     """One per process.  See the module docstring for the guarantees."""
 
@@ -301,11 +319,15 @@ class ProfileRecorderV1:
 
     def summary(self) -> dict[str, Any]:
         with self._local_lock:
-            charged = sum(state.charged_ns for state in self._local_states)
-            charged_calls = sum(state.charged_calls for state in self._local_states)
+            costs = list(self._local_states)
+        charged = sum(cost.ns for cost in costs)
+        charged_calls = sum(cost.calls for cost in costs)
+        per_thread = sorted(({"tid": c.tid, "ns": c.ns, "calls": c.calls} for c in costs
+                             if c.calls), key=lambda row: -row["ns"])[:32]
         return {"role": self.role, "pid": os.getpid(), "counters": dict(self.counters),
                 "gauge_errors": dict(self._gauge_errors),
                 "hot_path_ns_total": charged, "hot_path_calls": charged_calls,
+                "hot_path_per_thread_top32": per_thread,
                 "writer_cpu_ns": self._writer_cpu_ns, "bytes_written": self._bytes,
                 "cuda_state": self._cuda_state, "threads_seen": len(self._local_states),
                 "phase": self._phase}
@@ -316,21 +338,21 @@ class ProfileRecorderV1:
         if not hasattr(local, "stack"):
             local.stack = []
             local.ctx = {}
-            local.charged_ns = 0
-            local.charged_calls = 0
+            # One plain counter object per thread: ``threading.local`` attributes
+            # are only visible from their own thread, so the summary must keep
+            # a reference to each thread's own object, not to the local.
+            local.cost = _ThreadCost(threading.get_native_id())
             with self._local_lock:
-                self._local_states.append(local)
+                self._local_states.append(local.cost)
             self._push({"r": "thread", "tid": threading.get_native_id(),
                         "name": threading.current_thread().name, "t_raw_ns": raw_ns()})
         return local
 
     def _charge(self, ns: int) -> None:
-        local = self._local
-        try:
-            local.charged_ns += ns
-            local.charged_calls += 1
-        except AttributeError:
-            pass
+        cost = getattr(self._local, "cost", None)
+        if cost is not None:
+            cost.ns += ns
+            cost.calls += 1
 
     def _internal_error(self, name: str = "internal_errors") -> None:
         self.counters[name] += 1
