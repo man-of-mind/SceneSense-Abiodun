@@ -211,7 +211,10 @@ def run4b_preflight(config_path: Path, *, output_root: Path | None,
         "actor_boundary_sha256")
     report["phase6_run4_controller_lineage_sha256"] = report.pop(
         "controller_lineage_sha256")
+    radio_root = launcher_root(config)
     report.update({
+        "launcher_root": str(radio_root),
+        "radio_scratch_parent": str(radio_root / RADIO_SCRATCH_PARENT),
         "schema": "scenesense.splitfusion.run4b_single_host.preflight.v1",
         "child_module": CHILD_MODULE, "claim_scope": CLAIM_SCOPE,
         "run4b_actor": {"actor_state_dict_sha256": UE.ACTOR_STATE_DICT_SHA256,
@@ -229,10 +232,56 @@ def run4b_preflight(config_path: Path, *, output_root: Path | None,
     return config, cells, report
 
 
-def bind() -> None:
+RADIO_SCRATCH_PARENT = Path("experiments/splitfusion_oai_100mhz_4d5u_v1")
+
+
+def launcher_root(config: Mapping[str, Any]) -> Path:
+    """The fixed ROOT of the hash-bound OAI launcher (read from its bytes)."""
+    import re
+
+    launcher = R.ROOT / str(config["runtime"]["oai_registered_profile_launcher"])
+    match = re.search(r'^ROOT="([^"]+)"$', launcher.read_text(encoding="utf-8"), re.M)
+    require(match is not None, "qualified OAI launcher declares no ROOT")
+    root = Path(match.group(1)).resolve(strict=True)
+    require((root / RADIO_SCRATCH_PARENT).is_dir(),
+            "launcher radio-state parent directory is absent")
+    return root
+
+
+def anchored_live_radio_state(supervisor: Any, root: Path) -> Any:
+    """Supervisor scratch paths re-anchored under the launcher's own ROOT.
+
+    Phase-14A materialization refuses any output outside
+    ``<launcher ROOT>/experiments/splitfusion_oai_100mhz_4d5u_v1``; the
+    supervisor running from this worktree derives the scratch from the
+    worktree root.  Only the root changes: the same relative namespace,
+    create-only, owned and removed by the unchanged radio lifecycle.
+    """
+    original = supervisor._live_radio_state
+
+    def _live_radio_state(config, cell, attempt):
+        namespace, state = original(config, cell, attempt)
+        relative = Path(namespace).resolve().relative_to(Path(supervisor.ROOT).resolve())
+        require(relative.parts[:2] == RADIO_SCRATCH_PARENT.parts,
+                "supervisor radio scratch left its registered parent")
+        anchored = root / relative
+        anchored_state = anchored / Path(state).name
+        require(not anchored_state.exists(),
+                f"live radio scratch already exists: {anchored_state}")
+        return anchored, anchored_state
+
+    _live_radio_state.original = original  # type: ignore[attr-defined]
+    return _live_radio_state
+
+
+def bind(config: Mapping[str, Any]) -> None:
     """Bind the Run-4B child/lineage/gates into the unchanged lifecycle."""
+    from rl_agent import ue_288_campaign_supervisor as SUP
+
     from . import ue_v1 as UE
 
+    if not hasattr(SUP._live_radio_state, "original"):
+        SUP._live_radio_state = anchored_live_radio_state(SUP, launcher_root(config))
     R.CHILD_MODULE = CHILD_MODULE
     R.controller_lineage_sha256 = UE.controller_lineage_sha256
     R.evaluate_attempt = evaluate_attempt
@@ -259,7 +308,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
         return 0
     require(args.execute == EXECUTE_TOKEN, f"live launch requires --execute {EXECUTE_TOKEN}")
     require(len(cells) == 1, "exactly one registered carrier cell is required")
-    bind()
+    bind(config)
     output_root.mkdir(parents=True, exist_ok=False)
     (output_root / "RUN4B_PREFLIGHT.json").write_text(
         json.dumps(preflight, sort_keys=True, indent=1, default=str), encoding="utf-8")

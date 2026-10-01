@@ -410,6 +410,34 @@ class GateTest(unittest.TestCase):
                                             cleanup_ok=True)["gates"]["G3_EXACT_TERMINALS"])
 
 
+class RadioScratchTest(unittest.TestCase):
+    def test_scratch_is_reanchored_under_the_launcher_root_only(self) -> None:
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
+            worktree, launcher = Path(a), Path(b)
+            (launcher / RUN.RADIO_SCRATCH_PARENT).mkdir(parents=True)
+
+            def original(config, cell, attempt):
+                namespace = (worktree / RUN.RADIO_SCRATCH_PARENT / "scratch"
+                             / "cell" / f"attempt_{attempt:04d}")
+                return namespace, namespace / "00_FAVORABLE_STABLE"
+
+            supervisor = SimpleNamespace(ROOT=worktree, _live_radio_state=original)
+            seam = RUN.anchored_live_radio_state(supervisor, launcher)
+            namespace, state = seam({}, None, 1)
+            self.assertEqual(namespace, launcher / RUN.RADIO_SCRATCH_PARENT
+                             / "scratch" / "cell" / "attempt_0001")
+            self.assertEqual(state, namespace / "00_FAVORABLE_STABLE")
+            state.mkdir(parents=True)
+            with self.assertRaises(RUN.Run4BRunnerError):
+                seam({}, None, 1)
+
+    def test_registered_launcher_root_is_the_main_checkout(self) -> None:
+        config = json.loads((ROOT / "rl_agent/configs/"
+                             "splitfusion_direct_edge_map_live_validation_v1.json").read_text())
+        root = RUN.launcher_root(config)
+        self.assertTrue((root / "OAI/openairinterface5g").exists())
+
+
 class IsolationTest(unittest.TestCase):
     def test_phase6_package_is_byte_identical_to_6199d49(self) -> None:
         diff = subprocess.run(
