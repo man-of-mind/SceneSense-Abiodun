@@ -1,0 +1,859 @@
+{
+  "actor_exports": {
+    "17": {
+      "actor_state_dict_sha256": "97b8d39d0f079b8efc8d617d10b8b3e38c4010402756273797d7f97c6e044532",
+      "actor_tree_sha256": "bbb60dba197857cc2709482bf9ce440ac9f2895af1b06563827cc4e3a78af994",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success",
+        "effective_external_ul_snr_proxy_scaled"
+      ],
+      "feature_order_sha256": "987bc7997230ea3867d0023bb7af95b817778ff5d28ffa3944ee5d6e66c24a47",
+      "feature_schema_id": "splitfusion_run5b_policy_features_v2",
+      "feature_schema_sha256": "5fd799df4cd84837fe2554c71056c31d386e791438f85a601d5924e75b1a57f7",
+      "fixture_outputs_sha256": "24476aea8a2f4cd452410fa6fd84a569955ff9b68c728677fab87607eeb2097a",
+      "joint_channel_binding_sha256": "14a192f653c289d94d254823dca9e3145410c677604b9bdcd9a278bd4dac17d7",
+      "model_binding_sha256": "1fa190d8f965c49888de19c49ced819955d57fde0fe7db541fcbc3f5d85191a1",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": false,
+      "registration_sha256": "ffa13b51a679fa61787d57bd84bd5d6b0a1ada96ca44737e84927622d84e483f",
+      "runner_binding_sha256": "a8a06910fbffa178e6649fcdb00794bc318a3c692edaccd9b2e236d4309021df",
+      "schema": "splitfusion.run5b.actor_export.v1",
+      "seed": 17,
+      "update": 10000
+    },
+    "29": {
+      "actor_state_dict_sha256": "f2f26e488f77bdfd0453716627c5baafd4ba8a4509d5cd5d9b8172a4851da96f",
+      "actor_tree_sha256": "46e55e40805e2a09e6cc9b2cc3a36cffdfbf710b8a00b69c4f8b7eb3ff276c60",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success",
+        "effective_external_ul_snr_proxy_scaled"
+      ],
+      "feature_order_sha256": "987bc7997230ea3867d0023bb7af95b817778ff5d28ffa3944ee5d6e66c24a47",
+      "feature_schema_id": "splitfusion_run5b_policy_features_v2",
+      "feature_schema_sha256": "5fd799df4cd84837fe2554c71056c31d386e791438f85a601d5924e75b1a57f7",
+      "fixture_outputs_sha256": "ee4e116fc522c26b8c90c42f3886a882e06e66dc0673f5b66b83361859d985f1",
+      "joint_channel_binding_sha256": "14a192f653c289d94d254823dca9e3145410c677604b9bdcd9a278bd4dac17d7",
+      "model_binding_sha256": "1fa190d8f965c49888de19c49ced819955d57fde0fe7db541fcbc3f5d85191a1",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": false,
+      "registration_sha256": "ffa13b51a679fa61787d57bd84bd5d6b0a1ada96ca44737e84927622d84e483f",
+      "runner_binding_sha256": "5112c63f532c707cebadd78040ebed627a7b98f186cc697bfff6d5b05729bc75",
+      "schema": "splitfusion.run5b.actor_export.v1",
+      "seed": 29,
+      "update": 10000
+    },
+    "43": {
+      "actor_state_dict_sha256": "10e5332d00a89a5a8138eaf5e835eb853166698f547559c7fe93206d59592e8e",
+      "actor_tree_sha256": "258379e575c63c7468ca3dfef2b090afd7d0b08e2cfd339b9205886374f51dfd",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success",
+        "effective_external_ul_snr_proxy_scaled"
+      ],
+      "feature_order_sha256": "987bc7997230ea3867d0023bb7af95b817778ff5d28ffa3944ee5d6e66c24a47",
+      "feature_schema_id": "splitfusion_run5b_policy_features_v2",
+      "feature_schema_sha256": "5fd799df4cd84837fe2554c71056c31d386e791438f85a601d5924e75b1a57f7",
+      "fixture_outputs_sha256": "7071c6538fe1be7d320708fd7c69bd25c307558f9104e49cbd27c4d073b1c582",
+      "joint_channel_binding_sha256": "14a192f653c289d94d254823dca9e3145410c677604b9bdcd9a278bd4dac17d7",
+      "model_binding_sha256": "1fa190d8f965c49888de19c49ced819955d57fde0fe7db541fcbc3f5d85191a1",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": true,
+      "registration_sha256": "ffa13b51a679fa61787d57bd84bd5d6b0a1ada96ca44737e84927622d84e483f",
+      "runner_binding_sha256": "6f4f8fe3c54f0e65ab05d2f263e2ca33be8a012cf6d732b706061fcc0483c937",
+      "schema": "splitfusion.run5b.actor_export.v1",
+      "seed": 43,
+      "update": 10000
+    }
+  },
+  "checkpoint_updates": [
+    0,
+    100,
+    250,
+    500,
+    1000,
+    1500,
+    2000,
+    2500,
+    3000,
+    3500,
+    4000,
+    4500,
+    5000,
+    5500,
+    6000,
+    6500,
+    7000,
+    7500,
+    8000,
+    8500,
+    9000,
+    9500,
+    10000
+  ],
+  "code_commit": "d5d501bd54167bd1ceaf1bd95249fcd4a4c06ce4",
+  "dominance_rule": {
+    "families": [
+      "noAE",
+      "AE128"
+    ],
+    "max_share": 0.5
+  },
+  "exit_codes": {
+    "17": 0,
+    "29": 0,
+    "43": 0
+  },
+  "finalization_note": null,
+  "finished_unix": 1790827098.0874019,
+  "fresh_process_actor_verification": {
+    "actors": [
+      {
+        "actor_tree_sha256": "6015de6d39127d4bc2cb4d2ae392b11bc333d368a0e2232ae94da263d873b3db",
+        "bundle": "update_000000",
+        "committed_sha256": "e96af3c8c81a05185b73251a386bf2613b57b7ef77c1ab6c1400c6f9ac60fcda",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 0
+      },
+      {
+        "actor_tree_sha256": "4d39937ccf990a249da260ce67fb5962a9d10592fccd7a8f172d59a475eb67d6",
+        "bundle": "update_000100",
+        "committed_sha256": "e7e5944494779cba03480421a3ac12a85cfe29621b0561c78c7cbc92d3326905",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 100
+      },
+      {
+        "actor_tree_sha256": "01690c1cd4f716c0fe140bf46713a4338b06ba954062724bf37bb52130e77c12",
+        "bundle": "update_000250",
+        "committed_sha256": "1b2e8989b789dda3a4d72e2c244fbba3bc6b56b94b906c88a1c75a92a139f5cc",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 250
+      },
+      {
+        "actor_tree_sha256": "770264378ed51518aaa4c23145b5956ad7cceb7e920d811173fc91e972bacb2d",
+        "bundle": "update_000500",
+        "committed_sha256": "18fa95b306d71d6f4994aa6090e388e5168d410d165b31f77ed98967da6d61f8",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 500
+      },
+      {
+        "actor_tree_sha256": "363b7046134a05c62aad80c3b590c01ce7e118d21e4593378546dadebc222861",
+        "bundle": "update_001000",
+        "committed_sha256": "b3527c362caf8aace2c303904209960e14448d83c2aba4cf0ee49dbf0fe7ee51",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 1000
+      },
+      {
+        "actor_tree_sha256": "d60b3d6ca9f9c4fdfb46273f746779b89f7fae554d5344462db5973c2086af2c",
+        "bundle": "update_001500",
+        "committed_sha256": "1b0499fbcf2f927033f7c5100e997a6a174e3d7fceb97c0a86d716f1d8efa033",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 1500
+      },
+      {
+        "actor_tree_sha256": "268cb7a9f8fd24c35684383f4c9636ce133c7688d8086dfff6e15c93ad7bafe6",
+        "bundle": "update_002000",
+        "committed_sha256": "c22826eb908ff31369e587c727fcd0f06aa705d45a60bc00ed2bdfe37b31de1d",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 2000
+      },
+      {
+        "actor_tree_sha256": "ccc10e5cb447dc93bf73b3dd1b563c98eb4670c6e7abf8c8569d77af1b4fd62c",
+        "bundle": "update_002500",
+        "committed_sha256": "d9675a930326d650413e80f1c33028f76ddae9e2cfda20e0141b823fbb7c2b90",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 2500
+      },
+      {
+        "actor_tree_sha256": "bf50b7bc67375ac4dfaf46111a6d0aacb765bf4e78095bfd259e4c8a4d6ed900",
+        "bundle": "update_003000",
+        "committed_sha256": "ea7825b75ee34b7a4ba7d316cc81ee14eff22fb44da9c5dcf5bdd7da1de4c81f",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 3000
+      },
+      {
+        "actor_tree_sha256": "dabfb3bc2dbde1b9a85a59ee8c11ab055da4ff0cdc6211f8ccf8188da636bb00",
+        "bundle": "update_003500",
+        "committed_sha256": "c554d180f88fd420ababc1eee323b5c52e48d06236cffed4ad8e5eca2c8c1619",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 3500
+      },
+      {
+        "actor_tree_sha256": "73223fdc2e31438584e9b7e657d0094ca0a949909d9b260259d3d25dc5a84105",
+        "bundle": "update_004000",
+        "committed_sha256": "8f28f5ffdec2e0001d32118f2876d532003f542e5ec951fd71123884f767c153",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 4000
+      },
+      {
+        "actor_tree_sha256": "5fc8c5cf1eae895735b563993807484fb68c86debfd16d1d5951d7a3d6ae8572",
+        "bundle": "update_004500",
+        "committed_sha256": "99132ce07e1d28c3aeca9c395f28f931d6cc15b267c0e14d2e340c80baac8b2f",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 4500
+      },
+      {
+        "actor_tree_sha256": "24a05f14483d002ccb1d90ed453ad8e5a82d41ecce620878a26e581f5572f971",
+        "bundle": "update_005000",
+        "committed_sha256": "787b8991b61bd2924d3aa77f54cc08c7bbe33fca0015ffb3e4ce2863ea788c66",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 5000
+      },
+      {
+        "actor_tree_sha256": "4e5ee62775ad53ebe19a07fd95cb63a13dab6ae60e8436aa666aae6d34aedf8d",
+        "bundle": "update_005500",
+        "committed_sha256": "4ae0ce3a0f5ce9fea210ab3a02c50b7fe64a8d826fddbb27ab08a0ed3d5f91be",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 5500
+      },
+      {
+        "actor_tree_sha256": "4f6994f8e753b1553c15a2b30050f5c7b5981f9aa131b3c2a00766a6351be129",
+        "bundle": "update_006000",
+        "committed_sha256": "a41d485c756060fd8c268abcf1234738382cd205a2932553f1fc222e3b7a4aeb",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 6000
+      },
+      {
+        "actor_tree_sha256": "0cad952febb14f13d0c980ca275260338531b004f1cc6426b9c05d792a93db62",
+        "bundle": "update_006500",
+        "committed_sha256": "a7b706d6d5ce26d4edcf7ecd7c97865ae0adc0f1b3fec02c61f7f7268361f3f5",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 6500
+      },
+      {
+        "actor_tree_sha256": "6dd4a2da3e8ebeef0dc9b969ca99f9b1adfd0df0f4626f5a470addb7d20c9fac",
+        "bundle": "update_007000",
+        "committed_sha256": "a730a33617870fffcc4846b8f7b9308ca045f22c6416d45bd70ab6fa6c219e84",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 7000
+      },
+      {
+        "actor_tree_sha256": "e4c650f0a3bc441882784688d3c96b36b604fa38a73149bf72fc812e1fe47da5",
+        "bundle": "update_007500",
+        "committed_sha256": "56a2c690e506325abc192e396d205a843b1a268eff530edb73fa72c4a46d31e9",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 7500
+      },
+      {
+        "actor_tree_sha256": "4f06ccfa8d4051e512a5e40e3d79926806c6f152359e347d0b562e0cf758e292",
+        "bundle": "update_008000",
+        "committed_sha256": "738cae1fc2895886bb6aa2f1328284d97a94e989daf914a07c63732b80dc3463",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 8000
+      },
+      {
+        "actor_tree_sha256": "8d9a3350e8d0f94acb3938bf57e118be341b95a9e472e4bd397fc1c86379c662",
+        "bundle": "update_008500",
+        "committed_sha256": "a31cdb1a4b901cf267df6ef30def78b4c120d1ef5b37d521075266e79455bc8c",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 8500
+      },
+      {
+        "actor_tree_sha256": "66cc955b103362c8a6107809eb36b2818c91a1ccc961b52f047454047e6f7e6d",
+        "bundle": "update_009000",
+        "committed_sha256": "7435d49d8181adb0d80cbcff941a304a06c79a4bb8178a7f99690105ae52e571",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 9000
+      },
+      {
+        "actor_tree_sha256": "19386156ced7c193cca21d024c014a745bd1f1d45bf36c44c663667bb2b2b1d5",
+        "bundle": "update_009500",
+        "committed_sha256": "2e1f841fe2c011c26ee9c8b53ade77fbd949638c6f2899aead82f52555a37bfb",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 9500
+      },
+      {
+        "actor_tree_sha256": "bbb60dba197857cc2709482bf9ce440ac9f2895af1b06563827cc4e3a78af994",
+        "bundle": "update_010000",
+        "committed_sha256": "6f6dced96ff82623d4f1748ae03f71982a1c3b6f5314e12b479e6dbb9c5212c0",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 17,
+        "update": 10000
+      },
+      {
+        "actor_state_dict_sha256": "97b8d39d0f079b8efc8d617d10b8b3e38c4010402756273797d7f97c6e044532",
+        "actor_tree_sha256": "bbb60dba197857cc2709482bf9ce440ac9f2895af1b06563827cc4e3a78af994",
+        "bundle": "final_actor",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "preregistered_live_actor": false,
+        "seed": 17,
+        "update": 10000
+      },
+      {
+        "actor_tree_sha256": "26e95bc7ddbd73e26ec1f8e245be880d156104b3d227ac2600b20c0f8fdf18f1",
+        "bundle": "update_000000",
+        "committed_sha256": "14d02a03ed2b41e11ed8fda7b8da969df58a0ebc3a9f6d04dbe5b07733c2c5cc",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 0
+      },
+      {
+        "actor_tree_sha256": "5e27b8de2411f9ac8cfacbe8f5f168537466f4afa721053351804499a1354207",
+        "bundle": "update_000100",
+        "committed_sha256": "d307af5f9fdb628e67555fd8bf276523d5f15a1a8181204f5d2a5d89f22715fc",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 100
+      },
+      {
+        "actor_tree_sha256": "cb9b435775da0689a6c274a1aa9f3217b8c0d24658d68c710ee264deca55d758",
+        "bundle": "update_000250",
+        "committed_sha256": "96e735063c1b845a4edee90780959f95340ee85c824b04eb9633be1b0f917508",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 250
+      },
+      {
+        "actor_tree_sha256": "6cab7e5695454224b7941722d2ba326a76e9ea282ee4f2959a662d0c49e0e291",
+        "bundle": "update_000500",
+        "committed_sha256": "62c828fbf4a9b80a838286df2b81adbeb55ef99e73a5da877700743fd4847f61",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 500
+      },
+      {
+        "actor_tree_sha256": "9600fab22440050915aad19ece5ead82ae0d776900f79d40fd967c1e9ced3bb0",
+        "bundle": "update_001000",
+        "committed_sha256": "dbc03cdc63c30758a78b28ba5cb31d5dca403a0d4e2d3d63aec1ea09ac565ade",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 1000
+      },
+      {
+        "actor_tree_sha256": "b62922067c7d416b3973ed19e0709807fe956d4f2e10950d7f9c78a86efe597b",
+        "bundle": "update_001500",
+        "committed_sha256": "6b37b2e4b4fe21b4999324c8c209ae1e903c379596d1e0291b7c0cf32845c7bb",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 1500
+      },
+      {
+        "actor_tree_sha256": "3f401bfca5ac8f6f2d56a8205f96854172ac428867454c6e092c0ef85907b8b6",
+        "bundle": "update_002000",
+        "committed_sha256": "d9d6a301615adb3cfd6c5c0cef42ba80d49648b6002e94735de3d9e49d58eb9a",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 2000
+      },
+      {
+        "actor_tree_sha256": "2d205861422fc364d5ea5cea932cad2382b50f5d079998a6134191ada174deaa",
+        "bundle": "update_002500",
+        "committed_sha256": "b99f6b576f84145fc7da96688bbcc8987f97ee8bfed26649c5f0faf187b389c3",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 2500
+      },
+      {
+        "actor_tree_sha256": "a7aa1ffa5ba9976bacb737c49b361488625adaa63caaee5e5b4082c77c081f09",
+        "bundle": "update_003000",
+        "committed_sha256": "27f69b53e2c531c6fc461d0df889cd248f526a1e62f865fd1400281b1d401eb7",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 3000
+      },
+      {
+        "actor_tree_sha256": "8f570884fc5571d5a1b065da3676da3a6f1c6a5dfa88769ed6c72752ec0c3cbd",
+        "bundle": "update_003500",
+        "committed_sha256": "6be2c1ae88e7da5b9a4f864e0c9ce9d73e0ad7ac4849fc4138556ee818865e61",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 3500
+      },
+      {
+        "actor_tree_sha256": "9abc0ed7965d8577477d7ee289c0c9116cd0eecd38ae9816f3e6a2bf6eb91471",
+        "bundle": "update_004000",
+        "committed_sha256": "a2c00eaecfb2ca573228032937b3a473008ad9c878d3bb3919695f6160933e30",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 4000
+      },
+      {
+        "actor_tree_sha256": "12ec2bcf06f0d2d36627d25eb861c504a422154e76165b470190a32069cb2a82",
+        "bundle": "update_004500",
+        "committed_sha256": "27b1af8b2f42eaeb5a63bbab695bc093c7a035db802b0ff2b4ff43d483ad560c",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 4500
+      },
+      {
+        "actor_tree_sha256": "1f7b0e83ef45613a1bb9c4a03f1f7e99f801d09136214538a2fbfc841c5e4d03",
+        "bundle": "update_005000",
+        "committed_sha256": "46b58bbd49e28298bf4694dcd87d3e9a1192ba1e6dfc12d2eb080d2940f5c168",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 5000
+      },
+      {
+        "actor_tree_sha256": "8fd17aae27586c28f1e6130fbedeb7e15d15f725a5453d4a8ea8db6b6c3f4e98",
+        "bundle": "update_005500",
+        "committed_sha256": "d41256d6621387add4f13c586355a528a4f95f236f6aa62faea3c22c7c279da0",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 5500
+      },
+      {
+        "actor_tree_sha256": "99341a527a564b88e18813bab090c6b96379be62797826e99a542c5b9df1beb1",
+        "bundle": "update_006000",
+        "committed_sha256": "080fdd045564370b7c103508302ddf622af56fc949280c51301bc39abcee516a",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 6000
+      },
+      {
+        "actor_tree_sha256": "8e91677be4291651cc9f0480823ed7621858143ca7e46ef211a1bf49eb2d4a29",
+        "bundle": "update_006500",
+        "committed_sha256": "9238ec7737b64ccdfa3c63945552809d494679af2333bbcb62c7e2b18b4c7815",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 6500
+      },
+      {
+        "actor_tree_sha256": "cdf564b37303098f68bdfabbcd856cc0c68cb39729cb9a9a1ac4a253f2f18d78",
+        "bundle": "update_007000",
+        "committed_sha256": "9b5101845c0c0660488d5fe554c333c9a971b84158077e5c6c67911be7cd2f2f",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 7000
+      },
+      {
+        "actor_tree_sha256": "82f68fb3e8aee599c72138ceaab402e6219666e293f971c722c86ccc4369d366",
+        "bundle": "update_007500",
+        "committed_sha256": "8a9f12c04a07eca4959d3c687947ae94a6e0afd0df77d7af3012d7865cd8b961",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 7500
+      },
+      {
+        "actor_tree_sha256": "ba5c19434dd9145d42a700ed811784ed3579e68d95197f5da6b361f6d803f77b",
+        "bundle": "update_008000",
+        "committed_sha256": "534cb5dbd22ed56cb5c003c6b7134fd885d581cf7bc2e2761d55a849b3d0b710",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 8000
+      },
+      {
+        "actor_tree_sha256": "3131da4f24a99a0ce79f25e88ff6a04613d78d8f04bea10980aaa3a027c7b663",
+        "bundle": "update_008500",
+        "committed_sha256": "571aa7b4902433216d01e7167980d9a417db5042e29db73cf3d42351974599d4",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 8500
+      },
+      {
+        "actor_tree_sha256": "f27fab77c8b11c5081ce558cde4136c575a28a7bb7cdd0a71517372f97870e43",
+        "bundle": "update_009000",
+        "committed_sha256": "032accef900e3d6943cbef2ed55351e100bc54380748b377bf6ee41579fae6c3",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 9000
+      },
+      {
+        "actor_tree_sha256": "bb9922d185aadba7199d1c7c40411fe33e9abcf8c936f5c50cbc4a9970dab3d1",
+        "bundle": "update_009500",
+        "committed_sha256": "42ea84f2ff08a69a5d1761365e57f99982503b650b44fa71a1e2aeef4943548f",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 9500
+      },
+      {
+        "actor_tree_sha256": "46e55e40805e2a09e6cc9b2cc3a36cffdfbf710b8a00b69c4f8b7eb3ff276c60",
+        "bundle": "update_010000",
+        "committed_sha256": "051c0a6f9a017997a08e1d2d500c6a3d4f25703c7342470e1953df10c9a83935",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 29,
+        "update": 10000
+      },
+      {
+        "actor_state_dict_sha256": "f2f26e488f77bdfd0453716627c5baafd4ba8a4509d5cd5d9b8172a4851da96f",
+        "actor_tree_sha256": "46e55e40805e2a09e6cc9b2cc3a36cffdfbf710b8a00b69c4f8b7eb3ff276c60",
+        "bundle": "final_actor",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "preregistered_live_actor": false,
+        "seed": 29,
+        "update": 10000
+      },
+      {
+        "actor_tree_sha256": "5371bd5fd53561f7b7a8dc0aa1724728f7b5b775b3f7503dcb40bc055e337ca1",
+        "bundle": "update_000000",
+        "committed_sha256": "300b7d49bd231815059f7ebd1c689a21ff3fa021f13b4c1afd1f562b190891af",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 0
+      },
+      {
+        "actor_tree_sha256": "937e24b2a069d9afe9e1fa98994f131a97d3e5c7481c2bfda40520e953eabd6d",
+        "bundle": "update_000100",
+        "committed_sha256": "46c49de19129a88275c6391de109285275aef3b13efa35c1570aa7d50b52e758",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 100
+      },
+      {
+        "actor_tree_sha256": "ea9c9e915769d668f5ec0830ae5798ac2eef161dd3b265ab9066065566e000a2",
+        "bundle": "update_000250",
+        "committed_sha256": "8043b96c837dfe4059e70f09ae2d07f9fbca511ef306a010be6f1d369fd2df6e",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 250
+      },
+      {
+        "actor_tree_sha256": "e9d1dcfeee69bfae5a101e5e146787f1b4028aca1d9f05c86552f79501483789",
+        "bundle": "update_000500",
+        "committed_sha256": "da422015bb968b51ea8a6e8403ca7f4706b49879e38325cb33b326f117ea6f9e",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 500
+      },
+      {
+        "actor_tree_sha256": "bc670020042c9bf337f98944072c5c3a5b028a5f7faf5481bf03c9520345f677",
+        "bundle": "update_001000",
+        "committed_sha256": "80d56b7f26093c6cb15c6d2b193d02089aaf38b64dca266a5b9371be0065588f",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 1000
+      },
+      {
+        "actor_tree_sha256": "6db9edf6576a9751b86f7cfde946820215dd4c9c91a72b1aeaec4bb56d149e3f",
+        "bundle": "update_001500",
+        "committed_sha256": "6dfa870317a415f9ad252b30a90c02b670ddb536f1994173681d8bb13f11736c",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 1500
+      },
+      {
+        "actor_tree_sha256": "07f4f2d27fda45a404d1865cb15fb886a7430855789228553263ab18e2685029",
+        "bundle": "update_002000",
+        "committed_sha256": "2c1351104e550eb9035fd1c578c1812e7c876050fa987ff9216e2edcd23dfd76",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 2000
+      },
+      {
+        "actor_tree_sha256": "82c705b59241d55e71ecb461273d8bd01d74e2d2b618b21ba09951de62566b41",
+        "bundle": "update_002500",
+        "committed_sha256": "00ff88b5457443ce96c0542c2798c6ddc0c1e7cc1c4fea6ff2877e9f8f1edcb8",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 2500
+      },
+      {
+        "actor_tree_sha256": "c796fcf961c2638ea65711c63c681d3701d82d2c03c37327469b8a07095594d8",
+        "bundle": "update_003000",
+        "committed_sha256": "0be51129a47373185f323a9eaa2131e53ffa13bbe5c8ac0d69eeb14c1a3a9da2",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 3000
+      },
+      {
+        "actor_tree_sha256": "6265e81490af19cdd50c639b537d4a88b57bbb2fbe9f8bf304af5e1b89979531",
+        "bundle": "update_003500",
+        "committed_sha256": "abd0e5f85eb5cd00a387a1a2dc1f8fb751b4d56891bdf2f8d1f2169c4ca3fcf7",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 3500
+      },
+      {
+        "actor_tree_sha256": "a1ddc79589be6ab70f2c36b0f88cbe7a7d4422b344492d6b31e1cca05a7936c4",
+        "bundle": "update_004000",
+        "committed_sha256": "26cf67168e3f48d59a1555a9b7103f43517780e1ffe31d3a6fe0e84c6181f78d",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 4000
+      },
+      {
+        "actor_tree_sha256": "ddb27a38f80b750d45ca1481d95fa7d991a3eb57432d4424684cda162304e70e",
+        "bundle": "update_004500",
+        "committed_sha256": "0f037321b2346cb7e78dd8080631eb1f1797f47912c82cbd91ff331f09b4ecdf",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 4500
+      },
+      {
+        "actor_tree_sha256": "ee6ff16c4b7a01bf1ee6c2794a9231849ec12f2347867e0c6a5fcb2f9ca378fc",
+        "bundle": "update_005000",
+        "committed_sha256": "65a2bbdc4fb0be0ce9cd2e80f59d2ac15a5ec2daa4dda06cd22a3aafa12e9de3",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 5000
+      },
+      {
+        "actor_tree_sha256": "b86396eaee45024c679519a6a01b80432a6b4be9771b55fdeddba9c7e36f77c5",
+        "bundle": "update_005500",
+        "committed_sha256": "895fc5a0e4c83f357712223bd60b04c0b6aef71893f634244c02a65ccaff3402",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 5500
+      },
+      {
+        "actor_tree_sha256": "1c95ff11fe26b7e40a01d9c6de9a9e2bedddb1814355ab436018a95595309d95",
+        "bundle": "update_006000",
+        "committed_sha256": "2455b592d3777b19c3bf62154959f79480a4032be4ccda5dcf47de93ef08bd38",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 6000
+      },
+      {
+        "actor_tree_sha256": "5bec122a5d41bd5cef94c9ee51cfae5736a95b02eb4bd9b5bf9a737261aeb5cb",
+        "bundle": "update_006500",
+        "committed_sha256": "62c697d9a07dc32f749a777f4062659551857357298201cdf6d4afaf2409487d",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 6500
+      },
+      {
+        "actor_tree_sha256": "18abdd71feb105d9f4cf753e9fcf73895b41a42e7843f77ff3c3a750e62da559",
+        "bundle": "update_007000",
+        "committed_sha256": "824067b1f497448aa28a47e0155a994d26a2c0b4f503de55efe67672589e2ace",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 7000
+      },
+      {
+        "actor_tree_sha256": "fa2ef149b7c77e78ff1910b198a8ada92f39faae3f1f67f13f1fd4ec200c9de3",
+        "bundle": "update_007500",
+        "committed_sha256": "fd48ee87978518472fe53bcc0bf05fbec4492f922ec368876e53ffc5648c9eed",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 7500
+      },
+      {
+        "actor_tree_sha256": "e3d48452967a29c993414f4d28f705f6cb5b44828d31f363a81dc96e7cb12119",
+        "bundle": "update_008000",
+        "committed_sha256": "eb82ada620957a313566eb3780193e447dfe5e9f8b2c5d4143ee5fac6e2f2233",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 8000
+      },
+      {
+        "actor_tree_sha256": "9522724155ae51242b9635ca241fed8dc8ec6ebce2c4687b02a7f9d5fdf25958",
+        "bundle": "update_008500",
+        "committed_sha256": "b24e0fd7ca9b9c5acbb25eefe0df741279030953d39d3bb58b3e2b31c55e6207",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 8500
+      },
+      {
+        "actor_tree_sha256": "22f83f52bfb3553628f7f4f36b2cdd309fb2b3e473c3a76fdcea5e0eb7ea8971",
+        "bundle": "update_009000",
+        "committed_sha256": "33181ae6a90bca9ac904d49c8054f35b28d87a289fd7c84d3303d122dcafab46",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 9000
+      },
+      {
+        "actor_tree_sha256": "3d305743624d6f1d1305ef66f86050511859ae77e13b79c3c0e8729abd2920ee",
+        "bundle": "update_009500",
+        "committed_sha256": "dde6535d8ad6873cc3069d36d51f772f695859ab5e04a4b5109e4affc7b09b2b",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 9500
+      },
+      {
+        "actor_tree_sha256": "258379e575c63c7468ca3dfef2b090afd7d0b08e2cfd339b9205886374f51dfd",
+        "bundle": "update_010000",
+        "committed_sha256": "0040325cc3d74fb5c45ccfa5ede70676b44ee75daf83a04776052a724d04ff9e",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "seed": 43,
+        "update": 10000
+      },
+      {
+        "actor_state_dict_sha256": "10e5332d00a89a5a8138eaf5e835eb853166698f547559c7fe93206d59592e8e",
+        "actor_tree_sha256": "258379e575c63c7468ca3dfef2b090afd7d0b08e2cfd339b9205886374f51dfd",
+        "bundle": "final_actor",
+        "loader": "torch.load(weights_only=True)",
+        "pid": 3853119,
+        "preregistered_live_actor": true,
+        "seed": 43,
+        "update": 10000
+      }
+    ],
+    "pid": 3853119,
+    "verified": 72
+  },
+  "preregistered_live_actor": {
+    "seed": 43,
+    "update": 10000
+  },
+  "resume_equivalence_sha256": "c4363dab8cde0f46c42f6d2adcab958eb995810cb4a5a5527142dd69530206d9",
+  "schema": "splitfusion.run5b.campaign.v1",
+  "seed_verification": {
+    "17": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    },
+    "29": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    },
+    "43": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    }
+  },
+  "seeds": [
+    17,
+    29,
+    43
+  ],
+  "smoke_gate_sha256": "0537c569ef7b324a338fd24336c7b0845299e85c2d3e8ac962bbf8f6e3c66dfd",
+  "started_unix": 1790826931.8131094,
+  "status": "COMPLETE",
+  "target_update": 10000
+}

@@ -1,0 +1,59 @@
+{
+  "actor_family_occupancy_updates_1_500": {
+    "actor_decisions": 2000,
+    "family_counts": {
+      "AE128": 367,
+      "AE32": 1009,
+      "AE64": 495,
+      "noAE": 129
+    },
+    "family_shares": {
+      "AE128": 0.1835,
+      "AE32": 0.5045,
+      "AE64": 0.2475,
+      "noAE": 0.0645
+    },
+    "under_observed_share": 0.248
+  },
+  "code_commit": "c603d1e652bc9880e7ffb7054744570a9cd5168b",
+  "gates": {
+    "bundles_0_100_250_500_reload_bit_exact": true,
+    "current_snr_never_a_later_generated_sample": true,
+    "decision_accounting": true,
+    "finite_update_metrics": true,
+    "four_profiles_balanced": true,
+    "no_future_snr_tick": true,
+    "no_qperc_in_successor_state": true,
+    "not_dominated_by_under_observed_families": true,
+    "preflight_288": true,
+    "provider_binding_registered": true,
+    "reward_formula_exact": true,
+    "snr_feature_is_causal_sample": true,
+    "snr_states_match_ledger": false,
+    "snr_varies": true
+  },
+  "passed": false,
+  "reload_checks": {
+    "0": true,
+    "100": true,
+    "250": true,
+    "500": true
+  },
+  "result": {
+    "decisions": 2288,
+    "fingerprint": "3b705bccb6e8977ebcee9fab40d6b9fc0f91058b1b31f13378bdbd70555d7c9e",
+    "seed": 17,
+    "update": 500
+  },
+  "schema": "splitfusion.run5b.smoke_500_gate.v1",
+  "snr_diagnostics_at_500": {
+    "claim": "descriptive only; no direction or magnitude gate",
+    "controlled_sweep_0_to_1_mode_tv_mean": 0.25954875349998474,
+    "controlled_sweep_argmax_mode_change_rate": 0.24388112127780914,
+    "controlled_sweep_q_e4_delta_mean": -538.6372680664062,
+    "n_states": 2288,
+    "shuffled_abs_q_e4_delta_mean": 379.5887145996094,
+    "shuffled_argmax_mode_change_rate": 0.07867132872343063,
+    "shuffled_mode_tv_mean": 0.07971037179231644
+  }
+}
