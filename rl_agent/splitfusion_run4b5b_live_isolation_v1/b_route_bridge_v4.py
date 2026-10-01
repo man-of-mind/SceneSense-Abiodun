@@ -8,9 +8,11 @@ materialization implementation; no GT transformation is introduced here.
 from __future__ import annotations
 
 import contextlib
+import json
 import queue
 import threading
 import time
+from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from . import b_route_bridge_v3 as V3
@@ -21,6 +23,7 @@ RouteStopped = V3.RouteStopped
 RouteFailed = V3.RouteFailed
 RouteBudgetReached = V3.RouteBudgetReached
 RouteOpportunityV4 = V3.RouteOpportunityV3
+B_COLLECTOR_ROWS_NAME = "b_collector_rows.jsonl"
 BRouteBridgeV4 = V3.BRouteBridgeV3
 RawGroundTruthSpoolV4 = V3.RawGroundTruthSpoolV3
 PrimitiveSceneSnapshotSourceV4 = V3.PrimitiveSceneSnapshotSourceV3
@@ -70,6 +73,7 @@ def build_b_collector_class(base: type, bridge: BRouteBridgeV4) -> type:
     class BCollectorV4(base_v3):
         def __init__(self, **kwargs: Any) -> None:
             self._b_window_lock = threading.Lock()
+            self._b_rows_lock = threading.Lock()
             self._b_windows: dict[float, Mapping[str, Any]] = {}
             super().__init__(**kwargs)
             original = self.aggregator.window_detections
@@ -85,6 +89,18 @@ def build_b_collector_class(base: type, bridge: BRouteBridgeV4) -> type:
 
             self.aggregator.window_detections = recorded
             self.live.scene_hook = self._b_take_window
+
+        def _append_row(self, row: Mapping[str, Any]) -> None:
+            # The pinned collector keeps per-frame status rows (including
+            # drop reasons and worker failures) in memory until cleanup.
+            # Stream each one durably so the evidence survives an abort.
+            super()._append_row(row)
+            path = Path(self.attempt_dir) / B_COLLECTOR_ROWS_NAME
+            line = json.dumps(dict(row), sort_keys=True, default=str)
+            with self._b_rows_lock:
+                with path.open("a", encoding="utf-8") as handle:
+                    handle.write(line + "\n")
+                    handle.flush()
 
         def _b_take_window(self, timestamp: float) -> Mapping[str, Any]:
             with self._b_window_lock:

@@ -395,6 +395,32 @@ class OwnershipModelTest(unittest.TestCase):
         self.assertNotIn(paths.get("ue_telemetry"),
                          paths.get("ue_evidence").parents)
 
+    def test_b_collector_streams_every_status_row_durably(self) -> None:
+        class Base:
+            def __init__(self, **kwargs):
+                self.attempt_dir = kwargs["attempt_dir"]
+                self.rows = []
+                self.aggregator = SimpleNamespace(
+                    window_detections=lambda *a, **k: ((), {}))
+                self.live = SimpleNamespace(scene_hook=None)
+
+            def _append_row(self, row):
+                self.rows.append(dict(row))
+
+        with tempfile.TemporaryDirectory() as directory:
+            route = Path(directory) / "route"; route.mkdir()
+            bridge = SimpleNamespace(stop_requested=threading.Event())
+            collector = V4.build_b_collector_class(Base, bridge)(attempt_dir=route)
+            collector._append_row({"frame_id": 4, "prepare_status":
+                                   "DROPPED_SENSOR_LATE_OR_MISSING"})
+            collector._append_row({"frame_id": 6, "prepare_status":
+                                   "SPLIT_PROCESSING_FAILED", "error": "boom"})
+            lines = (route / V4.B_COLLECTOR_ROWS_NAME).read_text().splitlines()
+            self.assertEqual([json.loads(x)["prepare_status"] for x in lines],
+                             ["DROPPED_SENSOR_LATE_OR_MISSING",
+                              "SPLIT_PROCESSING_FAILED"])
+            self.assertEqual(len(collector.rows), 2)
+
     def test_dependency_builder_refuses_existing_telemetry_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "ue_telemetry"; root.mkdir()
