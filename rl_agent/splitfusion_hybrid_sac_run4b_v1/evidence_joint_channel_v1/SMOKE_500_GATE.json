@@ -1,0 +1,42 @@
+{
+  "actor_family_occupancy_updates_1_500": {
+    "actor_decisions": 2000,
+    "family_counts": {
+      "AE128": 286,
+      "AE32": 1117,
+      "AE64": 397,
+      "noAE": 200
+    },
+    "family_shares": {
+      "AE128": 0.143,
+      "AE32": 0.5585,
+      "AE64": 0.1985,
+      "noAE": 0.1
+    },
+    "under_observed_share": 0.243
+  },
+  "code_commit": "7598e4d853aef320a498ba8da5d4b9fdde1f9027",
+  "gates": {
+    "bundles_0_100_250_500_reload_bit_exact": true,
+    "decision_accounting": true,
+    "finite_update_metrics": true,
+    "not_dominated_by_under_observed_families": true,
+    "preflight_288": true,
+    "provider_binding_registered": true
+  },
+  "passed": true,
+  "reload_checks": {
+    "0": true,
+    "100": true,
+    "250": true,
+    "500": true
+  },
+  "result": {
+    "decisions": 2288,
+    "fingerprint": "b5ccc722a1bbe283d42653b7208a8343088fdbc4eda7a782a74b4d80e93b3021",
+    "seed": 17,
+    "update": 500
+  },
+  "schema": "splitfusion.run4b.smoke_500_gate.v1",
+  "variant": "RUN4B_JOINT_CHANNEL_COMPARATOR_V1"
+}

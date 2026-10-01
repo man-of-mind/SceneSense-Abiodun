@@ -1,0 +1,1398 @@
+{
+  "files": {
+    "campaign/CAMPAIGN_COMPLETE.json": {
+      "bytes": 6591,
+      "sha256": "13f9246e821a23dabc29893ca3b4d6c94f7cb5d9f7b40273b93f9a05eef8cea7"
+    },
+    "campaign/CAMPAIGN_START.json": {
+      "bytes": 906,
+      "sha256": "8e3ccee6fd96a59012ebfc5265b88e82272902658d14af07f5c6e72a5a0ac673"
+    },
+    "campaign/seed_17.log": {
+      "bytes": 133,
+      "sha256": "857693ff3d04098d23cb71cc3b87502ae6f46893781ee05e9f1d47c185447a8b"
+    },
+    "campaign/seed_17/CHECKPOINT_EVENTS.jsonl": {
+      "bytes": 20631,
+      "sha256": "5673fc3d8596ad1783a625fa40e0a2606359a22181f1c5199a69171e88f33d0a"
+    },
+    "campaign/seed_17/DECISIONS.jsonl": {
+      "bytes": 22977991,
+      "sha256": "a79eb2f36b8c109cfef045aabe1adbe5ef342b229b5455833ae3ebdfdade9be8"
+    },
+    "campaign/seed_17/PREFLIGHT_288.json": {
+      "bytes": 994,
+      "sha256": "daefda87afb5615e4e6aa6e7cf98cc826085ff0f322cf60260c514e19ab58a05"
+    },
+    "campaign/seed_17/UPDATE_METRICS.jsonl": {
+      "bytes": 5110968,
+      "sha256": "63cfdecafb7b102bd9687df747061e38eb1efe80c747fdc7b7db451e8c8e1584"
+    },
+    "campaign/seed_17/checkpoints/LATEST": {
+      "bytes": 132,
+      "sha256": "831bcb4b81f4c198b3a27b0a27e82209cebe487a7cb1d32c23f8b89cd13f993c"
+    },
+    "campaign/seed_17/checkpoints/update_000000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "9b556465573ffddc30ccc9cc3d4eba9e52d172b13da72fc75c6c58444a7237c8"
+    },
+    "campaign/seed_17/checkpoints/update_000000/environment_state.json": {
+      "bytes": 62767,
+      "sha256": "0f6bae5df18eea119d236a2f2a7d20cde4e75ab47f9f6a14ffe6488b67aa8a2f"
+    },
+    "campaign/seed_17/checkpoints/update_000000/manifest.json": {
+      "bytes": 6118,
+      "sha256": "579023e12992781bffcfc45fd43ba69c45da422657aed69d85d089fe1e06d54b"
+    },
+    "campaign/seed_17/checkpoints/update_000000/training_state.pt": {
+      "bytes": 525843,
+      "sha256": "d22add8bc4fe7cc9ecee8297ff3721bb89c1d2db3d8c1f799bead26b4fa62565"
+    },
+    "campaign/seed_17/checkpoints/update_000100/COMMITTED": {
+      "bytes": 65,
+      "sha256": "9888d1faaf406f4da119476d919380d7c7421d3cb49f46b9e2c090245a68c6fb"
+    },
+    "campaign/seed_17/checkpoints/update_000100/environment_state.json": {
+      "bytes": 62761,
+      "sha256": "7a060ec55be3acd54f621fb8b541c67947cdfa5a03b3df51a5eec51b0e04fd82"
+    },
+    "campaign/seed_17/checkpoints/update_000100/manifest.json": {
+      "bytes": 6130,
+      "sha256": "21bbf80bfc8a89eac6b77b45493cba08f8c7e417cca5823c92f78336310650d4"
+    },
+    "campaign/seed_17/checkpoints/update_000100/training_state.pt": {
+      "bytes": 1143323,
+      "sha256": "5369ac4edb5c67484119debb0ef6f4fb9dbfcc36ceb6161984ed34eb44047a19"
+    },
+    "campaign/seed_17/checkpoints/update_000250/COMMITTED": {
+      "bytes": 65,
+      "sha256": "04d10a55eb69a2b5722e87d580cd457a65fbeb8e2c1423be497bd68ec689a40d"
+    },
+    "campaign/seed_17/checkpoints/update_000250/environment_state.json": {
+      "bytes": 62823,
+      "sha256": "4b1eb98c74384f73b89340a5c01bf9f6339dc6f679224c8a3297d724f170ecb6"
+    },
+    "campaign/seed_17/checkpoints/update_000250/manifest.json": {
+      "bytes": 6131,
+      "sha256": "3b4281bfd6dfd68afe21ef50c93c7297e331249a8f61007d9545de87979c8507"
+    },
+    "campaign/seed_17/checkpoints/update_000250/training_state.pt": {
+      "bytes": 1253659,
+      "sha256": "e5e9241a473b0f3c52508d0ca818ef3772dcaf937fd6c72b05f13db66738b815"
+    },
+    "campaign/seed_17/checkpoints/update_000500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "0ef975d7e49cbd9935e014fb4eed965cca8f4790c740b40097c094f24b6b6ff3"
+    },
+    "campaign/seed_17/checkpoints/update_000500/environment_state.json": {
+      "bytes": 62757,
+      "sha256": "bba149f0ae80a3dd63ab17b894da37f867405bd6e15e2c8a34181b5c9d85bd8f"
+    },
+    "campaign/seed_17/checkpoints/update_000500/manifest.json": {
+      "bytes": 6132,
+      "sha256": "014dfcde035c584215b19c556c5cd1d485ac0f8cd32154721583cd46da635a56"
+    },
+    "campaign/seed_17/checkpoints/update_000500/training_state.pt": {
+      "bytes": 1437723,
+      "sha256": "360a787e84e6167218b8c74f632aa5d7ecb468b9701a44281955ac5047621bfb"
+    },
+    "campaign/seed_17/checkpoints/update_001000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "2467c33b56c17a610af678cee61a75a836e780d81ecf3ba4f25bb81b6ce2aec9"
+    },
+    "campaign/seed_17/checkpoints/update_001000/environment_state.json": {
+      "bytes": 62749,
+      "sha256": "b0313a21f9d431312f721d7116ae652b0c190024fc1519fbd617dc0e785e7a89"
+    },
+    "campaign/seed_17/checkpoints/update_001000/manifest.json": {
+      "bytes": 6137,
+      "sha256": "db613f776e7dc34097d5b376df9205b3adf753d4ae871ae18d424a25f3856897"
+    },
+    "campaign/seed_17/checkpoints/update_001000/training_state.pt": {
+      "bytes": 1805787,
+      "sha256": "35fd38eaa831e2e294a87ca1c51461f6e809fa909c4932e97d38f59d5b1f352f"
+    },
+    "campaign/seed_17/checkpoints/update_001500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "73210dd252f2207b284af06ccf2c21d2d746cf32ae666129ddf036b0f06f05c2"
+    },
+    "campaign/seed_17/checkpoints/update_001500/environment_state.json": {
+      "bytes": 62747,
+      "sha256": "9525524fff7108c824a90bc71ddf75be7f32195fab8337f68c775a71bfe81c3b"
+    },
+    "campaign/seed_17/checkpoints/update_001500/manifest.json": {
+      "bytes": 6137,
+      "sha256": "d4eb0f8946bb01b0d4b8467788d4c3f723713434795b964bfe6c1ced1f6d9fa6"
+    },
+    "campaign/seed_17/checkpoints/update_001500/training_state.pt": {
+      "bytes": 2173787,
+      "sha256": "f35a46f130c6ee636a4a12266246bcaa49284129152aca57de99bf332f677fc9"
+    },
+    "campaign/seed_17/checkpoints/update_002000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "a10c864d79a58196f6262410da98cd40ccf73515a70fd7309f26003618974a35"
+    },
+    "campaign/seed_17/checkpoints/update_002000/environment_state.json": {
+      "bytes": 62758,
+      "sha256": "b54ef30c10b4806aedbc2e481bfc7df177f3afef540e064ffb957ab8da4e6a85"
+    },
+    "campaign/seed_17/checkpoints/update_002000/manifest.json": {
+      "bytes": 6147,
+      "sha256": "8a7ae1aee702205ae243a3f70262b372efa8cd207b29a3a2fa7cc3c33800b62b"
+    },
+    "campaign/seed_17/checkpoints/update_002000/training_state.pt": {
+      "bytes": 2541787,
+      "sha256": "1b373518a977d58aebfb1f1c68e1f281f0fa335755842df3f20b4f4075f32394"
+    },
+    "campaign/seed_17/checkpoints/update_002500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "be174771126a783ab8afc4433f1301794f3d45244e8cecd94b5e9d19ebd837c1"
+    },
+    "campaign/seed_17/checkpoints/update_002500/environment_state.json": {
+      "bytes": 62771,
+      "sha256": "91ea6dc73e27414971f839968eaaf4215988f1a98cc468f6fb0744badee676d2"
+    },
+    "campaign/seed_17/checkpoints/update_002500/manifest.json": {
+      "bytes": 6140,
+      "sha256": "5ef85114798af1e97dc004fe643105b1c10e7672b0f1bb9816a2aefd029e3b29"
+    },
+    "campaign/seed_17/checkpoints/update_002500/training_state.pt": {
+      "bytes": 2909787,
+      "sha256": "81ac72c41adf1994944ee9b30092488d05fe4bde9694862f103c6a9e13b12631"
+    },
+    "campaign/seed_17/checkpoints/update_003000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "26aecd1a6de7aa345704b0c7eae9ae61e9daddac4606969539f8e07651c86e1c"
+    },
+    "campaign/seed_17/checkpoints/update_003000/environment_state.json": {
+      "bytes": 62784,
+      "sha256": "2abc29575cc606209d4d9625325fc52ecca4ae734e0d1efb3d923ae6e8e49972"
+    },
+    "campaign/seed_17/checkpoints/update_003000/manifest.json": {
+      "bytes": 6144,
+      "sha256": "fa4b70b361cbe072dc9b31dd98872f98bc2556613ee58da5ed35d3dcf68b2413"
+    },
+    "campaign/seed_17/checkpoints/update_003000/training_state.pt": {
+      "bytes": 3277787,
+      "sha256": "09337099a17e877dc458602bb49ad9ee719023bad58919cd21e3cf74377f603f"
+    },
+    "campaign/seed_17/checkpoints/update_003500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "2482106b1689445c2244fc3cab8607e4d5d647fa0ecd4385604e55ba39a11df6"
+    },
+    "campaign/seed_17/checkpoints/update_003500/environment_state.json": {
+      "bytes": 62831,
+      "sha256": "6fc1d31a54c0013075eb5fab0ccd97170595647540991674a066169ec0c7598c"
+    },
+    "campaign/seed_17/checkpoints/update_003500/manifest.json": {
+      "bytes": 6141,
+      "sha256": "76ac4493a79c38a282e43b45e78005a2a306440f7311f71525fb9dda4fb90d0a"
+    },
+    "campaign/seed_17/checkpoints/update_003500/training_state.pt": {
+      "bytes": 3645787,
+      "sha256": "615d997c74e339106464bf3576ed1fd3b735e85b3852e9c3ece5841c69c9d0d6"
+    },
+    "campaign/seed_17/checkpoints/update_004000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "88c6f46e1c599f2d6f1ed9c4f899c3215f085c745b35245c52da16bb6ed364ea"
+    },
+    "campaign/seed_17/checkpoints/update_004000/environment_state.json": {
+      "bytes": 62861,
+      "sha256": "3249d137adc017128ac2750ab6fb1eedec076bedbff0a05b4b154ac5fe06e27f"
+    },
+    "campaign/seed_17/checkpoints/update_004000/manifest.json": {
+      "bytes": 6143,
+      "sha256": "1bbec60017df6c43f7c6fba356dd6a6ff0110dea393341e42be9a3347174c8f9"
+    },
+    "campaign/seed_17/checkpoints/update_004000/training_state.pt": {
+      "bytes": 4013787,
+      "sha256": "1b816a6a396f807409cb51c9787d7749597be0ed57759091a854a4bb292bf753"
+    },
+    "campaign/seed_17/checkpoints/update_004500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "4e2cde32ad5211599fda4dec15762edc8a36511ffb411e390e3320ffb0dd6891"
+    },
+    "campaign/seed_17/checkpoints/update_004500/environment_state.json": {
+      "bytes": 62756,
+      "sha256": "5f0dae210093fb2917cf45ad2edbe7facbf5b0efa39f6394c5b6fe8cddeaee8c"
+    },
+    "campaign/seed_17/checkpoints/update_004500/manifest.json": {
+      "bytes": 6142,
+      "sha256": "7f6d3c043ee6a76c6579dc8c5376c32677971dea05198878895f3c79dfece361"
+    },
+    "campaign/seed_17/checkpoints/update_004500/training_state.pt": {
+      "bytes": 4381787,
+      "sha256": "0ce4289a35a148fa5a73e7701a046d25f596d867b8aab01f82be0e0fd405bfb0"
+    },
+    "campaign/seed_17/checkpoints/update_005000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "071a0584b6ed2f346d6f8625a55b8899d0972c71dd4e44f7373f6cb354190013"
+    },
+    "campaign/seed_17/checkpoints/update_005000/environment_state.json": {
+      "bytes": 62857,
+      "sha256": "74682a09bcd1088a813927b80a8958276d391d7aa6f2816f4d2f6d49158f8128"
+    },
+    "campaign/seed_17/checkpoints/update_005000/manifest.json": {
+      "bytes": 6140,
+      "sha256": "2712969190094ce51d12500a822c663c2417e2ea991a5c8c032dc529b114f451"
+    },
+    "campaign/seed_17/checkpoints/update_005000/training_state.pt": {
+      "bytes": 4749787,
+      "sha256": "ebe750119ce375435145189c2db739fe21d04952ed3ddb08a4a2cfe69a744b2d"
+    },
+    "campaign/seed_17/checkpoints/update_005500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "445bbd8f6567c9a99353ed2dad7440ff34f012ade3adb1a1bc271a65547df0f5"
+    },
+    "campaign/seed_17/checkpoints/update_005500/environment_state.json": {
+      "bytes": 62819,
+      "sha256": "7985f044273c308b7fbfe7d801f36a1c371c981e74df37c1e71ae696face91f8"
+    },
+    "campaign/seed_17/checkpoints/update_005500/manifest.json": {
+      "bytes": 6142,
+      "sha256": "e70cf1404c9f35a494142278865d93969c823a40f2e8a180f25ed48b576d51a3"
+    },
+    "campaign/seed_17/checkpoints/update_005500/training_state.pt": {
+      "bytes": 5117787,
+      "sha256": "82906cb82e50326eef25ecd082b585f71a7f3bd03726dc80f1a5e28cf3903736"
+    },
+    "campaign/seed_17/checkpoints/update_006000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "7b9fbab68c998f1a42d90f71e940b5b9f7c3db71d31d46e6721688a7c1546c45"
+    },
+    "campaign/seed_17/checkpoints/update_006000/environment_state.json": {
+      "bytes": 62747,
+      "sha256": "ac94ca1eb030a9f6a7699653c4c82f663ebdc89f60edeec38f7a399dbcc86e26"
+    },
+    "campaign/seed_17/checkpoints/update_006000/manifest.json": {
+      "bytes": 6134,
+      "sha256": "85c371ac33d67fe5d77b2b69264c836847bb714d96aff7e46ede6deac8948ef8"
+    },
+    "campaign/seed_17/checkpoints/update_006000/training_state.pt": {
+      "bytes": 5485787,
+      "sha256": "292d8c73077190519dc25a1ebbea9ac58c386ce3d47ed2042f82e2368f30454a"
+    },
+    "campaign/seed_17/checkpoints/update_006500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "f43c2611d36ff30d2b0cc66187c0997aa5c64a8e480eea4ca4e605ee5a2455fe"
+    },
+    "campaign/seed_17/checkpoints/update_006500/environment_state.json": {
+      "bytes": 62850,
+      "sha256": "bfddf81010620ca982a5865094924b44679996cc0ca3d4ef1cd3cf7a543c480e"
+    },
+    "campaign/seed_17/checkpoints/update_006500/manifest.json": {
+      "bytes": 6137,
+      "sha256": "d5ec2c3b966555a67d0c7cb691b0c665ab4f8be8a2d4f6b54fff3688aa297a1d"
+    },
+    "campaign/seed_17/checkpoints/update_006500/training_state.pt": {
+      "bytes": 5853787,
+      "sha256": "c41f2fa70b0d9d8cf23404f149c3d0a1ef4af15e59becd595f9fbda85b1218dc"
+    },
+    "campaign/seed_17/checkpoints/update_007000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "18d5007e8c55535ca9455e97f04818675fd645e807d2351cf710a533a6b0e934"
+    },
+    "campaign/seed_17/checkpoints/update_007000/environment_state.json": {
+      "bytes": 62844,
+      "sha256": "d37cf534283143a885acf006e6daa91e01e8019b89eaeeca977507a4f2be49d0"
+    },
+    "campaign/seed_17/checkpoints/update_007000/manifest.json": {
+      "bytes": 6140,
+      "sha256": "9c79faeab79a7f69be60ce55328f9118dabd47c843702a2c5d7afce094a5f6ce"
+    },
+    "campaign/seed_17/checkpoints/update_007000/training_state.pt": {
+      "bytes": 6221787,
+      "sha256": "cc4f8e3e940e51c8e36addd7b6c20f7a844e1afea0bac7c318331738fef4aba9"
+    },
+    "campaign/seed_17/checkpoints/update_007500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "30570f15f55ce938f4028b4b45f9dc20812bd1e0421c362d8b3da691b493b29a"
+    },
+    "campaign/seed_17/checkpoints/update_007500/environment_state.json": {
+      "bytes": 62810,
+      "sha256": "fa453c246c2055da633ad8bcae946b97d67412b940e4fcc9588cc42d546df0b1"
+    },
+    "campaign/seed_17/checkpoints/update_007500/manifest.json": {
+      "bytes": 6138,
+      "sha256": "bcd71559e5ae96e0807c9676e59b57a15406f87ddb4d0e473163f1538516d7b1"
+    },
+    "campaign/seed_17/checkpoints/update_007500/training_state.pt": {
+      "bytes": 6589787,
+      "sha256": "ef63822f6beddcf30389319e268656b0d67b55ec95382bc61719f2dd64fe51e6"
+    },
+    "campaign/seed_17/checkpoints/update_008000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "7d0adff51b97790c51398c0cce82496b97eec964a3875a4d84a1cbbb9206878e"
+    },
+    "campaign/seed_17/checkpoints/update_008000/environment_state.json": {
+      "bytes": 62835,
+      "sha256": "0ca19380e12304006c90c00b4009038223ca2e637439d5c36288832990fbe716"
+    },
+    "campaign/seed_17/checkpoints/update_008000/manifest.json": {
+      "bytes": 6142,
+      "sha256": "e3151d1194c0ef8cbe691dbeaa88a7ae011e11f5b8d253d7a927cbbb4187a826"
+    },
+    "campaign/seed_17/checkpoints/update_008000/training_state.pt": {
+      "bytes": 6957787,
+      "sha256": "44c45b89d66880a77a81c7f464900611dd04c841aa6aa93fea613659743519e5"
+    },
+    "campaign/seed_17/checkpoints/update_008500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "d3f3e91c165853357c2526829c87c930c2fb1ee2ebc26c2475b605be524aaa3d"
+    },
+    "campaign/seed_17/checkpoints/update_008500/environment_state.json": {
+      "bytes": 62843,
+      "sha256": "813cb6fdab884283304de0fcfb226162ccc4c30ba1580d13f9a2bd2e5cef39bd"
+    },
+    "campaign/seed_17/checkpoints/update_008500/manifest.json": {
+      "bytes": 6142,
+      "sha256": "e8e196b2c3687bfe5a8b758060a44e6b87d500562a280149a9150ca2778b8eb8"
+    },
+    "campaign/seed_17/checkpoints/update_008500/training_state.pt": {
+      "bytes": 7325787,
+      "sha256": "785cdb0ce8e1e7e3e5614b742637786bc1394dcc6b72f1da29c8a5c6ed315695"
+    },
+    "campaign/seed_17/checkpoints/update_009000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "6c2489b8d2619056e1d1d1fcb90654f0497f908f33e38800ad8c67d479432ce5"
+    },
+    "campaign/seed_17/checkpoints/update_009000/environment_state.json": {
+      "bytes": 62819,
+      "sha256": "e74d03de54c69c6a1daa13e999eb10aaf3dd628b3659800b098ea9c06df77b9f"
+    },
+    "campaign/seed_17/checkpoints/update_009000/manifest.json": {
+      "bytes": 6138,
+      "sha256": "41146fa14f0ead3579cf59233dd16f2388922d84af8ed3b9f8a88ab5302379e0"
+    },
+    "campaign/seed_17/checkpoints/update_009000/training_state.pt": {
+      "bytes": 7693787,
+      "sha256": "66eef9a8c3663a4c778100c44fc5e6fcecb1ea964a7a70928d93386b7dff5d36"
+    },
+    "campaign/seed_17/checkpoints/update_009500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "6e050dc674c966d8dae7ddf6f922dd671127c61efb8ccc79ee5e3eb056d3bbf2"
+    },
+    "campaign/seed_17/checkpoints/update_009500/environment_state.json": {
+      "bytes": 62793,
+      "sha256": "967df8fa25ff7317da6813010bc2d895a906cbdbf3e8fa4789677a0d976c5530"
+    },
+    "campaign/seed_17/checkpoints/update_009500/manifest.json": {
+      "bytes": 6142,
+      "sha256": "47baba044332183fd20c6ffca3f6449ca6d364c1b4c6768b8aa5db362390baab"
+    },
+    "campaign/seed_17/checkpoints/update_009500/training_state.pt": {
+      "bytes": 8061787,
+      "sha256": "47aad8045f9c423babf708cac4d351821454cc14a4e4e02d603aee574fb699e5"
+    },
+    "campaign/seed_17/checkpoints/update_010000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "81f48540b4a5b448c885e9bb0e6a976c50a3d920cbdbb29394fee0265a883be7"
+    },
+    "campaign/seed_17/checkpoints/update_010000/environment_state.json": {
+      "bytes": 62790,
+      "sha256": "5fdd248ec4d593d002643aa98441056eccc144034fb42a33adb241993c3e7623"
+    },
+    "campaign/seed_17/checkpoints/update_010000/manifest.json": {
+      "bytes": 6143,
+      "sha256": "64d0dcbe5103bc2d8b6e1530e9adaaaae28c7924ce8a8ebff33394e8db84e418"
+    },
+    "campaign/seed_17/checkpoints/update_010000/training_state.pt": {
+      "bytes": 8429787,
+      "sha256": "d167cb2b0943511d596fe0a1080c46f800daaf6e219ab15bd1f97eaf18a8f6c4"
+    },
+    "campaign/seed_17/final_actor/ACTOR_EXPORT.json": {
+      "bytes": 1471,
+      "sha256": "2e502826401cefda56b29ba6f1cc8ec222d148c55723df43075746e267ef6e6f"
+    },
+    "campaign/seed_17/final_actor/actor_state_dict.pt": {
+      "bytes": 100092,
+      "sha256": "b3620a28d9fd95a4c1d69ed9b8deb1dd707cf5650219e61b76f6a7b1e4350230"
+    },
+    "campaign/seed_29.log": {
+      "bytes": 133,
+      "sha256": "7ac50db494c51d3a80e9c36e4c7857e62a81d77ad95a02815852fa29f9684904"
+    },
+    "campaign/seed_29/CHECKPOINT_EVENTS.jsonl": {
+      "bytes": 20612,
+      "sha256": "871f9285dcb6ed6a92550219d1810149f74a09bf661e8b70747d499465615a2e"
+    },
+    "campaign/seed_29/DECISIONS.jsonl": {
+      "bytes": 22977749,
+      "sha256": "48b80fda116e579931f04d889749075111100505cb088a00e5d0c8d0ab37c972"
+    },
+    "campaign/seed_29/PREFLIGHT_288.json": {
+      "bytes": 993,
+      "sha256": "560de99ac4adee5495142e4dbbdc063bf6db386377b70394f265b27b49777316"
+    },
+    "campaign/seed_29/UPDATE_METRICS.jsonl": {
+      "bytes": 5109420,
+      "sha256": "5070a45c20f7361cf818a2eb6dc549fccc3ab969fb315ea64f727555451d6d9f"
+    },
+    "campaign/seed_29/checkpoints/LATEST": {
+      "bytes": 132,
+      "sha256": "4d5309422d2f04244d974adb26f55e0d831eec807c135d60cfd89f3add20a671"
+    },
+    "campaign/seed_29/checkpoints/update_000000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "fa89d22dba19c6f500eeeb7719dc000f36c0ad5b935cbb3c1bee970c561f1e1c"
+    },
+    "campaign/seed_29/checkpoints/update_000000/environment_state.json": {
+      "bytes": 62762,
+      "sha256": "f577a090f9f13d868ba8302fff839d94b91c5455fa6bfb8ebcfc6099b59466e3"
+    },
+    "campaign/seed_29/checkpoints/update_000000/manifest.json": {
+      "bytes": 6119,
+      "sha256": "fbda43fc5a72b4539d9e87737580ba9037f9cef74413018076da97e57704c226"
+    },
+    "campaign/seed_29/checkpoints/update_000000/training_state.pt": {
+      "bytes": 525843,
+      "sha256": "e050caecac96628623d468b35225f6b45240c5f12a63991acb409ea8cab84d65"
+    },
+    "campaign/seed_29/checkpoints/update_000100/COMMITTED": {
+      "bytes": 65,
+      "sha256": "0bd413a43b10811b298f9b8c71b43415de2be615fb765bba8981045e2d3b1bf0"
+    },
+    "campaign/seed_29/checkpoints/update_000100/environment_state.json": {
+      "bytes": 62799,
+      "sha256": "8a2d2830dbe72f157588fbb7c272e2f3a37f8ddf27e277439433c64a6bad8f56"
+    },
+    "campaign/seed_29/checkpoints/update_000100/manifest.json": {
+      "bytes": 6127,
+      "sha256": "7de767869c92dd1f0d66fce352a0252088c9c0dfd96ee2e4b8bbf1bc4bf99a2a"
+    },
+    "campaign/seed_29/checkpoints/update_000100/training_state.pt": {
+      "bytes": 1143323,
+      "sha256": "5943550fb1db1cb61ece2b1b0ca5f885dd270a8c5fe9995dc3b16a4d19f3015e"
+    },
+    "campaign/seed_29/checkpoints/update_000250/COMMITTED": {
+      "bytes": 65,
+      "sha256": "aab93c473643d37b73853c06fa0f1995a8a4b8d7e25bbd550026f90ed7b84157"
+    },
+    "campaign/seed_29/checkpoints/update_000250/environment_state.json": {
+      "bytes": 62752,
+      "sha256": "a2e56ec0f20e817f12a7bb68ccb290c4d5c016a02c656fa14bbadc94ca60bc8d"
+    },
+    "campaign/seed_29/checkpoints/update_000250/manifest.json": {
+      "bytes": 6134,
+      "sha256": "85b105a3b161eee6db52d395635ed7f7b3e7e92c19bd82a1459bd3f6d925d15d"
+    },
+    "campaign/seed_29/checkpoints/update_000250/training_state.pt": {
+      "bytes": 1253659,
+      "sha256": "0df51367768c81317c319638b4e7fa18be7dcf48e944fdb2da05d7ee816344d3"
+    },
+    "campaign/seed_29/checkpoints/update_000500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "f16acb97214260353aab26ac2db765e80d1f2e04706e7d619d69cdc85f3da7ba"
+    },
+    "campaign/seed_29/checkpoints/update_000500/environment_state.json": {
+      "bytes": 62764,
+      "sha256": "3bfe83a69c9a733dcb495192cdfee986d56b4d19367a21fd14fe0c9b99e7884d"
+    },
+    "campaign/seed_29/checkpoints/update_000500/manifest.json": {
+      "bytes": 6132,
+      "sha256": "7812cdf2d88d3911c9f64b2bff29e5a5d5c33c429f64e4b584fd17292fc6df7f"
+    },
+    "campaign/seed_29/checkpoints/update_000500/training_state.pt": {
+      "bytes": 1437723,
+      "sha256": "e4246a4b0ed9a4467bafa1090993d417b6d537032dd91853485ef616e81a3c72"
+    },
+    "campaign/seed_29/checkpoints/update_001000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "6676cb793702456a223e66630cc26fe9a1e4ccc6a8a642b30460a9cd409c4cee"
+    },
+    "campaign/seed_29/checkpoints/update_001000/environment_state.json": {
+      "bytes": 62751,
+      "sha256": "ba7e41bb0f5f1e55082f9ffe70556b2ce1baefa1e9749e98c72b264e41576e9e"
+    },
+    "campaign/seed_29/checkpoints/update_001000/manifest.json": {
+      "bytes": 6139,
+      "sha256": "de4aa2c07602cc8e6aec0534cab4191476204f5894c7ac49cc120e7c40005492"
+    },
+    "campaign/seed_29/checkpoints/update_001000/training_state.pt": {
+      "bytes": 1805787,
+      "sha256": "86a4e43e20dc4c8efe31e5e8c82ce5fadaeaf55d0aa46bca459ecf73c0031373"
+    },
+    "campaign/seed_29/checkpoints/update_001500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "d4b367922542ef9b38301df0fb87916aa89856c4f02e8929cf5b8f47e89c0c94"
+    },
+    "campaign/seed_29/checkpoints/update_001500/environment_state.json": {
+      "bytes": 62766,
+      "sha256": "5df78ef63fcf9b56f170aa3fab1bde6750c699f02baa87c0e65519adbb2c613c"
+    },
+    "campaign/seed_29/checkpoints/update_001500/manifest.json": {
+      "bytes": 6141,
+      "sha256": "7822c17a18b7adc8ec57c1aae7c7ba0a438938613a530b2a20e720b4373bf350"
+    },
+    "campaign/seed_29/checkpoints/update_001500/training_state.pt": {
+      "bytes": 2173787,
+      "sha256": "823c059a38e69745d0bcc359a2e7bca0ea6a5c498516e0a23c0adf2498471398"
+    },
+    "campaign/seed_29/checkpoints/update_002000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "626a7579738196b7c2ce171fbfd2e80adc2fadaa3be5d4552efd03f38d188f9b"
+    },
+    "campaign/seed_29/checkpoints/update_002000/environment_state.json": {
+      "bytes": 62781,
+      "sha256": "611801bb10ceca24c7b05ac5ce31aa2f9204cc67b375fe10d56ba35c4e5b508c"
+    },
+    "campaign/seed_29/checkpoints/update_002000/manifest.json": {
+      "bytes": 6141,
+      "sha256": "59bb036974f542d47c7fa85d675e7dd4cf88f4ce324df07c6b880d64868d4cd1"
+    },
+    "campaign/seed_29/checkpoints/update_002000/training_state.pt": {
+      "bytes": 2541787,
+      "sha256": "77d8fda5a61900f91c63c1f6326d52afc57a797e669d1fd359e7bd465bd4d9d3"
+    },
+    "campaign/seed_29/checkpoints/update_002500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "6656c66df341f432604edaba4f1938f4ad4091c6a01b664c55d304684b41faf8"
+    },
+    "campaign/seed_29/checkpoints/update_002500/environment_state.json": {
+      "bytes": 62709,
+      "sha256": "372d5e76dd8609ea56fbffda94a544160d1548d4086cea7f7da844e438772278"
+    },
+    "campaign/seed_29/checkpoints/update_002500/manifest.json": {
+      "bytes": 6140,
+      "sha256": "8e7b76625640570b14bfef1b87d7f715c3c700dcad0b0dc22a54e151a51a768d"
+    },
+    "campaign/seed_29/checkpoints/update_002500/training_state.pt": {
+      "bytes": 2909787,
+      "sha256": "9527942f5cad443971306c8b5202f4f8ffac8efd8d1bfd384a2ef9bc43a94c4d"
+    },
+    "campaign/seed_29/checkpoints/update_003000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "63a483e7390ece37dcf91ab891a11a3a76ac752b42b68b9a26bedf505eb85a5b"
+    },
+    "campaign/seed_29/checkpoints/update_003000/environment_state.json": {
+      "bytes": 62752,
+      "sha256": "e24ef2b6c6c5d225b9f0631f15598ff23988c949837df3741e06946c4e50cd55"
+    },
+    "campaign/seed_29/checkpoints/update_003000/manifest.json": {
+      "bytes": 6135,
+      "sha256": "5fbccb38739856e8d051fbd4cdba5c477c30080133491895cbc506b3b036cbaf"
+    },
+    "campaign/seed_29/checkpoints/update_003000/training_state.pt": {
+      "bytes": 3277787,
+      "sha256": "b8eeae9d5f25c7100b3ae2fff4c7a1898f3d0d7a67d576e80e5f90eea9851eff"
+    },
+    "campaign/seed_29/checkpoints/update_003500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "25307c947cc254b2302147747f2ec182ea4c6eb45120d6116ff493c3f0c8ef74"
+    },
+    "campaign/seed_29/checkpoints/update_003500/environment_state.json": {
+      "bytes": 62853,
+      "sha256": "7960b8200a1628093155f4c58d58b0fe12c652b443b5875704eda1137d51c421"
+    },
+    "campaign/seed_29/checkpoints/update_003500/manifest.json": {
+      "bytes": 6142,
+      "sha256": "e7bf17999cb351a386b630bff7b50ceba409bf8d6098ac90d52aba898517083d"
+    },
+    "campaign/seed_29/checkpoints/update_003500/training_state.pt": {
+      "bytes": 3645787,
+      "sha256": "ad2ba57d929454d8ca6680de2ee0fdb60e4305ca54431f17c27c8f7516f79660"
+    },
+    "campaign/seed_29/checkpoints/update_004000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "5f544ed45309dac43d40272ea673d88958ee19fa48d1356337b00930fef9cc4b"
+    },
+    "campaign/seed_29/checkpoints/update_004000/environment_state.json": {
+      "bytes": 62883,
+      "sha256": "57ab274d0989e3fed9ff630d0e025099f6a98786e1f7368a3b3dd74db3c7083b"
+    },
+    "campaign/seed_29/checkpoints/update_004000/manifest.json": {
+      "bytes": 6141,
+      "sha256": "d21d3557861a5fad1f854687e7c2ee42e1eb0b7af8407563802525b3d2263ac5"
+    },
+    "campaign/seed_29/checkpoints/update_004000/training_state.pt": {
+      "bytes": 4013787,
+      "sha256": "1c79cd96f4661a5edd636db7552ca070c43b26c0a8a45e8caf4970a9aa421898"
+    },
+    "campaign/seed_29/checkpoints/update_004500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "7466e60bb6aa0d735a468f5dcf1b7899e8ad9aebe49d99613a2b644b627cf0d3"
+    },
+    "campaign/seed_29/checkpoints/update_004500/environment_state.json": {
+      "bytes": 62799,
+      "sha256": "6871e3c720007ea23465963e6b762ccbe5d0f523b9e62fa6e1168a35d88f2c3d"
+    },
+    "campaign/seed_29/checkpoints/update_004500/manifest.json": {
+      "bytes": 6139,
+      "sha256": "85bca68f02aa4b9173df64f8eb69b950ecfaf6f8e345c6ea3edd9c8499108e87"
+    },
+    "campaign/seed_29/checkpoints/update_004500/training_state.pt": {
+      "bytes": 4381787,
+      "sha256": "2eabb54e19f1424875d6f1d001e7d9d3ec6694a7f8f4c4707e85750da3df4a9c"
+    },
+    "campaign/seed_29/checkpoints/update_005000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "ebcc5d8fac17f99911b395b60970bc28c30e55632e7ad519a58e10de8c1ab344"
+    },
+    "campaign/seed_29/checkpoints/update_005000/environment_state.json": {
+      "bytes": 62840,
+      "sha256": "19b6662996e83d976d8bea1bceacb9e7510d7ca2040787deef2bbe888a084e4f"
+    },
+    "campaign/seed_29/checkpoints/update_005000/manifest.json": {
+      "bytes": 6139,
+      "sha256": "e2e30634a0418ff971ca2f08e10ca6e2e34326011a4bcaf3f712886e626bbd14"
+    },
+    "campaign/seed_29/checkpoints/update_005000/training_state.pt": {
+      "bytes": 4749787,
+      "sha256": "62ed57a00d31bb26adb40db6365b8032081a56a95cec98710c687fefcaeb53a6"
+    },
+    "campaign/seed_29/checkpoints/update_005500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "1b727fb6c129a8f69becd63c16d40f65493e5ceaed74425dbb45f5c7e6c64a08"
+    },
+    "campaign/seed_29/checkpoints/update_005500/environment_state.json": {
+      "bytes": 62778,
+      "sha256": "818a4f464c1c76355eb42f43cb790984ab989373be4606ae28b182cfd1461a13"
+    },
+    "campaign/seed_29/checkpoints/update_005500/manifest.json": {
+      "bytes": 6139,
+      "sha256": "255f0522c38195e8fd6d19aeb38d52f959db76c08b090e088e543b3f2243429c"
+    },
+    "campaign/seed_29/checkpoints/update_005500/training_state.pt": {
+      "bytes": 5117787,
+      "sha256": "48652415afc2924d544b7069b302b656eb8829f822697051c2f92a4d6787c276"
+    },
+    "campaign/seed_29/checkpoints/update_006000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "94aa1809e98dae7370cfe033e59d6ba61ca38e39e41e9a8e96fa0c566716b122"
+    },
+    "campaign/seed_29/checkpoints/update_006000/environment_state.json": {
+      "bytes": 62803,
+      "sha256": "bb6656e8049b65d0e59fc8db961ea656b02bc644422c886bd3ebec2696dafea2"
+    },
+    "campaign/seed_29/checkpoints/update_006000/manifest.json": {
+      "bytes": 6135,
+      "sha256": "d4a6f6199c0271c74fbeb4c1c5f323e6e246b96baa0c846850797c2df1965713"
+    },
+    "campaign/seed_29/checkpoints/update_006000/training_state.pt": {
+      "bytes": 5485787,
+      "sha256": "86f4de289f486d354e69aa0c26f82609c26fdcd98344aa75e00d8e766e2c6209"
+    },
+    "campaign/seed_29/checkpoints/update_006500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "6329977148a824920c1420fbd69b7d00a0824a1a1c91c8f1ec5f9d6467024b72"
+    },
+    "campaign/seed_29/checkpoints/update_006500/environment_state.json": {
+      "bytes": 62704,
+      "sha256": "d97ccc25d938591e6630439c2329ad4891a42a630829a929796f1874e5b2f36e"
+    },
+    "campaign/seed_29/checkpoints/update_006500/manifest.json": {
+      "bytes": 6138,
+      "sha256": "a3dc2014a79616e099001f1b7f6e1c5564ff6ef84a14c9909318c0297abd59e9"
+    },
+    "campaign/seed_29/checkpoints/update_006500/training_state.pt": {
+      "bytes": 5853787,
+      "sha256": "3f7cff87a4fde9203b7f50e4ce78e154effa72494dc9881a6ffb73f587b78cc7"
+    },
+    "campaign/seed_29/checkpoints/update_007000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "7cedf4c5402aad3788429baec157c81dabb3578e8118a6b4eb3738e504c57c80"
+    },
+    "campaign/seed_29/checkpoints/update_007000/environment_state.json": {
+      "bytes": 62720,
+      "sha256": "9bf1d0d6d5e4398283babc79ece17a446be9a2fc1d7d343a34879e77a3354a1f"
+    },
+    "campaign/seed_29/checkpoints/update_007000/manifest.json": {
+      "bytes": 6135,
+      "sha256": "88d5161a6d58900409c3c8a49ab0f296bd85ed661e3b22d66116b572213cd325"
+    },
+    "campaign/seed_29/checkpoints/update_007000/training_state.pt": {
+      "bytes": 6221787,
+      "sha256": "69a978900a3b41cd1a28122b518237167df643a398d597e7dd9767fd63b6046b"
+    },
+    "campaign/seed_29/checkpoints/update_007500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "fddf1d05e6a84a6b1b0de03db363a374c15491d08ddeaf9abf08333974fb895d"
+    },
+    "campaign/seed_29/checkpoints/update_007500/environment_state.json": {
+      "bytes": 62822,
+      "sha256": "2e85aeb88c7a503d5d960748a51a8a67ec98f238ea2a2c1150fee72174e7d745"
+    },
+    "campaign/seed_29/checkpoints/update_007500/manifest.json": {
+      "bytes": 6136,
+      "sha256": "b50b71724d561c786e7f75efced1f8a20086acf9fd8b364c5aae0645f336a82e"
+    },
+    "campaign/seed_29/checkpoints/update_007500/training_state.pt": {
+      "bytes": 6589787,
+      "sha256": "765df73095a51dccb647ad7331da7c69b3c5b642e0cad07d7f5f7aa4012b6d4a"
+    },
+    "campaign/seed_29/checkpoints/update_008000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "237ac503bb0d7547d0f0c9e0d7dcbc90e3186b37dd0242c5adeaf8f4b94c4450"
+    },
+    "campaign/seed_29/checkpoints/update_008000/environment_state.json": {
+      "bytes": 62794,
+      "sha256": "d144f70f93816c5957b0ada03d171393432c48e3e892803b6d821fd7c608fce6"
+    },
+    "campaign/seed_29/checkpoints/update_008000/manifest.json": {
+      "bytes": 6133,
+      "sha256": "c40138bec9ef3d71c2f9033bb9af1ec9cf6945161d287f04bfd648ed14a3875e"
+    },
+    "campaign/seed_29/checkpoints/update_008000/training_state.pt": {
+      "bytes": 6957787,
+      "sha256": "fc4aa8592d75f70e8ee6e35f27c3eb07409368d94947e99f8c3111fed34a84f8"
+    },
+    "campaign/seed_29/checkpoints/update_008500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "4394bf3b02071fae5464506d4b997d65b34f320965bf65d0b583ed1c0e62697b"
+    },
+    "campaign/seed_29/checkpoints/update_008500/environment_state.json": {
+      "bytes": 62793,
+      "sha256": "5861fe5d073d14738b558d0d20c46d7af31fd5d86c132114e14ffb0f115ed43c"
+    },
+    "campaign/seed_29/checkpoints/update_008500/manifest.json": {
+      "bytes": 6138,
+      "sha256": "459039265926dbf24130a7f6be872fee8db0c18b4a1386d8d44d3b9e4767379c"
+    },
+    "campaign/seed_29/checkpoints/update_008500/training_state.pt": {
+      "bytes": 7325787,
+      "sha256": "77173be2cd63c99f4782007b0298075d2c97800157751e02e161c1fdf6e6e5c3"
+    },
+    "campaign/seed_29/checkpoints/update_009000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "f51564f6a93ac55523278f510a37e057cb4a23091a5fdcdd173a64a81b9f0111"
+    },
+    "campaign/seed_29/checkpoints/update_009000/environment_state.json": {
+      "bytes": 62810,
+      "sha256": "0629f6e720b7bff60178aeae268164fbef477e6dee0096f438bd813eca94ae49"
+    },
+    "campaign/seed_29/checkpoints/update_009000/manifest.json": {
+      "bytes": 6137,
+      "sha256": "e7a682db477c9b38792aa30e785f1f2915c29c078c7807d615fc7d43f7bbc971"
+    },
+    "campaign/seed_29/checkpoints/update_009000/training_state.pt": {
+      "bytes": 7693787,
+      "sha256": "bdb2be6477430df2a6bbbb0116ee4c6a6999dd8b9726510bdae412d4db8bc098"
+    },
+    "campaign/seed_29/checkpoints/update_009500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "ff13e66b28792cb8773ee681a332ffb8628a2cfefb2790f0a9bf69350d74f3d4"
+    },
+    "campaign/seed_29/checkpoints/update_009500/environment_state.json": {
+      "bytes": 62740,
+      "sha256": "a32eb4e2b106c9530da0a97e3595103e7557776097a89f2043da4d9e3a6b7c9e"
+    },
+    "campaign/seed_29/checkpoints/update_009500/manifest.json": {
+      "bytes": 6138,
+      "sha256": "ce9323422650fe8972aa29e37bbf1856cd817e7331ab4d9e7c8981d3402e717a"
+    },
+    "campaign/seed_29/checkpoints/update_009500/training_state.pt": {
+      "bytes": 8061787,
+      "sha256": "94a80846c2cd8c356e6d42d3c94311b3e948fe64f094de042d7408650bab74e8"
+    },
+    "campaign/seed_29/checkpoints/update_010000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "4e6c29df0e88daac4a3b0131e120049a39562069d9ac3a89265691f5e3d1a201"
+    },
+    "campaign/seed_29/checkpoints/update_010000/environment_state.json": {
+      "bytes": 62797,
+      "sha256": "24f3a732cb19502fdf2b7d36529757b4df97a39691a7e9b2d243557c381bcfe3"
+    },
+    "campaign/seed_29/checkpoints/update_010000/manifest.json": {
+      "bytes": 6140,
+      "sha256": "f90e4dc80f3e8eda468f5c63a2a5e962fcd7e28c1fe61828d47494cf67a2ebf5"
+    },
+    "campaign/seed_29/checkpoints/update_010000/training_state.pt": {
+      "bytes": 8429787,
+      "sha256": "e45a77cee16318684076468c3bab8d76699bbcffa079a7f45502af76d6fe4acd"
+    },
+    "campaign/seed_29/final_actor/ACTOR_EXPORT.json": {
+      "bytes": 1471,
+      "sha256": "a1f5e9eca19c34d40716a9bdcb43088141224090e7d5610d4fc72ee9e72a5cb8"
+    },
+    "campaign/seed_29/final_actor/actor_state_dict.pt": {
+      "bytes": 100092,
+      "sha256": "41e123d3ebc49dee610e90743ea939fb49f1656dcb20473ff601c027521c82d9"
+    },
+    "campaign/seed_43.log": {
+      "bytes": 133,
+      "sha256": "6236c8da94d1e6e166047f796c88b5b1c8c39221d044861aa0ea88997119eedb"
+    },
+    "campaign/seed_43/CHECKPOINT_EVENTS.jsonl": {
+      "bytes": 20632,
+      "sha256": "27c0c8bfa329d0cd752933380771c568bb927792ea93681656ba9e6d2b603322"
+    },
+    "campaign/seed_43/DECISIONS.jsonl": {
+      "bytes": 22983979,
+      "sha256": "cee8d08235cdc834f7bac8401806b5cfc13817667a127701cdab07b27e740e06"
+    },
+    "campaign/seed_43/PREFLIGHT_288.json": {
+      "bytes": 993,
+      "sha256": "b9c42a9de77fe86af4aeb182690d07247be37a7a92fefbbf02fc229de396f031"
+    },
+    "campaign/seed_43/UPDATE_METRICS.jsonl": {
+      "bytes": 5110737,
+      "sha256": "de2550b9fe22e2093f7a601e2da8c107ff5ca13aedc829ed5ba5f476c525d292"
+    },
+    "campaign/seed_43/checkpoints/LATEST": {
+      "bytes": 132,
+      "sha256": "d60b31aedcc0af8eb1cfd70d68b1ceffce9cf4bd7946f09deba3e81cbcced17a"
+    },
+    "campaign/seed_43/checkpoints/update_000000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "33e412cf8fdc3e02eb9e640f61d542e798140f42a3d0f751bab51c61cdec4b0f"
+    },
+    "campaign/seed_43/checkpoints/update_000000/environment_state.json": {
+      "bytes": 62773,
+      "sha256": "af6bbb17dd6e03877793e2b2c0d7df1c6d0a92ddd795f09cb292ac33916aa2b5"
+    },
+    "campaign/seed_43/checkpoints/update_000000/manifest.json": {
+      "bytes": 6117,
+      "sha256": "27bbad032fcb1f2bc7c5f32fdb1e9c1479aea96e75832efeadc35a2017429c5a"
+    },
+    "campaign/seed_43/checkpoints/update_000000/training_state.pt": {
+      "bytes": 525843,
+      "sha256": "c46b0437385c46129c2a2ca709de3b787baecc7631ad11954e7563261c6677d9"
+    },
+    "campaign/seed_43/checkpoints/update_000100/COMMITTED": {
+      "bytes": 65,
+      "sha256": "1d68ea386dbfc4249f3bf54a8c4ea2538f5c921ff1231ed11c37d2a8daac6d34"
+    },
+    "campaign/seed_43/checkpoints/update_000100/environment_state.json": {
+      "bytes": 62784,
+      "sha256": "8c2b752a306b06f3a8f2f5d185ce696d6ac6a55545b484a779c547f9901ab3a8"
+    },
+    "campaign/seed_43/checkpoints/update_000100/manifest.json": {
+      "bytes": 6128,
+      "sha256": "7cd7db7d4dc3418a7f6b8fbadeefb004ab72d5efbd8f4a23629cd0572791a8ff"
+    },
+    "campaign/seed_43/checkpoints/update_000100/training_state.pt": {
+      "bytes": 1143323,
+      "sha256": "b8c482330666e2569058434e0c47a3d4aef64d34c376990fc99bb7ea736028d3"
+    },
+    "campaign/seed_43/checkpoints/update_000250/COMMITTED": {
+      "bytes": 65,
+      "sha256": "8ce3678be71a13b92808433bd578f01c92fa9ce772c097b3ca174ee4cba8d258"
+    },
+    "campaign/seed_43/checkpoints/update_000250/environment_state.json": {
+      "bytes": 62745,
+      "sha256": "bf78787df138bcdd1d0f3bd572d13bc65964f4f2eafcba628169d46957339ba6"
+    },
+    "campaign/seed_43/checkpoints/update_000250/manifest.json": {
+      "bytes": 6132,
+      "sha256": "ab6510f09b03e4a2d82b118a01a46c2c1aed3aa69fcf913f6b236bf7b10c2847"
+    },
+    "campaign/seed_43/checkpoints/update_000250/training_state.pt": {
+      "bytes": 1253659,
+      "sha256": "1cdd64e091ef0cf28f302c5d6698d2cfd2158adc7a09bf2f3e03cc6e3990a5b3"
+    },
+    "campaign/seed_43/checkpoints/update_000500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "7902ec78aadd28312e1a26fb84a0d1e7e3cf92ae25894d5ab029e62816b3a758"
+    },
+    "campaign/seed_43/checkpoints/update_000500/environment_state.json": {
+      "bytes": 62752,
+      "sha256": "19adb3b3dbac7e28bd524baa7db3c1ff850aa93c58292afe8bb5f7025a5bfa79"
+    },
+    "campaign/seed_43/checkpoints/update_000500/manifest.json": {
+      "bytes": 6135,
+      "sha256": "966d63a90282c9c47f6298ef982ff56952d6895f5a5fb1eeeee07848197b22fe"
+    },
+    "campaign/seed_43/checkpoints/update_000500/training_state.pt": {
+      "bytes": 1437723,
+      "sha256": "7faad4780f5654e8d3fbccec4a82cc27718e14e6834384429fe4e87a7a7cc973"
+    },
+    "campaign/seed_43/checkpoints/update_001000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "a29a8ab66d90a39a57ac310466d6c3165395b11b253b75eba807cc623005f160"
+    },
+    "campaign/seed_43/checkpoints/update_001000/environment_state.json": {
+      "bytes": 62776,
+      "sha256": "fb8fe9d505ce3a11bd0d6e1ed641f815148770c7104e419da5d60075e8e3f3d3"
+    },
+    "campaign/seed_43/checkpoints/update_001000/manifest.json": {
+      "bytes": 6136,
+      "sha256": "5b0e38f6fab5fa89a29c729f24348cd1796c40b2aacfce665835eaed30e5cbfa"
+    },
+    "campaign/seed_43/checkpoints/update_001000/training_state.pt": {
+      "bytes": 1805787,
+      "sha256": "950a22b7443e41b0f993a40047fa83d200444dab9e479b322e505d52b3cd7dad"
+    },
+    "campaign/seed_43/checkpoints/update_001500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "d5e4175a86da9468d3f57c5a59f491532b18214015535e3781fb289e2fa2775b"
+    },
+    "campaign/seed_43/checkpoints/update_001500/environment_state.json": {
+      "bytes": 62761,
+      "sha256": "305c3ea1b60d893863eb22ff641fb589a5cadbf2f8a73825481a8c4430ee41f8"
+    },
+    "campaign/seed_43/checkpoints/update_001500/manifest.json": {
+      "bytes": 6138,
+      "sha256": "4521314e9b211c9deea4660ac2587667d4a9bf6032460acc2d7ab042d3dd86a9"
+    },
+    "campaign/seed_43/checkpoints/update_001500/training_state.pt": {
+      "bytes": 2173787,
+      "sha256": "8709f1f9e944cfa195f0568117753bc109f890c1eb02cbb8e186d542bdee469b"
+    },
+    "campaign/seed_43/checkpoints/update_002000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "5150c9f75edcccaa8e19c0f6f97959bdf8b3b905b75483f165317665a81aa531"
+    },
+    "campaign/seed_43/checkpoints/update_002000/environment_state.json": {
+      "bytes": 62764,
+      "sha256": "a87920347a248cb648fb5bd723c247ae2932ec91f856785a43fa363d0f51752a"
+    },
+    "campaign/seed_43/checkpoints/update_002000/manifest.json": {
+      "bytes": 6136,
+      "sha256": "322f3162145fac2deceb8a32d9d57bad87029bd1e1c22d3d6120ddc23c01a097"
+    },
+    "campaign/seed_43/checkpoints/update_002000/training_state.pt": {
+      "bytes": 2541787,
+      "sha256": "e47a4fef7f2bbe1aaef59ceb5674ab90e1c4d6a0b737368556dad193da792a6f"
+    },
+    "campaign/seed_43/checkpoints/update_002500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "07a98a41b111d52b687be79642154d534302809f25a7618b28ba618d771a921f"
+    },
+    "campaign/seed_43/checkpoints/update_002500/environment_state.json": {
+      "bytes": 62780,
+      "sha256": "32f15f46c49382746298e688549d4c006b1623318ec85b6fd4b3d76a726a4463"
+    },
+    "campaign/seed_43/checkpoints/update_002500/manifest.json": {
+      "bytes": 6140,
+      "sha256": "a8cf1b179b6ae751d2ac58614a9ac49909c1c5298f5fceed7944bde38b136682"
+    },
+    "campaign/seed_43/checkpoints/update_002500/training_state.pt": {
+      "bytes": 2909787,
+      "sha256": "54a7a30db06856e13f5d01766de457836bafcdacc026fba9d38a81e78f190693"
+    },
+    "campaign/seed_43/checkpoints/update_003000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "38cdf6a4ca60a990aeb23305f41a301b694e30289055240d5b3a1da13620a04f"
+    },
+    "campaign/seed_43/checkpoints/update_003000/environment_state.json": {
+      "bytes": 62704,
+      "sha256": "b7925bd55908d90f08958f414bf054d8bc37633463a01d1e3048e865ef0ad9a0"
+    },
+    "campaign/seed_43/checkpoints/update_003000/manifest.json": {
+      "bytes": 6143,
+      "sha256": "d38b842c96932873dc1da4c162611428de09141522d3e01c87f05aa9b7d8e010"
+    },
+    "campaign/seed_43/checkpoints/update_003000/training_state.pt": {
+      "bytes": 3277787,
+      "sha256": "90bbe57509d91ef9d5ef3934a3917b84c89c6042499686dde0a4880a36783936"
+    },
+    "campaign/seed_43/checkpoints/update_003500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "6c3d01610b1f2e8cda636b02e78d318adff3c299f3d4a70340aa0c913c2542c6"
+    },
+    "campaign/seed_43/checkpoints/update_003500/environment_state.json": {
+      "bytes": 62805,
+      "sha256": "09a29683474c750afd65304bfa15e44d07b9c4ab40f9131512c050dbf6d9e8a4"
+    },
+    "campaign/seed_43/checkpoints/update_003500/manifest.json": {
+      "bytes": 6136,
+      "sha256": "eccb4be1183ed0cd846c986b16658c02f5697a5d93a6472d4bf4499d25fd71e0"
+    },
+    "campaign/seed_43/checkpoints/update_003500/training_state.pt": {
+      "bytes": 3645787,
+      "sha256": "522c5f14869e67bd3a3bd929d0cb8ef4d13482e9a2efec0ef5e77eb1e8ca6bd8"
+    },
+    "campaign/seed_43/checkpoints/update_004000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "5b8f0404860a4983fad99d18129c5a4eadfbf2c14c9c2349383c0b16f90d5032"
+    },
+    "campaign/seed_43/checkpoints/update_004000/environment_state.json": {
+      "bytes": 62682,
+      "sha256": "7ca1f2cb556df4d49875f3c255fcf88b928d3a3c2b51c1a92eeb417ff233deb7"
+    },
+    "campaign/seed_43/checkpoints/update_004000/manifest.json": {
+      "bytes": 6140,
+      "sha256": "1e02d16fb5dff55ade5f0ef61ac7cbd65bbcac5ee4abeec8f32a8240b18e6215"
+    },
+    "campaign/seed_43/checkpoints/update_004000/training_state.pt": {
+      "bytes": 4013787,
+      "sha256": "c8de4e295f11cb14705d7ba3a85946ad53d8a9dedc24ee1e4afc1f632c9b3f99"
+    },
+    "campaign/seed_43/checkpoints/update_004500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "1902986dde0f09c817d32e8a2938fbd44ccc8efae5c4465bbc3c97974b37d026"
+    },
+    "campaign/seed_43/checkpoints/update_004500/environment_state.json": {
+      "bytes": 62756,
+      "sha256": "34a46de6376a5ec8e9211e0c33dc34e2686c61a359c7f93d0f7cdcb7acb07408"
+    },
+    "campaign/seed_43/checkpoints/update_004500/manifest.json": {
+      "bytes": 6138,
+      "sha256": "776b4867eeb6e27458cfc978356d0ae01558159ae17cfdb26495f60bbfbf5a2a"
+    },
+    "campaign/seed_43/checkpoints/update_004500/training_state.pt": {
+      "bytes": 4381787,
+      "sha256": "20ca1d3a58ca38f7e3ee0d11190f1a583b537999dff62dec154adaeb7d6ba59f"
+    },
+    "campaign/seed_43/checkpoints/update_005000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "64fe77a2e5f3a11bf5d4b3ada5d8a4cd19fb3e5fd7606d409d9e856bf405d10c"
+    },
+    "campaign/seed_43/checkpoints/update_005000/environment_state.json": {
+      "bytes": 62753,
+      "sha256": "7b858d96a7186ade1527b663c6280478475e56da5600665b9189ffbf522057e7"
+    },
+    "campaign/seed_43/checkpoints/update_005000/manifest.json": {
+      "bytes": 6137,
+      "sha256": "7dbdf39d884a5f3cd455e880aa12d2d89fc1d6705ec314e308e409d3c7c41780"
+    },
+    "campaign/seed_43/checkpoints/update_005000/training_state.pt": {
+      "bytes": 4749787,
+      "sha256": "7dc79270e0926f8e2b0048a72b237c07d4b6fe4fd507dde0391cb27e8dbca861"
+    },
+    "campaign/seed_43/checkpoints/update_005500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "534bba52b2692e67c5e608d5b3dda285fb87f26abef6fe6bc1f9725bd870aaab"
+    },
+    "campaign/seed_43/checkpoints/update_005500/environment_state.json": {
+      "bytes": 62772,
+      "sha256": "e54e394cb612f938a3c1f25f7db4405494e5aa2ceb3d0816bb17c99f8976967f"
+    },
+    "campaign/seed_43/checkpoints/update_005500/manifest.json": {
+      "bytes": 6136,
+      "sha256": "1ff14278c64d3f127ac59dece12e2cdeb636f60b5321ec824225b356fc3437da"
+    },
+    "campaign/seed_43/checkpoints/update_005500/training_state.pt": {
+      "bytes": 5117787,
+      "sha256": "d60b940bfad6a7b657a601d99c820e3e4461632ca58ff00fa4c03e3b0abac732"
+    },
+    "campaign/seed_43/checkpoints/update_006000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "c21c20b04f59a1c7a86b83cf73f4ceafddd974f7e7a952830322ff5ec1fd2663"
+    },
+    "campaign/seed_43/checkpoints/update_006000/environment_state.json": {
+      "bytes": 62748,
+      "sha256": "0ee4fef28be074e6758d56bff148510e6b197396d2cd4b295688b7bbf11bc948"
+    },
+    "campaign/seed_43/checkpoints/update_006000/manifest.json": {
+      "bytes": 6139,
+      "sha256": "e9aa757174747d4989739afbb48c595c3c2725e323479639a4474e68e378314b"
+    },
+    "campaign/seed_43/checkpoints/update_006000/training_state.pt": {
+      "bytes": 5485787,
+      "sha256": "9009a4d9ca79042a7529a3ea28764154b05bc22301c7c5df7e71a73e40ff7272"
+    },
+    "campaign/seed_43/checkpoints/update_006500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "1902a212b1dec25258e5eb3c055e2e470cf531b7050057e2641c15cb451399c2"
+    },
+    "campaign/seed_43/checkpoints/update_006500/environment_state.json": {
+      "bytes": 62806,
+      "sha256": "7fca655a021d267bbbab8cc030ac097c2409e6e3d3793e137343c2ff339745be"
+    },
+    "campaign/seed_43/checkpoints/update_006500/manifest.json": {
+      "bytes": 6141,
+      "sha256": "1da1e4efcac8cfc748a9b5cdb9c064e94e2dd3c1066355d6b048d4a6d6017182"
+    },
+    "campaign/seed_43/checkpoints/update_006500/training_state.pt": {
+      "bytes": 5853787,
+      "sha256": "0a70eafc08054d0a9fdff14d87213816aba63021d981d0cd6ad0e4f10fe220cd"
+    },
+    "campaign/seed_43/checkpoints/update_007000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "60f9a074f8258c05cdd7ee6444d5c609e0dabd390ac4745afb003cf096e13a92"
+    },
+    "campaign/seed_43/checkpoints/update_007000/environment_state.json": {
+      "bytes": 62848,
+      "sha256": "7a63b8fba10da96fd3981fb8b6ca9bec9c1158ff0939dfd7d8051a07c10fe7b4"
+    },
+    "campaign/seed_43/checkpoints/update_007000/manifest.json": {
+      "bytes": 6136,
+      "sha256": "0addcf4e7042ab151af8744873e07a2649f1aad3a80930aa08413b19573f911d"
+    },
+    "campaign/seed_43/checkpoints/update_007000/training_state.pt": {
+      "bytes": 6221787,
+      "sha256": "dfe9f4fd05dc7df1d03fdc004af3160b8392c20ab3575de973d3751aea1a5f5e"
+    },
+    "campaign/seed_43/checkpoints/update_007500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "8b669ba665c1d913020c207e992f417e000b8f9fa1e5604b31de5eb660ce4251"
+    },
+    "campaign/seed_43/checkpoints/update_007500/environment_state.json": {
+      "bytes": 62791,
+      "sha256": "7e01601201833da7125a2fcf94d9fd80da94b267a61be0986dc297835a61690d"
+    },
+    "campaign/seed_43/checkpoints/update_007500/manifest.json": {
+      "bytes": 6136,
+      "sha256": "fcc4fe5fae7754944fbfdc992e6555c1e812addc34a047e1ae4a87e51d3d399e"
+    },
+    "campaign/seed_43/checkpoints/update_007500/training_state.pt": {
+      "bytes": 6589787,
+      "sha256": "521b72f329e643dc9ee489b6de6ec0620118c1a9338434593b729005108b10cf"
+    },
+    "campaign/seed_43/checkpoints/update_008000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "b8d2ef8b25ac1195079d3b1691a91dbed05b0216a04a504d33fbd9093ee340c8"
+    },
+    "campaign/seed_43/checkpoints/update_008000/environment_state.json": {
+      "bytes": 62750,
+      "sha256": "cf5532274b48db39848d767338688b13eeccf99ff9fcc4695943d16379da331d"
+    },
+    "campaign/seed_43/checkpoints/update_008000/manifest.json": {
+      "bytes": 6143,
+      "sha256": "c082c4637120c862b61e853ad7250e39080f63885aaef87d62adbed1f6fe7fd6"
+    },
+    "campaign/seed_43/checkpoints/update_008000/training_state.pt": {
+      "bytes": 6957787,
+      "sha256": "095af852bf86d8f647443f924697ef14e4c10d2fe367fcf54a415b04a0bbd927"
+    },
+    "campaign/seed_43/checkpoints/update_008500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "7e0282e8fcb6d99ee0b87438cde1af90054fa6b8d9e44fbe921f981c631dda0f"
+    },
+    "campaign/seed_43/checkpoints/update_008500/environment_state.json": {
+      "bytes": 62767,
+      "sha256": "03d20ef5c977ccd98ab6f3b460065e49a59fe601a345089103e4bbab1c6fdc77"
+    },
+    "campaign/seed_43/checkpoints/update_008500/manifest.json": {
+      "bytes": 6139,
+      "sha256": "dc70317a8f2e0fe209e52dda91891079b2da11ffd29f0611ef5f02d70f497e3e"
+    },
+    "campaign/seed_43/checkpoints/update_008500/training_state.pt": {
+      "bytes": 7325787,
+      "sha256": "a750e2eb3f7eb5a931801ea8ca80d7cff931e1333cdd12329855db7d2cb284d6"
+    },
+    "campaign/seed_43/checkpoints/update_009000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "ab0de6478ed90aa6dc8a0c1297a1fb372942655caafc21dd7bfa12d7f0c85fb2"
+    },
+    "campaign/seed_43/checkpoints/update_009000/environment_state.json": {
+      "bytes": 62756,
+      "sha256": "583f658c4c6d1d44ef1e34a0d0c620d4cc2fcf23626d71ab4c1ed1f7f85bae28"
+    },
+    "campaign/seed_43/checkpoints/update_009000/manifest.json": {
+      "bytes": 6143,
+      "sha256": "402050ba165035e655078286cc109ea66d15870a320d9ce63854df8f532d49b2"
+    },
+    "campaign/seed_43/checkpoints/update_009000/training_state.pt": {
+      "bytes": 7693787,
+      "sha256": "e87e7ac6ac3c61c3c0bd32cac31bbff9feb855efe1cbb96f79d172c84bd15aee"
+    },
+    "campaign/seed_43/checkpoints/update_009500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "ab2d17394ebc66a381b48cc22d4142549fbd116e34ab1248165818f5d4a433dd"
+    },
+    "campaign/seed_43/checkpoints/update_009500/environment_state.json": {
+      "bytes": 62738,
+      "sha256": "3cfb45609b6b59048dadb529a5e2b9da6920aacf2cbd2ea2d20e1d0e8f74d139"
+    },
+    "campaign/seed_43/checkpoints/update_009500/manifest.json": {
+      "bytes": 6139,
+      "sha256": "b33f69ea5beed6188952b0bdc26f20c72c0aba3588b96b729b9e93725aabb422"
+    },
+    "campaign/seed_43/checkpoints/update_009500/training_state.pt": {
+      "bytes": 8061787,
+      "sha256": "8f0326ca3bfa1851d7354b6569077c4bf8c1ec05a96d1acdfe4a6681d02a11bb"
+    },
+    "campaign/seed_43/checkpoints/update_010000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "ceccf7df445761d7ba5dcca6db6cf25e37bcc2d1f8258772eb9eb756ad5dd2d5"
+    },
+    "campaign/seed_43/checkpoints/update_010000/environment_state.json": {
+      "bytes": 62764,
+      "sha256": "fefcbbf8ec5ecfc4e56e979bc58265bdec67cdef73cc8ecdd5f9dfa51578893b"
+    },
+    "campaign/seed_43/checkpoints/update_010000/manifest.json": {
+      "bytes": 6144,
+      "sha256": "2289ed333ee818bc95a60e388c297258a358968f8235d1473f1255cdabd991db"
+    },
+    "campaign/seed_43/checkpoints/update_010000/training_state.pt": {
+      "bytes": 8429787,
+      "sha256": "4c15b7d21faa41961050508db0dad9770a9ee72b9113640b4527f08a9ed9fee9"
+    },
+    "campaign/seed_43/final_actor/ACTOR_EXPORT.json": {
+      "bytes": 1470,
+      "sha256": "cb508a743b9b9ffd6f52c1fe2ea924c85050afb5b43e02f9e24cf434fbad5c7f"
+    },
+    "campaign/seed_43/final_actor/actor_state_dict.pt": {
+      "bytes": 100092,
+      "sha256": "643cb7adee66bc7e82665bf5cdbbcead39d6690c7af4fe988bd48be730753c3c"
+    },
+    "campaign_driver.log": {
+      "bytes": 9,
+      "sha256": "a4bccf5c13ef5ff8311e59b34d492bc7072a55298723601a6a9c127053aee8fc"
+    },
+    "resume_test/RESUME_EQUIVALENCE.json": {
+      "bytes": 903,
+      "sha256": "5cf2d3cb9142636e2c0f35bef336ae5152ad25580295931da1342f72d37f2dd0"
+    },
+    "resume_test/resume_test.log": {
+      "bytes": 260,
+      "sha256": "ce82ee74dfae682851eb7d71829e600b53f8cbe9f0eb664f087d4ef5d384f2fe"
+    },
+    "resume_test/seed_17/CHECKPOINT_EVENTS.jsonl": {
+      "bytes": 3532,
+      "sha256": "13cc8a38eb647c2e5cf138c9b5f544e90e31bce7a6a75565fb6d2e4ad6a41b60"
+    },
+    "resume_test/seed_17/DECISIONS.jsonl": {
+      "bytes": 1300372,
+      "sha256": "caf6e270d740b4bd7b69e3004175e29651af2647729fbdc0faf0ba4b55c5ca78"
+    },
+    "resume_test/seed_17/PREFLIGHT_288.json": {
+      "bytes": 994,
+      "sha256": "daefda87afb5615e4e6aa6e7cf98cc826085ff0f322cf60260c514e19ab58a05"
+    },
+    "resume_test/seed_17/UPDATE_METRICS.jsonl": {
+      "bytes": 255811,
+      "sha256": "a10c8896863bebe8aa1b370950881d79a514fb510152f9797eda39161ff6f9d8"
+    },
+    "resume_test/seed_17/checkpoints/LATEST": {
+      "bytes": 130,
+      "sha256": "a3eb600c41b7ae823b479fb44aef4152c6c21ee5316fb81f328b1df97c5e8d19"
+    },
+    "resume_test/seed_17/checkpoints/update_000000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "9b556465573ffddc30ccc9cc3d4eba9e52d172b13da72fc75c6c58444a7237c8"
+    },
+    "resume_test/seed_17/checkpoints/update_000000/environment_state.json": {
+      "bytes": 62767,
+      "sha256": "0f6bae5df18eea119d236a2f2a7d20cde4e75ab47f9f6a14ffe6488b67aa8a2f"
+    },
+    "resume_test/seed_17/checkpoints/update_000000/manifest.json": {
+      "bytes": 6118,
+      "sha256": "579023e12992781bffcfc45fd43ba69c45da422657aed69d85d089fe1e06d54b"
+    },
+    "resume_test/seed_17/checkpoints/update_000000/training_state.pt": {
+      "bytes": 525843,
+      "sha256": "d22add8bc4fe7cc9ecee8297ff3721bb89c1d2db3d8c1f799bead26b4fa62565"
+    },
+    "resume_test/seed_17/checkpoints/update_000100/COMMITTED": {
+      "bytes": 65,
+      "sha256": "9888d1faaf406f4da119476d919380d7c7421d3cb49f46b9e2c090245a68c6fb"
+    },
+    "resume_test/seed_17/checkpoints/update_000100/environment_state.json": {
+      "bytes": 62761,
+      "sha256": "7a060ec55be3acd54f621fb8b541c67947cdfa5a03b3df51a5eec51b0e04fd82"
+    },
+    "resume_test/seed_17/checkpoints/update_000100/manifest.json": {
+      "bytes": 6130,
+      "sha256": "21bbf80bfc8a89eac6b77b45493cba08f8c7e417cca5823c92f78336310650d4"
+    },
+    "resume_test/seed_17/checkpoints/update_000100/training_state.pt": {
+      "bytes": 1143323,
+      "sha256": "5369ac4edb5c67484119debb0ef6f4fb9dbfcc36ceb6161984ed34eb44047a19"
+    },
+    "resume_test/seed_17/checkpoints/update_000250/COMMITTED": {
+      "bytes": 65,
+      "sha256": "04d10a55eb69a2b5722e87d580cd457a65fbeb8e2c1423be497bd68ec689a40d"
+    },
+    "resume_test/seed_17/checkpoints/update_000250/environment_state.json": {
+      "bytes": 62823,
+      "sha256": "4b1eb98c74384f73b89340a5c01bf9f6339dc6f679224c8a3297d724f170ecb6"
+    },
+    "resume_test/seed_17/checkpoints/update_000250/manifest.json": {
+      "bytes": 6131,
+      "sha256": "3b4281bfd6dfd68afe21ef50c93c7297e331249a8f61007d9545de87979c8507"
+    },
+    "resume_test/seed_17/checkpoints/update_000250/training_state.pt": {
+      "bytes": 1253659,
+      "sha256": "e5e9241a473b0f3c52508d0ca818ef3772dcaf937fd6c72b05f13db66738b815"
+    },
+    "resume_test/seed_17/checkpoints/update_000500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "0ef975d7e49cbd9935e014fb4eed965cca8f4790c740b40097c094f24b6b6ff3"
+    },
+    "resume_test/seed_17/checkpoints/update_000500/environment_state.json": {
+      "bytes": 62757,
+      "sha256": "bba149f0ae80a3dd63ab17b894da37f867405bd6e15e2c8a34181b5c9d85bd8f"
+    },
+    "resume_test/seed_17/checkpoints/update_000500/manifest.json": {
+      "bytes": 6132,
+      "sha256": "014dfcde035c584215b19c556c5cd1d485ac0f8cd32154721583cd46da635a56"
+    },
+    "resume_test/seed_17/checkpoints/update_000500/training_state.pt": {
+      "bytes": 1437723,
+      "sha256": "360a787e84e6167218b8c74f632aa5d7ecb468b9701a44281955ac5047621bfb"
+    },
+    "smoke/SMOKE_500_GATE.json": {
+      "bytes": 1029,
+      "sha256": "85ed08e3ede280e6c06c4df26de3e3d02a813889a3456f0a6fe783ff02ba5897"
+    },
+    "smoke/seed_17/CHECKPOINT_EVENTS.jsonl": {
+      "bytes": 3532,
+      "sha256": "13cc8a38eb647c2e5cf138c9b5f544e90e31bce7a6a75565fb6d2e4ad6a41b60"
+    },
+    "smoke/seed_17/DECISIONS.jsonl": {
+      "bytes": 1300372,
+      "sha256": "caf6e270d740b4bd7b69e3004175e29651af2647729fbdc0faf0ba4b55c5ca78"
+    },
+    "smoke/seed_17/PREFLIGHT_288.json": {
+      "bytes": 994,
+      "sha256": "daefda87afb5615e4e6aa6e7cf98cc826085ff0f322cf60260c514e19ab58a05"
+    },
+    "smoke/seed_17/UPDATE_METRICS.jsonl": {
+      "bytes": 255811,
+      "sha256": "a10c8896863bebe8aa1b370950881d79a514fb510152f9797eda39161ff6f9d8"
+    },
+    "smoke/seed_17/checkpoints/LATEST": {
+      "bytes": 130,
+      "sha256": "a3eb600c41b7ae823b479fb44aef4152c6c21ee5316fb81f328b1df97c5e8d19"
+    },
+    "smoke/seed_17/checkpoints/update_000000/COMMITTED": {
+      "bytes": 65,
+      "sha256": "9b556465573ffddc30ccc9cc3d4eba9e52d172b13da72fc75c6c58444a7237c8"
+    },
+    "smoke/seed_17/checkpoints/update_000000/environment_state.json": {
+      "bytes": 62767,
+      "sha256": "0f6bae5df18eea119d236a2f2a7d20cde4e75ab47f9f6a14ffe6488b67aa8a2f"
+    },
+    "smoke/seed_17/checkpoints/update_000000/manifest.json": {
+      "bytes": 6118,
+      "sha256": "579023e12992781bffcfc45fd43ba69c45da422657aed69d85d089fe1e06d54b"
+    },
+    "smoke/seed_17/checkpoints/update_000000/training_state.pt": {
+      "bytes": 525843,
+      "sha256": "d22add8bc4fe7cc9ecee8297ff3721bb89c1d2db3d8c1f799bead26b4fa62565"
+    },
+    "smoke/seed_17/checkpoints/update_000100/COMMITTED": {
+      "bytes": 65,
+      "sha256": "9888d1faaf406f4da119476d919380d7c7421d3cb49f46b9e2c090245a68c6fb"
+    },
+    "smoke/seed_17/checkpoints/update_000100/environment_state.json": {
+      "bytes": 62761,
+      "sha256": "7a060ec55be3acd54f621fb8b541c67947cdfa5a03b3df51a5eec51b0e04fd82"
+    },
+    "smoke/seed_17/checkpoints/update_000100/manifest.json": {
+      "bytes": 6130,
+      "sha256": "21bbf80bfc8a89eac6b77b45493cba08f8c7e417cca5823c92f78336310650d4"
+    },
+    "smoke/seed_17/checkpoints/update_000100/training_state.pt": {
+      "bytes": 1143323,
+      "sha256": "5369ac4edb5c67484119debb0ef6f4fb9dbfcc36ceb6161984ed34eb44047a19"
+    },
+    "smoke/seed_17/checkpoints/update_000250/COMMITTED": {
+      "bytes": 65,
+      "sha256": "04d10a55eb69a2b5722e87d580cd457a65fbeb8e2c1423be497bd68ec689a40d"
+    },
+    "smoke/seed_17/checkpoints/update_000250/environment_state.json": {
+      "bytes": 62823,
+      "sha256": "4b1eb98c74384f73b89340a5c01bf9f6339dc6f679224c8a3297d724f170ecb6"
+    },
+    "smoke/seed_17/checkpoints/update_000250/manifest.json": {
+      "bytes": 6131,
+      "sha256": "3b4281bfd6dfd68afe21ef50c93c7297e331249a8f61007d9545de87979c8507"
+    },
+    "smoke/seed_17/checkpoints/update_000250/training_state.pt": {
+      "bytes": 1253659,
+      "sha256": "e5e9241a473b0f3c52508d0ca818ef3772dcaf937fd6c72b05f13db66738b815"
+    },
+    "smoke/seed_17/checkpoints/update_000500/COMMITTED": {
+      "bytes": 65,
+      "sha256": "0ef975d7e49cbd9935e014fb4eed965cca8f4790c740b40097c094f24b6b6ff3"
+    },
+    "smoke/seed_17/checkpoints/update_000500/environment_state.json": {
+      "bytes": 62757,
+      "sha256": "bba149f0ae80a3dd63ab17b894da37f867405bd6e15e2c8a34181b5c9d85bd8f"
+    },
+    "smoke/seed_17/checkpoints/update_000500/manifest.json": {
+      "bytes": 6132,
+      "sha256": "014dfcde035c584215b19c556c5cd1d485ac0f8cd32154721583cd46da635a56"
+    },
+    "smoke/seed_17/checkpoints/update_000500/training_state.pt": {
+      "bytes": 1437723,
+      "sha256": "360a787e84e6167218b8c74f632aa5d7ecb468b9701a44281955ac5047621bfb"
+    }
+  },
+  "run_dir": "rl_agent/experiments/splitfusion_hybrid_sac_run4b_v1/20261001_7598e4d_joint_channel_comparator_v1",
+  "schema": "splitfusion.run4b.payload_index.v1"
+}

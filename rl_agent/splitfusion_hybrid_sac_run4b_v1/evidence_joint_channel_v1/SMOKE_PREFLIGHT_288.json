@@ -1,0 +1,33 @@
+{
+  "backlog_zero_fraction": 0.9548611111111112,
+  "checks": {
+    "backlog_zero_and_positive": true,
+    "coverage_12x6x4": true,
+    "duration_2_discount": true,
+    "exact_operational_prior_propagation": true,
+    "exact_schedule_identity": true,
+    "finite_states_rewards": true,
+    "no_gradient_during_collection": true,
+    "provider_binding_registered": true,
+    "si_p40_mcs_vary": true,
+    "success_and_failure_present": true
+  },
+  "decision_chain": "4f79a027acbfcd1f660b2af0f0ebf686fa9a926623bc0c48a26a5da5ccb74a88",
+  "decisions": 288,
+  "distinct_values_first_four_features": {
+    "camera_si_scaled": 216,
+    "pre_action_rlc_backlog_log1p_scaled": 14,
+    "prior_ul_mcs_normalized": 20,
+    "radar_p40": 216
+  },
+  "passed": true,
+  "reward_max": 0.7298824542986901,
+  "reward_mean": 0.17403394321858295,
+  "reward_min": -1.0,
+  "schema": "splitfusion.run4b.preflight_288.v1",
+  "seed": 17,
+  "terminal_counts": {
+    "TIMELY_SUCCESS": 272,
+    "TIMEOUT_OR_FAILURE": 16
+  }
+}
