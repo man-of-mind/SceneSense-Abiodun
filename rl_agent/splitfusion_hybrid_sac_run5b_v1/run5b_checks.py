@@ -78,23 +78,31 @@ def preflight_snr_checks(runner, transitions) -> dict[str, bool]:
     return checks
 
 
+def _f32(value: float) -> float:
+    return float(torch.tensor(value, dtype=torch.float32))
+
+
 def smoke_snr_gates(seed_dir: Path, runner) -> dict[str, bool]:
+    """Ledger rows are float64; the replay stores float32 states (amendment A1).
+
+    Comparisons against replay states are made at float32; the float64
+    feature/SNR identity is checked on the ledger itself.
+    """
     rows = [json.loads(line) for line in (Path(seed_dir) / "DECISIONS.jsonl").read_text()
             .splitlines()]
     replay = runner.replay.state_dict()
     states = [tuple(float(v) for v in row) for row in replay["state"]]
     if len(states) != len(rows):
         raise RuntimeError("replay does not hold every smoke decision")
-    diag_like = [{**r, "transport_success": r["transport_success"]} for r in rows]
     checks = _snr_checks([r["snr_db"] for r in rows], [r["snr_feature"] for r in rows],
                          [r["successor_snr_db"] for r in rows],
                          [r["generated_ticks_after_observed"] for r in rows],
-                         [r["q_perc_training_only"] for r in rows], states, diag_like)
+                         [_f32(r["q_perc_training_only"]) for r in rows], states, rows)
     balance = runner.env.profile_balance()
     checks["four_profiles_balanced"] = (len(balance) == 4 and min(balance.values()) >= 1
                                         and max(balance.values()) - min(balance.values()) <= 1)
     checks["snr_states_match_ledger"] = all(
-        s[C.SNR_FEATURE_INDEX] == r["snr_feature"] for s, r in zip(states, rows))
+        s[C.SNR_FEATURE_INDEX] == _f32(r["snr_feature"]) for s, r in zip(states, rows))
     return checks
 
 

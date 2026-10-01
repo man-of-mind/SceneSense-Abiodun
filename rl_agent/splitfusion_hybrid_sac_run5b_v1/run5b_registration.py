@@ -42,6 +42,20 @@ PINNED_RUN4B_SOURCES = ("rl_agent/splitfusion_hybrid_sac_run4b_v1/learner.py",
                         "rl_agent/splitfusion_operational_latency_v1/PROVIDER_BINDING.json")
 
 
+AMENDMENTS = (
+    {"id": "A1_SMOKE_GATE_FLOAT32_COMPARISON",
+     "superseded_seal_sha256": "245b155c1db97c946e33f7eb33c1b40e826a878f8aed49738e94356ac2e2aec8",
+     "superseded_file": "RUN5B_REGISTRATION_A0_SUPERSEDED.json",
+     "reason": ("smoke attempt 1 failed only snr_states_match_ledger: the checker compared "
+                "float32 replay states with float64 ledger values (0/2288 equal in float64, "
+                "2288/2288 equal in float32). The same dtype mix made the smoke Q_perc-leak "
+                "check vacuous; with float32 comparison it finds 0 leaks."),
+     "change": "run5b_checks.smoke_snr_gates compares replay states at float32",
+     "training_path_environment_reward_state_or_config_changed": False,
+     "failed_attempt_kept_at": "campaign_runs/smoke_seed17_attempt1_checker_dtype_defect"},
+)
+
+
 class RegistrationError(RuntimeError):
     pass
 
@@ -57,6 +71,7 @@ def static_document(root: Path = ROOT) -> dict[str, Any]:
     return {
         "schema": SCHEMA,
         "registered_before_any_run5b_training": True,
+        "amendments": list(AMENDMENTS),
         "decision": JC.DECISION,
         "scope": ("OFFLINE_MODELED_EXPLORATORY_TRAINING; "
                   "EXPLORATORY_POOLED_FAMILY_TRANSFER_ASSUMPTION; NOT DEPLOYMENT AUTHORIZATION"),
