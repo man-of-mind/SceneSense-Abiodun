@@ -1,0 +1,203 @@
+{
+  "campaign_stop_rules": {
+    "family_dominance": {
+      "evaluated_at": "every registered checkpoint >= update 500",
+      "families": [
+        "noAE",
+        "AE128"
+      ],
+      "max_share": 0.5,
+      "statistic": "share of STOCHASTIC_ACTOR decisions executed since the previous registered checkpoint"
+    },
+    "numerical_failure": "any non-finite update metric, loss, gradient or parameter",
+    "provider_drift": "provider binding != registered digest or any source/pool pin drift",
+    "schema_mismatch": "any bundle/binding refusal"
+  },
+  "checkpoint_updates": [
+    0,
+    100,
+    250,
+    500,
+    1000,
+    1500,
+    2000,
+    2500,
+    3000,
+    3500,
+    4000,
+    4500,
+    5000,
+    5500,
+    6000,
+    6500,
+    7000,
+    7500,
+    8000,
+    8500,
+    9000,
+    9500,
+    10000
+  ],
+  "decision": "GO_OPTION_1_POOLED_A_E_EXPLORATORY",
+  "environment_binding": {
+    "action_catalog_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "duration": 2,
+    "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+    "gamma": 0.99,
+    "mcs_acceptance_sha256": "2a96b27d13b816dfdafe3c6369589d436a0a37fec5234320739e7acef9240be2",
+    "mcs_evidence_sha256": "7ec3edd93c67c5938188de8a24b838b5330970e357229b8a9e3eaa5000c796d5",
+    "mcs_model_binding_sha256": "20988f77b3439b46dece7fe02255a39125b01e83d161ddcc772f2a99c63148eb",
+    "operational_latency_label": "EXPLORATORY_POOLED_FAMILY_TRANSFER_ASSUMPTION",
+    "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+    "reward_schema_sha256": "a065a5c1e6bc69c276c967b17d0a14bfcd4cabf78cefe4b97737cc1a0864a0b6",
+    "scaling_sha256": "b8a673047420408bbf6abf6d62226a336b8a966ef129a38bcd8699fd77ec04d7",
+    "scene_catalog_sha256": "b526c238b871865bc306f7a738027ed8d976fa06c06c3ecb97df958aac7516a8",
+    "schema": "splitfusion.run4b.modeled_environment.v1",
+    "stream_offsets": {
+      "held_scene": 67,
+      "mcs": 53,
+      "scene": 11,
+      "transport": 23
+    },
+    "transport_document_sha256": "38c3ec6a8f0c8a86e588310c027f306108189e1ccd0e592795ba71dad8cc7474"
+  },
+  "environment_binding_sha256": "387903e1cac258dba2766848ecb418da447289d6b3806f8106ec1cb07a67be99",
+  "feature_schema": {
+    "excluded": [
+      "Q_perc",
+      "previous reward",
+      "GT",
+      "map installation",
+      "identifiers",
+      "profile labels",
+      "family labels",
+      "future information"
+    ],
+    "feature_count": 20,
+    "feature_order": [
+      "camera_si_scaled",
+      "radar_p40",
+      "prior_ul_mcs_normalized",
+      "pre_action_rlc_backlog_log1p_scaled",
+      "prev_joint_mode_0_one_hot",
+      "prev_joint_mode_1_one_hot",
+      "prev_joint_mode_2_one_hot",
+      "prev_joint_mode_3_one_hot",
+      "prev_joint_mode_4_one_hot",
+      "prev_joint_mode_5_one_hot",
+      "prev_joint_mode_6_one_hot",
+      "prev_joint_mode_7_one_hot",
+      "prev_joint_mode_8_one_hot",
+      "prev_joint_mode_9_one_hot",
+      "prev_joint_mode_10_one_hot",
+      "prev_joint_mode_11_one_hot",
+      "prev_q_normalized",
+      "prev_operational_latency_normalized",
+      "prev_present",
+      "prev_operational_success"
+    ],
+    "prior_semantics": {
+      "failure_or_timeout": "action/mode/q retained, latency=0 (never the 170-ms censoring value), success=0, present=1",
+      "genesis": "present=0, all prior fields 0",
+      "timely_ack": "action/mode/q retained, latency present, success=1"
+    },
+    "scaling": {
+      "camera_si_scaled": "(si - center) / scale, FIT-catalog moments",
+      "pre_action_rlc_backlog_log1p_scaled": "log1p(B) / log1p(50e6)",
+      "prev_operational_latency_normalized": "timely operational latency ms / 170; 0 at genesis or failure",
+      "prev_q_normalized": "q_e4 / 9800",
+      "prior_ul_mcs_normalized": "(mcs - 0) / 28",
+      "radar_p40": "frozen unitless [0,1] descriptor"
+    },
+    "schema_id": "splitfusion_run4b_policy_features_v1",
+    "schema_version": 1
+  },
+  "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+  "model_binding": {
+    "action_catalog_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+    "actor_input_width": 20,
+    "continuous_q_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+    "critic_input_width": 33,
+    "dtype": "torch.float32",
+    "feature_order": [
+      "camera_si_scaled",
+      "radar_p40",
+      "prior_ul_mcs_normalized",
+      "pre_action_rlc_backlog_log1p_scaled",
+      "prev_joint_mode_0_one_hot",
+      "prev_joint_mode_1_one_hot",
+      "prev_joint_mode_2_one_hot",
+      "prev_joint_mode_3_one_hot",
+      "prev_joint_mode_4_one_hot",
+      "prev_joint_mode_5_one_hot",
+      "prev_joint_mode_6_one_hot",
+      "prev_joint_mode_7_one_hot",
+      "prev_joint_mode_8_one_hot",
+      "prev_joint_mode_9_one_hot",
+      "prev_joint_mode_10_one_hot",
+      "prev_joint_mode_11_one_hot",
+      "prev_q_normalized",
+      "prev_operational_latency_normalized",
+      "prev_present",
+      "prev_operational_success"
+    ],
+    "feature_schema_id": "splitfusion_run4b_policy_features_v1",
+    "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+    "mode_count": 12,
+    "schema": "splitfusion.run4b.hybrid_sac_models.v1"
+  },
+  "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+  "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+  "post_hoc_policy": "family-stress analyses are sensitivity only; the primary model is not modified after results",
+  "preregistered_live_actor": {
+    "seed": 43,
+    "update": 10000
+  },
+  "registered_before_any_run4b_training": true,
+  "reward": {
+    "infrastructure_or_evaluator_fault": "EXCLUDED",
+    "latency": "operational action-open -> TAIL_OUTPUT_READY ACK receipt",
+    "schema_id": "splitfusion_run4b_reward_v1",
+    "timely": "Q_perc - 0.25 * (L_op_ms / 170.0), L_op <= 170 ms inclusive",
+    "timeout_or_registered_failure": -1.0
+  },
+  "reward_schema_sha256": "a065a5c1e6bc69c276c967b17d0a14bfcd4cabf78cefe4b97737cc1a0864a0b6",
+  "schema": "splitfusion.run4b.preregistration.v1",
+  "scope": "OFFLINE_MODELED_EXPLORATORY_TRAINING; EXPLORATORY_POOLED_FAMILY_TRANSFER_ASSUMPTION; NOT DEPLOYMENT AUTHORIZATION",
+  "seeds": [
+    17,
+    29,
+    43
+  ],
+  "smoke": {
+    "resume_procedure": "separate process genesis->250, separate process 250->500, bit-identical to uninterrupted 0->500",
+    "seed": 17,
+    "stop_update": 500
+  },
+  "source_sha256": {
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/__init__.py": "9e93ec65f4976e4bf636a11b0a4ccc0eabebb259e133ea145692b6dff6ff358d",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/contract.py": "eb2bf505269f36569638192c5276dd1a2c3941597276fbb21c23594281ecd926",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/environment.py": "29610fcfdef4ba6859222b85a83fdbf18a92e00f2fbfc321405ce3015b5002de",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/latency_boundary_audit.py": "17f20980ce022c23f8046f9733a59d4ddc0f63dff22da6d1a0728fa57a3754c5",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/learner.py": "a7969146f45d3360811590763f76331d71b91b7559dfc003b20cea352de38ce5",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/models.py": "26efc2248f570db555a31106b3ef7869a7cfce8fb569cf9997e60057e01d5036",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/runner.py": "9fd1ddf63dde0ca73283ecfd52ca1ba251aef49c811a881566abe6d46c95ef0b",
+    "rl_agent/splitfusion_hybrid_sac_run4b_v1/test_run4b.py": "0f62e6530beba9afa6f8071f5ce10b9400077dfea323afd45a1d397bed0c50e4",
+    "rl_agent/splitfusion_operational_latency_v1/__init__.py": "7263f3b68812bfaa2fc10b50be6159433c44727797149d4d2c6230b2613f1d35",
+    "rl_agent/splitfusion_operational_latency_v1/provider.py": "579e2f64a922159716530beeefb364d22d789cfd51afd3fa186584a30bacc0c4",
+    "rl_agent/splitfusion_operational_latency_v1/test_provider.py": "d55fe476a609cfa97f7d6ed1126dca3cf1d5cd4e45fdb64368f4cd96b30c9ffe"
+  },
+  "trainer": {
+    "actor_lr": 0.0003,
+    "alpha_c": 0.02,
+    "alpha_d": 0.05,
+    "batch": 256,
+    "critic_lr": 0.0003,
+    "gamma": 0.99,
+    "replay_capacity": 65536,
+    "tau": 0.005,
+    "threads": 4,
+    "transitions_per_update": 4,
+    "warmup": 288
+  }
+}
