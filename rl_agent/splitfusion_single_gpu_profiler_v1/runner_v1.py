@@ -38,6 +38,7 @@ from typing import Any, Mapping, Optional, Sequence
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "rl_agent/splitfusion_single_gpu_profiler_v1"
 QUALIFICATION_PATH = Path(__file__).resolve().with_name("qualification_run4_300_v1.json")
+ADDENDUM_2_PATH = Path(__file__).resolve().with_name("qualification_addendum_2.json")
 EXECUTE_TOKEN = "SINGLE_GPU_PROFILER_V1_RUN4_INSTRUMENTATION_QUALIFICATION_300_EXECUTE"
 CHILD_MODULE = "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1"
 SAMPLER_MODULE = "rl_agent.splitfusion_single_gpu_profiler_v1.sampler_v1"
@@ -60,6 +61,22 @@ def require(condition: bool, message: str) -> None:
 def canonical_sha256(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
                                      default=str).encode()).hexdigest()
+
+
+def verify_addendum_2(path: Path = ADDENDUM_2_PATH) -> dict[str, Any]:
+    """The sealed addendum binds the base registration and the preserved failures."""
+    document = json.loads(Path(path).read_text(encoding="utf-8"))
+    body = {k: v for k, v in document.items() if k != "addendum_sha256"}
+    require(document.get("id") == "PROFILER_QUALIFICATION_ADDENDUM_2", "foreign addendum")
+    require(canonical_sha256(body) == document.get("addendum_sha256"), "addendum seal broken")
+    here = Path(path).parent
+    amends = document["amends"]
+    for name, key in (("qualification", "qualification_sha256"),
+                      ("attempts_record", "attempts_record_sha256")):
+        require(hashlib.sha256((here / amends[name]).read_bytes()).hexdigest() == amends[key],
+                f"addendum-bound {name} drifted")
+    return {"id": document["id"], "addendum_sha256": document["addendum_sha256"],
+            "file_sha256": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
 
 
 def load_qualification(path: Path = QUALIFICATION_PATH) -> dict[str, Any]:
@@ -181,6 +198,7 @@ def preflight(config_path: Path, *, output_root: Path,
     report = {"schema": "scenesense.single_gpu_profiler.preflight.v1",
               "qualification_id": qualification["id"],
               "qualification_sha256": hashlib.sha256(QUALIFICATION_PATH.read_bytes()).hexdigest(),
+              "addendum_2": verify_addendum_2(),
               "phase6": phase6, "profiler": profiler_preflight(qualification,
                                                                output_root=output_root),
               "launcher_root": str(launcher_root(config)), "child_module": CHILD_MODULE}
@@ -303,13 +321,9 @@ def evaluate_gates(*, cell_report: Mapping[str, Any], analysis: Mapping[str, Any
 
     ue_notes = analysis.get("policy_runtime") or {}
     gates = {
-        "G1_FRAME_ACCOUNTING": (
-            child.get("stop_reason") == "TRANSMITTED_BUDGET_REACHED"
-            and counts.get("sent_frames") == int(transmitted_budget)
-            and (analysis.get("counts") or {}).get("transmitted") == int(transmitted_budget)
-            and not integration.get("frames_without_terminal")
-            and not integration.get("frames_with_multiple_terminals")
-            and not integration.get("terminals_for_untransmitted_frames")),
+        "G1_FRAME_ACCOUNTING": g1_frame_accounting(
+            child=child, timing=timing, analysis=analysis,
+            transmitted_budget=int(transmitted_budget))["passed"],
         "G2_ACTOR_HASH_UNCHANGED": (
             audit_ok(before) and audit_ok(after)
             and stable(before.get("document") or {}) == stable(after.get("document") or {})
@@ -346,9 +360,52 @@ def evaluate_gates(*, cell_report: Mapping[str, Any], analysis: Mapping[str, Any
             and not leftovers),
     }
     return {"gates": gates, "passed": all(gates.values()),
+            "g1_detail": g1_frame_accounting(child=child, timing=timing, analysis=analysis,
+                                             transmitted_budget=int(transmitted_budget)),
             "verdict": ("INSTRUMENTATION_QUALIFIED" if all(gates.values())
                         else "INSTRUMENTATION_NOT_QUALIFIED"),
             "phase6_report_only": {"status": cell_report.get("status"), "gates": phase6}}
+
+
+G1_BOUNDARY_BUDGET = 300           # addendum 2: the boundary branch is registered for 300 only
+
+
+def g1_frame_accounting(*, child: Mapping[str, Any], timing: Mapping[str, Any],
+                        analysis: Mapping[str, Any], transmitted_budget: int) -> dict[str, Any]:
+    """Addendum-2 G1: 300 at TRANSMITTED_BUDGET_REACHED, or exactly 299 at a verified
+    DECISION_CYCLE_BOUNDARY (budget 300, no decision cap); both branches require
+    matching transmission counts, one terminal per sent frame and zero unresolved
+    tickets."""
+    integration = dict(timing.get("integration") or {})
+    sent = (timing.get("counts") or {}).get("sent_frames")
+    collector = dict(child.get("collector") or {})
+    cycle = dict(analysis.get("phase6_cycle") or {})
+    stop = child.get("stop_reason")
+    budget = int(transmitted_budget)
+    checks = {
+        "counts_match": (sent is not None
+                         and sent == (analysis.get("counts") or {}).get("transmitted")
+                         and sent == cycle.get("transmitted_identities")
+                         and sent == collector.get("transmitted_frames")),
+        "collector_budget": collector.get("transmitted_budget") == budget,
+        "one_terminal_per_sent_frame": (bool(integration)
+                                        and not integration.get("frames_without_terminal")
+                                        and not integration.get("frames_with_multiple_terminals")
+                                        and not integration.get("terminals_for_untransmitted_frames")),
+        "zero_unresolved_tickets": (integration.get("unresolved_tickets_at_close") == 0
+                                    and cycle.get("unresolved_tickets_at_close") == 0
+                                    and not integration.get("tickets_without_resolution")),
+    }
+    budget_branch = stop == "TRANSMITTED_BUDGET_REACHED" and sent == budget
+    boundary_branch = (stop == "DECISION_CYCLE_BOUNDARY"
+                       and budget == G1_BOUNDARY_BUDGET and sent == G1_BOUNDARY_BUDGET - 1
+                       and cycle.get("cycle_boundary_reached") is True
+                       and cycle.get("cycle_budget") == {"frame_budget": G1_BOUNDARY_BUDGET,
+                                                         "decision_cap": None})
+    branch = ("TRANSMITTED_BUDGET_REACHED" if budget_branch
+              else "VERIFIED_DECISION_CYCLE_BOUNDARY_299" if boundary_branch else None)
+    return {"branch": branch, "stop_reason": stop, "sent": sent, "checks": checks,
+            "passed": branch is not None and all(checks.values())}
 
 
 def _profiler_clean(row: Mapping[str, Any]) -> bool:
@@ -470,6 +527,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
                             transmitted_budget=int(args.transmitted_budget))
     result.update({"schema": "scenesense.single_gpu_profiler.qualification_result.v1",
                    "qualification_id": qualification["id"], "run_id": run_id,
+                   "addendum_2": report.get("addendum_2"),
                    "claim_scope": qualification["claim_scope"],
                    "not_a_profiling_baseline": qualification["not_a_profiling_baseline"],
                    "sampler_stop": sampler_stop, "leftover_processes": leftovers,

@@ -1,0 +1,44 @@
+{
+ "G1_FRAME_ACCOUNTING_amended": {
+  "accept_either": [
+   "exactly 300 transmitted frames with stop reason TRANSMITTED_BUDGET_REACHED",
+   "exactly 299 transmitted frames with a verified DECISION_CYCLE_BOUNDARY: transmitted budget 300, no decision cap (cycle_budget == {frame_budget: 300, decision_cap: null}), cycle_boundary_reached true"
+  ],
+  "anything_else": "G1 fails",
+  "both_branches_require": [
+   "matching transmission counts: timing sent_frames == profiler transmitted identities == UE transmitted identities == collector transmitted_frames; collector transmitted_budget == 300",
+   "exactly one terminal per sent frame and none for an unsent frame",
+   "zero unresolved tickets at close and no ticket without a resolution"
+  ]
+ },
+ "addendum_sha256": "428af40f1963460d788eae4ffd869a1245f75c68b617bc8c579d0b3dbb919720",
+ "amends": {
+  "attempts_record": "QUALIFICATION_ATTEMPTS_RECORD.json",
+  "attempts_record_sha256": "efe24608cb5679f9f7e6c8daab9c1ca73f42e98cd216f9deb13f8e5b86046e8d",
+  "qualification": "qualification_run4_300_v1.json",
+  "qualification_sha256": "5353465fd5064f38d011cff0e29d47eb5f315ed180ae096b67b79fda4a408312",
+  "setup_repair_addendum_1_sha256": "d3f5f07470888411962e9cd95802783dfb7ca982d3de2fb1c3dffc3a498ca2d1"
+ },
+ "attempt_3": "one fresh 300-frame live attempt; no retry; any gate failure stops the work for a report",
+ "fixes_since_attempt_2": {
+  "D1_GT_SEAM": "the UE ground-truth seam no longer passes frame_id twice; every seam's own evidence-field extraction is wrapped by safe_fields() and can never raise into the instrumented path (counted as seam_field_errors)",
+  "D2_MAP_FOOTER": "the map recorder is closed from the profiled ingest service's close(), the last code before the map's os._exit(0)",
+  "D3_OVERHEAD_ACCOUNTING": "per-thread cost objects; totals and a top-32 per-thread breakdown",
+  "D4_EDGE_VERIFY_IDENTITY": "edge.verify carries its frame identity",
+  "commit": "f5b74d8"
+ },
+ "id": "PROFILER_QUALIFICATION_ADDENDUM_2",
+ "instrumentation_inside_the_clock": "profiler pass-through spans on the decision path (plan, state build, actor, 7-channel, codec, SFD4) execute inside the 170-ms clock; their hot-path cost is measured per thread and reported, never subtracted",
+ "preserved_failures": {
+  "attempt_1": "20261001T223947Z: SETUP_REFUSED_ZERO_FRAMES (edge repository mount; repaired by addendum 1)",
+  "attempt_2": "20261001T224406Z: INSTRUMENTATION_NOT_QUALIFIED, profiler-induced fault (D1 changed every outcome to TIMEOUT)"
+ },
+ "registered_before_attempt": 3,
+ "schema": "scenesense.single_gpu_profiler.addendum.v1",
+ "unchanged": [
+  "gates G2-G9 as registered",
+  "exact Q_perc evaluation by the CARLA-GT evaluator and UE R4FB feedback receipt remain inside the 170-ms action-open clock: SUCCESS iff the accepted feedback's raw receipt - action_open <= 170 ms (inclusive), otherwise TIMEOUT at 170 ms + 1 ns with reward -1",
+  "the frozen Run-4 seed-43/update-10,000 actor, 21-D state, reward formula, k_min = 2, FAVORABLE_STABLE, Route B, Epic, codec, edge, map and OAI configuration",
+  "no retraining, precision change, rendering reduction, MPS change, CUDA scheduling change or timeout change"
+ ]
+}

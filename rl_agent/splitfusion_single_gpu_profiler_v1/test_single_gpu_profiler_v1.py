@@ -889,6 +889,51 @@ class AttemptTwoRegressionTest(unittest.TestCase):
         self.assertEqual(records(Path(self.tmp.name) / "p.jsonl")[-1]["r"], "footer")
 
 
+class G1AddendumTwoTest(unittest.TestCase):
+    @staticmethod
+    def _inputs(*, stop, sent, cap=None, boundary=True, budget=300, unresolved=0,
+                missing_terminal=False):
+        integration = {"frames_without_terminal": [5] if missing_terminal else [],
+                       "frames_with_multiple_terminals": [],
+                       "terminals_for_untransmitted_frames": [],
+                       "unresolved_tickets_at_close": unresolved,
+                       "tickets_without_resolution": []}
+        return {"child": {"stop_reason": stop, "collector": {"transmitted_frames": sent,
+                                                             "transmitted_budget": budget}},
+                "timing": {"counts": {"sent_frames": sent}, "integration": integration},
+                "analysis": {"counts": {"transmitted": sent},
+                             "phase6_cycle": {"cycle_budget": {"frame_budget": budget,
+                                                               "decision_cap": cap},
+                                              "cycle_boundary_reached": boundary,
+                                              "unresolved_tickets_at_close": unresolved,
+                                              "transmitted_identities": sent}},
+                "transmitted_budget": budget}
+
+    def test_accepted_branches(self) -> None:
+        for stop, sent, branch in (("TRANSMITTED_BUDGET_REACHED", 300,
+                                    "TRANSMITTED_BUDGET_REACHED"),
+                                   ("DECISION_CYCLE_BOUNDARY", 299,
+                                    "VERIFIED_DECISION_CYCLE_BOUNDARY_299")):
+            result = RUN.g1_frame_accounting(**self._inputs(stop=stop, sent=sent))
+            self.assertTrue(result["passed"], result)
+            self.assertEqual(result["branch"], branch)
+
+    def test_everything_else_is_refused(self) -> None:
+        refused = [dict(stop="DECISION_CYCLE_BOUNDARY", sent=298),
+                   dict(stop="DECISION_CYCLE_BOUNDARY", sent=299, cap=150),
+                   dict(stop="DECISION_CYCLE_BOUNDARY", sent=299, boundary=False),
+                   dict(stop="DECISION_CYCLE_BOUNDARY", sent=999, budget=1000),
+                   dict(stop="TRANSMITTED_BUDGET_REACHED", sent=299),
+                   dict(stop="DECISION_CYCLE_BOUNDARY", sent=299, unresolved=1),
+                   dict(stop="TRANSMITTED_BUDGET_REACHED", sent=300, missing_terminal=True),
+                   dict(stop="SAFETY_TIMEOUT", sent=300)]
+        for case in refused:
+            self.assertFalse(RUN.g1_frame_accounting(**self._inputs(**case))["passed"], case)
+        mismatch = self._inputs(stop="TRANSMITTED_BUDGET_REACHED", sent=300)
+        mismatch["child"]["collector"]["transmitted_frames"] = 301
+        self.assertFalse(RUN.g1_frame_accounting(**mismatch)["passed"])
+
+
 class DisabledBehaviourTest(unittest.TestCase):
     def test_absent_or_disabled_config_means_the_unchanged_child(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -967,6 +1012,18 @@ class IdentityAndIsolationTest(unittest.TestCase):
         commit = RUN.base_commit_identity(BASE_COMMIT)
         self.assertTrue(commit["base_is_ancestor"])
         self.assertEqual(commit["tracked_changes_outside_package"], [])
+
+    def test_addendum_2_is_sealed_and_binds_its_inputs(self) -> None:
+        sealed = RUN.verify_addendum_2()
+        self.assertEqual(sealed["id"], "PROFILER_QUALIFICATION_ADDENDUM_2")
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in ("qualification_run4_300_v1.json", "QUALIFICATION_ATTEMPTS_RECORD.json"):
+                (Path(tmp) / name).write_bytes((PACKAGE / name).read_bytes())
+            document = json.loads(RUN.ADDENDUM_2_PATH.read_text())
+            document["G1_FRAME_ACCOUNTING_amended"]["anything_else"] = "pass"
+            (Path(tmp) / "a.json").write_text(json.dumps(document))
+            with self.assertRaises(RUN.ProfilerRunnerError):
+                RUN.verify_addendum_2(Path(tmp) / "a.json")
 
     def test_gate_evaluation_requires_every_gate(self) -> None:
         result = RUN.evaluate_gates(cell_report={}, analysis={}, timing={}, audits={},
