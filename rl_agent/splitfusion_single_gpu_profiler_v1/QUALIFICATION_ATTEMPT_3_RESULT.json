@@ -1,0 +1,204 @@
+{
+ "addendum": {
+  "addendum_sha256": "428af40f1963460d788eae4ffd869a1245f75c68b617bc8c579d0b3dbb919720",
+  "file_sha256": "6c281f156dc86708b7b65e38a014a3857eb447cac63023ce4cadc43c0aa55457",
+  "id": "PROFILER_QUALIFICATION_ADDENDUM_2"
+ },
+ "attempt": 3,
+ "claim_scope": "INSTRUMENTATION_QUALIFICATION_ONLY; not a profiling baseline; no diagnosis or optimization claim",
+ "clock": {
+  "cross_process_spread_ns": 548864,
+  "single_raw_domain": true
+ },
+ "code_commit": "59f40d1",
+ "evaluator": {
+  "drained_at_shutdown": 0,
+  "emitted": 128,
+  "excluded": 0,
+  "gt_expired": 0,
+  "max_pending": 1,
+  "queue_overflow": 0,
+  "submitted": 128
+ },
+ "evidence_sha256": {
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300.CODE_COMMIT.txt": "70d58f21bb7a29c5eea4685721bc1633515ecd8402c99e20e407a944b3b4bfca",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300.launch_exit": "19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300.launcher.log": "ed3c4205e2cd5eb000d9dd69296c3c78e2f691c5c41ce85b2e84c52e346ff193",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/ACTOR_AUDIT_AFTER.json": "2ea9080fd3c7a25dd246d8b482c0dc5a3c65cf0b296d460fda1e224dea672b7b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/ACTOR_AUDIT_BEFORE.json": "2ea9080fd3c7a25dd246d8b482c0dc5a3c65cf0b296d460fda1e224dea672b7b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/PHASE6_TIMING_CHARACTERIZATION.json": "199b2257533912b66faf39be5cfdd991d515c34a440f7c934fc5f91788158188",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/PREFLIGHT.json": "435b564d9cafc65a68fc4332cb77eac4c90fcf386b5b3cfb7e62d375beaf37ce",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/PROFILER_ANALYSIS.json": "102dc4dbe0f273ddc4eea912688e9c9b942fd21c4c747a5b3b75ce03856bd0ca",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/PROFILER_CONFIG.json": "32ebbd3105ec9a4406e26dbe7d49ee330fa3befe00e832c39ebf4995e73c891f",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/QUALIFICATION_RESULT.json": "0350dbdf83f21a5612d91998dacdc355c109569bb40812fc23edb512a39dd565",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/CELL_RESULT.json": "a6dce1677871c80aac363ab98986961e036a3a0749728480ce761602fcb8421a",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/PHASE6_RESULT_SUMMARY.md": "c545bead49dd402dfaf176a8858540ea8fcb2ede49d72b49f9dae67afba8a0ef",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/carla_server.log": "f7d7dc79c12c5dad53dd1feb833dee1fb7788ca7401eac7047330c5505e0fa55",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/child_stdout_stderr.log": "464a6378297cce89e4d1d5d7f034dd8d0259bafbb10e7989ecac2e479653068b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/direct_edge_map/direct_edge_ready.json": "1902b7f7af67e1e989585bdad307110560a3044189ec75d50e389721d26f46e1",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "5a8ffa56f140080ed75e2c571f76edc68917bc45947b2c714e61e9ee34bbd026",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/direct_edge_map/direct_map_ready.json": "8450c3cf7da6de92ee7717c6126ba79714e218fd2b010e294d5042d6543e6319",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/direct_edge_map/direct_map_report.json": "81febb53c2c80ba0bf92d8d7491fd6a7be4ceaa61683aab52435a00e1d7078f6",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/direct_edge_map/run4_map_identity.csv": "c55c41afafc0eb00cea8be8fddb1cdf128b5dee3d18f43c6f8276369b7e46930",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/edge_image_prelaunch.json": "c22afb24bb265ddb7472ebcdb87197e8bb58ec5ab851792d484877e52c299b19",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/logs/ue_record.log": "11358f2ea1a0ce5eafb2fb6c09536c9d5ea4b9faa57f7b3ef2c9c352ccfc2ad7",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/logs/ue_relay.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/map_feedback.csv": "0b94785b5913d347c833392a0b11ec476421e6ad8fa9498fea5661a950e0279f",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/per_frame_metrics.csv": "60a20be6d4a84f68d1b87796a34b631ac10c042e398d067c5b164cb39567f9bb",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/perception_metrics.csv": "e46accc8513c7bb1a3c57786ee85ba0c9290eef7be4722e1d2e4e3e03549f507",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/phase6_artifacts/budget_reached.json": "bb2c6103f09b05a3b2032393395231bbfbf64b1322dfa2dc6ca63c287e201d97",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/phase6_artifacts/child_result.json": "eda68e12321bf18565a2bc0698ee19ee5ce20141b2ee87b5f8defa1c0b6de206",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/phase6_artifacts/collector_summary.json": "0b53382a1b0cb047a391c4956ff9146d7e23a3d01bebf39c7b570cee1d3e00fd",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/phase6_artifacts/route_detail.json": "47a8cdb57d59029fb385d38fffe504cc1c4288c57f420c5f1f61c42a0bc5dd66",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/phase6_artifacts/ue_route_b_metrics_gxclaldw_population_events.jsonl": "88e12d7a6ee2f09ed35b740ed82566d5d40189cdc88116f87e974cf3bba8fa6e",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/profiler/compose_repository_mount_override.yaml": "95d559ec8b4685a7e3a3b38d665bc343ccf020ac466fc86da3e0edddbe5c1c10",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/profiler/edge/edge.profile.jsonl": "57b599d132c555950f11ad7d5713b6d56e8fdb2a0580a556311d701683bd81bd",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/profiler/map.profile.jsonl": "fea329233edc4b29718ac70954fa1943e1599d5f16622c85d9a614bb7a1b5537",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/profiler/ue.profile.jsonl": "072c00202da4ac1c576b7e3e4b8e99210ce0725f06d3a56761ec94dc9c59e8e0",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap": "f263c53a4d71085f068064eae7ddf8fc939f7674768c460cb677e56f20022e25",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/quality_ack_tcpdump.log": "e520bf14b711b8ef189eb1366a7387611c80ec3c5757ae97409e08418746d238",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/radio_trace.csv": "eb136fac46d2a3e6b6927d24b4b1f2f7e2c420dd91e807e47284f9ebad6a8bb3",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json": "8069fc4e99d5059139ffd9a434b635a571632f47f8f01c5031823208c809ba43",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/edge_image_launch.json": "519fab158e16fb7509721663928f4f1c6fb7e5371d9da671e4635730efba279b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/edge_report.json": "658bd2673f3e748f5997f3002ad8c90f5e1b5e9bb87ce774dc97c5924f952468",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/gt_handoff_ue.jsonl": "a33ab733afba4536f2cfa6b6025dc99bcbfa9ba5f98e1835d822ee6b7cf5b62a",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved.manifest.json": "7c51c7333e4643a0f72f3a42cec044d4af0c21d4f7514a9c04372d232f118c85",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/prewarm_ue.json": "a431980333f9bf372a0ba9e787dba91ac7db5797a9fed8c4f163fe6101c36092",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_DCI_GRANT_live.csv": "17a119ba1900ba93c2bc61591bed654800ca3f587525fbf04963b1165d6c7824",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_RLC_BUFFER_STATUS_live.csv": "13a83aa5e5c2832625b740a44dd032f388b1df1637b407a484170eb196025e74",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/run4_phase6/telemetry_live/NR_PDCP_TX_SDU_live.csv": "807d3a47c4d6b8fef5e58f685f6234ec320724a109b8e1400267430946376d70",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/cells/a71__favorable_stable/ttracer/ue/ue.raw": "495cbeacd8b5f4c3de0157b9c00871ea4b2442327cdfb68de14f97582c7ecffc",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/profiler/sampler.jsonl": "0c90a9004608089d661a0415bc7f8257506ea85178f7252ecf52f8b0d3851738",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/profiler/sampler_ready.json": "e7c483fc01e6e8bab9da2b89ad298099593ce1ade5c7856eb3b0c203777518db",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/profiler/sampler_stderr.log": "c268a37bcc8713b6913ba9dfb98ef2f034b735516e2e2a9af770551719a2ade3",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T230025Z_run4_instrumentation_qualification_300/profiler/sampler_stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "feedback_classes": {
+  "ACCEPTED": 74,
+  "LATE_ORPHAN": 54
+ },
+ "file_bytes": {
+  "edge": 2406869,
+  "map": 311423,
+  "sampler": 6423342,
+  "ue": 2862746
+ },
+ "frames": {
+  "by_kind": {
+   "FALLBACK": 23,
+   "POLICY_DECISION": 133,
+   "POLICY_HOLD": 144
+  },
+  "planned_frames": 300,
+  "reward_tickets": 133,
+  "sent_frames": 300
+ },
+ "g1_detail": {
+  "branch": "TRANSMITTED_BUDGET_REACHED",
+  "checks": {
+   "collector_budget": true,
+   "counts_match": true,
+   "one_terminal_per_sent_frame": true,
+   "zero_unresolved_tickets": true
+  },
+  "passed": true,
+  "sent": 300,
+  "stop_reason": "TRANSMITTED_BUDGET_REACHED"
+ },
+ "gates": {
+  "G1_FRAME_ACCOUNTING": true,
+  "G2_ACTOR_HASH_UNCHANGED": true,
+  "G3_ZERO_IDENTITY_CONFLICTS": true,
+  "G4_COVERAGE_REPORTED": true,
+  "G5_SAMPLER_REPORTED": true,
+  "G6_NO_PROFILER_INDUCED_FAULT": true,
+  "G7_INSTRUMENTATION_EVIDENCE_VALID": true,
+  "G8_REWARD_TIMEOUT_SEMANTICS": true,
+  "G9_HOST_RESTORED_CLEAN": true
+ },
+ "id": "20261001T230025Z",
+ "identity_conflicts": 0,
+ "identity_records_checked": 12730,
+ "overhead": {
+  "edge": {
+   "hot_path_calls": 11034,
+   "hot_path_ns_per_call": 40317.89296719232,
+   "hot_path_ns_total": 444867631,
+   "profiler_cpu_fraction_of_one_core": 0.008535648216046446,
+   "writer_cpu_ns": 130607229
+  },
+  "map": {
+   "hot_path_calls": 1713,
+   "hot_path_ns_per_call": 8907.92819614711,
+   "hot_path_ns_total": 15259281,
+   "profiler_cpu_fraction_of_one_core": 0.0010459338444018763,
+   "writer_cpu_ns": 56669067
+  },
+  "ue": {
+   "hot_path_calls": 14257,
+   "hot_path_ns_per_call": 21814.204110261628,
+   "hot_path_ns_total": 311005108,
+   "profiler_cpu_fraction_of_one_core": 0.005743372634586664,
+   "writer_cpu_ns": 109902154
+  }
+ },
+ "phase6_report_only": {
+  "gates": {
+   "P0_POLICY_COVERAGE": false,
+   "P1_IDENTITY": true,
+   "P3_HOLD_TICKET": true,
+   "P4_ACCOUNTING": true,
+   "P5_NO_ACTOR_AFTER_REFUSAL": true,
+   "P6_RESTORE_COLD": true,
+   "P7_FEEDBACK_OVER_DOWNLINK": true,
+   "P8_NO_INFRASTRUCTURE_FAULT": true
+  },
+  "status": "INCONCLUSIVE_OR_FAILED"
+ },
+ "policy_deadline_le_170": {
+  "count": 74,
+  "fraction": 0.556390977443609,
+  "n": 133,
+  "undetermined": 0
+ },
+ "sampler": {
+  "dropped_samples": 0,
+  "interval_ms": {
+   "max": 104.222118,
+   "mean": 100.00003924704558,
+   "n": 1777,
+   "p50": 99.999922,
+   "p95": 100.259768,
+   "p99": 101.351581
+  },
+  "sample_cost": {
+   "max_ms": 96.438421,
+   "mean_ms": 6.380318947131609,
+   "n": 1778,
+   "p50_ms": 4.759525,
+   "p95_ms": 12.091306,
+   "p99_ms": 28.173845
+  },
+  "sampler_cpu_pct_of_one_core": 5.005970118409589,
+  "samples": 1778
+ },
+ "schema": "scenesense.single_gpu_profiler.qualification_record.v1",
+ "semantics": {
+  "actor_replay": {
+   "mismatches": 0,
+   "replayed": 133
+  },
+  "feedback_class_errors": 0,
+  "receipt_marks": {
+   "disagreements": 0,
+   "marks": 128
+  },
+  "reward_errors": 0
+ },
+ "terminals": {
+  "REGISTERED_SERVICE_FAILURE": 2,
+  "SUCCESS": 74,
+  "TIMEOUT": 57
+ },
+ "verdict": "INSTRUMENTATION_QUALIFIED"
+}
