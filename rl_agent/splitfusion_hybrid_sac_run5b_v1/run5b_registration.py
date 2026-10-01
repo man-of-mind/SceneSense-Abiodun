@@ -53,6 +53,17 @@ AMENDMENTS = (
      "change": "run5b_checks.smoke_snr_gates compares replay states at float32",
      "training_path_environment_reward_state_or_config_changed": False,
      "failed_attempt_kept_at": "campaign_runs/smoke_seed17_attempt1_checker_dtype_defect"},
+    {"id": "A2_FRESH_VERIFY_SEED_DIRECTORY_GLOB",
+     "superseded_seal_sha256": "736440fba28fc6b33ee41006ec0d80d21f149d70472fab5c5b953019d91a8026",
+     "superseded_file": "RUN5B_REGISTRATION_A1_SUPERSEDED.json",
+     "reason": ("campaign attempt 1 trained all three seeds to update 10,000 (23 committed "
+                "bundles each) but finalization crashed in verify-actors: glob('seed_*') also "
+                "matched the driver logs seed_<n>.log, so CAMPAIGN_COMPLETE was never written"),
+     "change": "verify_actors_here iterates seed_* directories only",
+     "training_path_environment_reward_state_or_config_changed": False,
+     "consequence": ("bundles bind the registration digest, so smoke, resume and campaign are "
+                     "rerun under this seal; attempt-1 state fingerprints must be reproduced"),
+     "failed_attempt_kept_at": "campaign_runs/campaign_three_seed_10000_attempt1_verify_glob_defect"},
 )
 
 

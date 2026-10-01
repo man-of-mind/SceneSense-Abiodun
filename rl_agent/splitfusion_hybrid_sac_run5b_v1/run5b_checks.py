@@ -170,7 +170,7 @@ def verify_actors_here(out: Path) -> list[dict[str, Any]]:
     torch.set_num_threads(R.THREADS)
     sources = R.E.load_sources(R.EVIDENCE_ROOT)
     results = []
-    for seed_dir in sorted(Path(out).glob("seed_*")):
+    for seed_dir in sorted(p for p in Path(out).glob("seed_*") if p.is_dir()):
         seed = int(seed_dir.name.split("_")[1])
         runner = R.Run5BRunnerV1(sources, seed)
         for bundle in sorted((seed_dir / "checkpoints").glob("update_*")):

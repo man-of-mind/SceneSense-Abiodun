@@ -8,16 +8,6 @@
    "superseded_file": "RUN5B_REGISTRATION_A0_SUPERSEDED.json",
    "superseded_seal_sha256": "245b155c1db97c946e33f7eb33c1b40e826a878f8aed49738e94356ac2e2aec8",
    "training_path_environment_reward_state_or_config_changed": false
-  },
-  {
-   "change": "verify_actors_here iterates seed_* directories only",
-   "consequence": "bundles bind the registration digest, so smoke, resume and campaign are rerun under this seal; attempt-1 state fingerprints must be reproduced",
-   "failed_attempt_kept_at": "campaign_runs/campaign_three_seed_10000_attempt1_verify_glob_defect",
-   "id": "A2_FRESH_VERIFY_SEED_DIRECTORY_GLOB",
-   "reason": "campaign attempt 1 trained all three seeds to update 10,000 (23 committed bundles each) but finalization crashed in verify-actors: glob('seed_*') also matched the driver logs seed_<n>.log, so CAMPAIGN_COMPLETE was never written",
-   "superseded_file": "RUN5B_REGISTRATION_A1_SUPERSEDED.json",
-   "superseded_seal_sha256": "736440fba28fc6b33ee41006ec0d80d21f149d70472fab5c5b953019d91a8026",
-   "training_path_environment_reward_state_or_config_changed": false
   }
  ],
  "campaign_stop_rules": [
@@ -259,10 +249,10 @@
   "rl_agent/splitfusion_hybrid_sac_run5_v1/successor_mcs_snr_audit.py": "08758309fa4d380777ce797aa84c86d13059d277f4d470d97cb245a16a037ebb",
   "rl_agent/splitfusion_hybrid_sac_run5b_v1/__init__.py": "40f0c0169094c610e691dadf312cc40e1fc0ab128f8d2f8aa262cf990fab571f",
   "rl_agent/splitfusion_hybrid_sac_run5b_v1/derive_from_run4b.py": "c1aec3248f9fc784b912bd08c897af4fe2c345765dac00353c69c22c70c7a069",
-  "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_checks.py": "72e58c1145ffda1bd852febc87f7174c6e4fcc598db6d26cf42600fdbf19f222",
+  "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_checks.py": "81c3f5766687da01c4992f785e40ae8947a66208f44c8a157b3af6ff3b73e5f7",
   "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_learner.py": "388d8c951d45b004dc9b4144081070597c96e784a407c989e1cc94997c32f278",
   "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_models.py": "5785246857a4f3220582a5a2379b41d3e5942d596ae17feeb764c20bdc146927",
-  "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_registration.py": "7a3325d8d34f6dde931f58a2f90e9dd74f9ca5da4cb70a79faf5394592c7d74e",
+  "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_registration.py": "55e6c3f555899764a0b68b61f42698812965438c7c85797a00aa2588a711ee32",
   "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_runner.py": "bbae0b3a3b3cce978eb99774b708e764a3408fca5c19bb1b5f8bac9791af9d1c",
   "rl_agent/splitfusion_hybrid_sac_run5b_v1/run5b_state_contract.py": "1be8d55c8caab2a713acef06ef44c98a47573af39d939a93c09fbe724af3c779",
   "rl_agent/splitfusion_joint_channel_v1/joint_channel.py": "dfa2f8b25dc55cdfb6b967603c854699e16f7bbdf6be035702358d6643f273aa",
