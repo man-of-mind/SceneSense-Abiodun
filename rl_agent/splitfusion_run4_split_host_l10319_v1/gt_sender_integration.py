@@ -153,7 +153,7 @@ class HighWorkerGtSenderV1:
             "connections": 0, "reconnections_after_lost_ack": 0,
             "stored": 0, "duplicate_identical": 0, "low_not_sent": 0,
             "semantic_path_publications": 0, "object_path_publications": 0,
-            "failures": 0,
+            "failures": 0, "unknown_future_ticket_refusals": 0,
         }
 
     def connect(self) -> None:
@@ -224,6 +224,18 @@ class HighWorkerGtSenderV1:
                          "GT network send attempted outside the existing HIGH worker",
                          WrongWorkerError)
                 self._send_joined(full)
+            except GT.RemoteTicketRefusalError as exc:
+                with self._condition:
+                    self._counters["failures"] += 1
+                    if exc.error_code == "UNKNOWN_OR_FUTURE_TICKET":
+                        # The edge already waited for exact authorization. A
+                        # tensor that never completed cannot earn a reward;
+                        # fail this ticket without poisoning later identities.
+                        self._counters["unknown_future_ticket_refusals"] += 1
+                    else:
+                        self._fault = f"{type(exc).__name__}: {exc}"[:500]
+                    self._condition.notify_all()
+                raise
             except BaseException as exc:
                 with self._condition:
                     self._fault = f"{type(exc).__name__}: {exc}"[:500]

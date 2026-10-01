@@ -64,9 +64,12 @@ Q.write_object_ground_truth, Q.write_semantic_ground_truth = (
 ```
 
 Close the sender during additive child cleanup, before the remote GT listener
-is stopped, and retain `sender.close()` in the attempt evidence. A delivery
-failure is an infrastructure failure; it is never converted into policy reward
-or timeout.
+is stopped, and retain `sender.close()` in the attempt evidence. Protocol,
+identity, storage and foreign-ticket failures are infrastructure failures. An
+exact `UNKNOWN_OR_FUTURE_TICKET` rejection after the edge's bounded wait is
+local to that reward ticket: no GT is stored, no reward is fabricated, and the
+UE's unchanged no-feedback deadline resolves it as a timeout. It must not
+poison later exact tickets.
 
 ## Invariants
 

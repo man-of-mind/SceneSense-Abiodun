@@ -202,6 +202,74 @@ class SenderTests(unittest.TestCase):
         except BaseException as exc:
             errors.append(exc)
 
+    def test_unknown_ticket_failure_is_local_and_later_exact_send_succeeds(self) -> None:
+        client, server = socket.socketpair()
+        registry = GT.ExpectedTicketRegistryV1(
+            run_id=self.ident.run_id, cell_id=self.ident.cell_id)
+        store = GT.GtIngressStoreV1(self.edge, registry)
+        sender = self._sender(lambda _address, _timeout: client)
+        sender.connect()
+        recorded_objects, recorded_semantic = writers(self.log)
+        objects, semantic = sender.wrap_after_recorder(
+            recorded_objects, recorded_semantic)
+        self._write_semantic(semantic)
+
+        first_result = []
+        first_peer = threading.Thread(target=lambda: first_result.append(
+            GT.serve_one(server, store, socket_timeout_s=0.5,
+                         expectation_timeout_s=0)))
+        first_peer.start()
+        first_errors = invoke_high(self._write_objects, objects)
+        first_peer.join(1)
+        self.assertEqual(len(first_errors), 1)
+        self.assertIsInstance(first_errors[0], GT.RemoteTicketRefusalError)
+        self.assertEqual(first_result[0].error_code, "UNKNOWN_OR_FUTURE_TICKET")
+        snapshot = sender.snapshot()
+        self.assertIsNone(snapshot["fault"])
+        self.assertEqual(snapshot["counters"]["unknown_future_ticket_refusals"], 1)
+
+        registry.authorize(self.ident)
+        second_result = []
+        second_peer = threading.Thread(target=lambda: second_result.append(
+            GT.serve_one(server, store, socket_timeout_s=0.5,
+                         expectation_timeout_s=0)))
+        second_peer.start()
+        self.assertEqual(invoke_high(sender._send_joined, self.ident), [])
+        second_peer.join(1)
+        self.assertEqual(second_result[0].status, "STORED")
+        self.assertIsNone(sender.snapshot()["fault"])
+        self.assertEqual(sender.snapshot()["counters"]["stored"], 1)
+        sender.close()
+        server.close()
+
+    def test_nonordering_remote_refusal_still_faults_sender(self) -> None:
+        client, server = socket.socketpair()
+        sender = self._sender(lambda _address, _timeout: client)
+        sender.connect()
+        recorded_objects, recorded_semantic = writers(self.log)
+        objects, semantic = sender.wrap_after_recorder(
+            recorded_objects, recorded_semantic)
+        self._write_semantic(semantic)
+
+        def refuse() -> None:
+            bundle = GT.recv_bundle(server)
+            ack = GT.GtAckV1(
+                "REJECTED", bundle.identity.exact_digest(),
+                bundle.bundle_sha256, None, "UNAUTHORIZED_TICKET")
+            server.sendall(ack.to_wire())
+
+        peer = threading.Thread(target=refuse)
+        peer.start()
+        errors = invoke_high(self._write_objects, objects)
+        peer.join(1)
+        self.assertEqual(len(errors), 1)
+        self.assertIsInstance(errors[0], GT.RemoteTicketRefusalError)
+        snapshot = sender.snapshot()
+        self.assertIn("RemoteTicketRefusalError", snapshot["fault"])
+        self.assertEqual(snapshot["counters"]["unknown_future_ticket_refusals"], 0)
+        sender.close()
+        server.close()
+
     def test_wrong_thread_refuses_before_any_network_send(self) -> None:
         client, server = socket.socketpair()
         sender = self._sender(lambda _address, _timeout: client)

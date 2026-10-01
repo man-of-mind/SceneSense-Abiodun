@@ -274,11 +274,11 @@ class PersistentSocketTests(unittest.TestCase):
             if authorize:
                 client_ack = client.send(self.bundle)
             else:
-                with self.assertRaises(T.UnauthorizedTicketError):
+                with self.assertRaises(T.RemoteTicketRefusalError) as raised:
                     client.send(self.bundle)
-                client_ack = T.GtAckV1("REJECTED", self.bundle.identity.exact_digest(),
-                                       self.bundle.bundle_sha256, None,
-                                       "UNKNOWN_OR_FUTURE_TICKET")
+                self.assertEqual(raised.exception.error_code,
+                                 "UNKNOWN_OR_FUTURE_TICKET")
+                client_ack = raised.exception.ack
             thread.join(1)
             self.assertFalse(thread.is_alive())
             return client_ack, result[0]
@@ -295,6 +295,14 @@ class PersistentSocketTests(unittest.TestCase):
         client, server = self._exchange(False)
         self.assertEqual(client, server)
         self.assertEqual(server.error_code, "UNKNOWN_OR_FUTURE_TICKET")
+
+    def test_unknown_is_distinct_from_foreign_scope(self) -> None:
+        with self.assertRaises(T.UnknownOrFutureTicketError):
+            self.registry.await_authorized(self.bundle.identity, 0)
+        foreign = replace(self.bundle.identity, cell_id="foreign-cell")
+        with self.assertRaises(T.UnauthorizedTicketError) as raised:
+            self.registry.await_authorized(foreign, 0)
+        self.assertNotIsInstance(raised.exception, T.UnknownOrFutureTicketError)
 
     def test_ack_identity_or_bundle_substitution_is_refused(self) -> None:
         for field in ("identity_sha256", "bundle_sha256"):

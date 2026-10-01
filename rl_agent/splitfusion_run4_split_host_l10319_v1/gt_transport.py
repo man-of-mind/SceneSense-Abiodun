@@ -61,6 +61,19 @@ class UnauthorizedTicketError(GtTransportError):
     pass
 
 
+class UnknownOrFutureTicketError(UnauthorizedTicketError):
+    """The exact ticket was not authorized before the bounded edge wait."""
+
+
+class RemoteTicketRefusalError(UnauthorizedTicketError):
+    """A digest-verified remote REJECTED ACK with a machine-readable code."""
+
+    def __init__(self, ack: "GtAckV1") -> None:
+        self.ack = ack
+        self.error_code = str(ack.error_code)
+        super().__init__(f"remote GT refusal: {self.error_code}")
+
+
 class DuplicateReplayError(GtTransportError):
     """An already-committed, byte-identical ticket was replayed."""
 
@@ -473,7 +486,8 @@ class ExpectedTicketRegistryV1:
             while key not in self._expected:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    raise UnauthorizedTicketError("unknown or future reward ticket")
+                    raise UnknownOrFutureTicketError(
+                        "unknown or future reward ticket")
                 self._condition.wait(remaining)
             if self._expected[key] != identity:
                 raise IdentityConflictError("authorized ticket fields conflict")
@@ -653,7 +667,7 @@ class PersistentGtSenderV1:
         _require(ack.bundle_sha256 == bundle.bundle_sha256,
                  "GT ACK bundle mismatch")
         if ack.status == "REJECTED":
-            raise UnauthorizedTicketError(f"remote GT refusal: {ack.error_code}")
+            raise RemoteTicketRefusalError(ack)
         return ack
 
 
@@ -666,8 +680,14 @@ def serve_one(stream: Any, ingress: GtIngressStoreV1, *, socket_timeout_s: float
     bundle = recv_bundle(stream)
     try:
         ack = ingress.accept(bundle, expectation_timeout_s=expectation_timeout_s)
-    except UnauthorizedTicketError:
+    except UnknownOrFutureTicketError:
         ack = GtAckV1("REJECTED", bundle.identity.exact_digest(),
                       bundle.bundle_sha256, None, "UNKNOWN_OR_FUTURE_TICKET")
+    except UnauthorizedTicketError:
+        # Scope and registry-capacity refusals are not ordering races. Keep
+        # them distinguishable so the UE cannot downgrade them to a
+        # recoverable per-ticket miss.
+        ack = GtAckV1("REJECTED", bundle.identity.exact_digest(),
+                      bundle.bundle_sha256, None, "UNAUTHORIZED_TICKET")
     stream.sendall(ack.to_wire())
     return ack
