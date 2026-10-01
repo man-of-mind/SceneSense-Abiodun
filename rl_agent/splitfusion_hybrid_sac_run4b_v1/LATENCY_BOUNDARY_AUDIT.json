@@ -1,0 +1,273 @@
+{
+  "code_evidence": {
+    "collector_composition_expression_present": true,
+    "collector_reads_evaluation_enqueued_column": true,
+    "collector_residual_expression_present": true
+  },
+  "composition": {
+    "ack_semantics": "Every downlink stage in the residual is the post-GT quality ACK, not an immediate TAIL_OUTPUT_READY ACK. No TAIL_OUTPUT_READY ACK exists in the repository source or retained evidence.",
+    "collector": "rl_agent/ue_production_transport_model_v2/collector_v1.py",
+    "evaluation_enqueued_to_ue_receive_contains": [
+      "GT wait (evaluation_enqueued -> evaluation_started)",
+      "GT scoring (evaluation_started -> evaluation_completed)",
+      "evaluation_completed -> quality-ACK emit",
+      "quality-ACK emit -> edge socket send",
+      "edge socket send -> UE receive (quality-ACK downlink)"
+    ],
+    "modeled_transport_boundary": "LAST_UDP_SOCKET_HANDOFF__TO__COMPLETE_RECEIVER_REASSEMBLY (rl_agent/ue_production_queue_capture_v1/contract.py)",
+    "retained_residual": "[model_prepare_start -> first_feature_send] + [evaluation_enqueued -> ue_receive]",
+    "secondary_observation_unquantified": "The residual removes first_feature_send -> evaluation_enqueued, but the replacement (send_span + transport) ends at complete edge reassembly. Edge pre-model, model tail and prediction-ready -> enqueue are therefore not represented by any composed term. The retained probe has no populated reassembly timestamp, so this gap is not quantified here.",
+    "successful_total": "retained_residual + send_span + modeled_transport + actor_reserve"
+  },
+  "not_done": "No alternative latency model was constructed; removing the GT stages or adding an edge-compute term would be a new model and requires an explicit Abiodun decision.",
+  "per_cell": {
+    "a50__adverse_stable": {
+      "ack_emit_to_socket_send": {
+        "max_ms": 7.437227999999999,
+        "mean_ms": 0.3031336881720429,
+        "min_ms": 0.17446699999999993,
+        "n": 279,
+        "p50_ms": 0.2267750000000004,
+        "p95_ms": 0.594373,
+        "p99_ms": 1.142817
+      },
+      "evaluation_completed_to_ack_emit": {
+        "max_ms": 0.0,
+        "mean_ms": 0.0,
+        "min_ms": 0.0,
+        "n": 279,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "p99_ms": 0.0
+      },
+      "evaluation_enqueued_to_ue_receive": {
+        "max_ms": 459.887712,
+        "mean_ms": 24.07830384229391,
+        "min_ms": 3.921419,
+        "n": 279,
+        "p50_ms": 8.830718,
+        "p95_ms": 80.433863,
+        "p99_ms": 341.650369
+      },
+      "gt_scoring_evaluation_started_to_completed": {
+        "max_ms": 206.078925,
+        "mean_ms": 11.183204992831545,
+        "min_ms": 1.3841339999999995,
+        "n": 279,
+        "p50_ms": 2.219003999999999,
+        "p95_ms": 59.335329,
+        "p99_ms": 157.799694
+      },
+      "gt_wait_evaluation_enqueued_to_started": {
+        "max_ms": 362.796147,
+        "mean_ms": 6.96345541218638,
+        "min_ms": 0.046184999999999476,
+        "n": 279,
+        "p50_ms": 0.07968400000000031,
+        "p95_ms": 0.8229199999999999,
+        "p99_ms": 276.933635
+      },
+      "prediction_ready_to_evaluation_enqueued_not_in_residual": {
+        "max_ms": 5.285501999999999,
+        "mean_ms": 0.6787388387096775,
+        "min_ms": 0.33528999999999964,
+        "n": 279,
+        "p50_ms": 0.5810950000000004,
+        "p95_ms": 1.0572719999999993,
+        "p99_ms": 2.1761539999999995
+      },
+      "prepare_start_to_first_send": {
+        "max_ms": 135.559561,
+        "mean_ms": 24.3005864014337,
+        "min_ms": 4.563580999999999,
+        "n": 279,
+        "p50_ms": 18.88748400000003,
+        "p95_ms": 53.617689,
+        "p99_ms": 75.581189
+      },
+      "residual_as_used_by_collector": {
+        "max_ms": 466.003756,
+        "mean_ms": 48.37889024372762,
+        "min_ms": 11.01798199999999,
+        "n": 279,
+        "p50_ms": 30.825863000000027,
+        "p95_ms": 121.746047,
+        "p99_ms": 373.59119200000004
+      },
+      "residual_minus_gt_wait_and_scoring": {
+        "max_ms": 138.25682700000002,
+        "mean_ms": 30.23222983870967,
+        "min_ms": 8.468618999999988,
+        "n": 279,
+        "p50_ms": 24.626200999999995,
+        "p95_ms": 58.34185899999999,
+        "p99_ms": 78.079343
+      },
+      "socket_send_to_ue_receive_downlink": {
+        "max_ms": 33.437064,
+        "mean_ms": 5.628509749103939,
+        "min_ms": 1.756994,
+        "n": 279,
+        "p50_ms": 5.493764,
+        "p95_ms": 8.956777,
+        "p99_ms": 16.484977
+      }
+    },
+    "a50__favorable_stable": {
+      "ack_emit_to_socket_send": {
+        "max_ms": 3.7145219999999997,
+        "mean_ms": 0.30421604710144934,
+        "min_ms": 0.17563900000000032,
+        "n": 276,
+        "p50_ms": 0.24528499999999998,
+        "p95_ms": 0.5909710000000001,
+        "p99_ms": 1.108847
+      },
+      "evaluation_completed_to_ack_emit": {
+        "max_ms": 0.0,
+        "mean_ms": 0.0,
+        "min_ms": 0.0,
+        "n": 276,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "p99_ms": 0.0
+      },
+      "evaluation_enqueued_to_ue_receive": {
+        "max_ms": 697.19644,
+        "mean_ms": 82.97613554710146,
+        "min_ms": 3.831207,
+        "n": 276,
+        "p50_ms": 8.78501,
+        "p95_ms": 492.87958,
+        "p99_ms": 621.940816
+      },
+      "gt_scoring_evaluation_started_to_completed": {
+        "max_ms": 250.959072,
+        "mean_ms": 29.393146724637663,
+        "min_ms": 1.5415279999999996,
+        "n": 276,
+        "p50_ms": 2.702458,
+        "p95_ms": 129.13521599999999,
+        "p99_ms": 194.171064
+      },
+      "gt_wait_evaluation_enqueued_to_started": {
+        "max_ms": 569.509532,
+        "mean_ms": 48.26664398188409,
+        "min_ms": 0.03763200000000211,
+        "n": 276,
+        "p50_ms": 0.08904500000000048,
+        "p95_ms": 381.90157500000004,
+        "p99_ms": 489.40547
+      },
+      "prediction_ready_to_evaluation_enqueued_not_in_residual": {
+        "max_ms": 7.473938999999998,
+        "mean_ms": 0.7156020362318833,
+        "min_ms": 0.2987679999999955,
+        "n": 276,
+        "p50_ms": 0.6271529999999927,
+        "p95_ms": 0.9957519999999995,
+        "p99_ms": 2.6233129999999996
+      },
+      "prepare_start_to_first_send": {
+        "max_ms": 242.14818800000003,
+        "mean_ms": 23.900153347826105,
+        "min_ms": 5.3338979999999765,
+        "n": 276,
+        "p50_ms": 20.090966999999978,
+        "p95_ms": 47.648844999999994,
+        "p99_ms": 68.53864999999999
+      },
+      "residual_as_used_by_collector": {
+        "max_ms": 714.7695640000001,
+        "mean_ms": 106.87628889492757,
+        "min_ms": 10.982400000000013,
+        "n": 276,
+        "p50_ms": 34.946505999999985,
+        "p95_ms": 519.3759680000001,
+        "p99_ms": 649.72478
+      },
+      "residual_minus_gt_wait_and_scoring": {
+        "max_ms": 249.29908600000005,
+        "mean_ms": 29.21649818840579,
+        "min_ms": 8.714756000000012,
+        "n": 276,
+        "p50_ms": 25.471992000000004,
+        "p95_ms": 53.13058800000002,
+        "p99_ms": 76.54416100000002
+      },
+      "socket_send_to_ue_receive_downlink": {
+        "max_ms": 32.36651,
+        "mean_ms": 5.012128793478265,
+        "min_ms": 1.863524,
+        "n": 276,
+        "p50_ms": 4.947729,
+        "p95_ms": 9.435331,
+        "p99_ms": 14.297162
+      }
+    }
+  },
+  "pooled": {
+    "gt_scoring": {
+      "max_ms": 250.959072,
+      "mean_ms": 20.238959799999986,
+      "min_ms": 1.3841339999999995,
+      "n": 555,
+      "p50_ms": 2.5102840000000004,
+      "p95_ms": 117.472249,
+      "p99_ms": 185.736857
+    },
+    "gt_share_of_residual_sum": 0.6162733249833504,
+    "gt_wait": {
+      "max_ms": 569.509532,
+      "mean_ms": 27.50341945765768,
+      "min_ms": 0.03763200000000211,
+      "n": 555,
+      "p50_ms": 0.08368299999999884,
+      "p95_ms": 257.92900599999996,
+      "p99_ms": 459.475947
+    },
+    "gt_wait_plus_scoring": {
+      "max_ms": 690.146283,
+      "mean_ms": 47.742379257657625,
+      "min_ms": 1.4393260000000003,
+      "n": 555,
+      "p50_ms": 2.60783,
+      "p95_ms": 336.268964,
+      "p99_ms": 548.706444
+    },
+    "residual_as_used": {
+      "max_ms": 714.7695640000001,
+      "mean_ms": 77.46948849189191,
+      "min_ms": 10.982400000000013,
+      "n": 555,
+      "p50_ms": 33.05217400000001,
+      "p95_ms": 367.733538,
+      "p99_ms": 570.9145690000001
+    },
+    "residual_minus_gt_wait_and_scoring": {
+      "max_ms": 249.29908600000005,
+      "mean_ms": 29.727109234234227,
+      "min_ms": 8.468618999999988,
+      "n": 555,
+      "p50_ms": 24.96963799999999,
+      "p95_ms": 56.242139,
+      "p99_ms": 78.079343
+    },
+    "rows": 555,
+    "rows_with_gt_free_residual_over_170ms": 1,
+    "rows_with_gt_over_10ms": 123,
+    "rows_with_gt_over_170ms": 59,
+    "rows_with_gt_over_50ms": 88,
+    "rows_with_residual_over_170ms": 66
+  },
+  "question": "Does the existing Run-4 modeled successful latency represent action-open -> UE receipt of an immediate TAIL_OUTPUT_READY ACK, excluding GT evaluation and map installation?",
+  "schema": "scenesense.run4b.latency_boundary_audit.v1",
+  "source_sha256": {
+    "experiments/splitfusion_quality_feedback_probe_v1/20260916_action50_favorable_adverse_retry4/cells/a50__adverse_stable/quality_feedback_timing_join.csv": "f9113fda612083dfb8d3f905935651798474e2e9fd7b2ae9cc01978688a17367",
+    "experiments/splitfusion_quality_feedback_probe_v1/20260916_action50_favorable_adverse_retry4/cells/a50__favorable_stable/quality_feedback_timing_join.csv": "a2740342de391e8888d6a517c9571e9c0548020070d6d8080806c9863995f1d6",
+    "rl_agent/ue_production_queue_capture_v1/contract.py": "98f8c0083c9a524a17e2f8d4573fe95940609577a0bac3d5bbefa6d6d7ecdaae",
+    "rl_agent/ue_production_transport_model_v2/collector_v1.py": "6ff7766923d16c03ed7c4e31ebe2c4c7198acc0b4f06dc3a194e4657ad173385"
+  },
+  "training_permitted": false,
+  "verdict": "STOP_MODELED_LATENCY_INCLUDES_GT_EVALUATOR_DELAY"
+}
