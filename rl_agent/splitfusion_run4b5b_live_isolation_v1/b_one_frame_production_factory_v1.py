@@ -150,14 +150,26 @@ ATTEMPT_PATH_OWNERSHIP: tuple[tuple[str, str, str, str, str], ...] = (
     ("postrun_remote_prediction", "postrun_remote_prediction",
      "reserved route edge_evidence_dir; never created by the GT-free bridge",
      "dir", "reserved"),
-    ("ue_output", "ue_output", "b_one_frame_execution_v1.execute_one",
+    ("ue_output", "ue_output",
+     "b_one_frame_execution_v1.execute_one | b_ue_process_v1.execute_300",
      "dir", "execute"),
-    ("ue_evidence", "ue_evidence", "b_one_frame_execution_v1.execute_one",
+    ("ue_evidence", "ue_evidence",
+     "b_one_frame_execution_v1.execute_one | b_ue_process_v1.execute_300",
      "dir", "execute"),
+    ("frame_stage_timing", "frame_stage_timing.jsonl",
+     "split_host_300_v1 processor (evidence only, every transmitted frame)",
+     "file", "execute"),
     ("decision_stage_timing", "decision_stage_timing.json",
      "RealProductionOpsV1.execute (evidence only)", "file", "execute"),
     ("remote_prediction", "remote_prediction",
-     "RealProductionOpsV1._download_prediction", "dir", "execute"),
+     "RealProductionOpsV1._download_prediction | "
+     "split_host_300_v1 post-live download", "dir", "execute"),
+    ("postrun_quality", "postrun_quality",
+     "split_host_300_v1 post-run evaluator (after the live phase only)",
+     "dir", "postrun"),
+    ("split_host_300_result", "SPLIT_HOST_300_RESULT.json",
+     "split_host_300_v1 (durable result, written before the CARLA stop)",
+     "file", "postrun"),
     ("remote_edge_log", "remote_edge.log",
      "RealProductionOpsV1._stop_remote_edge", "file", "stop"),
     ("radio_restoration_trace", "radio_trace.csv",
@@ -326,7 +338,8 @@ class RemoteEdgePlanV1:
 
 
 def build_remote_edge_plan(config: O.OneFrameConfigV1,
-                           actor: F.LoadedFinalActorV2) -> RemoteEdgePlanV1:
+                           actor: F.LoadedFinalActorV2, *,
+                           request_builder: Any = None) -> RemoteEdgePlanV1:
     _require(bool(ATTEMPT_RE.fullmatch(config.run_id)),
              "run_id is not safe for the unique Compose project")
     try:
@@ -335,7 +348,7 @@ def build_remote_edge_plan(config: O.OneFrameConfigV1,
     except ValueError as exc:
         raise ProductionOneFrameError(
             "edge campaign config is not inside the explicit remote repository") from exc
-    request_b64, _ = build_edge_request(config, actor)
+    request_b64, _ = (request_builder or build_edge_request)(config, actor)
     state = config.remote_attempt_root / "state"
     compose_path = config.remote_attempt_root / "remote_edge.compose.json"
     project = EDGE_PROJECT_PREFIX + config.run_id
@@ -506,6 +519,55 @@ class RealProductionOpsV1:
         self.remote = OLD.RemoteCliV1()
         self.system = OLD.SystemOpsV1(remote=self.remote)
 
+    # -- budget-specific hooks (the one-frame values below are the defaults;
+    # the split-host 300-frame entry point overrides them) -------------------
+    def _ue_request(self, config: Any, actor: F.LoadedFinalActorV2
+                    ) -> UE.BUEProcessRequestV1:
+        return build_ue_request(config, actor)
+
+    def _edge_plan(self, config: Any,
+                   actor: F.LoadedFinalActorV2) -> RemoteEdgePlanV1:
+        return build_remote_edge_plan(config, actor)
+
+    def _edge_ready_scope(self) -> tuple[str, str, int]:
+        return ER.PURPOSE, ER.CLAIM_SCOPE, 1
+
+    def _maximum_loop_sim_s(self, config: Any) -> float:
+        return SAFETY_TIMEOUT_S
+
+    def _build_pipeline(self, state: StartedOneFrameV1, *,
+                        route_kwargs: Mapping[str, Any],
+                        paths: AttemptPathsV1) -> Any:
+        return PIPE.build_one_frame_pipeline_v2(
+            request=state.ue_request,
+            evidence_root=state.config.actor_evidence_root,
+            controller_lineage_sha256=state.controller_lineage_sha256,
+            dependencies=state.dependencies, cell_id=state.config.cell_id,
+            route_kwargs=route_kwargs,
+            raw_spool_root=paths.get("raw_gt_spool"),
+            postrun_materializer=None)
+
+    def _install_keepalive_policy(self, state: StartedOneFrameV1) -> None:
+        keepalive = getattr(state.dependencies, "uplink_keepalive", None)
+        if keepalive is not None:
+            inner = state.pipeline.processor
+
+            def first_decision_processor(opportunity, previous,
+                                         _inner=inner, _keepalive=keepalive):
+                # Signal only (never blocks): the decision state is built
+                # inside _inner with keepalive-fresh UL grants.
+                try:
+                    return _inner(opportunity, previous)
+                finally:
+                    _keepalive.request_stop()
+
+            state.pipeline.processor = first_decision_processor
+
+    def _after_services_stopped(self, state: StartedOneFrameV1,
+                                errors: list[str]) -> None:
+        """Runs after RAN/map/edge teardown and before the final CARLA stop."""
+        return None
+
     @staticmethod
     def _remote_shell(argv: Sequence[str]) -> str:
         return " ".join(shlex.quote(str(item)) for item in argv)
@@ -619,7 +681,7 @@ class RealProductionOpsV1:
         _require(config.route_config.is_file(), "local route config is absent")
         self._require_local_artifacts(config)
         self._require_local_oai_binding(config)
-        plan = build_remote_edge_plan(config, actor)
+        plan = self._edge_plan(config, actor)
         _require(not config.local_attempt_root.exists(),
                  "local attempt root is not create-only")
         hostname = self._checked_ssh(("hostname", "-s"), "hostname").decode().strip()
@@ -704,12 +766,13 @@ class RealProductionOpsV1:
         ready_raw = self._checked_ssh(
             ("cat", str(plan.ready_file)), "edge ready read")
         ready = json.loads(ready_raw.decode("ascii"))
+        purpose, claim_scope, budget = self._edge_ready_scope()
         expected = {
             "schema": EDGE.READY_SCHEMA, "run_id": state.config.run_id,
             "cell_id": state.config.cell_id,
             "variant": state.ue_request.variant.value,
-            "purpose": ER.PURPOSE, "claim_scope": ER.CLAIM_SCOPE,
-            "transmitted_budget": 1,
+            "purpose": purpose, "claim_scope": claim_scope,
+            "transmitted_budget": budget,
             "edge_port": O.EDGE_FEATURE_PORT,
             "direct_map_host": O.LOCAL_LAN_IP,
             "direct_map_port": O.DIRECT_MAP_PORT,
@@ -789,7 +852,7 @@ class RealProductionOpsV1:
 
     def start(self, config: O.OneFrameConfigV1,
               actor: F.LoadedFinalActorV2) -> StartedOneFrameV1:
-        ue_request = build_ue_request(config, actor)
+        ue_request = self._ue_request(config, actor)
         state = StartedOneFrameV1(config=config, actor=actor,
                                   ue_request=ue_request)
         try:
@@ -809,7 +872,7 @@ class RealProductionOpsV1:
                      "authoritative controller lineage aliases actor boundary")
             CO.validate_campaign_binding(state.campaign)
             self.system.restart_remote_core(state.old_plan)
-            state.edge_plan = build_remote_edge_plan(config, actor)
+            state.edge_plan = self._edge_plan(config, actor)
             self._start_remote_edge(state)
             state.ran = self.system.start_ran(state.prepared, state.old_plan)
             state.carla = self.system.start_carla(state.prepared, state.old_plan)
@@ -894,30 +957,12 @@ class RealProductionOpsV1:
                 "feedback_port": MAP_FEEDBACK_PORT,
                 "edge_evidence_dir":
                     paths.get("postrun_remote_prediction"),
-                "maximum_loop_sim_s": SAFETY_TIMEOUT_S,
+                "maximum_loop_sim_s": self._maximum_loop_sim_s(config),
             }
-            state.pipeline = PIPE.build_one_frame_pipeline_v2(
-                request=ue_request, evidence_root=config.actor_evidence_root,
-                controller_lineage_sha256=state.controller_lineage_sha256,
-                dependencies=state.dependencies, cell_id=config.cell_id,
-                route_kwargs=route_kwargs,
-                raw_spool_root=paths.get("raw_gt_spool"),
-                postrun_materializer=None)
+            state.pipeline = self._build_pipeline(
+                state, route_kwargs=route_kwargs, paths=paths)
             state.decision_processor = state.pipeline.processor
-            keepalive = getattr(state.dependencies, "uplink_keepalive", None)
-            if keepalive is not None:
-                inner = state.pipeline.processor
-
-                def first_decision_processor(opportunity, previous,
-                                             _inner=inner, _keepalive=keepalive):
-                    # Signal only (never blocks): the decision state is built
-                    # inside _inner with keepalive-fresh UL grants.
-                    try:
-                        return _inner(opportunity, previous)
-                    finally:
-                        _keepalive.request_stop()
-
-                state.pipeline.processor = first_decision_processor
+            self._install_keepalive_policy(state)
             for owned in paths.phase("execute"):
                 _require(not owned.exists(),
                          f"execution-owned path exists after startup: {owned}")
@@ -1057,6 +1102,7 @@ class RealProductionOpsV1:
             except BaseException as exc:
                 errors.append(f"{label}: {type(exc).__name__}: {exc}")
         self._stop_remote_edge(state, errors)
+        self._after_services_stopped(state, errors)
         # CARLA is stopped last.  The route runs in-process, and stopping the
         # server while its CARLA client/sensor objects are still alive makes
         # the client library abort the process (std::terminate).  Release the

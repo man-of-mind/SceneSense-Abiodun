@@ -73,16 +73,24 @@ class OneFrameOpportunityProcessorV2(P.BOpportunityProcessorV1):
         mode_id, q_e4 = P._actor_action(self.actor.loaded.module, features)
         mark("actor")
         profile = self.contract.resolve_q_e4(mode_id, q_e4)
+        return self._transmit(opportunity, profile, mark,
+                              decision_seq=opportunity.sequence,
+                              reward_requested=True)
+
+    def _transmit(self, opportunity: B.RouteOpportunityV4, profile: Any,
+                  mark: Any, *, decision_seq: int,
+                  reward_requested: bool) -> U.BTransmissionV1:
+        """Front/codec/SFD4/send for one tensor under an already-fixed action."""
         kwargs = opportunity.submit_kwargs
         frame = X.FrameIdentityV2(
             session_uuid=self.telemetry.session_uuid,
             controller_lineage_sha256=self.controller_lineage_sha256,
-            decision_seq=opportunity.sequence,
-            ticket_seq=opportunity.sequence,
+            decision_seq=decision_seq,
+            ticket_seq=decision_seq,
             frame_id=opportunity.frame_id,
             tensor_seq=opportunity.sequence,
             capture_timestamp_ns=opportunity.capture_timestamp_ns,
-            reward_requested=True)
+            reward_requested=reward_requested)
         input_7ch = self.input_builder(
             kwargs["frame_bgr"], kwargs["radar_tensor"])
         mark("input_7ch")
@@ -115,15 +123,14 @@ class OneFrameOpportunityProcessorV2(P.BOpportunityProcessorV1):
         identity = L.identity_from_phase6(
             run_id=self.request.run_id, cell_id=self.cell_id,
             envelope=prepared.envelope, context=context, profile=profile,
-            require_operational_ack=True)
+            require_operational_ack=reward_requested)
         if identity.controller_lineage_sha256 != self.controller_lineage_sha256:
             raise ControllerLineageError("emitted identity lineage differs")
         return U.BTransmissionV1(
             identity=identity,
             action_open_monotonic_raw_ns=
                 opportunity.action_open_monotonic_raw_ns,
-            payload_bytes=len(wire), decision_frame=True)
-
+            payload_bytes=len(wire), decision_frame=reward_requested)
 
 __all__ = [
     "ControllerLineageError", "OneFrameOpportunityProcessorV2",

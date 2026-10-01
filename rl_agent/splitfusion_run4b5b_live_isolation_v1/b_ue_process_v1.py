@@ -364,16 +364,17 @@ def execute_300(
             decisions += 1
             ledger.open(sent.identity, sent.action_open_monotonic_raw_ns)
             deadline = sent.action_open_monotonic_raw_ns + A.ACK_DEADLINE_NS
-            received = receiver.receive_until(sent.identity, deadline)
-            if received is None:
-                ledger.poll(deadline + 1)
-            else:
+            # Keep receiving until this ticket resolves or its inclusive
+            # deadline passes.  A packet for another ticket (for example the
+            # late ACK of the previous decision) is recorded by the ledger as
+            # an orphan and must never close this ticket early.
+            while ledger.outcome(sent.identity) is None:
+                received = receiver.receive_until(sent.identity, deadline)
+                if received is None:
+                    ledger.poll(deadline + 1)
+                    break
                 packet, receipt = received
                 ledger.receive(packet, receipt)
-                # A receiver can return an unknown packet first.  Close this
-                # exact ticket at the inclusive boundary if it remains open.
-                if ledger.outcome(sent.identity) is None:
-                    ledger.poll(deadline + 1)
             outcome = ledger.outcome(sent.identity)
             _require(type(outcome) is A.OperationalOutcomeV1,
                      "decision did not reach an operational terminal")

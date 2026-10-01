@@ -207,6 +207,13 @@ def _validated_request(encoded: str, *,
                 _require(find_module(module) is not None,
                          f"runtime authority is missing: {module}")
         return raw
+    if schema == Q.SCHEMA_300:
+        raw = Q.decode_and_validate_300(encoded)
+        if find_module is not None:
+            for module in (*E.REQUIRED_AUTHORITIES, E.PROVEN_EDGE_MODULE):
+                _require(find_module(module) is not None,
+                         f"runtime authority is missing: {module}")
+        return raw
     if schema == E.REQUEST_SCHEMA:
         if find_module is not None:
             E.preflight_request(encoded, find_module=find_module)

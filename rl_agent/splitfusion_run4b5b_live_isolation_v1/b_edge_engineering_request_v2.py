@@ -20,6 +20,14 @@ SCHEMA = "scenesense.splitfusion.run4b5b.edge_engineering_request.v2"
 PURPOSE = "ONE_FRAME_SPLIT_HOST_ENGINEERING"
 CLAIM_SCOPE = "ENGINEERING_HANDSHAKE_ONLY__NOT_QUALIFICATION"
 TRANSMITTED_BUDGET = 1
+# The separate split-host 300-frame characterization contract.  It shares the
+# exact field set, ACK endpoint and semantics, but its schema, purpose, claim
+# scope and budget are bound together: no field of one contract is accepted
+# under the other.
+SCHEMA_300 = "scenesense.splitfusion.run4b5b.edge_split_host_300_request.v1"
+PURPOSE_300 = "SPLIT_HOST_300_FRAME_CHARACTERIZATION"
+CLAIM_SCOPE_300 = "CHARACTERIZATION__NOT_POLICY_QUALIFICATION"
+TRANSMITTED_BUDGET_300 = 300
 ACK_RECEIVER_HOST = "10.0.0.2"
 ACK_RECEIVER_PORT = 51014
 
@@ -43,6 +51,24 @@ def _canonical(raw: Mapping[str, Any]) -> bytes:
 
 
 def decode_and_validate(encoded: str) -> dict[str, Any]:
+    """Validate the one-frame engineering request (budget exactly one)."""
+    return _decode_and_validate(
+        encoded, schema=SCHEMA, purpose=PURPOSE, claim_scope=CLAIM_SCOPE,
+        budget=TRANSMITTED_BUDGET,
+        budget_message="engineering budget must be exactly one")
+
+
+def decode_and_validate_300(encoded: str) -> dict[str, Any]:
+    """Validate the split-host 300-frame request (budget exactly 300)."""
+    return _decode_and_validate(
+        encoded, schema=SCHEMA_300, purpose=PURPOSE_300,
+        claim_scope=CLAIM_SCOPE_300, budget=TRANSMITTED_BUDGET_300,
+        budget_message="split-host characterization budget must be exactly 300")
+
+
+def _decode_and_validate(encoded: str, *, schema: str, purpose: str,
+                         claim_scope: str, budget: int,
+                         budget_message: str) -> dict[str, Any]:
     _require(type(encoded) is str and bool(encoded), "request is empty")
     try:
         padding = "=" * (-len(encoded) % 4)
@@ -64,9 +90,9 @@ def decode_and_validate(encoded: str) -> dict[str, Any]:
     _require(type(raw) is dict and set(raw) == fields,
              "engineering request fields are incomplete or foreign")
     _require(_canonical(raw) == payload, "engineering request is noncanonical")
-    _require(raw["schema"] == SCHEMA, "engineering request schema drift")
-    _require(raw["purpose"] == PURPOSE, "engineering purpose drift")
-    _require(raw["claim_scope"] == CLAIM_SCOPE,
+    _require(raw["schema"] == schema, "engineering request schema drift")
+    _require(raw["purpose"] == purpose, "engineering purpose drift")
+    _require(raw["claim_scope"] == claim_scope,
              "engineering claim scope drift")
     _require(raw["role"] == E.ROLE, "request is not for the CN/edge role")
     _require(type(raw["run_id"]) is str and bool(raw["run_id"]),
@@ -79,8 +105,8 @@ def decode_and_validate(encoded: str) -> dict[str, Any]:
         _require(type(value) is str and len(value) == 64
                  and all(ch in "0123456789abcdef" for ch in value),
                  f"{field} is not a lowercase SHA-256")
-    _require(raw["transmitted_budget"] == TRANSMITTED_BUDGET,
-             "engineering budget must be exactly one")
+    _require(type(raw["transmitted_budget"]) is int
+             and raw["transmitted_budget"] == budget, budget_message)
     _require(raw["deadline_ns"] == E.DEADLINE_NS,
              "operational deadline drift")
     _require(raw["ack_semantics"] == E.ACK_SEMANTICS,
