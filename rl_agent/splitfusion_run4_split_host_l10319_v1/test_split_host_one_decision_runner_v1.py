@@ -511,6 +511,9 @@ class RunnerTests(unittest.TestCase):
     def test_local_campaign_and_remote_edge_share_atomic_run_id(self):
         source = Path(R.__file__).read_text(encoding="utf-8")
         self.assertIn('campaign["campaign_id"] = plan.run_id', source)
+        self.assertIn("cell_id=selected.cell_id", source)
+        self.assertNotIn('cell_id=f"run4p6_{plan.run_id}_{selected.cell_id}"',
+                         source)
         self.assertNotIn(
             'campaign["campaign_id"] = f"splitfusion_run4_phase6_v2/{plan.run_id}"',
             source,
@@ -531,6 +534,8 @@ class RunnerTests(unittest.TestCase):
             R.SystemOpsV1(remote=RemoteSpy()).remote_start(plan)
         remote_args = events[1][2]
         self.assertEqual(remote_args[remote_args.index("--run-id") + 1], plan.run_id)
+        self.assertEqual(remote_args[remote_args.index("--cell-id") + 1],
+                         "a71__favorable_stable")
         self.assertRegex(plan.run_id, r"^[A-Za-z0-9_.-]+$")
 
     @unittest.skipUnless(hasattr(os, "fork"), "requires POSIX child isolation")

@@ -346,8 +346,12 @@ class SystemOpsV1:
         # transport/path-safe split-host identity.
         campaign["campaign_id"] = plan.run_id
         supervisor._require_phase15_application_cold(campaign)
+        # Cell identity, like campaign identity above, crosses the local
+        # GT/map and remote edge seams. Preserve the registered carrier-cell
+        # identity verbatim on both hosts; ``plan.run_id`` already provides
+        # per-attempt uniqueness.
         cell = supervisor.Cell(
-            cell_id=f"run4p6_{plan.run_id}_{selected.cell_id}",
+            cell_id=selected.cell_id,
             action_index=selected.action_index, action_id=selected.action_id,
             profile_id=selected.profile_id, model_family=selected.model_family,
             network_profile_id=selected.network_profile_id,
