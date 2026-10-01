@@ -95,13 +95,24 @@ class ProductionDependenciesV1:
 
 def build_production_dependencies_v1(
         *, variant: L.ActorVariant, tracer_dir: Path, t_messages: Path,
-        ue_relay_port: int, evidence_dir: Path,
+        ue_relay_port: int, telemetry_root: Path,
         ue_bind_host: str, edge_remote_host: str, edge_receive_port: int,
         udp_chunk_bytes: int, socket_buffer_request_bytes: int,
         wait_timeout_s: float = 20.0,
         ) -> ProductionDependenciesV1:
-    """Start the exact UE-side dependencies; no CARLA/route is started here."""
+    """Start the exact UE-side dependencies; no CARLA/route is started here.
+
+    ``telemetry_root`` is owned exclusively by these dependencies: it must not
+    exist, its parent must, and only ``telemetry_root/telemetry_live`` is
+    written.  It must never be (or contain) the UE output/evidence roots,
+    which the UE execution loop alone creates.
+    """
     _require(type(variant) is L.ActorVariant, "actor variant is foreign")
+    telemetry_root = Path(telemetry_root)
+    _require(telemetry_root.parent.is_dir(),
+             "telemetry root parent (the attempt root) is absent")
+    _require(not telemetry_root.exists() and not telemetry_root.is_symlink(),
+             "telemetry root must be create-only")
     for path, label in ((Path(tracer_dir), "tracer directory"),
                         (Path(t_messages), "T_messages")):
         _require(path.exists(), f"{label} is absent")
@@ -131,16 +142,20 @@ def build_production_dependencies_v1(
                 "NRUE_MAC_RLC_BUFFER_STATUS": telemetry.on_rlc,
                 "NR_PDCP_TX_SDU": telemetry.on_pdcp}
     readers = []
-    for event, handler in handlers.items():
-        reader = T.LiveEventReaderV2(event, handler, telemetry)
-        reader.start(T.csv_reader_argv(Path(tracer_dir), Path(t_messages),
-                                       ue_relay_port, event),
-                     cwd=Path(tracer_dir))
-        readers.append(reader)
-    audit = T.AuditWriterV2(readers, Path(evidence_dir) / "telemetry_live")
-    audit.start()
+    audit = None
     sender = None
     try:
+        # Every started process/writer is inside the protected region, so a
+        # failure at any step stops whatever was already started.
+        for event, handler in handlers.items():
+            reader = T.LiveEventReaderV2(event, handler, telemetry)
+            readers.append(reader)
+            reader.start(T.csv_reader_argv(Path(tracer_dir), Path(t_messages),
+                                           ue_relay_port, event),
+                         cwd=Path(tracer_dir))
+        telemetry_root.mkdir(parents=False, exist_ok=False)
+        audit = T.AuditWriterV2(readers, telemetry_root / "telemetry_live")
+        audit.start()
         deadline = time.monotonic() + float(wait_timeout_s)
         while time.monotonic() < deadline and not (
                 telemetry.snapshot().all_readers_alive
@@ -175,8 +190,9 @@ def build_production_dependencies_v1(
         for reader in readers:
             try: reader.stop()
             except BaseException: pass
-        try: audit.stop()
-        except BaseException: pass
+        if audit is not None:
+            try: audit.stop()
+            except BaseException: pass
         if sender is not None:
             try: sender.close()
             except BaseException: pass

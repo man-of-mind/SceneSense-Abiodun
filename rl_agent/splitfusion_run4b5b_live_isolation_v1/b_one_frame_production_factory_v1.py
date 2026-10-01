@@ -88,6 +88,115 @@ class ProductionOneFrameError(O.OneFrameEngineeringError):
     """The composed production lifecycle failed closed."""
 
 
+# ---------------------------------------------------------------------------
+# Attempt-scoped path ownership: exactly one owner per path.
+# (name, path relative to the local attempt root, owner, kind, phase)
+# ---------------------------------------------------------------------------
+ATTEMPT_PATH_OWNERSHIP: tuple[tuple[str, str, str, str, str], ...] = (
+    ("legacy_attempt", "attempt",
+     "split_host_one_decision_runner_v1.SystemOpsV1.prepare", "dir", "start"),
+    ("service", "service",
+     "split_host_one_decision_runner_v1.SystemOpsV1.prepare", "dir", "start"),
+    ("remote_core_reset", "REMOTE_CORE_RESET_EVIDENCE.json",
+     "split_host_one_decision_runner_v1.SystemOpsV1.restart_remote_core",
+     "file", "start"),
+    ("local_ran_executor", "local_ran_executor",
+     "local_ran_executor_v1 (via SystemOpsV1.start_ran)", "dir", "start"),
+    ("carla_log", "carla_server.log",
+     "carla lifecycle helper start_carla (via SystemOpsV1.start_carla)",
+     "file", "start"),
+    ("prepared_campaign", "service/campaign.json",
+     "split_host_one_decision_runner_v1.SystemOpsV1.prepare", "file", "start"),
+    ("prepared_cell", "service/cell.json",
+     "split_host_one_decision_runner_v1.SystemOpsV1.prepare", "file", "start"),
+    ("prepared_bindings", "service/bindings.json",
+     "split_host_one_decision_runner_v1.SystemOpsV1.prepare", "file", "start"),
+    ("map_output", "service/map",
+     "map-install runtime --output-dir (RealProductionOpsV1._start_map)",
+     "dir", "start"),
+    ("isolated_campaign", "service/one_frame_campaign.yaml",
+     "RealProductionOpsV1.start", "file", "start"),
+    ("target_snr_trace", "service/radio_trace.csv",
+     "ue_route_b_split_cell_adapter_v1.start_target_snr (moved at stop)",
+     "file", "start"),
+    ("target_snr_stop_file", "service/stop_target_snr",
+     "ue_route_b_split_cell_adapter_v1.stop_target_snr", "file", "stop"),
+    ("target_snr_summary", "service/radio_trace.csv.summary.json",
+     "ue_route_b_split_cell_adapter_v1.stop_target_snr", "file", "stop"),
+    ("target_snr_start", "service/one_frame_target_start",
+     "RealProductionOpsV1.start", "file", "start"),
+    ("ue_telemetry", "ue_telemetry",
+     "b_production_dependencies_v1.build_production_dependencies_v1",
+     "dir", "start"),
+    ("route", "route", "RealProductionOpsV1.start (route attempt_dir)",
+     "dir", "start"),
+    ("raw_gt_spool", "raw_carla_gt_spool",
+     "b_route_bridge_v3.RawGroundTruthSpoolV3 (bridge construction)",
+     "dir", "start"),
+    ("postrun_remote_prediction", "postrun_remote_prediction",
+     "reserved route edge_evidence_dir; never created by the GT-free bridge",
+     "dir", "reserved"),
+    ("ue_output", "ue_output", "b_one_frame_execution_v1.execute_one",
+     "dir", "execute"),
+    ("ue_evidence", "ue_evidence", "b_one_frame_execution_v1.execute_one",
+     "dir", "execute"),
+    ("remote_prediction", "remote_prediction",
+     "RealProductionOpsV1._download_prediction", "dir", "execute"),
+    ("remote_edge_log", "remote_edge.log",
+     "RealProductionOpsV1._stop_remote_edge", "file", "stop"),
+    ("radio_restoration_trace", "radio_trace.csv",
+     "ue_route_b_split_cell_adapter_v1.stop_target_snr", "file", "stop"),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AttemptPathsV1:
+    """The validated ownership map of one local attempt root."""
+
+    root: Path
+
+    def __post_init__(self) -> None:
+        names = [row[0] for row in ATTEMPT_PATH_OWNERSHIP]
+        relatives = [PurePosixPath(row[1]) for row in ATTEMPT_PATH_OWNERSHIP]
+        _require(len(set(names)) == len(names), "duplicate attempt path name")
+        _require(len(set(relatives)) == len(relatives),
+                 "two owners claim the same attempt path")
+        for relative in relatives:
+            _require(not relative.is_absolute() and ".." not in relative.parts,
+                     "attempt path escapes the attempt root")
+        # A path may sit beneath another only under the shared service
+        # directory, whose children are listed explicitly above.
+        for child in relatives:
+            for parent in relatives:
+                if child != parent and parent in child.parents:
+                    _require(parent == PurePosixPath("service"),
+                             f"attempt path {child} is nested in {parent}")
+        for left, right in (("ue_telemetry", "ue_evidence"),
+                            ("ue_telemetry", "ue_output"),
+                            ("ue_output", "ue_evidence")):
+            _require(self.get(left) != self.get(right),
+                     f"{left} and {right} collide")
+
+    def get(self, name: str) -> Path:
+        for row in ATTEMPT_PATH_OWNERSHIP:
+            if row[0] == name:
+                return self.root / row[1]
+        raise ProductionOneFrameError(f"unknown attempt path: {name}")
+
+    def phase(self, phase: str) -> tuple[Path, ...]:
+        return tuple(self.root / row[1] for row in ATTEMPT_PATH_OWNERSHIP
+                     if row[4] == phase)
+
+    @staticmethod
+    def table() -> list[dict[str, str]]:
+        return [{"name": n, "path": r, "owner": o, "kind": k, "phase": ph}
+                for n, r, o, k, ph in ATTEMPT_PATH_OWNERSHIP]
+
+
+def attempt_paths(config: O.OneFrameConfigV1) -> AttemptPathsV1:
+    return AttemptPathsV1(Path(config.local_attempt_root))
+
+
 def _require(value: bool, message: str) -> None:
     if not value:
         raise ProductionOneFrameError(message)
@@ -146,8 +255,8 @@ def build_ue_request(config: O.OneFrameConfigV1,
         ack_semantics=EP.ACK_SEMANTICS,
         postrun_semantics=EP.POSTRUN_SEMANTICS,
         clock_domain=ACK.CLOCK_DOMAIN, split_host=_split_host_for_ue(),
-        output_root=config.local_attempt_root / "ue_output",
-        evidence_root=config.local_attempt_root / "ue_evidence",
+        output_root=attempt_paths(config).get("ue_output"),
+        evidence_root=attempt_paths(config).get("ue_evidence"),
         actor_manifest_path=config.actor_manifest_path,
         required_authority_modules=UE.REQUIRED_AUTHORITIES)
 
@@ -678,14 +787,15 @@ class RealProductionOpsV1:
             self._start_remote_edge(state)
             state.ran = self.system.start_ran(state.prepared, state.old_plan)
             state.carla = self.system.start_carla(state.prepared, state.old_plan)
+            paths = attempt_paths(config)
             state.map_process = self._start_map(
-                state.campaign, config.local_attempt_root / "service",
+                state.campaign, paths.get("service"),
                 config.network.carla_rpc_port)
             from rl_agent import ue_route_b_split_cell_adapter_v1 as pinned
             import yaml
-            service = config.local_attempt_root / "service"
-            isolated = service / "one_frame_campaign.yaml"
-            target_start = service / "one_frame_target_start"
+            service = paths.get("service")
+            isolated = paths.get("isolated_campaign")
+            target_start = paths.get("target_snr_start")
             state.campaign["_target_start_file"] = str(target_start)
             isolated.write_text(
                 yaml.safe_dump(state.campaign, sort_keys=False), encoding="utf-8")
@@ -705,7 +815,7 @@ class RealProductionOpsV1:
                 tracer_dir=Path(telemetry["tracer_dir"]),
                 t_messages=Path(telemetry["t_messages"]),
                 ue_relay_port=int(telemetry["ue_relay_port"]),
-                evidence_dir=ue_request.evidence_root,
+                telemetry_root=paths.get("ue_telemetry"),
                 ue_bind_host=O.UE_TUNNEL_IP,
                 edge_remote_host=O.EDGE_IP,
                 edge_receive_port=O.EDGE_FEATURE_PORT,
@@ -737,7 +847,7 @@ class RealProductionOpsV1:
                     raise ProductionOneFrameError(
                         "target-SNR actuator produced no first ACK")
             row = pinned.action_row(state.campaign, int(state.cell["action_id"]))
-            route_dir = config.local_attempt_root / "route"
+            route_dir = paths.get("route")
             route_dir.mkdir(exist_ok=False)
             route_kwargs = {
                 "campaign": state.campaign, "cell": state.cell, "row": row,
@@ -751,7 +861,7 @@ class RealProductionOpsV1:
                 "map_api_port": MAP_API_PORT,
                 "feedback_port": MAP_FEEDBACK_PORT,
                 "edge_evidence_dir":
-                    config.local_attempt_root / "postrun_remote_prediction",
+                    paths.get("postrun_remote_prediction"),
                 "maximum_loop_sim_s": SAFETY_TIMEOUT_S,
             }
             state.pipeline = PIPE.build_one_frame_pipeline_v2(
@@ -759,8 +869,11 @@ class RealProductionOpsV1:
                 controller_lineage_sha256=state.controller_lineage_sha256,
                 dependencies=state.dependencies, cell_id=config.cell_id,
                 route_kwargs=route_kwargs,
-                raw_spool_root=config.local_attempt_root / "raw_carla_gt_spool",
+                raw_spool_root=paths.get("raw_gt_spool"),
                 postrun_materializer=None)
+            for owned in paths.phase("execute"):
+                _require(not owned.exists(),
+                         f"execution-owned path exists after startup: {owned}")
             return state
         except BaseException:
             try:
@@ -784,7 +897,7 @@ class RealProductionOpsV1:
             time.sleep(0.05)
         else:
             raise ProductionOneFrameError("remote prediction evidence is absent")
-        local = state.config.local_attempt_root / "remote_prediction"
+        local = attempt_paths(state.config).get("remote_prediction")
         (local / "records").mkdir(parents=True, exist_ok=False)
         (local / "artifacts").mkdir(parents=True, exist_ok=False)
         self.remote.download(record_remote, local / "records" / record_remote.name)
@@ -849,7 +962,7 @@ class RealProductionOpsV1:
             try:
                 output = self._checked_ssh(argv, label, timeout)
                 if label == "edge logs":
-                    target = state.config.local_attempt_root / "remote_edge.log"
+                    target = attempt_paths(state.config).get("remote_edge_log")
                     target.write_bytes(output)
             except BaseException as exc:
                 errors.append(f"{label}: {type(exc).__name__}: {exc}")
@@ -867,7 +980,7 @@ class RealProductionOpsV1:
              if state.dependencies is not None else None),
             ("target SNR", (lambda: _require(bool(pinned.stop_target_snr(
                 state.target_process, state.target_output, state.target_stop,
-                state.config.local_attempt_root / "radio_trace.csv")),
+                attempt_paths(state.config).get("radio_restoration_trace"))),
                 "target-SNR restore failed"))
              if state.target_process is not None else None),
             ("map", (lambda: _require(bool(pinned.stop_process(
@@ -935,6 +1048,7 @@ __all__ = [
     "FACTORY_SCHEMA", "ProductionOneFrameError", "runtime_variant",
     "build_ue_request", "build_edge_request", "RemoteEdgePlanV1",
     "build_remote_edge_plan", "TargetSnrLeasePumpV1",
+    "ATTEMPT_PATH_OWNERSHIP", "AttemptPathsV1", "attempt_paths",
     "StartedOneFrameV1", "ProductionOneFrameLifecycleV1",
     "build_one_frame_lifecycle_v1",
 ]
