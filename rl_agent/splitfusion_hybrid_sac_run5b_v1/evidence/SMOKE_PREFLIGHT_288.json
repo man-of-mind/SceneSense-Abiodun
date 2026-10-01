@@ -1,0 +1,40 @@
+{
+  "backlog_zero_fraction": 0.9548611111111112,
+  "checks": {
+    "backlog_zero_and_positive": true,
+    "channel_future_sample_violations_zero": true,
+    "coverage_12x6x4": true,
+    "current_snr_never_a_later_generated_sample": true,
+    "duration_2_discount": true,
+    "exact_operational_prior_propagation": true,
+    "exact_schedule_identity": true,
+    "finite_states_rewards": true,
+    "no_future_snr_tick": true,
+    "no_gradient_during_collection": true,
+    "no_qperc_in_successor_state": true,
+    "provider_binding_registered": true,
+    "reward_formula_exact": true,
+    "si_p40_mcs_vary": true,
+    "snr_feature_is_causal_sample": true,
+    "snr_varies": true,
+    "success_and_failure_present": true
+  },
+  "decision_chain": "34ff8e90168c9fcc9a51a0e9722411aa262231627a145dba8e5eacb4f4f5e00f",
+  "decisions": 288,
+  "distinct_values_first_four_features": {
+    "camera_si_scaled": 216,
+    "pre_action_rlc_backlog_log1p_scaled": 14,
+    "prior_ul_mcs_normalized": 20,
+    "radar_p40": 216
+  },
+  "passed": true,
+  "reward_max": 0.7298824542986901,
+  "reward_mean": 0.17403394321858295,
+  "reward_min": -1.0,
+  "schema": "splitfusion.run5b.preflight_288.v1",
+  "seed": 17,
+  "terminal_counts": {
+    "TIMELY_SUCCESS": 272,
+    "TIMEOUT_OR_FAILURE": 16
+  }
+}

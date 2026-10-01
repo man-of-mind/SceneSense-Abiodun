@@ -1,0 +1,50 @@
+{
+  "checkpoint_updates": [
+    0,
+    100,
+    250,
+    500,
+    1000,
+    1500,
+    2000,
+    2500,
+    3000,
+    3500,
+    4000,
+    4500,
+    5000,
+    5500,
+    6000,
+    6500,
+    7000,
+    7500,
+    8000,
+    8500,
+    9000,
+    9500,
+    10000
+  ],
+  "code_commit": "d5d501bd54167bd1ceaf1bd95249fcd4a4c06ce4",
+  "dominance_rule": {
+    "families": [
+      "noAE",
+      "AE128"
+    ],
+    "max_share": 0.5
+  },
+  "preregistered_live_actor": {
+    "seed": 43,
+    "update": 10000
+  },
+  "resume_equivalence_sha256": "c4363dab8cde0f46c42f6d2adcab958eb995810cb4a5a5527142dd69530206d9",
+  "schema": "splitfusion.run5b.campaign.v1",
+  "seeds": [
+    17,
+    29,
+    43
+  ],
+  "smoke_gate_sha256": "0537c569ef7b324a338fd24336c7b0845299e85c2d3e8ac962bbf8f6e3c66dfd",
+  "started_unix": 1790826931.8131094,
+  "status": "RUNNING",
+  "target_update": 10000
+}
