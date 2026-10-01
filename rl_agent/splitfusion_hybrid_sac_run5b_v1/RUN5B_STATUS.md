@@ -1,56 +1,26 @@
-# Run-5B status (2026-09-30): scaffolding complete; launch held
+# Run-5B status
 
-**Status: `RUN5B_SCAFFOLD_COMPLETE__LAUNCH_HELD_PENDING_RUN4B_OPERATIONAL_LATENCY_PROVIDER`.**
+Decision `USE_JOINT_SNR_MCS_CHANNEL` (2026-09-30). Run 5B is Run 4B on the shared joint SNR/MCS
+channel, with the causal UL-SNR proxy exposed as feature 21.
 
-No smoke, deep training or evaluation has run. The training preregistration is **not sealed**.
+## Architecture
 
-## Built and tested offline (CPU only)
+- **Shared authority:** `rl_agent/splitfusion_joint_channel_v1/joint_channel.py`.
+  - It is the Run-4B environment. Its `step` is inherited unchanged and calls the shared
+    operational-latency provider (`056f0fd`, binding `3cc1e6e3…6c29`).
+  - Only the MCS source differs: it is the frozen Run-5 joint SNR/MCS channel, with the same
+    four profiles, the same balanced blocks and the seed rule `derive(seed, 'train-channel')`.
+  - Run-4B-Joint, the paired comparator, must import this module unchanged and bind the same
+    digest. The SNR-free Run-4B campaign is a pilot, not the paired ablation comparator.
+- **State:** `run5b_state_contract.py`.
+  - Positions 0–19 come from the unchanged Run-4B `build_features`.
+  - Position 20 is the lease-admitted causal SNR, `(dB − 5.5)/19`.
+- **Learner and runner:** `run5b_learner.py` and `run5b_runner.py` are generated from Run-4B's
+  `learner.py` and `runner.py` by `derive_from_run4b.py`. Every difference is one listed
+  substitution, and a test regenerates both files and requires byte equality.
+- **Run-5B-only code:** `run5b_checks.py`, which holds the SNR, reward and Q_perc gates, the disk
+  check and the fresh-process actor verification.
+- **Registration:** `run5b_registration.py` produces `RUN5B_REGISTRATION.json`.
 
-- **State: 21 features.**
-  - Positions 0–19 are the Run-4B order, i.e. the Run-4 order with
-    `prev_quality_qperc` removed.
-  - Position 20 is `effective_external_ul_snr_proxy_scaled`, using the frozen Run-5 v2
-    lease provider and the `(snr_db − 5.5)/19` scaling.
-- **Transport-only prior.** The previous outcome is a `TransportPriorOutcomeV1`.
-  - It holds the action, the terminal and the operational latency.
-  - It has no quality field, and a successful prior needs no Q_perc.
-  - The modeled projection never reads Q_perc: two resolutions that differ only in
-    Q_perc give byte-identical priors.
-- **Native builder.** The vector is built by `guard_run5b_state` plus
-  `build_run5b_policy_features`. No Run-4 or Run-5 builder is called and nothing is
-  sliced (a test patches both to fail).
-  - An audit compares the result bit for bit with the environment's own measured
-    values.
-- **Models.** The actor takes 21 inputs and the critics 34. The hyper-parameters,
-  cadence and seeds equal Run 4's and Run 5's.
-- **Live actor.** Seed 43 at update 10,000 is pre-registered.
-- **Identity checks.** These cover the schema id, feature order and its hash, the feature
-  schema hash, the model binding, the preregistration and the tensor tree.
-  - Refused: the old Run-4 21-D actor (its binding, schema and order, plus the frozen
-    seed-43 tensors) and the old Run-5 22-D actor (its bindings, schemas, order,
-    preregistration and width, sliced or padded).
-  - Width alone is never treated as identity. Untrained Run-4 and Run-5B actors with the
-    same init seed are bit-identical, and a test demonstrates this.
-- **Tests: 52 pass, 7 skipped.** The skipped tests are the separate-process resume and
-  smoke tests, which need the sealed preregistration.
-  - With the same seed and actions, the outcomes are identical to the frozen Run-5
-    collector, and the Run-5B state equals the Run-5 state minus feature 17.
-  - Perturbing Q_perc changes the rewards but never the actor state.
-
-## Why launch is held
-
-The inherited Run-4 v2 kernel composes latency from a retained residual that includes
-ground-truth evaluation and scoring time.
-
-`run5b_campaign` therefore refuses smoke, deep and rehearsal runs with
-`RUN5B_LAUNCH_HELD_PENDING_RUN4B_OPERATIONAL_LATENCY_PROVIDER` while
-`RUN4B_LATENCY_PROVIDER is None`.
-
-## To resume
-
-1. Import Run 4B's hash-bound operational-latency provider and its binding unchanged. Do
-   not reimplement it.
-2. Swap it into the collector kernel.
-3. Add a test that Run 4B and Run 5B produce identical latency draws for identical seed,
-   state and action.
-4. Seal `RUN5B_TRAINING_PREREGISTRATION.json`, then run the smoke and recovery gates.
+The earlier scaffold modules, which were built on the Run-5 collector, are superseded and
+removed. They remain in history at `5a77b16`.
