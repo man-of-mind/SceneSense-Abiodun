@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 from . import branch_evidence_v1 as B
+from . import feature_schema_authority_v1 as AUTH
 from . import operational_ack_v1 as A
 
 
@@ -103,13 +104,16 @@ def expected_feature_order(variant: ActorVariant) -> tuple[str, ...]:
 
 def feature_schema_sha256(variant: ActorVariant,
                           order: Sequence[str]) -> str:
+    _require(type(variant) is ActorVariant, "variant must be ActorVariant",
+             ActorBindingError)
     exact = tuple(order)
-    return hashlib.sha256(_canonical({
-        "schema": FEATURE_SCHEMA,
-        "variant": variant.value,
-        "feature_count": len(exact),
-        "feature_order": list(exact),
-    })).hexdigest()
+    _require(exact == expected_feature_order(variant),
+             "feature order differs from the selected B variant",
+             ActorBindingError)
+    try:
+        return AUTH.feature_schema_sha256(variant.value, exact)
+    except AUTH.FeatureSchemaAuthorityError as exc:
+        raise ActorBindingError(str(exc)) from exc
 
 
 @dataclass(frozen=True, slots=True)
