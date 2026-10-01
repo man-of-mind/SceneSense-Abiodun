@@ -1,0 +1,133 @@
+{
+  "binding": {
+    "composition": "L_op = A + S + T + E + D",
+    "deadline_ns_inclusive": 170000000,
+    "draw_rule": "one randrange index per stream per decision, drawn before the action is known",
+    "excluded_components": [
+      "GT_WAIT",
+      "GT_SCORING",
+      "QPERC_COMPUTATION",
+      "MAP_INSTALLATION",
+      "PREDICTION_READY_TO_EVALUATION_ENQUEUE",
+      "OLD_ACTOR_RESERVE"
+    ],
+    "family_conditioning": "NONE_POOLED_A_AND_E",
+    "label": "EXPLORATORY_POOLED_FAMILY_TRANSFER_ASSUMPTION",
+    "pools": {
+      "A": {
+        "definition": "POLICY_DECISION first_packet_send_raw_ns - action_open.ns (CLOCK_MONOTONIC_RAW)",
+        "n": 138,
+        "sha256": "149deeadbabc9b6dc2e75dbc4ebf69f144a5d1a1acc05d994d6015ff28c813ea",
+        "used_by_compose": true
+      },
+      "D": {
+        "definition": "evaluation_completed_to_ue_receive_ms from both retained action-50 probe cells",
+        "n": 555,
+        "sha256": "fd984be80b03d9b611d49283660df445215313a37cdf115d27562eba8288365d",
+        "used_by_compose": true
+      },
+      "E": {
+        "definition": "edge_publish_start_wall_s - edge_reassembly_complete_wall_s for kind=POLICY_DECISION and reward_requested=true",
+        "n": 127,
+        "sha256": "40f06df7df6b657991f6cb4cb054cb923806669b384562fa6bad102a513f9123",
+        "used_by_compose": true
+      },
+      "E_HOLD_SENSITIVITY": {
+        "definition": "same E boundary for POLICY_HOLD rows; sensitivity only, never used by compose()",
+        "n": 148,
+        "sha256": "aa33efb7bbff76bbc0335d6e7d9483090b0e46afba63f42851b5af8cda4359b1",
+        "used_by_compose": false
+      }
+    },
+    "schema": "scenesense.operational_latency_provider.v1",
+    "send_span_ns_per_byte": 0.513047,
+    "source_status": {
+      "phase6_ue_evidence": "split-host run status FAILED on an evaluator/ground-truth fault; characterization only, not a formal qualification. The fault lies outside the A and E boundaries."
+    },
+    "sources": {
+      "direct_map_ingest": {
+        "relpath": "rl_agent/experiments/splitfusion_run4_split_host_l10319_v1/20261001T020000Z_full_300_characterization/attempt/direct_edge_map/direct_map_ingest.csv",
+        "sha256": "536f57be1883240c80dd27bdd6960f3232bf29050e682ff7e0f66266a4a52a5f"
+      },
+      "phase6_ue_evidence": {
+        "relpath": "rl_agent/experiments/splitfusion_run4_split_host_l10319_v1/20261001T020000Z_full_300_characterization/attempt/run4_phase6/PHASE6_UE_EVIDENCE.json",
+        "sha256": "52b73103a95bc6ee110df07c578e24703c0a59c668315cbffa60e95489418c41"
+      },
+      "probe_adverse": {
+        "relpath": "experiments/splitfusion_quality_feedback_probe_v1/20260916_action50_favorable_adverse_retry4/cells/a50__adverse_stable/quality_feedback_timing_join.csv",
+        "sha256": "f9113fda612083dfb8d3f905935651798474e2e9fd7b2ae9cc01978688a17367"
+      },
+      "probe_favorable": {
+        "relpath": "experiments/splitfusion_quality_feedback_probe_v1/20260916_action50_favorable_adverse_retry4/cells/a50__favorable_stable/quality_feedback_timing_join.csv",
+        "sha256": "a2740342de391e8888d6a517c9571e9c0548020070d6d8080806c9863995f1d6"
+      },
+      "transport_v2b": {
+        "relpath": "rl_agent/experiments/ue_production_queue_capture_v1/20260929_model_v2b/transport_model_v2.json",
+        "sha256": "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c"
+      }
+    },
+    "stream_domain": "SCENESENSE_OPERATIONAL_LATENCY_STREAM_V1",
+    "stream_labels": [
+      "A",
+      "E",
+      "D"
+    ],
+    "transport_document_sha256": "38c3ec6a8f0c8a86e588310c027f306108189e1ccd0e592795ba71dad8cc7474"
+  },
+  "binding_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+  "pools": {
+    "A": {
+      "definition": "POLICY_DECISION first_packet_send_raw_ns - action_open.ns (CLOCK_MONOTONIC_RAW)",
+      "exclusions": {
+        "kind_FALLBACK": 8,
+        "kind_POLICY_HOLD": 154
+      },
+      "max_ms": 91.467414,
+      "min_ms": 9.165695,
+      "n": 138,
+      "p50_ms": 27.623089,
+      "p95_ms": 55.811229,
+      "p99_ms": 62.756876,
+      "sha256": "149deeadbabc9b6dc2e75dbc4ebf69f144a5d1a1acc05d994d6015ff28c813ea"
+    },
+    "D": {
+      "definition": "evaluation_completed_to_ue_receive_ms from both retained action-50 probe cells",
+      "exclusions": {
+        "nonfinite_or_missing": 45
+      },
+      "max_ms": 33.700548,
+      "min_ms": 2.00733,
+      "n": 555,
+      "p50_ms": 5.455765,
+      "p95_ms": 9.713093,
+      "p99_ms": 16.738217,
+      "sha256": "fd984be80b03d9b611d49283660df445215313a37cdf115d27562eba8288365d"
+    },
+    "E": {
+      "definition": "edge_publish_start_wall_s - edge_reassembly_complete_wall_s for kind=POLICY_DECISION and reward_requested=true",
+      "exclusions": {
+        "no_frame_record": 8,
+        "policy_decision_without_ingest_row": 11,
+        "policy_hold_sensitivity_only": 148
+      },
+      "max_ms": 72.1057,
+      "min_ms": 40.739,
+      "n": 127,
+      "p50_ms": 45.1616,
+      "p95_ms": 51.744,
+      "p99_ms": 64.542,
+      "sha256": "40f06df7df6b657991f6cb4cb054cb923806669b384562fa6bad102a513f9123"
+    },
+    "E_HOLD_SENSITIVITY": {
+      "definition": "same E boundary for POLICY_HOLD rows; sensitivity only, never used by compose()",
+      "exclusions": {},
+      "max_ms": 81.8918,
+      "min_ms": 41.1496,
+      "n": 148,
+      "p50_ms": 45.6545,
+      "p95_ms": 55.7696,
+      "p99_ms": 81.2354,
+      "sha256": "aa33efb7bbff76bbc0335d6e7d9483090b0e46afba63f42851b5af8cda4359b1"
+    }
+  }
+}
