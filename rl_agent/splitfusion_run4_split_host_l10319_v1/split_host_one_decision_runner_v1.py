@@ -39,6 +39,11 @@ REMOTE_REPOSITORY = Path("/home/shr_aisvcs/workarea/carla_0_10_env/"
 REMOTE_ATTEMPT_BASE = Path("/home/shr_aisvcs/workarea/carla_0_10_env/"
                            "Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/"
                            "splitfusion_run4_split_host_l10319_v1_attempts")
+REMOTE_CN_DIRECTORY = REMOTE_REPOSITORY / "OAI/oai-cn5g"
+REMOTE_CN_COMPOSE = REMOTE_CN_DIRECTORY / "docker-compose.yaml"
+REMOTE_CN_PROJECT = "oai-cn5g"
+REMOTE_CN_SERVICES = ("oai-amf", "oai-smf", "oai-upf")
+REMOTE_CN_HEALTH_TIMEOUT_S = 120.0
 DEFAULT_CONFIG = (LR.ROOT / "rl_agent/configs/"
                   "splitfusion_direct_edge_map_live_validation_v1.json")
 LOCAL_RADIO_STATE_BASE = (LR.ROOT / "experiments/"
@@ -60,6 +65,8 @@ RESULT_NAME = "SPLIT_HOST_ONE_DECISION_RESULT.json"
 PROOF_NAME = "FIRST_REAL_TENSOR_PROOF.json"
 RELEASE_NAME = "REMOTE_TEARDOWN_RELEASE.json"
 ABORT_RELEASE_NAME = "REMOTE_ABORT_RELEASE.json"
+REMOTE_CORE_RESET_NAME = "REMOTE_CORE_RESET_EVIDENCE.json"
+REMOTE_CORE_RESET_SCHEMA = "scenesense.run4.remote_core_reset_evidence.v1"
 
 
 class SplitHostOneDecisionError(RuntimeError):
@@ -110,6 +117,8 @@ class OneDecisionPlanV1:
                  "unsafe or remote-incompatible attempt identity")
         _require(self.remote_host == REMOTE_HOST, "remote SSH identity drift")
         _require(Path(self.remote_repository).is_absolute(), "remote root not absolute")
+        _require(Path(self.remote_repository) == REMOTE_REPOSITORY,
+                 "remote repository identity drift")
         _require(Path(self.config_path).is_absolute(), "config not absolute")
         _require(1024 <= self.carla_port <= 65535, "CARLA port invalid")
         _require(120 <= float(self.outer_runtime_s) <= OUTER_RUNTIME_S,
@@ -210,6 +219,91 @@ class RemoteCliV1:
                  "remote download failed")
 
 
+    def _inspect_core(self) -> dict[str, dict[str, Any]]:
+        result = self._ssh(
+            ["sudo", "-n", "docker", "inspect", *REMOTE_CN_SERVICES], 30)
+        _require(result.returncode == 0, "remote core inspect failed")
+        try:
+            rows = json.loads(bytes(result.stdout or b"").decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise SplitHostOneDecisionError("remote core inspect was not JSON") from exc
+        _require(type(rows) is list and len(rows) == len(REMOTE_CN_SERVICES),
+                 "remote core inspect service count drift")
+        states: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            _require(type(row) is dict, "remote core inspect row invalid")
+            name = str(row.get("Name", "")).removeprefix("/")
+            _require(name in REMOTE_CN_SERVICES and name not in states,
+                     "remote core service identity drift")
+            config, state = row.get("Config"), row.get("State")
+            _require(type(config) is dict and type(state) is dict,
+                     f"remote core state absent: {name}")
+            labels = config.get("Labels")
+            _require(type(labels) is dict, f"remote core labels absent: {name}")
+            _require(labels.get("com.docker.compose.project") == REMOTE_CN_PROJECT
+                     and labels.get("com.docker.compose.service") == name,
+                     f"remote core Compose identity drift: {name}")
+            working_dir = labels.get("com.docker.compose.project.working_dir")
+            config_files = labels.get("com.docker.compose.project.config_files")
+            if working_dir is not None:
+                _require(working_dir == str(REMOTE_CN_DIRECTORY),
+                         f"remote core working-dir drift: {name}")
+            if config_files is not None:
+                _require(config_files == str(REMOTE_CN_COMPOSE),
+                         f"remote core config-file drift: {name}")
+            health = state.get("Health")
+            states[name] = {
+                "container_id": row.get("Id"),
+                "started_at": state.get("StartedAt"),
+                "running": state.get("Running"),
+                "health": health.get("Status") if type(health) is dict else None,
+            }
+        _require(set(states) == set(REMOTE_CN_SERVICES),
+                 "remote core exact service set drift")
+        return states
+
+    def restart_core_and_wait_healthy(
+            self, *, repository: Path,
+            health_timeout_s: float = REMOTE_CN_HEALTH_TIMEOUT_S,
+            poll_interval_s: float = 1.0) -> Mapping[str, Any]:
+        _require(Path(repository) == REMOTE_REPOSITORY,
+                 "remote core repository identity drift")
+        for path, kind in ((REMOTE_REPOSITORY, "-d"), (REMOTE_CN_COMPOSE, "-f")):
+            present = self._ssh(["test", kind, str(path)], 15)
+            resolved = self._ssh(["readlink", "-f", "--", str(path)], 15)
+            actual = bytes(resolved.stdout or b"").decode("utf-8", "replace").strip()
+            _require(present.returncode == 0 and resolved.returncode == 0
+                     and actual == str(path), f"remote core path identity drift: {path}")
+        before = self._inspect_core()
+        command = ["sudo", "-n", "docker", "compose",
+                   "--project-name", REMOTE_CN_PROJECT,
+                   "--project-directory", str(REMOTE_CN_DIRECTORY),
+                   "-f", str(REMOTE_CN_COMPOSE), "restart", *REMOTE_CN_SERVICES]
+        restarted = self._ssh(command, 90)
+        _require(restarted.returncode == 0, "remote core restart failed")
+        deadline = time.monotonic() + float(health_timeout_s)
+        while True:
+            after = self._inspect_core()
+            if all(after[name]["started_at"] not in {None, ""}
+                   and after[name]["started_at"] != before[name]["started_at"]
+                   and after[name]["running"] is True
+                   and after[name]["health"] == "healthy"
+                   for name in REMOTE_CN_SERVICES):
+                break
+            if time.monotonic() >= deadline:
+                raise SplitHostOneDecisionError(
+                    "remote core did not reach changed-StartedAt/running/healthy gate")
+            time.sleep(float(poll_interval_s))
+        return {"schema": REMOTE_CORE_RESET_SCHEMA,
+                "status": "REMOTE_CORE_RESTARTED_HEALTHY",
+                "remote_host": self.host, "repository": str(REMOTE_REPOSITORY),
+                "compose_file": str(REMOTE_CN_COMPOSE),
+                "compose_project": REMOTE_CN_PROJECT,
+                "services": list(REMOTE_CN_SERVICES),
+                "restart_command": command, "before": before, "after": after,
+                "remote_cn_owned": False}
+
+
 class SystemOpsV1:
     """Production effects; tests replace this object completely."""
     def __init__(self, remote: Optional[RemoteCliV1] = None) -> None:
@@ -278,6 +372,17 @@ class SystemOpsV1:
             "--run-id", plan.run_id, "--cell-id", "a71__favorable_stable",
             "--ready-timeout-s", "300"), REMOTE_START_TIMEOUT_S,
             repository=plan.remote_repository)
+
+    def restart_remote_core(self, plan: OneDecisionPlanV1) -> Mapping[str, Any]:
+        evidence = dict(self.remote.restart_core_and_wait_healthy(
+            repository=plan.remote_repository))
+        _require(evidence.get("status") == "REMOTE_CORE_RESTARTED_HEALTHY"
+                 and evidence.get("remote_cn_owned") is False,
+                 "remote core reset evidence invalid")
+        path = plan.output_root / REMOTE_CORE_RESET_NAME
+        _write(path, evidence)
+        return {"status": evidence["status"], "evidence_sha256": _sha(path),
+                "remote_cn_owned": False}
 
     def start_ran(self, prepared: PreparedLocalV1, plan: OneDecisionPlanV1) -> Any:
         return LX.LocalRanExecutorV1(plan=prepared.ran_plan,
@@ -499,6 +604,11 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
             start = ops.remote_start(plan)
             remote_held = start.get("status") == "HELD_READY_CAPTURE_ACTIVE"
             remote = _prestarted(start)
+            core_reset = ops.restart_remote_core(plan)
+            _require(core_reset.get("status") == "REMOTE_CORE_RESTARTED_HEALTHY"
+                     and core_reset.get("remote_cn_owned") is False,
+                     "remote core reset/readiness gate failed")
+            report["remote_core_reset"] = dict(core_reset)
             ran = ops.start_ran(prepared, plan)
             _require(ran.source_route is not None and ran.policy_ownership is not None,
                      "local source-route ownership proof absent")
@@ -649,6 +759,8 @@ if __name__ == "__main__":
 
 __all__ = ["SCHEMA", "EXECUTE_TOKEN", "TRANSMITTED_BUDGET", "DECISION_CAP",
            "SAFETY_TIMEOUT_S", "OUTER_RUNTIME_S", "LOCAL_CAPTURE_FILTER",
+           "REMOTE_CN_DIRECTORY", "REMOTE_CN_COMPOSE", "REMOTE_CN_PROJECT",
+           "REMOTE_CN_SERVICES", "REMOTE_CORE_RESET_NAME",
            "SplitHostOneDecisionError", "OneDecisionPlanV1", "RemoteCliV1",
            "SystemOpsV1", "validate_closed_one_decision", "run_one_decision",
            "build_parser", "main"]

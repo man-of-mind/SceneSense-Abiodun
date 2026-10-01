@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -118,6 +119,13 @@ class FakeOps:
                     "container_id": "container", "ready_sha256": DIGEST,
                     "gt_ready_sha256": DIGEST, "feedback_route_sha256": DIGEST}}
 
+    def restart_remote_core(self, _plan):
+        self.events.append("core_restart")
+        if self.fail == "core_restart":
+            raise RuntimeError("core reset boom")
+        return {"status": "REMOTE_CORE_RESTARTED_HEALTHY",
+                "evidence_sha256": DIGEST, "remote_cn_owned": False}
+
     def start_ran(self, _prepared, _plan):
         self.events.append("ran_start")
         return FakeRan(self.events)
@@ -210,6 +218,8 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS_ONE_DECISION_SPLIT_HOST")
         self.assertEqual(ops.cap, ops.original_cap)
         order = ops.events
+        self.assertLess(order.index("remote_start"), order.index("core_restart"))
+        self.assertLess(order.index("core_restart"), order.index("ran_start"))
         self.assertLess(order.index("proof"), order.index("proof_finalize"))
         self.assertLess(order.index("proof_finalize"), order.index("teardown_release"))
         self.assertLess(order.index("teardown_release"), order.index("upload_release"))
@@ -224,6 +234,17 @@ class RunnerTests(unittest.TestCase):
                                         watchdog=False)
         self.assertIn("lost remote response", result["error"])
         self.assertIn("remote_abort:False:False", ops.events)
+
+    def test_core_gate_failure_starts_no_local_runtime_and_aborts_held_edge(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ops = FakeOps(fail="core_restart")
+            result = R.run_one_decision(self.plan(Path(directory)), ops=ops,
+                                        watchdog=False)
+        self.assertIn("core reset boom", result["error"])
+        self.assertIn("remote_abort:False:False", ops.events)
+        for event in ("ran_start", "carla_start", "capture_start", "child"):
+            self.assertNotIn(event, ops.events)
+        self.assertFalse(result["remote_cn_owned"])
 
     def test_abort_before_sender_connect_needs_no_release(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -338,6 +359,68 @@ class RunnerTests(unittest.TestCase):
             campaign_config_relative="rl_agent/configs/campaign.json",
         )
         self.assertIs(paths.validate(), paths)
+
+
+    @staticmethod
+    def core_inspect(suffix: str, healthy: bool = True):
+        return [{
+            "Id": service + "-id", "Name": "/" + service,
+            "Config": {"Labels": {
+                "com.docker.compose.project": R.REMOTE_CN_PROJECT,
+                "com.docker.compose.service": service,
+                "com.docker.compose.project.working_dir": str(R.REMOTE_CN_DIRECTORY),
+                "com.docker.compose.project.config_files": str(R.REMOTE_CN_COMPOSE)}},
+            "State": {"StartedAt": suffix, "Running": True,
+                      "Health": {"Status": "healthy" if healthy else "unhealthy"}},
+        } for service in R.REMOTE_CN_SERVICES]
+
+    def test_remote_core_restart_targets_exact_services_and_proves_health(self):
+        remote, calls = R.RemoteCliV1(), []
+        inspections = [self.core_inspect("before"), self.core_inspect("after")]
+        def ssh(argv, _timeout, data=None):
+            calls.append(tuple(argv))
+            if argv[0] == "test":
+                return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+            if argv[0] == "readlink":
+                return SimpleNamespace(returncode=0,
+                    stdout=(argv[-1] + "\n").encode(), stderr=b"")
+            if argv[:4] == ["sudo", "-n", "docker", "inspect"]:
+                return SimpleNamespace(returncode=0,
+                    stdout=json.dumps(inspections.pop(0)).encode(), stderr=b"")
+            return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+        remote._ssh = ssh
+        evidence = remote.restart_core_and_wait_healthy(
+            repository=R.REMOTE_REPOSITORY, health_timeout_s=0)
+        restart = next(c for c in calls if c[:4] ==
+                       ("sudo", "-n", "docker", "compose"))
+        self.assertEqual(restart[-4:], ("restart", *R.REMOTE_CN_SERVICES))
+        self.assertEqual(evidence["services"], list(R.REMOTE_CN_SERVICES))
+        self.assertFalse(evidence["remote_cn_owned"])
+
+    def test_remote_core_restart_refuses_missing_or_never_healthy(self):
+        for missing in (True, False):
+            with self.subTest(missing=missing):
+                remote = R.RemoteCliV1()
+                inspections = [self.core_inspect("before"),
+                               self.core_inspect("after", healthy=False)]
+                def ssh(argv, _timeout, data=None):
+                    if argv[0] == "test":
+                        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+                    if argv[0] == "readlink":
+                        return SimpleNamespace(returncode=0,
+                            stdout=(argv[-1] + "\n").encode(), stderr=b"")
+                    if argv[:4] == ["sudo", "-n", "docker", "inspect"]:
+                        if missing:
+                            return SimpleNamespace(returncode=1, stdout=b"[]",
+                                                   stderr=b"missing")
+                        return SimpleNamespace(returncode=0,
+                            stdout=json.dumps(inspections.pop(0)).encode(), stderr=b"")
+                    return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+                remote._ssh = ssh
+                with self.assertRaises(R.SplitHostOneDecisionError):
+                    remote.restart_core_and_wait_healthy(
+                        repository=R.REMOTE_REPOSITORY, health_timeout_s=0,
+                        poll_interval_s=0)
 
     def test_remote_start_creates_only_exact_attempt_parent_first(self):
         events = []
