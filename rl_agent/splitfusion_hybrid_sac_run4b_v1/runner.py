@@ -849,6 +849,7 @@ def cmd_resume_test(args) -> int:
 
 
 def cmd_campaign(args) -> int:
+    torch.set_num_threads(THREADS)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=False)
     start = {"schema": "splitfusion.run4b.campaign.v1", "status": "RUNNING",
@@ -884,21 +885,57 @@ def cmd_campaign(args) -> int:
                 if codes[seed] is None:
                     process.send_signal(signal.SIGTERM)
                     codes[seed] = process.wait()
-    status = "HALTED" if halted else "COMPLETE"
-    exports = {}
-    if not halted:
-        sources = E.SharedSourcesV1.load()
-        for seed in SEEDS:
-            runner = restore_runner(out / f"seed_{seed}" / "checkpoints" /
-                                    bundle_name(FINAL_UPDATE), sources, seed)
-            exports[str(seed)] = export_actor(
-                runner, out / f"seed_{seed}" / "final_actor")
-    final = {**start, "status": status, "exit_codes": codes,
-             "finished_unix": time.time(), "actor_exports": exports}
-    (out / ("CAMPAIGN_COMPLETE.json" if not halted else "CAMPAIGN_HALTED.json")
-     ).write_text(json.dumps(final, indent=2, sort_keys=True) + "\n")
-    print(status)
-    return 0 if not halted else 4
+    if halted:
+        final = {**start, "status": "HALTED", "exit_codes": codes,
+                 "finished_unix": time.time()}
+        (out / "CAMPAIGN_HALTED.json").write_text(
+            json.dumps(final, indent=2, sort_keys=True) + "\n")
+        print("HALTED")
+        return 4
+    return finalize_campaign(out, exit_codes=codes)
+
+
+def finalize_campaign(out: Path, *, exit_codes: Optional[Mapping] = None,
+                      note: Optional[str] = None) -> int:
+    """Independently verify every seed at update 10,000, then export actors."""
+    torch.set_num_threads(THREADS)
+    start = json.loads((out / "CAMPAIGN_START.json").read_text())
+    sources = E.SharedSourcesV1.load()
+    verification, exports = {}, {}
+    for seed in SEEDS:
+        seed_dir = out / f"seed_{seed}"
+        checkpoints = sorted(p.name for p in (seed_dir / "checkpoints").iterdir()
+                             if p.name.startswith("update_"))
+        final_line = json.loads(
+            (out / f"seed_{seed}.log").read_text().splitlines()[-1])
+        runner = restore_runner(seed_dir / "checkpoints" /
+                                bundle_name(FINAL_UPDATE), sources, seed)
+        logs = SeedLogs(seed_dir)
+        logs.truncate_to(runner)  # verifies both ledger chains; no-op length
+        checks = {
+            "all_registered_bundles": checkpoints == [
+                bundle_name(u) for u in CHECKPOINT_UPDATES],
+            "no_dominance_halt": not (seed_dir / "HALTED_DOMINANCE.json").exists(),
+            "process_final_line_update": final_line.get("update") == FINAL_UPDATE,
+            "restored_fingerprint_equals_process": runner.fingerprint()
+            == final_line.get("fingerprint"),
+            "decision_accounting": runner.decision_count
+            == WARMUP + TRANSITIONS_PER_UPDATE * FINAL_UPDATE,
+        }
+        _require(all(checks.values()), f"seed {seed} verification: {checks}")
+        verification[str(seed)] = checks
+        exports[str(seed)] = export_actor(runner, seed_dir / "final_actor")
+    final = {**start, "status": "COMPLETE", "exit_codes": exit_codes,
+             "finished_unix": time.time(), "seed_verification": verification,
+             "actor_exports": exports, "finalization_note": note}
+    _write_new(out / "CAMPAIGN_COMPLETE.json",
+               json.dumps(final, indent=2, sort_keys=True).encode() + b"\n")
+    print("COMPLETE")
+    return 0
+
+
+def cmd_finalize(args) -> int:
+    return finalize_campaign(Path(args.out), note=args.note)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -919,9 +956,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     campaign.add_argument("--out", required=True)
     campaign.add_argument("--smoke-gate", required=True)
     campaign.add_argument("--resume-report", required=True)
+    finalize = sub.add_parser("finalize")
+    finalize.add_argument("--out", required=True)
+    finalize.add_argument("--note", default=None)
     args = parser.parse_args(argv)
     return {"smoke": cmd_smoke, "run": cmd_run, "resume-test": cmd_resume_test,
-            "campaign": cmd_campaign}[args.command](args)
+            "campaign": cmd_campaign,
+            "finalize": cmd_finalize}[args.command](args)
 
 
 if __name__ == "__main__":

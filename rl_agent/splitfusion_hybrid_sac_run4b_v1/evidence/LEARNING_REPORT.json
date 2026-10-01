@@ -1,0 +1,2871 @@
+{
+  "campaign_status": "COMPLETE",
+  "code_commit": "a589250f1f53fef4703e5f9993e245fd35137869",
+  "live_actor_sha256": "b4337f000be9acbd16113d0891ed40fdac28c4f0bcb31c5b970a52d901c2ebc2",
+  "schema": "splitfusion.run4b.learning_report.v1",
+  "seeds": [
+    {
+      "decisions": 40288,
+      "final_update": 10000,
+      "seed": 17,
+      "windows": [
+        {
+          "actor_grad_norm_max": null,
+          "all_metrics_finite": true,
+          "checkpoint_update": 0,
+          "critic_grad_norm_max": null,
+          "critic_loss_mean": null,
+          "decisions": 288,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 2.4849066497880012,
+          "family_shares": {
+            "AE128": 0.25,
+            "AE32": 0.25,
+            "AE64": 0.25,
+            "noAE": 0.25
+          },
+          "operational_latency_ms_timely": {
+            "p50": 136.804295,
+            "p95": 160.962712,
+            "p99": 168.676067
+          },
+          "policy_discrete_entropy_mean": null,
+          "policy_panel_families": {
+            "AE128": 0.2597207576036453,
+            "AE32": 0.2515930309891701,
+            "AE64": 0.23475223779678345,
+            "noAE": 0.25393398851156235
+          },
+          "q_normalized_mean": 0.7778443877551021,
+          "q_normalized_std": 0.21765270753871752,
+          "q_perc_training_only_mean_timely": 0.44396780335473846,
+          "reward_mean": 0.1655828841295444,
+          "timely_fraction": 0.9375,
+          "timeouts_or_failures": 18,
+          "updates": 0,
+          "window": "warmup_288"
+        },
+        {
+          "actor_grad_norm_max": 0.012509857588710854,
+          "all_metrics_finite": true,
+          "checkpoint_update": 100,
+          "critic_grad_norm_max": 1.2461932553438484,
+          "critic_loss_mean": 0.2975264456868172,
+          "decisions": 400,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 2.436252252495404,
+          "family_shares": {
+            "AE128": 0.215,
+            "AE32": 0.3,
+            "AE64": 0.2325,
+            "noAE": 0.2525
+          },
+          "manifest_sha256": "b857e18147931de8e5e5bc96b80d9f840fafe9212bc76e606f6624a3f10d1562",
+          "operational_latency_ms_timely": {
+            "p50": 135.34274,
+            "p95": 160.124194,
+            "p99": 167.905826
+          },
+          "policy_discrete_entropy_mean": 2.415243775844574,
+          "policy_panel_families": {
+            "AE128": 0.20077727921307087,
+            "AE32": 0.3466748520731926,
+            "AE64": 0.2757844291627407,
+            "noAE": 0.17676349356770515
+          },
+          "q_normalized_mean": 0.7976673469387755,
+          "q_normalized_std": 0.21325835015508884,
+          "q_perc_training_only_mean_timely": 0.47531899420003104,
+          "reward_mean": 0.21296528285767605,
+          "state_fingerprint": "4881fae4d0a3e62e1f4967bde156089bea3ac8843dbc9ccdaa971de3a5119ad5",
+          "timely_fraction": 0.95,
+          "timeouts_or_failures": 20,
+          "under_observed_share": 0.4675,
+          "updates": 100,
+          "window": "updates_1_100"
+        },
+        {
+          "actor_grad_norm_max": 0.029632393143077838,
+          "all_metrics_finite": true,
+          "checkpoint_update": 250,
+          "critic_grad_norm_max": 0.5263810484834878,
+          "critic_loss_mean": 0.25558387229839963,
+          "decisions": 600,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.9485584650572247,
+          "family_shares": {
+            "AE128": 0.11833333333333333,
+            "AE32": 0.59,
+            "AE64": 0.18833333333333332,
+            "noAE": 0.10333333333333333
+          },
+          "manifest_sha256": "a401acf130deea1c049a5214068d8588ed0317fe483ddfc72544ef2ebaa4bc4d",
+          "operational_latency_ms_timely": {
+            "p50": 134.866006,
+            "p95": 160.586907,
+            "p99": 167.151887
+          },
+          "policy_discrete_entropy_mean": 1.6355005399386089,
+          "policy_panel_families": {
+            "AE128": 0.10316625889390707,
+            "AE32": 0.6064281389117241,
+            "AE64": 0.21148383058607578,
+            "noAE": 0.0789217846468091
+          },
+          "q_normalized_mean": 0.58931037414966,
+          "q_normalized_std": 0.31695532117405084,
+          "q_perc_training_only_mean_timely": 0.5382589951572508,
+          "reward_mean": 0.2796392428163513,
+          "state_fingerprint": "aef7cea3cce07f1ec11c4a3520f9680f6309d251a030a83b1fcfbd7b798b5923",
+          "timely_fraction": 0.955,
+          "timeouts_or_failures": 27,
+          "under_observed_share": 0.22166666666666668,
+          "updates": 150,
+          "window": "updates_101_250"
+        },
+        {
+          "actor_grad_norm_max": 0.04603432480925899,
+          "all_metrics_finite": true,
+          "checkpoint_update": 500,
+          "critic_grad_norm_max": 0.7762963101889276,
+          "critic_loss_mean": 0.2513075839281082,
+          "decisions": 1000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6770871558138074,
+          "family_shares": {
+            "AE128": 0.092,
+            "AE32": 0.68,
+            "AE64": 0.162,
+            "noAE": 0.066
+          },
+          "manifest_sha256": "f7e541846853da50a44d9b5019326377438b969d6117d780fbe4ce4f41c740e6",
+          "operational_latency_ms_timely": {
+            "p50": 134.044131,
+            "p95": 160.177976,
+            "p99": 165.192732
+          },
+          "policy_discrete_entropy_mean": 1.276729433298111,
+          "policy_panel_families": {
+            "AE128": 0.18818237772211432,
+            "AE32": 0.6089163813740015,
+            "AE64": 0.11630832403898239,
+            "noAE": 0.08659291360527277
+          },
+          "q_normalized_mean": 0.5063562244897954,
+          "q_normalized_std": 0.324793669555632,
+          "q_perc_training_only_mean_timely": 0.5244891737351903,
+          "reward_mean": 0.26555465674925405,
+          "state_fingerprint": "808ae1311c1441bdb7e80808e5857fad0a68d9a59e8206f899336169efc4d729",
+          "timely_fraction": 0.954,
+          "timeouts_or_failures": 46,
+          "under_observed_share": 0.158,
+          "updates": 250,
+          "window": "updates_251_500"
+        },
+        {
+          "actor_grad_norm_max": 0.06407916879144879,
+          "all_metrics_finite": true,
+          "checkpoint_update": 1000,
+          "critic_grad_norm_max": 1.1620542059872079,
+          "critic_loss_mean": 0.25467851012945175,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.8386435521134796,
+          "family_shares": {
+            "AE128": 0.1635,
+            "AE32": 0.6375,
+            "AE64": 0.1135,
+            "noAE": 0.0855
+          },
+          "manifest_sha256": "1a9613980c44e6aec4f51f3d0566337df0ee936b93add9a2f51fde4cbec88064",
+          "operational_latency_ms_timely": {
+            "p50": 132.234476,
+            "p95": 160.005782,
+            "p99": 167.149497
+          },
+          "policy_discrete_entropy_mean": 1.4979773457050323,
+          "policy_panel_families": {
+            "AE128": 0.23939957073889673,
+            "AE32": 0.5899098496884108,
+            "AE64": 0.0669338796287775,
+            "noAE": 0.10375671740621328
+          },
+          "q_normalized_mean": 0.5723986224489803,
+          "q_normalized_std": 0.3200936747255562,
+          "q_perc_training_only_mean_timely": 0.5248717193902546,
+          "reward_mean": 0.28298478449054365,
+          "state_fingerprint": "6026c5b264a42397adaf2ce2ae06c84e50c0af155d138ef9f40ec09125f32416",
+          "timely_fraction": 0.966,
+          "timeouts_or_failures": 68,
+          "under_observed_share": 0.249,
+          "updates": 500,
+          "window": "updates_501_1000"
+        },
+        {
+          "actor_grad_norm_max": 0.06809383201290495,
+          "all_metrics_finite": true,
+          "checkpoint_update": 1500,
+          "critic_grad_norm_max": 1.4821234660113456,
+          "critic_loss_mean": 0.25246376925706865,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.8209011507711146,
+          "family_shares": {
+            "AE128": 0.131,
+            "AE32": 0.66,
+            "AE64": 0.1275,
+            "noAE": 0.0815
+          },
+          "manifest_sha256": "b0897e7234d6ba452dd728b23d1e8a47ebdacab1ad8fe13e0527ae1a6e70e5ec",
+          "operational_latency_ms_timely": {
+            "p50": 132.304412,
+            "p95": 157.960702,
+            "p99": 166.704131
+          },
+          "policy_discrete_entropy_mean": 1.391799233198166,
+          "policy_panel_families": {
+            "AE128": 0.06790175230707973,
+            "AE32": 0.741989653557539,
+            "AE64": 0.13561934558674693,
+            "noAE": 0.054489207454025745
+          },
+          "q_normalized_mean": 0.5823166326530606,
+          "q_normalized_std": 0.30126618027667595,
+          "q_perc_training_only_mean_timely": 0.5196764527999703,
+          "reward_mean": 0.28301821488515977,
+          "state_fingerprint": "f0223062350e08b6622a10d3e642ceb3bfd33e212a423df3e56d43881f9aa415",
+          "timely_fraction": 0.9695,
+          "timeouts_or_failures": 61,
+          "under_observed_share": 0.21250000000000002,
+          "updates": 500,
+          "window": "updates_1001_1500"
+        },
+        {
+          "actor_grad_norm_max": 0.09071705938587381,
+          "all_metrics_finite": true,
+          "checkpoint_update": 2000,
+          "critic_grad_norm_max": 3.0404664194822706,
+          "critic_loss_mean": 0.25172753536701203,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.7938347306248743,
+          "family_shares": {
+            "AE128": 0.0965,
+            "AE32": 0.6915,
+            "AE64": 0.113,
+            "noAE": 0.099
+          },
+          "manifest_sha256": "4d84fb420975717bdf0652723642aaa8e2f1fa21f12c39fe4ec5b598a6f8f4d7",
+          "operational_latency_ms_timely": {
+            "p50": 131.537988,
+            "p95": 159.410792,
+            "p99": 167.252085
+          },
+          "policy_discrete_entropy_mean": 1.3004798864126206,
+          "policy_panel_families": {
+            "AE128": 0.13903481521992944,
+            "AE32": 0.6706133373081684,
+            "AE64": 0.13181122159585357,
+            "noAE": 0.058540613390505314
+          },
+          "q_normalized_mean": 0.6083517346938786,
+          "q_normalized_std": 0.29639321403152596,
+          "q_perc_training_only_mean_timely": 0.5151429251037345,
+          "reward_mean": 0.2808143591918496,
+          "state_fingerprint": "0578e08942f87563fe652b6d72033ab65dad4aae6d805177ff78d8305f3ec6f4",
+          "timely_fraction": 0.9705,
+          "timeouts_or_failures": 59,
+          "under_observed_share": 0.1955,
+          "updates": 500,
+          "window": "updates_1501_2000"
+        },
+        {
+          "actor_grad_norm_max": 0.1032854580795571,
+          "all_metrics_finite": true,
+          "checkpoint_update": 2500,
+          "critic_grad_norm_max": 2.3251436296798462,
+          "critic_loss_mean": 0.25067054900527,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.793749359679011,
+          "family_shares": {
+            "AE128": 0.1195,
+            "AE32": 0.6915,
+            "AE64": 0.1115,
+            "noAE": 0.0775
+          },
+          "manifest_sha256": "c2156992c2fc9bf2cd3458fd59b37645d5090e6d23f4bc5a888b9676ee26e274",
+          "operational_latency_ms_timely": {
+            "p50": 131.673714,
+            "p95": 158.414316,
+            "p99": 166.882174
+          },
+          "policy_discrete_entropy_mean": 1.2906486804485322,
+          "policy_panel_families": {
+            "AE128": 0.31686977358185686,
+            "AE32": 0.4807612309232354,
+            "AE64": 0.12836133083328605,
+            "noAE": 0.07400770671665668
+          },
+          "q_normalized_mean": 0.5707231122448977,
+          "q_normalized_std": 0.2840978085028167,
+          "q_perc_training_only_mean_timely": 0.5182857521855107,
+          "reward_mean": 0.2827749762589156,
+          "state_fingerprint": "904868f0654b005ba1a04dcd6752abee3db6ed3eff0346984c1f226f4dc71458",
+          "timely_fraction": 0.97,
+          "timeouts_or_failures": 60,
+          "under_observed_share": 0.197,
+          "updates": 500,
+          "window": "updates_2001_2500"
+        },
+        {
+          "actor_grad_norm_max": 0.10981225339459749,
+          "all_metrics_finite": true,
+          "checkpoint_update": 3000,
+          "critic_grad_norm_max": 2.9666626419718036,
+          "critic_loss_mean": 0.24983412829041482,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.812366188600822,
+          "family_shares": {
+            "AE128": 0.1125,
+            "AE32": 0.669,
+            "AE64": 0.152,
+            "noAE": 0.0665
+          },
+          "manifest_sha256": "0650911eff40fc5764ae078f5abaf2879627152e6672c005361054ac2edae6c5",
+          "operational_latency_ms_timely": {
+            "p50": 131.83126,
+            "p95": 158.39431,
+            "p99": 166.927205
+          },
+          "policy_discrete_entropy_mean": 1.2771104160547258,
+          "policy_panel_families": {
+            "AE128": 0.24916315534210298,
+            "AE32": 0.5706454450264573,
+            "AE64": 0.15798032004386187,
+            "noAE": 0.022211150266230106
+          },
+          "q_normalized_mean": 0.5757759183673469,
+          "q_normalized_std": 0.27401847725390976,
+          "q_perc_training_only_mean_timely": 0.5237906401268938,
+          "reward_mean": 0.2877403460052292,
+          "state_fingerprint": "38df03eb73013f9581f022bf4fc295c37b5f37abacd0bafad804e357dbbee11c",
+          "timely_fraction": 0.9695,
+          "timeouts_or_failures": 61,
+          "under_observed_share": 0.179,
+          "updates": 500,
+          "window": "updates_2501_3000"
+        },
+        {
+          "actor_grad_norm_max": 0.11137380617331391,
+          "all_metrics_finite": true,
+          "checkpoint_update": 3500,
+          "critic_grad_norm_max": 2.5451714466669855,
+          "critic_loss_mean": 0.2513392560184002,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.7354248560740009,
+          "family_shares": {
+            "AE128": 0.0965,
+            "AE32": 0.689,
+            "AE64": 0.146,
+            "noAE": 0.0685
+          },
+          "manifest_sha256": "0c1c6109a37c5bf832d5163869be8f614647eebe5a50ef6dd01d8288fccbd750",
+          "operational_latency_ms_timely": {
+            "p50": 132.498323,
+            "p95": 160.583703,
+            "p99": 167.53143
+          },
+          "policy_discrete_entropy_mean": 1.2402597789764405,
+          "policy_panel_families": {
+            "AE128": 0.2753340019262396,
+            "AE32": 0.6202722769230604,
+            "AE64": 0.07444982789456844,
+            "noAE": 0.0299438601359725
+          },
+          "q_normalized_mean": 0.5759824489795919,
+          "q_normalized_std": 0.266430379620405,
+          "q_perc_training_only_mean_timely": 0.534322508430066,
+          "reward_mean": 0.2997677340324562,
+          "state_fingerprint": "ab311ab3772e25394bd1e2d4b0da12a05f1b8233b0b93305c424567dc729abf5",
+          "timely_fraction": 0.9715,
+          "timeouts_or_failures": 57,
+          "under_observed_share": 0.165,
+          "updates": 500,
+          "window": "updates_3001_3500"
+        },
+        {
+          "actor_grad_norm_max": 0.11158316302562207,
+          "all_metrics_finite": true,
+          "checkpoint_update": 4000,
+          "critic_grad_norm_max": 3.0206785660419344,
+          "critic_loss_mean": 0.24977967071533203,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6776246568927935,
+          "family_shares": {
+            "AE128": 0.078,
+            "AE32": 0.681,
+            "AE64": 0.1895,
+            "noAE": 0.0515
+          },
+          "manifest_sha256": "7835c52e2538d41e6d99f4fdd45c6197efb3b471147f1c388d1a40d891bc1f56",
+          "operational_latency_ms_timely": {
+            "p50": 132.941478,
+            "p95": 159.893225,
+            "p99": 167.300316
+          },
+          "policy_discrete_entropy_mean": 1.2011967389583587,
+          "policy_panel_families": {
+            "AE128": 0.16492751991609111,
+            "AE32": 0.7180960942059755,
+            "AE64": 0.07705164793878794,
+            "noAE": 0.03992471657693386
+          },
+          "q_normalized_mean": 0.5380481632653068,
+          "q_normalized_std": 0.26619096852140894,
+          "q_perc_training_only_mean_timely": 0.5425121222387249,
+          "reward_mean": 0.3052396290855334,
+          "state_fingerprint": "01815df34e74be55ed881f107bb64682aeebcde694f40cdc4602d739c0ec6832",
+          "timely_fraction": 0.97,
+          "timeouts_or_failures": 60,
+          "under_observed_share": 0.1295,
+          "updates": 500,
+          "window": "updates_3501_4000"
+        },
+        {
+          "actor_grad_norm_max": 0.09692475754506032,
+          "all_metrics_finite": true,
+          "checkpoint_update": 4500,
+          "critic_grad_norm_max": 3.5388208911220107,
+          "critic_loss_mean": 0.25512352523207665,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.7413105417454202,
+          "family_shares": {
+            "AE128": 0.0745,
+            "AE32": 0.672,
+            "AE64": 0.1855,
+            "noAE": 0.068
+          },
+          "manifest_sha256": "58e4b8474caed7a8d7a340d6f0cb57eaa7e16bc0c7bdce3112c999e73fdd766e",
+          "operational_latency_ms_timely": {
+            "p50": 132.215708,
+            "p95": 159.877947,
+            "p99": 166.903123
+          },
+          "policy_discrete_entropy_mean": 1.2215342946052552,
+          "policy_panel_families": {
+            "AE128": 0.17309104560263222,
+            "AE32": 0.6397060602903366,
+            "AE64": 0.1602042056620121,
+            "noAE": 0.026998730609193444
+          },
+          "q_normalized_mean": 0.5604253571428576,
+          "q_normalized_std": 0.2604677558426219,
+          "q_perc_training_only_mean_timely": 0.5342429555287691,
+          "reward_mean": 0.2953842093217012,
+          "state_fingerprint": "f5f6781e6cfac96f07f3b4540d731b05e7debf901826f2516124579e35b0edd0",
+          "timely_fraction": 0.968,
+          "timeouts_or_failures": 64,
+          "under_observed_share": 0.14250000000000002,
+          "updates": 500,
+          "window": "updates_4001_4500"
+        },
+        {
+          "actor_grad_norm_max": 0.10447594647068657,
+          "all_metrics_finite": true,
+          "checkpoint_update": 5000,
+          "critic_grad_norm_max": 3.121977447604331,
+          "critic_loss_mean": 0.2519318081140518,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6801566984540897,
+          "family_shares": {
+            "AE128": 0.05,
+            "AE32": 0.6525,
+            "AE64": 0.233,
+            "noAE": 0.0645
+          },
+          "manifest_sha256": "fc6160e0b3e24abf0c1e4ed301dbf967a95cfc11edf0d00f9c021f549608eaf1",
+          "operational_latency_ms_timely": {
+            "p50": 131.690372,
+            "p95": 158.543753,
+            "p99": 166.752283
+          },
+          "policy_discrete_entropy_mean": 1.2211302171945573,
+          "policy_panel_families": {
+            "AE128": 0.09500882087013451,
+            "AE32": 0.682235480286181,
+            "AE64": 0.20162305235862732,
+            "noAE": 0.02113262249622494
+          },
+          "q_normalized_mean": 0.5428919387755097,
+          "q_normalized_std": 0.26537862168209225,
+          "q_perc_training_only_mean_timely": 0.5462313798520109,
+          "reward_mean": 0.30947921635108316,
+          "state_fingerprint": "453a437b866631f64c983f390de263287612d84785556625b608cf0caae245f4",
+          "timely_fraction": 0.9695,
+          "timeouts_or_failures": 61,
+          "under_observed_share": 0.1145,
+          "updates": 500,
+          "window": "updates_4501_5000"
+        },
+        {
+          "actor_grad_norm_max": 0.13000605199376594,
+          "all_metrics_finite": true,
+          "checkpoint_update": 5500,
+          "critic_grad_norm_max": 4.0044458998075205,
+          "critic_loss_mean": 0.25110476779937746,
+          "decisions": 2000,
+          "distinct_modes": 11,
+          "executed_mode_entropy_nats": 1.6359829362659384,
+          "family_shares": {
+            "AE128": 0.048,
+            "AE32": 0.6895,
+            "AE64": 0.2165,
+            "noAE": 0.046
+          },
+          "manifest_sha256": "e5ec10440fdcfd0f76057e3ad750af1a6bcb8443aba3739a552ee556a6ca6e6c",
+          "operational_latency_ms_timely": {
+            "p50": 132.789449,
+            "p95": 158.994882,
+            "p99": 166.583907
+          },
+          "policy_discrete_entropy_mean": 1.1867649067640305,
+          "policy_panel_families": {
+            "AE128": 0.07285662911090185,
+            "AE32": 0.7762837428599596,
+            "AE64": 0.12807034701108932,
+            "noAE": 0.02278927294537425
+          },
+          "q_normalized_mean": 0.5258592857142862,
+          "q_normalized_std": 0.25439718743531736,
+          "q_perc_training_only_mean_timely": 0.5465582151559626,
+          "reward_mean": 0.3106618596399693,
+          "state_fingerprint": "542bb47a4bc1691ebabeafe4b3908f5ed8fe5c66fc7d949673d3e9523d8eb474",
+          "timely_fraction": 0.971,
+          "timeouts_or_failures": 58,
+          "under_observed_share": 0.094,
+          "updates": 500,
+          "window": "updates_5001_5500"
+        },
+        {
+          "actor_grad_norm_max": 0.12214658574564972,
+          "all_metrics_finite": true,
+          "checkpoint_update": 6000,
+          "critic_grad_norm_max": 4.045242538255989,
+          "critic_loss_mean": 0.2516812169551849,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6373742508487,
+          "family_shares": {
+            "AE128": 0.0385,
+            "AE32": 0.6765,
+            "AE64": 0.2315,
+            "noAE": 0.0535
+          },
+          "manifest_sha256": "8d2ac0e4b2c132ecd2579060dadeefb97f0f833c7abc755bdd60e588e8c8efb7",
+          "operational_latency_ms_timely": {
+            "p50": 133.09155,
+            "p95": 159.898954,
+            "p99": 166.295471
+          },
+          "policy_discrete_entropy_mean": 1.2280137360095977,
+          "policy_panel_families": {
+            "AE128": 0.1442560228970251,
+            "AE32": 0.6884933076798916,
+            "AE64": 0.14962618052959442,
+            "noAE": 0.017624538217205554
+          },
+          "q_normalized_mean": 0.5282311734693867,
+          "q_normalized_std": 0.24946954294928816,
+          "q_perc_training_only_mean_timely": 0.5483382870290345,
+          "reward_mean": 0.3167384643627363,
+          "state_fingerprint": "1699ead7fbd97e5242c7630036699037c51c74ebecddf34c6da76fc7fc3d8d84",
+          "timely_fraction": 0.9745,
+          "timeouts_or_failures": 51,
+          "under_observed_share": 0.092,
+          "updates": 500,
+          "window": "updates_5501_6000"
+        },
+        {
+          "actor_grad_norm_max": 0.11969502725923178,
+          "all_metrics_finite": true,
+          "checkpoint_update": 6500,
+          "critic_grad_norm_max": 3.990670020809823,
+          "critic_loss_mean": 0.249906043022871,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6973490053851727,
+          "family_shares": {
+            "AE128": 0.057,
+            "AE32": 0.668,
+            "AE64": 0.214,
+            "noAE": 0.061
+          },
+          "manifest_sha256": "66c3ed3fe6828560ca0036f3b124f47e5fb223c3cf4e22c8c08491ce1a020f2e",
+          "operational_latency_ms_timely": {
+            "p50": 132.852857,
+            "p95": 158.886435,
+            "p99": 167.4425
+          },
+          "policy_discrete_entropy_mean": 1.2615176615715027,
+          "policy_panel_families": {
+            "AE128": 0.11672870810434688,
+            "AE32": 0.7403000649064779,
+            "AE64": 0.12236938811838627,
+            "noAE": 0.020601916301529855
+          },
+          "q_normalized_mean": 0.5416887755102038,
+          "q_normalized_std": 0.24883851380090985,
+          "q_perc_training_only_mean_timely": 0.5380070110860465,
+          "reward_mean": 0.3035122926072542,
+          "state_fingerprint": "883292a765ab87f03c983a704d5abb544b50ce0c4e9fdfd5aa012db28fd4ba67",
+          "timely_fraction": 0.972,
+          "timeouts_or_failures": 56,
+          "under_observed_share": 0.118,
+          "updates": 500,
+          "window": "updates_6001_6500"
+        },
+        {
+          "actor_grad_norm_max": 0.1026323102882775,
+          "all_metrics_finite": true,
+          "checkpoint_update": 7000,
+          "critic_grad_norm_max": 4.080505444743512,
+          "critic_loss_mean": 0.24619559386372566,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6651421689311257,
+          "family_shares": {
+            "AE128": 0.054,
+            "AE32": 0.6745,
+            "AE64": 0.21,
+            "noAE": 0.0615
+          },
+          "manifest_sha256": "c8debbef8e585f07da440c624160997fbefee0d9b3227db1356b0a71a9b85f5e",
+          "operational_latency_ms_timely": {
+            "p50": 132.101627,
+            "p95": 158.399859,
+            "p99": 165.000729
+          },
+          "policy_discrete_entropy_mean": 1.2520628736019135,
+          "policy_panel_families": {
+            "AE128": 0.08017077547992812,
+            "AE32": 0.7674601562321186,
+            "AE64": 0.14207079075276852,
+            "noAE": 0.010298301465809345
+          },
+          "q_normalized_mean": 0.5451674999999999,
+          "q_normalized_std": 0.24871561459785993,
+          "q_perc_training_only_mean_timely": 0.5470147058812793,
+          "reward_mean": 0.31935554554674517,
+          "state_fingerprint": "bacbbb541a2e3b232b4247c42b0febbc898145005350dd4a4207988f8a97005c",
+          "timely_fraction": 0.9765,
+          "timeouts_or_failures": 47,
+          "under_observed_share": 0.11549999999999999,
+          "updates": 500,
+          "window": "updates_6501_7000"
+        },
+        {
+          "actor_grad_norm_max": 0.11300187867684347,
+          "all_metrics_finite": true,
+          "checkpoint_update": 7500,
+          "critic_grad_norm_max": 4.992589249935695,
+          "critic_loss_mean": 0.2479612721800804,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6586917476980563,
+          "family_shares": {
+            "AE128": 0.056,
+            "AE32": 0.679,
+            "AE64": 0.2185,
+            "noAE": 0.0465
+          },
+          "manifest_sha256": "612cad048d3f13c7154b1d3b32880bd00f920136fe10f5f065a13c91e704cfc6",
+          "operational_latency_ms_timely": {
+            "p50": 131.621045,
+            "p95": 157.243741,
+            "p99": 165.936
+          },
+          "policy_discrete_entropy_mean": 1.24022944188118,
+          "policy_panel_families": {
+            "AE128": 0.039132521441388235,
+            "AE32": 0.7941154111176729,
+            "AE64": 0.1580265425145626,
+            "noAE": 0.008725491934455931
+          },
+          "q_normalized_mean": 0.5359177040816322,
+          "q_normalized_std": 0.24914308596681192,
+          "q_perc_training_only_mean_timely": 0.5509589726739031,
+          "reward_mean": 0.32519115110050323,
+          "state_fingerprint": "22b8dfb6077983ad8c90ed254272089a652aa4c97310a481241408827aed232c",
+          "timely_fraction": 0.9775,
+          "timeouts_or_failures": 45,
+          "under_observed_share": 0.10250000000000001,
+          "updates": 500,
+          "window": "updates_7001_7500"
+        },
+        {
+          "actor_grad_norm_max": 0.11196020161985946,
+          "all_metrics_finite": true,
+          "checkpoint_update": 8000,
+          "critic_grad_norm_max": 4.766521515754506,
+          "critic_loss_mean": 0.24252826771140099,
+          "decisions": 2000,
+          "distinct_modes": 11,
+          "executed_mode_entropy_nats": 1.583771963929691,
+          "family_shares": {
+            "AE128": 0.0565,
+            "AE32": 0.718,
+            "AE64": 0.1845,
+            "noAE": 0.041
+          },
+          "manifest_sha256": "337d7e9a90671b33aeed7aa21167774fc5443b82cd448e84abc33ea91ca98802",
+          "operational_latency_ms_timely": {
+            "p50": 132.204117,
+            "p95": 158.905212,
+            "p99": 165.81317
+          },
+          "policy_discrete_entropy_mean": 1.1898499796390534,
+          "policy_panel_families": {
+            "AE128": 0.057971084457676625,
+            "AE32": 0.8071812503039837,
+            "AE64": 0.12463082373142242,
+            "noAE": 0.01021688427135814
+          },
+          "q_normalized_mean": 0.5303831632653074,
+          "q_normalized_std": 0.24648500089061462,
+          "q_perc_training_only_mean_timely": 0.5511547442108258,
+          "reward_mean": 0.3194494649767382,
+          "state_fingerprint": "a2edf34ade1663aeede9e7dc6a271e2b977d1b12f76b6bb5021282fa5d8d0f29",
+          "timely_fraction": 0.9735,
+          "timeouts_or_failures": 53,
+          "under_observed_share": 0.0975,
+          "updates": 500,
+          "window": "updates_7501_8000"
+        },
+        {
+          "actor_grad_norm_max": 0.11375748826526548,
+          "all_metrics_finite": true,
+          "checkpoint_update": 8500,
+          "critic_grad_norm_max": 4.4028898621534385,
+          "critic_loss_mean": 0.2419290187060833,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.571012867206135,
+          "family_shares": {
+            "AE128": 0.0525,
+            "AE32": 0.7145,
+            "AE64": 0.194,
+            "noAE": 0.039
+          },
+          "manifest_sha256": "aecd8a0ce9acbcb095202d7b4d4ddf6132eee26143c51f74e13fdff85253efce",
+          "operational_latency_ms_timely": {
+            "p50": 131.279166,
+            "p95": 157.680807,
+            "p99": 165.95733
+          },
+          "policy_discrete_entropy_mean": 1.1871132279634475,
+          "policy_panel_families": {
+            "AE128": 0.08307307838549605,
+            "AE32": 0.7973663406446576,
+            "AE64": 0.11347167938947678,
+            "noAE": 0.006088889072998427
+          },
+          "q_normalized_mean": 0.5461280102040816,
+          "q_normalized_std": 0.24432905228950563,
+          "q_perc_training_only_mean_timely": 0.5474412986942966,
+          "reward_mean": 0.31754998607015683,
+          "state_fingerprint": "f80a25fb6a1df2a91fbdc9e91ea561021969bf9655eaf59418e5d69da002b39a",
+          "timely_fraction": 0.974,
+          "timeouts_or_failures": 52,
+          "under_observed_share": 0.0915,
+          "updates": 500,
+          "window": "updates_8001_8500"
+        },
+        {
+          "actor_grad_norm_max": 0.11225606378228632,
+          "all_metrics_finite": true,
+          "checkpoint_update": 9000,
+          "critic_grad_norm_max": 6.9597969864680005,
+          "critic_loss_mean": 0.24263114759325982,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5291025062158403,
+          "family_shares": {
+            "AE128": 0.0605,
+            "AE32": 0.7365,
+            "AE64": 0.1695,
+            "noAE": 0.0335
+          },
+          "manifest_sha256": "993f4576225a70551d728f8f3a3475172053097ba5814d1bc1c6e13385053d13",
+          "operational_latency_ms_timely": {
+            "p50": 131.506156,
+            "p95": 157.582305,
+            "p99": 165.633941
+          },
+          "policy_discrete_entropy_mean": 1.181183045387268,
+          "policy_panel_families": {
+            "AE128": 0.09967435263024527,
+            "AE32": 0.7847446110099554,
+            "AE64": 0.10632950626313686,
+            "noAE": 0.009251538387616165
+          },
+          "q_normalized_mean": 0.5298025510204076,
+          "q_normalized_std": 0.242283526521745,
+          "q_perc_training_only_mean_timely": 0.5486535221784665,
+          "reward_mean": 0.32374210786701146,
+          "state_fingerprint": "d1c22ae2578595fdb263deac925f273cf2784c40356b2a0d898df3a7c6ea49bd",
+          "timely_fraction": 0.978,
+          "timeouts_or_failures": 44,
+          "under_observed_share": 0.094,
+          "updates": 500,
+          "window": "updates_8501_9000"
+        },
+        {
+          "actor_grad_norm_max": 0.13815783635141435,
+          "all_metrics_finite": true,
+          "checkpoint_update": 9500,
+          "critic_grad_norm_max": 4.387959914838841,
+          "critic_loss_mean": 0.23864156270027162,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5586510247720105,
+          "family_shares": {
+            "AE128": 0.0405,
+            "AE32": 0.7315,
+            "AE64": 0.1905,
+            "noAE": 0.0375
+          },
+          "manifest_sha256": "f252ea1d680bd8a75acf7ea9c1f78e7e498f5d10b05f90a27efd4928d814a20c",
+          "operational_latency_ms_timely": {
+            "p50": 131.962468,
+            "p95": 158.854278,
+            "p99": 166.394447
+          },
+          "policy_discrete_entropy_mean": 1.1589269424676896,
+          "policy_panel_families": {
+            "AE128": 0.04419498220340756,
+            "AE32": 0.8373990813270211,
+            "AE64": 0.11120766028761864,
+            "noAE": 0.007198222243459895
+          },
+          "q_normalized_mean": 0.546046785714286,
+          "q_normalized_std": 0.231747288941363,
+          "q_perc_training_only_mean_timely": 0.5626727590951389,
+          "reward_mean": 0.3432146063220032,
+          "state_fingerprint": "4bf91aef81276c3f8fbe9894f13175b0a6016f7600639b097a61352272cd47a7",
+          "timely_fraction": 0.9825,
+          "timeouts_or_failures": 35,
+          "under_observed_share": 0.078,
+          "updates": 500,
+          "window": "updates_9001_9500"
+        },
+        {
+          "actor_grad_norm_max": 0.11428254616625215,
+          "all_metrics_finite": true,
+          "checkpoint_update": 10000,
+          "critic_grad_norm_max": 6.084197315390354,
+          "critic_loss_mean": 0.23495429810881616,
+          "decisions": 2000,
+          "distinct_modes": 11,
+          "executed_mode_entropy_nats": 1.5857680842993656,
+          "family_shares": {
+            "AE128": 0.0415,
+            "AE32": 0.725,
+            "AE64": 0.1975,
+            "noAE": 0.036
+          },
+          "manifest_sha256": "50118dd6f3dfcf5188475c37ac0f946c14b577923e484b77b046d87218d8cd2b",
+          "operational_latency_ms_timely": {
+            "p50": 132.132458,
+            "p95": 159.614813,
+            "p99": 166.891135
+          },
+          "policy_discrete_entropy_mean": 1.2124677751064301,
+          "policy_panel_families": {
+            "AE128": 0.0409468396610464,
+            "AE32": 0.8664881270378828,
+            "AE64": 0.08573042415082455,
+            "noAE": 0.006834658735897392
+          },
+          "q_normalized_mean": 0.5291278571428585,
+          "q_normalized_std": 0.2390729284476273,
+          "q_perc_training_only_mean_timely": 0.5543214485331175,
+          "reward_mean": 0.32495859612861416,
+          "state_fingerprint": "34e340d076c4afd1754379a17d04c5463f486c2566d8154668c66ae66bff001e",
+          "timely_fraction": 0.9755,
+          "timeouts_or_failures": 49,
+          "under_observed_share": 0.0775,
+          "updates": 500,
+          "window": "updates_9501_10000"
+        }
+      ]
+    },
+    {
+      "decisions": 40288,
+      "final_update": 10000,
+      "seed": 29,
+      "windows": [
+        {
+          "actor_grad_norm_max": null,
+          "all_metrics_finite": true,
+          "checkpoint_update": 0,
+          "critic_grad_norm_max": null,
+          "critic_loss_mean": null,
+          "decisions": 288,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 2.4849066497880012,
+          "family_shares": {
+            "AE128": 0.25,
+            "AE32": 0.25,
+            "AE64": 0.25,
+            "noAE": 0.25
+          },
+          "operational_latency_ms_timely": {
+            "p50": 133.064759,
+            "p95": 156.737205,
+            "p99": 166.894655
+          },
+          "policy_discrete_entropy_mean": null,
+          "policy_panel_families": {
+            "AE128": 0.2512103542685509,
+            "AE32": 0.25090499222278595,
+            "AE64": 0.24731650948524475,
+            "noAE": 0.2505681440234184
+          },
+          "q_normalized_mean": 0.7778443877551022,
+          "q_normalized_std": 0.21765270753871754,
+          "q_perc_training_only_mean_timely": 0.48317548186717585,
+          "reward_mean": 0.1879692499394135,
+          "timely_fraction": 0.9236111111111112,
+          "timeouts_or_failures": 22,
+          "updates": 0,
+          "window": "warmup_288"
+        },
+        {
+          "actor_grad_norm_max": 0.020640990400035815,
+          "all_metrics_finite": true,
+          "checkpoint_update": 100,
+          "critic_grad_norm_max": 1.3057557314767574,
+          "critic_loss_mean": 0.30996043756604197,
+          "decisions": 400,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 2.431515632918562,
+          "family_shares": {
+            "AE128": 0.205,
+            "AE32": 0.29,
+            "AE64": 0.2625,
+            "noAE": 0.2425
+          },
+          "manifest_sha256": "50cf7830fe0c585b6ee977f5291cc5a087ba6ce49cca56ba46fa91b88cc8d9fa",
+          "operational_latency_ms_timely": {
+            "p50": 133.755787,
+            "p95": 161.982121,
+            "p99": 166.162182
+          },
+          "policy_discrete_entropy_mean": 2.343814685344696,
+          "policy_panel_families": {
+            "AE128": 0.10977715067565441,
+            "AE32": 0.40851349756121635,
+            "AE64": 0.32016080990433693,
+            "noAE": 0.16154853254556656
+          },
+          "q_normalized_mean": 0.8130219387755104,
+          "q_normalized_std": 0.18330460599640735,
+          "q_perc_training_only_mean_timely": 0.4663328826046654,
+          "reward_mean": 0.2275748632913369,
+          "state_fingerprint": "4eaece1adb362e0b26a6e96f3e165e8dbc7ab57b0985b6001ef22e24229a12a5",
+          "timely_fraction": 0.9675,
+          "timeouts_or_failures": 13,
+          "under_observed_share": 0.4475,
+          "updates": 100,
+          "window": "updates_1_100"
+        },
+        {
+          "actor_grad_norm_max": 0.027991271082722056,
+          "all_metrics_finite": true,
+          "checkpoint_update": 250,
+          "critic_grad_norm_max": 0.4992700500994907,
+          "critic_loss_mean": 0.23122024158636728,
+          "decisions": 600,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.843301106598927,
+          "family_shares": {
+            "AE128": 0.09333333333333334,
+            "AE32": 0.5183333333333333,
+            "AE64": 0.31333333333333335,
+            "noAE": 0.075
+          },
+          "manifest_sha256": "d3ff64fc9c167264afa6c344051e2caaa42f3312984d53ee87c1e42aa274a254",
+          "operational_latency_ms_timely": {
+            "p50": 132.992316,
+            "p95": 159.881988,
+            "p99": 167.275333
+          },
+          "policy_discrete_entropy_mean": 1.705534520149231,
+          "policy_panel_families": {
+            "AE128": 0.08444722555577755,
+            "AE32": 0.46196235436946154,
+            "AE64": 0.332771398127079,
+            "noAE": 0.12081900238990784
+          },
+          "q_normalized_mean": 0.5977059523809519,
+          "q_normalized_std": 0.29458243135133233,
+          "q_perc_training_only_mean_timely": 0.5333097963102353,
+          "reward_mean": 0.28696721642837064,
+          "state_fingerprint": "8471b4212d4a57a332f29c1ef915a75c031c1c13cf6c35fc3e7182ce3c79e797",
+          "timely_fraction": 0.9633333333333334,
+          "timeouts_or_failures": 22,
+          "under_observed_share": 0.16833333333333333,
+          "updates": 150,
+          "window": "updates_101_250"
+        },
+        {
+          "actor_grad_norm_max": 0.03854125256245027,
+          "all_metrics_finite": true,
+          "checkpoint_update": 500,
+          "critic_grad_norm_max": 0.842050301336173,
+          "critic_loss_mean": 0.23722686594724654,
+          "decisions": 1000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.8492263960714768,
+          "family_shares": {
+            "AE128": 0.083,
+            "AE32": 0.526,
+            "AE64": 0.29,
+            "noAE": 0.101
+          },
+          "manifest_sha256": "0b4e4bcd3fe890d18d81a08062c743224e43aecb9cd845e0b4b421cb7e3d82b8",
+          "operational_latency_ms_timely": {
+            "p50": 133.936714,
+            "p95": 161.389035,
+            "p99": 168.394122
+          },
+          "policy_discrete_entropy_mean": 1.5866260643005372,
+          "policy_panel_families": {
+            "AE128": 0.16468264535069466,
+            "AE32": 0.2725987322628498,
+            "AE64": 0.19241991080343723,
+            "noAE": 0.37029869109392166
+          },
+          "q_normalized_mean": 0.5727013265306122,
+          "q_normalized_std": 0.32075164627609865,
+          "q_perc_training_only_mean_timely": 0.5142089182061794,
+          "reward_mean": 0.24191280352928068,
+          "state_fingerprint": "6c91fe751f102fc58138ba2a1449829867ee61dc747a5b40470808d0fb6aa32a",
+          "timely_fraction": 0.944,
+          "timeouts_or_failures": 56,
+          "under_observed_share": 0.184,
+          "updates": 250,
+          "window": "updates_251_500"
+        },
+        {
+          "actor_grad_norm_max": 0.0687243534502147,
+          "all_metrics_finite": true,
+          "checkpoint_update": 1000,
+          "critic_grad_norm_max": 1.326230440259311,
+          "critic_loss_mean": 0.2447949701845646,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.8484448104333076,
+          "family_shares": {
+            "AE128": 0.1005,
+            "AE32": 0.6075,
+            "AE64": 0.1785,
+            "noAE": 0.1135
+          },
+          "manifest_sha256": "840b9258db5e24e2a1b00c1508a602919db3b1f81879b55c2a4cb1b356190ec6",
+          "operational_latency_ms_timely": {
+            "p50": 132.430085,
+            "p95": 159.343566,
+            "p99": 166.890635
+          },
+          "policy_discrete_entropy_mean": 1.513599809885025,
+          "policy_panel_families": {
+            "AE128": 0.10657592676579952,
+            "AE32": 0.37741461489349604,
+            "AE64": 0.3886093236505985,
+            "noAE": 0.1274001318961382
+          },
+          "q_normalized_mean": 0.5566585204081617,
+          "q_normalized_std": 0.32934767563099887,
+          "q_perc_training_only_mean_timely": 0.5175679329097477,
+          "reward_mean": 0.2749127047917294,
+          "state_fingerprint": "487160a45e60138bccb2366a84550aa3d517f0be69c37246d5e168ba79aeab47",
+          "timely_fraction": 0.965,
+          "timeouts_or_failures": 70,
+          "under_observed_share": 0.21400000000000002,
+          "updates": 500,
+          "window": "updates_501_1000"
+        },
+        {
+          "actor_grad_norm_max": 0.0913793443683766,
+          "all_metrics_finite": true,
+          "checkpoint_update": 1500,
+          "critic_grad_norm_max": 1.6096891460813116,
+          "critic_loss_mean": 0.24328637051582336,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.7503667365258926,
+          "family_shares": {
+            "AE128": 0.0905,
+            "AE32": 0.6425,
+            "AE64": 0.2005,
+            "noAE": 0.0665
+          },
+          "manifest_sha256": "0d279c8a0f4b48387a4c24264464711ac63f46da236054591c066dd15068e2bf",
+          "operational_latency_ms_timely": {
+            "p50": 133.069466,
+            "p95": 160.561974,
+            "p99": 167.226155
+          },
+          "policy_discrete_entropy_mean": 1.3610138989686966,
+          "policy_panel_families": {
+            "AE128": 0.033699975814670324,
+            "AE32": 0.5548862006980926,
+            "AE64": 0.3566421619616449,
+            "noAE": 0.05477169202640653
+          },
+          "q_normalized_mean": 0.5280963265306122,
+          "q_normalized_std": 0.3266561863237199,
+          "q_perc_training_only_mean_timely": 0.5107998703268904,
+          "reward_mean": 0.2760866376791917,
+          "state_fingerprint": "d28293f1c8b025ec04e6114c617ab2286f1be76a4984d6327c82f86965ba66a7",
+          "timely_fraction": 0.9715,
+          "timeouts_or_failures": 57,
+          "under_observed_share": 0.157,
+          "updates": 500,
+          "window": "updates_1001_1500"
+        },
+        {
+          "actor_grad_norm_max": 0.1066541883427003,
+          "all_metrics_finite": true,
+          "checkpoint_update": 2000,
+          "critic_grad_norm_max": 2.6837309353465253,
+          "critic_loss_mean": 0.24867030176520347,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.7055386269266612,
+          "family_shares": {
+            "AE128": 0.0895,
+            "AE32": 0.6415,
+            "AE64": 0.2065,
+            "noAE": 0.0625
+          },
+          "manifest_sha256": "b92673c45f77c861ee49418b6a5f48782d8cee3a39c9fd23ea9d93eaa9c0698d",
+          "operational_latency_ms_timely": {
+            "p50": 133.15746,
+            "p95": 159.939618,
+            "p99": 167.359274
+          },
+          "policy_discrete_entropy_mean": 1.296685129404068,
+          "policy_panel_families": {
+            "AE128": 0.05482104513794184,
+            "AE32": 0.5653577389311977,
+            "AE64": 0.29384705738630146,
+            "noAE": 0.08597413939423859
+          },
+          "q_normalized_mean": 0.513926071428572,
+          "q_normalized_std": 0.3082091866447083,
+          "q_perc_training_only_mean_timely": 0.5298973197126244,
+          "reward_mean": 0.28064499641295054,
+          "state_fingerprint": "adc7a2522dabe7fb62fbef1ce356bb2d6cfadf7ff2642b86e0f3474c996ff4cf",
+          "timely_fraction": 0.961,
+          "timeouts_or_failures": 78,
+          "under_observed_share": 0.152,
+          "updates": 500,
+          "window": "updates_1501_2000"
+        },
+        {
+          "actor_grad_norm_max": 0.12113330159071019,
+          "all_metrics_finite": true,
+          "checkpoint_update": 2500,
+          "critic_grad_norm_max": 2.5841296045497324,
+          "critic_loss_mean": 0.2553481914699078,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6057471346617107,
+          "family_shares": {
+            "AE128": 0.072,
+            "AE32": 0.6715,
+            "AE64": 0.2015,
+            "noAE": 0.055
+          },
+          "manifest_sha256": "1396792a458f387d7319763f61337089c8890e7132f5f0f8b3e21112a9b729fe",
+          "operational_latency_ms_timely": {
+            "p50": 133.408371,
+            "p95": 158.674361,
+            "p99": 165.667052
+          },
+          "policy_discrete_entropy_mean": 1.2070879893302917,
+          "policy_panel_families": {
+            "AE128": 0.05313785281032324,
+            "AE32": 0.5127889700233936,
+            "AE64": 0.38644956483040005,
+            "noAE": 0.04762361908797175
+          },
+          "q_normalized_mean": 0.4882559183673471,
+          "q_normalized_std": 0.28012074632786854,
+          "q_perc_training_only_mean_timely": 0.541443711529842,
+          "reward_mean": 0.30190222912168124,
+          "state_fingerprint": "9e1ebd6b4eb63caf9425135a559a1bfa0dc1054f44012d55cb064c9fc34ed1ce",
+          "timely_fraction": 0.969,
+          "timeouts_or_failures": 62,
+          "under_observed_share": 0.127,
+          "updates": 500,
+          "window": "updates_2001_2500"
+        },
+        {
+          "actor_grad_norm_max": 0.10374386646797878,
+          "all_metrics_finite": true,
+          "checkpoint_update": 3000,
+          "critic_grad_norm_max": 2.44907084202309,
+          "critic_loss_mean": 0.25522940984368325,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.490482355397648,
+          "family_shares": {
+            "AE128": 0.052,
+            "AE32": 0.6855,
+            "AE64": 0.224,
+            "noAE": 0.0385
+          },
+          "manifest_sha256": "dbc2ece9436638b6859f2df5878c68d13fbeb489692c27bd0711941c98d1c43f",
+          "operational_latency_ms_timely": {
+            "p50": 132.625504,
+            "p95": 158.744229,
+            "p99": 166.50554
+          },
+          "policy_discrete_entropy_mean": 1.1499449075460435,
+          "policy_panel_families": {
+            "AE128": 0.028691709507256746,
+            "AE32": 0.45904876640997827,
+            "AE64": 0.4543790298048407,
+            "noAE": 0.05788051709532738
+          },
+          "q_normalized_mean": 0.4843038265306122,
+          "q_normalized_std": 0.25765900455852286,
+          "q_perc_training_only_mean_timely": 0.550451127839049,
+          "reward_mean": 0.31830036548067586,
+          "state_fingerprint": "2e986f6370e8b57fcdaf07bda69e0b895a9c55205160f6cd7be038f140f7c26a",
+          "timely_fraction": 0.974,
+          "timeouts_or_failures": 52,
+          "under_observed_share": 0.0905,
+          "updates": 500,
+          "window": "updates_2501_3000"
+        },
+        {
+          "actor_grad_norm_max": 0.1354653889219358,
+          "all_metrics_finite": true,
+          "checkpoint_update": 3500,
+          "critic_grad_norm_max": 2.8989912205374044,
+          "critic_loss_mean": 0.24751624315977097,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6755149422986948,
+          "family_shares": {
+            "AE128": 0.065,
+            "AE32": 0.634,
+            "AE64": 0.2365,
+            "noAE": 0.0645
+          },
+          "manifest_sha256": "7fc35a23a91467e5bb2d2a911c426c80089f924c5e7f6d14f3f222167e8c52cf",
+          "operational_latency_ms_timely": {
+            "p50": 133.526504,
+            "p95": 160.466009,
+            "p99": 166.605318
+          },
+          "policy_discrete_entropy_mean": 1.2119700572490693,
+          "policy_panel_families": {
+            "AE128": 0.027566562872380018,
+            "AE32": 0.45588456583209336,
+            "AE64": 0.4675630440469831,
+            "noAE": 0.04898584564216435
+          },
+          "q_normalized_mean": 0.5182285714285717,
+          "q_normalized_std": 0.24955328461417675,
+          "q_perc_training_only_mean_timely": 0.5564257411597636,
+          "reward_mean": 0.3213792626271259,
+          "state_fingerprint": "c5da112b6be7029686032e5dce8f14f9389543723101f332070eaaf96310695e",
+          "timely_fraction": 0.973,
+          "timeouts_or_failures": 54,
+          "under_observed_share": 0.1295,
+          "updates": 500,
+          "window": "updates_3001_3500"
+        },
+        {
+          "actor_grad_norm_max": 0.1646398506702941,
+          "all_metrics_finite": true,
+          "checkpoint_update": 4000,
+          "critic_grad_norm_max": 3.1225744381104863,
+          "critic_loss_mean": 0.2428580068051815,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5768104224618973,
+          "family_shares": {
+            "AE128": 0.05,
+            "AE32": 0.6815,
+            "AE64": 0.2385,
+            "noAE": 0.03
+          },
+          "manifest_sha256": "c821a7e9d71fd8964cea9343f91bb78edb9e1414f595b3d0df4d6c8a1f311f9b",
+          "operational_latency_ms_timely": {
+            "p50": 132.87163,
+            "p95": 159.67668,
+            "p99": 166.74192
+          },
+          "policy_discrete_entropy_mean": 1.163528892159462,
+          "policy_panel_families": {
+            "AE128": 0.032520115841180086,
+            "AE32": 0.4417617635335773,
+            "AE64": 0.48868837452027947,
+            "noAE": 0.03702975856140256
+          },
+          "q_normalized_mean": 0.505814693877551,
+          "q_normalized_std": 0.23959332661602598,
+          "q_perc_training_only_mean_timely": 0.5539763937655989,
+          "reward_mean": 0.31660866669951365,
+          "state_fingerprint": "732c5263f02ead97ee4068c0aac32361fa42eed54e2440a0cc6acdc4fcfe8aab",
+          "timely_fraction": 0.9705,
+          "timeouts_or_failures": 59,
+          "under_observed_share": 0.08,
+          "updates": 500,
+          "window": "updates_3501_4000"
+        },
+        {
+          "actor_grad_norm_max": 0.13683199184015177,
+          "all_metrics_finite": true,
+          "checkpoint_update": 4500,
+          "critic_grad_norm_max": 3.3531737367975474,
+          "critic_loss_mean": 0.24455400598049165,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5891308369912571,
+          "family_shares": {
+            "AE128": 0.042,
+            "AE32": 0.681,
+            "AE64": 0.2445,
+            "noAE": 0.0325
+          },
+          "manifest_sha256": "b5c59c9212cd8bb77c0f1cc4a44d50d55af919914cb84680af43166bebc60f67",
+          "operational_latency_ms_timely": {
+            "p50": 133.208727,
+            "p95": 159.741092,
+            "p99": 166.52157
+          },
+          "policy_discrete_entropy_mean": 1.1293561083078385,
+          "policy_panel_families": {
+            "AE128": 0.01956303371116519,
+            "AE32": 0.5125390171306208,
+            "AE64": 0.4312057609204203,
+            "noAE": 0.0366922311950475
+          },
+          "q_normalized_mean": 0.5148826020408165,
+          "q_normalized_std": 0.22828714415827256,
+          "q_perc_training_only_mean_timely": 0.5626542453178051,
+          "reward_mean": 0.3324552640184131,
+          "state_fingerprint": "e1a3d9027d3843d2d0a39cc03508592616e01362367ef096b711ea1927dee80a",
+          "timely_fraction": 0.976,
+          "timeouts_or_failures": 48,
+          "under_observed_share": 0.07450000000000001,
+          "updates": 500,
+          "window": "updates_4001_4500"
+        },
+        {
+          "actor_grad_norm_max": 0.14725402825439612,
+          "all_metrics_finite": true,
+          "checkpoint_update": 5000,
+          "critic_grad_norm_max": 3.3632301428481512,
+          "critic_loss_mean": 0.2389666112959385,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.4896677752502028,
+          "family_shares": {
+            "AE128": 0.0425,
+            "AE32": 0.692,
+            "AE64": 0.232,
+            "noAE": 0.0335
+          },
+          "manifest_sha256": "c127511eca7a016e8d37ea1c5d95936b092d4326617ca5bc71d1f54672c9ceea",
+          "operational_latency_ms_timely": {
+            "p50": 132.453248,
+            "p95": 159.793133,
+            "p99": 166.781958
+          },
+          "policy_discrete_entropy_mean": 1.0863902980089188,
+          "policy_panel_families": {
+            "AE128": 0.020155132049694657,
+            "AE32": 0.40662277879891917,
+            "AE64": 0.4925492312759161,
+            "noAE": 0.08067286701407284
+          },
+          "q_normalized_mean": 0.49542755102040775,
+          "q_normalized_std": 0.23177223641785855,
+          "q_perc_training_only_mean_timely": 0.5627883649268641,
+          "reward_mean": 0.3322421927060091,
+          "state_fingerprint": "c8ff88fa4059a910eee6bb4ff01ccf9296a1685a91e7a80bbb5146f35ea41005",
+          "timely_fraction": 0.9755,
+          "timeouts_or_failures": 49,
+          "under_observed_share": 0.07600000000000001,
+          "updates": 500,
+          "window": "updates_4501_5000"
+        },
+        {
+          "actor_grad_norm_max": 0.14640873626376957,
+          "all_metrics_finite": true,
+          "checkpoint_update": 5500,
+          "critic_grad_norm_max": 4.549089224499625,
+          "critic_loss_mean": 0.23819190797209738,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.528556583969578,
+          "family_shares": {
+            "AE128": 0.038,
+            "AE32": 0.679,
+            "AE64": 0.2545,
+            "noAE": 0.0285
+          },
+          "manifest_sha256": "253f796924b642f6c2936e5818e47a1ee18ac26e463cd468deaac0233077cfa5",
+          "operational_latency_ms_timely": {
+            "p50": 132.99996,
+            "p95": 159.371421,
+            "p99": 166.073926
+          },
+          "policy_discrete_entropy_mean": 1.0997574031352997,
+          "policy_panel_families": {
+            "AE128": 0.023345583584159613,
+            "AE32": 0.39602660946547985,
+            "AE64": 0.519958921475336,
+            "noAE": 0.06066890907823108
+          },
+          "q_normalized_mean": 0.5079289285714285,
+          "q_normalized_std": 0.2244176551662318,
+          "q_perc_training_only_mean_timely": 0.5624377996493061,
+          "reward_mean": 0.3373677347064952,
+          "state_fingerprint": "9c2a12c07c6b30f0aa2d54dac168470e6a73d67e9237ddf9449573c05c706a07",
+          "timely_fraction": 0.9795,
+          "timeouts_or_failures": 41,
+          "under_observed_share": 0.0665,
+          "updates": 500,
+          "window": "updates_5001_5500"
+        },
+        {
+          "actor_grad_norm_max": 0.18195695131004025,
+          "all_metrics_finite": true,
+          "checkpoint_update": 6000,
+          "critic_grad_norm_max": 3.7084111273756935,
+          "critic_loss_mean": 0.23228084990382195,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5312267857876602,
+          "family_shares": {
+            "AE128": 0.0535,
+            "AE32": 0.621,
+            "AE64": 0.2925,
+            "noAE": 0.033
+          },
+          "manifest_sha256": "600d013198893e3b535fd7b3c78ece3c27e75b0b913ec68d041cef98c8d605e3",
+          "operational_latency_ms_timely": {
+            "p50": 133.119413,
+            "p95": 159.088765,
+            "p99": 166.591082
+          },
+          "policy_discrete_entropy_mean": 1.0920265325307845,
+          "policy_panel_families": {
+            "AE128": 0.0180875388905406,
+            "AE32": 0.4279223595804069,
+            "AE64": 0.5042140933219343,
+            "noAE": 0.049775940482504666
+          },
+          "q_normalized_mean": 0.5110641836734696,
+          "q_normalized_std": 0.22689769917032204,
+          "q_perc_training_only_mean_timely": 0.5640896170008207,
+          "reward_mean": 0.3392145451725697,
+          "state_fingerprint": "6bdea4af00cccd23abdc9f8469eb349528350bb7b2845476e4cd3acbe05444f0",
+          "timely_fraction": 0.98,
+          "timeouts_or_failures": 40,
+          "under_observed_share": 0.0865,
+          "updates": 500,
+          "window": "updates_5501_6000"
+        },
+        {
+          "actor_grad_norm_max": 0.1680144259683002,
+          "all_metrics_finite": true,
+          "checkpoint_update": 6500,
+          "critic_grad_norm_max": 4.955452545930309,
+          "critic_loss_mean": 0.23416911521553993,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.4504760113350903,
+          "family_shares": {
+            "AE128": 0.034,
+            "AE32": 0.661,
+            "AE64": 0.2835,
+            "noAE": 0.0215
+          },
+          "manifest_sha256": "12f326a173af04f06b78fc29d5f32840098fe858e2570546cff1ba850c69b071",
+          "operational_latency_ms_timely": {
+            "p50": 132.815621,
+            "p95": 159.520384,
+            "p99": 166.422647
+          },
+          "policy_discrete_entropy_mean": 1.0880254915952683,
+          "policy_panel_families": {
+            "AE128": 0.014220073819160461,
+            "AE32": 0.42921721178572625,
+            "AE64": 0.504450221429579,
+            "noAE": 0.052112528908764943
+          },
+          "q_normalized_mean": 0.49380688775510273,
+          "q_normalized_std": 0.2271589528912109,
+          "q_perc_training_only_mean_timely": 0.5627259896487655,
+          "reward_mean": 0.3270125369437479,
+          "state_fingerprint": "83ae697309fcb0dddb227639e0eebe194cc6f7e3c79b50f963e1da708b8c73f2",
+          "timely_fraction": 0.972,
+          "timeouts_or_failures": 56,
+          "under_observed_share": 0.0555,
+          "updates": 500,
+          "window": "updates_6001_6500"
+        },
+        {
+          "actor_grad_norm_max": 0.13630017966840316,
+          "all_metrics_finite": true,
+          "checkpoint_update": 7000,
+          "critic_grad_norm_max": 4.488659745028539,
+          "critic_loss_mean": 0.2335183910727501,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5469633889432213,
+          "family_shares": {
+            "AE128": 0.03,
+            "AE32": 0.683,
+            "AE64": 0.261,
+            "noAE": 0.026
+          },
+          "manifest_sha256": "d7f682c78424f5ede2df6f8cfc2d78dccc4f7fc839fee4f0a6d0aaa86e03fec2",
+          "operational_latency_ms_timely": {
+            "p50": 133.502811,
+            "p95": 158.911411,
+            "p99": 166.568865
+          },
+          "policy_discrete_entropy_mean": 1.1319219821691513,
+          "policy_panel_families": {
+            "AE128": 0.01880758348852396,
+            "AE32": 0.4216292019118555,
+            "AE64": 0.5059867037343793,
+            "noAE": 0.0535764358646702
+          },
+          "q_normalized_mean": 0.5108631122448981,
+          "q_normalized_std": 0.21913391625583847,
+          "q_perc_training_only_mean_timely": 0.5586626838877594,
+          "reward_mean": 0.3242391882712875,
+          "state_fingerprint": "d3942b55e0a348abf479096789d8601478305bd14d707015ebf30ccddbf92217",
+          "timely_fraction": 0.9725,
+          "timeouts_or_failures": 55,
+          "under_observed_share": 0.055999999999999994,
+          "updates": 500,
+          "window": "updates_6501_7000"
+        },
+        {
+          "actor_grad_norm_max": 0.13309731625310295,
+          "all_metrics_finite": true,
+          "checkpoint_update": 7500,
+          "critic_grad_norm_max": 4.226566927360059,
+          "critic_loss_mean": 0.2372645130753517,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5744955905394271,
+          "family_shares": {
+            "AE128": 0.0445,
+            "AE32": 0.6385,
+            "AE64": 0.286,
+            "noAE": 0.031
+          },
+          "manifest_sha256": "8e2b62f3ad295f00b79eed8a8a4f650ac8db57fcfbaa548eef2a61fdcf25deec",
+          "operational_latency_ms_timely": {
+            "p50": 133.115184,
+            "p95": 158.583099,
+            "p99": 165.877452
+          },
+          "policy_discrete_entropy_mean": 1.1507857497930527,
+          "policy_panel_families": {
+            "AE128": 0.019593810196965933,
+            "AE32": 0.3974863276234828,
+            "AE64": 0.5331001494196244,
+            "noAE": 0.04981968674110249
+          },
+          "q_normalized_mean": 0.5234303571428571,
+          "q_normalized_std": 0.2218088188177101,
+          "q_perc_training_only_mean_timely": 0.5567338308632567,
+          "reward_mean": 0.3342087900959636,
+          "state_fingerprint": "de964cd122154fe5687e303bd4e8e0f2f63ecb8c4325e726aba5e517bd4ac33d",
+          "timely_fraction": 0.9815,
+          "timeouts_or_failures": 37,
+          "under_observed_share": 0.0755,
+          "updates": 500,
+          "window": "updates_7001_7500"
+        },
+        {
+          "actor_grad_norm_max": 0.13465302140580784,
+          "all_metrics_finite": true,
+          "checkpoint_update": 8000,
+          "critic_grad_norm_max": 4.964704624862091,
+          "critic_loss_mean": 0.2324194893538952,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5578332725821258,
+          "family_shares": {
+            "AE128": 0.0365,
+            "AE32": 0.6745,
+            "AE64": 0.259,
+            "noAE": 0.03
+          },
+          "manifest_sha256": "92cfdbd09a6277ec283fb2d4b14e44a014ca5464924a288b6a47636b90e89bf6",
+          "operational_latency_ms_timely": {
+            "p50": 133.358354,
+            "p95": 160.178595,
+            "p99": 167.393325
+          },
+          "policy_discrete_entropy_mean": 1.1978953300714492,
+          "policy_panel_families": {
+            "AE128": 0.04640656616538763,
+            "AE32": 0.3762475788826123,
+            "AE64": 0.5309376675868407,
+            "noAE": 0.04640821332577616
+          },
+          "q_normalized_mean": 0.5059479081632652,
+          "q_normalized_std": 0.22468647709943582,
+          "q_perc_training_only_mean_timely": 0.5516063638680541,
+          "reward_mean": 0.32275855236600126,
+          "state_fingerprint": "1a5da473f3d00637521d121f66db3ef13c4a09bcdbc36a2a8decf37911e71026",
+          "timely_fraction": 0.977,
+          "timeouts_or_failures": 46,
+          "under_observed_share": 0.0665,
+          "updates": 500,
+          "window": "updates_7501_8000"
+        },
+        {
+          "actor_grad_norm_max": 0.16661795584006756,
+          "all_metrics_finite": true,
+          "checkpoint_update": 8500,
+          "critic_grad_norm_max": 4.953184838166129,
+          "critic_loss_mean": 0.23388136941194534,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.6310086598798956,
+          "family_shares": {
+            "AE128": 0.047,
+            "AE32": 0.6385,
+            "AE64": 0.278,
+            "noAE": 0.0365
+          },
+          "manifest_sha256": "9d63929aa9837d2997d5550591a33bed9e8d727917868058b4101a86264e296e",
+          "operational_latency_ms_timely": {
+            "p50": 133.480098,
+            "p95": 159.859049,
+            "p99": 167.146581
+          },
+          "policy_discrete_entropy_mean": 1.1974610880613328,
+          "policy_panel_families": {
+            "AE128": 0.029976056423038244,
+            "AE32": 0.3697870628675446,
+            "AE64": 0.5685784623492509,
+            "noAE": 0.03165842709131539
+          },
+          "q_normalized_mean": 0.5163606122448979,
+          "q_normalized_std": 0.22639499860191592,
+          "q_perc_training_only_mean_timely": 0.5598155387010293,
+          "reward_mean": 0.32994069359082084,
+          "state_fingerprint": "9161085414192d81473843c633d1ae06ea8ff655f41f130be0d6c800aa233f8e",
+          "timely_fraction": 0.9765,
+          "timeouts_or_failures": 47,
+          "under_observed_share": 0.08349999999999999,
+          "updates": 500,
+          "window": "updates_8001_8500"
+        },
+        {
+          "actor_grad_norm_max": 0.12149828130986694,
+          "all_metrics_finite": true,
+          "checkpoint_update": 9000,
+          "critic_grad_norm_max": 6.051284183727994,
+          "critic_loss_mean": 0.23013461315631867,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5345726165297175,
+          "family_shares": {
+            "AE128": 0.0335,
+            "AE32": 0.6755,
+            "AE64": 0.266,
+            "noAE": 0.025
+          },
+          "manifest_sha256": "3cc84e6609631776900f449ceaa9ea3eb321f5f95b1c1a2cba0efe21c96c0fae",
+          "operational_latency_ms_timely": {
+            "p50": 132.612963,
+            "p95": 158.824414,
+            "p99": 166.026002
+          },
+          "policy_discrete_entropy_mean": 1.1642788105010986,
+          "policy_panel_families": {
+            "AE128": 0.022714462131261826,
+            "AE32": 0.40477317746263,
+            "AE64": 0.5203169608139433,
+            "noAE": 0.05219539231620729
+          },
+          "q_normalized_mean": 0.5179401020408171,
+          "q_normalized_std": 0.22197473283739297,
+          "q_perc_training_only_mean_timely": 0.5624314546758922,
+          "reward_mean": 0.329043172766554,
+          "state_fingerprint": "0910073a71887f602b16ef8fdedb0753efbf7bbbcd29315edb432cdcdd2656de",
+          "timely_fraction": 0.973,
+          "timeouts_or_failures": 54,
+          "under_observed_share": 0.0585,
+          "updates": 500,
+          "window": "updates_8501_9000"
+        },
+        {
+          "actor_grad_norm_max": 0.121235764043864,
+          "all_metrics_finite": true,
+          "checkpoint_update": 9500,
+          "critic_grad_norm_max": 5.3113539149790245,
+          "critic_loss_mean": 0.2316865745782852,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5488856863068732,
+          "family_shares": {
+            "AE128": 0.04,
+            "AE32": 0.6695,
+            "AE64": 0.274,
+            "noAE": 0.0165
+          },
+          "manifest_sha256": "6ba0d4790327c77618f0c7f8f8eaf0fdacd906f002327fa6a082ca250bfb9743",
+          "operational_latency_ms_timely": {
+            "p50": 132.755109,
+            "p95": 160.263599,
+            "p99": 166.685697
+          },
+          "policy_discrete_entropy_mean": 1.2019672799110412,
+          "policy_panel_families": {
+            "AE128": 0.021193866385146976,
+            "AE32": 0.38914113939972594,
+            "AE64": 0.5249992841854692,
+            "noAE": 0.06466570682823658
+          },
+          "q_normalized_mean": 0.5185137244897956,
+          "q_normalized_std": 0.21789690235358278,
+          "q_perc_training_only_mean_timely": 0.5622352556531873,
+          "reward_mean": 0.3330752439637191,
+          "state_fingerprint": "f4dc6cf85de4a1ed06618676fb4cdef867b8b7cc26b9142578e35427af21a1ab",
+          "timely_fraction": 0.9765,
+          "timeouts_or_failures": 47,
+          "under_observed_share": 0.0565,
+          "updates": 500,
+          "window": "updates_9001_9500"
+        },
+        {
+          "actor_grad_norm_max": 0.15267265824116052,
+          "all_metrics_finite": true,
+          "checkpoint_update": 10000,
+          "critic_grad_norm_max": 5.077787348052226,
+          "critic_loss_mean": 0.2340497662127018,
+          "decisions": 2000,
+          "distinct_modes": 11,
+          "executed_mode_entropy_nats": 1.5939616020039271,
+          "family_shares": {
+            "AE128": 0.039,
+            "AE32": 0.646,
+            "AE64": 0.289,
+            "noAE": 0.026
+          },
+          "manifest_sha256": "d39eb63ce1b552e5a0905e3f87381a5f6b82edc4e4812d4550958995841d6ba8",
+          "operational_latency_ms_timely": {
+            "p50": 132.870482,
+            "p95": 158.982717,
+            "p99": 167.369344
+          },
+          "policy_discrete_entropy_mean": 1.2142822248935699,
+          "policy_panel_families": {
+            "AE128": 0.010427637957036495,
+            "AE32": 0.4028691175044514,
+            "AE64": 0.5446394002647139,
+            "noAE": 0.04206388024613261
+          },
+          "q_normalized_mean": 0.5338768367346929,
+          "q_normalized_std": 0.21692236577959514,
+          "q_perc_training_only_mean_timely": 0.5666670975148874,
+          "reward_mean": 0.33473009222163996,
+          "state_fingerprint": "dca5cb25ac52d58aaa7d99744dfeb95e45b5f3b5a1ae250cb324ad1c9eaebd1c",
+          "timely_fraction": 0.9745,
+          "timeouts_or_failures": 51,
+          "under_observed_share": 0.065,
+          "updates": 500,
+          "window": "updates_9501_10000"
+        }
+      ]
+    },
+    {
+      "decisions": 40288,
+      "final_update": 10000,
+      "seed": 43,
+      "windows": [
+        {
+          "actor_grad_norm_max": null,
+          "all_metrics_finite": true,
+          "checkpoint_update": 0,
+          "critic_grad_norm_max": null,
+          "critic_loss_mean": null,
+          "decisions": 288,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 2.4849066497880012,
+          "family_shares": {
+            "AE128": 0.25,
+            "AE32": 0.25,
+            "AE64": 0.25,
+            "noAE": 0.25
+          },
+          "operational_latency_ms_timely": {
+            "p50": 135.926533,
+            "p95": 160.072928,
+            "p99": 167.254016
+          },
+          "policy_discrete_entropy_mean": null,
+          "policy_panel_families": {
+            "AE128": 0.24319959431886673,
+            "AE32": 0.25466109812259674,
+            "AE64": 0.25419076532125473,
+            "noAE": 0.2479485496878624
+          },
+          "q_normalized_mean": 0.7778443877551021,
+          "q_normalized_std": 0.21765270753871752,
+          "q_perc_training_only_mean_timely": 0.46708855343722927,
+          "reward_mean": 0.15262849559526553,
+          "timely_fraction": 0.9097222222222222,
+          "timeouts_or_failures": 26,
+          "updates": 0,
+          "window": "warmup_288"
+        },
+        {
+          "actor_grad_norm_max": 0.03791481396766354,
+          "all_metrics_finite": true,
+          "checkpoint_update": 100,
+          "critic_grad_norm_max": 1.3421643094731928,
+          "critic_loss_mean": 0.3414319059252739,
+          "decisions": 400,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 2.3784316302222064,
+          "family_shares": {
+            "AE128": 0.26,
+            "AE32": 0.3825,
+            "AE64": 0.195,
+            "noAE": 0.1625
+          },
+          "manifest_sha256": "9e9380fdf7908e33da45894a4d69c2579bbe6e3184d096c3c4c21852ac46f83e",
+          "operational_latency_ms_timely": {
+            "p50": 135.87077,
+            "p95": 160.56864,
+            "p99": 167.830491
+          },
+          "policy_discrete_entropy_mean": 2.3069252240657807,
+          "policy_panel_families": {
+            "AE128": 0.15653115324676037,
+            "AE32": 0.6567821726202965,
+            "AE64": 0.11756494641304016,
+            "noAE": 0.06912174820899963
+          },
+          "q_normalized_mean": 0.7150920918367354,
+          "q_normalized_std": 0.27001616490617525,
+          "q_perc_training_only_mean_timely": 0.4752949955138131,
+          "reward_mean": 0.21232922637047535,
+          "state_fingerprint": "dfd43e14ba3fa4dffb7ff1def2e0bdbd2b616f604e8bfa37d01a8ab05b7bbed7",
+          "timely_fraction": 0.95,
+          "timeouts_or_failures": 20,
+          "under_observed_share": 0.4225,
+          "updates": 100,
+          "window": "updates_1_100"
+        },
+        {
+          "actor_grad_norm_max": 0.03198143061003009,
+          "all_metrics_finite": true,
+          "checkpoint_update": 250,
+          "critic_grad_norm_max": 0.5920750182539142,
+          "critic_loss_mean": 0.28915528625249864,
+          "decisions": 600,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.4899183731819892,
+          "family_shares": {
+            "AE128": 0.08,
+            "AE32": 0.8266666666666667,
+            "AE64": 0.055,
+            "noAE": 0.03833333333333333
+          },
+          "manifest_sha256": "508e051d5b4d31a24cdc8eef16962c6bf7005caa0418c0a2757b5b8370a43736",
+          "operational_latency_ms_timely": {
+            "p50": 134.456993,
+            "p95": 160.415742,
+            "p99": 168.276081
+          },
+          "policy_discrete_entropy_mean": 1.4120844388008118,
+          "policy_panel_families": {
+            "AE128": 0.0733546216506511,
+            "AE32": 0.766043558716774,
+            "AE64": 0.1100030243396759,
+            "noAE": 0.05059881741181016
+          },
+          "q_normalized_mean": 0.4310379251700675,
+          "q_normalized_std": 0.29412194602404496,
+          "q_perc_training_only_mean_timely": 0.5500871466601827,
+          "reward_mean": 0.27357529174649753,
+          "state_fingerprint": "09a0d0650fd61255030225f48a1ebd63a3431d87f9f77348aa711be000609b04",
+          "timely_fraction": 0.9433333333333334,
+          "timeouts_or_failures": 34,
+          "under_observed_share": 0.11833333333333333,
+          "updates": 150,
+          "window": "updates_101_250"
+        },
+        {
+          "actor_grad_norm_max": 0.05106299037840339,
+          "all_metrics_finite": true,
+          "checkpoint_update": 500,
+          "critic_grad_norm_max": 0.7859636015237348,
+          "critic_loss_mean": 0.25408024722337724,
+          "decisions": 1000,
+          "distinct_modes": 11,
+          "executed_mode_entropy_nats": 1.5866483005944783,
+          "family_shares": {
+            "AE128": 0.026,
+            "AE32": 0.709,
+            "AE64": 0.183,
+            "noAE": 0.082
+          },
+          "manifest_sha256": "809ebff9c6ef43445a91e8380a564481feefbcfb77c92f20184da01167e9bdc1",
+          "operational_latency_ms_timely": {
+            "p50": 131.409658,
+            "p95": 158.440008,
+            "p99": 164.924453
+          },
+          "policy_discrete_entropy_mean": 1.470351219177246,
+          "policy_panel_families": {
+            "AE128": 0.026203372166492045,
+            "AE32": 0.48994273878633976,
+            "AE64": 0.45873628405388445,
+            "noAE": 0.025117604178376496
+          },
+          "q_normalized_mean": 0.5841684693877555,
+          "q_normalized_std": 0.3015669579738427,
+          "q_perc_training_only_mean_timely": 0.5072376790877705,
+          "reward_mean": 0.25451256296673214,
+          "state_fingerprint": "895dac3ef33efb4a555d1a8db3c1f4f524d62b7d9cc01300e494c91f8369280f",
+          "timely_fraction": 0.956,
+          "timeouts_or_failures": 44,
+          "under_observed_share": 0.108,
+          "updates": 250,
+          "window": "updates_251_500"
+        },
+        {
+          "actor_grad_norm_max": 0.08655218493699847,
+          "all_metrics_finite": true,
+          "checkpoint_update": 1000,
+          "critic_grad_norm_max": 1.227807733160924,
+          "critic_loss_mean": 0.24434131598472594,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5105446069158301,
+          "family_shares": {
+            "AE128": 0.038,
+            "AE32": 0.7215,
+            "AE64": 0.1415,
+            "noAE": 0.099
+          },
+          "manifest_sha256": "76794be5355e2ae77ab7d6a909570dbf41aa05d98cf91ca6549bf04a7d662dcf",
+          "operational_latency_ms_timely": {
+            "p50": 132.903688,
+            "p95": 159.386774,
+            "p99": 166.361001
+          },
+          "policy_discrete_entropy_mean": 1.2191788723468782,
+          "policy_panel_families": {
+            "AE128": 0.06871485710144043,
+            "AE32": 0.6126874824985862,
+            "AE64": 0.2959039928391576,
+            "noAE": 0.022693656850606203
+          },
+          "q_normalized_mean": 0.4618700510204081,
+          "q_normalized_std": 0.338663355419225,
+          "q_perc_training_only_mean_timely": 0.5233718770368296,
+          "reward_mean": 0.2860888202636769,
+          "state_fingerprint": "0af3a63c137aeec4a470a59efe6ce7a4f355d1476735ec943ca8a44560bb1742",
+          "timely_fraction": 0.9695,
+          "timeouts_or_failures": 61,
+          "under_observed_share": 0.137,
+          "updates": 500,
+          "window": "updates_501_1000"
+        },
+        {
+          "actor_grad_norm_max": 0.09315996052125451,
+          "all_metrics_finite": true,
+          "checkpoint_update": 1500,
+          "critic_grad_norm_max": 2.244201782172091,
+          "critic_loss_mean": 0.24105151289701462,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5825002312428669,
+          "family_shares": {
+            "AE128": 0.052,
+            "AE32": 0.7175,
+            "AE64": 0.1375,
+            "noAE": 0.093
+          },
+          "manifest_sha256": "cfd8b97a392d1a7da0428ceacbbe681bb3836190c36129b553f3a06bd0b0f0df",
+          "operational_latency_ms_timely": {
+            "p50": 132.162194,
+            "p95": 159.352571,
+            "p99": 165.844066
+          },
+          "policy_discrete_entropy_mean": 1.2111497555971145,
+          "policy_panel_families": {
+            "AE128": 0.03289156686514616,
+            "AE32": 0.7442915607243776,
+            "AE64": 0.19383388536516577,
+            "noAE": 0.028982926858589053
+          },
+          "q_normalized_mean": 0.48793933673469364,
+          "q_normalized_std": 0.3291404572747836,
+          "q_perc_training_only_mean_timely": 0.5306572106188978,
+          "reward_mean": 0.3022577151353679,
+          "state_fingerprint": "01cc2bb7d04c45ddbd1ea196742aa4a4125899580093a3d157045eb0b676004e",
+          "timely_fraction": 0.976,
+          "timeouts_or_failures": 48,
+          "under_observed_share": 0.145,
+          "updates": 500,
+          "window": "updates_1001_1500"
+        },
+        {
+          "actor_grad_norm_max": 0.11181920587684505,
+          "all_metrics_finite": true,
+          "checkpoint_update": 2000,
+          "critic_grad_norm_max": 2.0940866656547414,
+          "critic_loss_mean": 0.2432450041770935,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.4455369704743706,
+          "family_shares": {
+            "AE128": 0.059,
+            "AE32": 0.7655,
+            "AE64": 0.111,
+            "noAE": 0.0645
+          },
+          "manifest_sha256": "5c51f859210aaed1efb552997fb0a30be4cf57cf982105fc285168aaed69c182",
+          "operational_latency_ms_timely": {
+            "p50": 132.541564,
+            "p95": 158.603281,
+            "p99": 166.32991
+          },
+          "policy_discrete_entropy_mean": 1.0670030270814896,
+          "policy_panel_families": {
+            "AE128": 0.04418295214418322,
+            "AE32": 0.7882795296609402,
+            "AE64": 0.15499051986262202,
+            "noAE": 0.012547043850645423
+          },
+          "q_normalized_mean": 0.4639261734693877,
+          "q_normalized_std": 0.30324682713236245,
+          "q_perc_training_only_mean_timely": 0.5443396284340453,
+          "reward_mean": 0.30648105070136633,
+          "state_fingerprint": "de8d337c18c777cc4ca291be6d6d1265229d370f264e073cb8e6300bb14004f7",
+          "timely_fraction": 0.9695,
+          "timeouts_or_failures": 61,
+          "under_observed_share": 0.1235,
+          "updates": 500,
+          "window": "updates_1501_2000"
+        },
+        {
+          "actor_grad_norm_max": 0.1573949487946797,
+          "all_metrics_finite": true,
+          "checkpoint_update": 2500,
+          "critic_grad_norm_max": 2.3042546271399806,
+          "critic_loss_mean": 0.24888410276174544,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.4183072691540106,
+          "family_shares": {
+            "AE128": 0.0325,
+            "AE32": 0.7775,
+            "AE64": 0.14,
+            "noAE": 0.05
+          },
+          "manifest_sha256": "d6b8873550fa776d171da2adb897af1713c5fa43f4f476c184ab70c06ad51142",
+          "operational_latency_ms_timely": {
+            "p50": 132.624038,
+            "p95": 159.58298,
+            "p99": 167.211098
+          },
+          "policy_discrete_entropy_mean": 1.0702680693864823,
+          "policy_panel_families": {
+            "AE128": 0.0077977036708034575,
+            "AE32": 0.7547404626384377,
+            "AE64": 0.22676762868650258,
+            "noAE": 0.010694210417568684
+          },
+          "q_normalized_mean": 0.4722064795918361,
+          "q_normalized_std": 0.2837847019247509,
+          "q_perc_training_only_mean_timely": 0.5466725286229506,
+          "reward_mean": 0.3075348655625043,
+          "state_fingerprint": "06781b3fff8d41a6a538b47c2f467caa6db40bd6557db9418f14930a0c20dbee",
+          "timely_fraction": 0.9685,
+          "timeouts_or_failures": 63,
+          "under_observed_share": 0.0825,
+          "updates": 500,
+          "window": "updates_2001_2500"
+        },
+        {
+          "actor_grad_norm_max": 0.1180082256425469,
+          "all_metrics_finite": true,
+          "checkpoint_update": 3000,
+          "critic_grad_norm_max": 2.39076039057935,
+          "critic_loss_mean": 0.2492023604810238,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.3072500665385518,
+          "family_shares": {
+            "AE128": 0.0235,
+            "AE32": 0.7995,
+            "AE64": 0.1335,
+            "noAE": 0.0435
+          },
+          "manifest_sha256": "1607660de1391ecff9a88d0d34624b7bbef3f21a32fe9c96188bedb958a29d17",
+          "operational_latency_ms_timely": {
+            "p50": 131.113979,
+            "p95": 157.874836,
+            "p99": 165.755536
+          },
+          "policy_discrete_entropy_mean": 1.0070275855064392,
+          "policy_panel_families": {
+            "AE128": 0.008653760538436472,
+            "AE32": 0.823532922193408,
+            "AE64": 0.1544784230645746,
+            "noAE": 0.013334832852706313
+          },
+          "q_normalized_mean": 0.47822683673469457,
+          "q_normalized_std": 0.2622932135844369,
+          "q_perc_training_only_mean_timely": 0.5421746856412782,
+          "reward_mean": 0.3170544655856729,
+          "state_fingerprint": "927629dcef4a224d83001ecc5e43e8be2f100ec796608e1c67d2ed498d84bf9e",
+          "timely_fraction": 0.9775,
+          "timeouts_or_failures": 45,
+          "under_observed_share": 0.067,
+          "updates": 500,
+          "window": "updates_2501_3000"
+        },
+        {
+          "actor_grad_norm_max": 0.14667100379724013,
+          "all_metrics_finite": true,
+          "checkpoint_update": 3500,
+          "critic_grad_norm_max": 4.327142673825797,
+          "critic_loss_mean": 0.24336687591671943,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.2707093315569709,
+          "family_shares": {
+            "AE128": 0.0265,
+            "AE32": 0.7945,
+            "AE64": 0.149,
+            "noAE": 0.03
+          },
+          "manifest_sha256": "ecb88a7edc174e42db6c67a6c64f3148ca13095352124970fe8082cfd1e8e43e",
+          "operational_latency_ms_timely": {
+            "p50": 131.769161,
+            "p95": 158.856146,
+            "p99": 167.060544
+          },
+          "policy_discrete_entropy_mean": 1.0144460505247117,
+          "policy_panel_families": {
+            "AE128": 0.019192298990674317,
+            "AE32": 0.7227198351174593,
+            "AE64": 0.24275348288938403,
+            "noAE": 0.015334424446336925
+          },
+          "q_normalized_mean": 0.4748374489795916,
+          "q_normalized_std": 0.24324741774711459,
+          "q_perc_training_only_mean_timely": 0.551784910616455,
+          "reward_mean": 0.33013934398312345,
+          "state_fingerprint": "437f7a8eaaf6b930b0042650fab4f4013c6ed4538579c1c04507be7858142617",
+          "timely_fraction": 0.981,
+          "timeouts_or_failures": 38,
+          "under_observed_share": 0.056499999999999995,
+          "updates": 500,
+          "window": "updates_3001_3500"
+        },
+        {
+          "actor_grad_norm_max": 0.11861074109051348,
+          "all_metrics_finite": true,
+          "checkpoint_update": 4000,
+          "critic_grad_norm_max": 3.323375813656742,
+          "critic_loss_mean": 0.24100689008831977,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.312987109041065,
+          "family_shares": {
+            "AE128": 0.035,
+            "AE32": 0.7815,
+            "AE64": 0.1335,
+            "noAE": 0.05
+          },
+          "manifest_sha256": "bf82dd46bfad20730487e6e5dba9085b68931750f2c469ad987856ccc3486c4a",
+          "operational_latency_ms_timely": {
+            "p50": 133.020065,
+            "p95": 159.703558,
+            "p99": 167.092806
+          },
+          "policy_discrete_entropy_mean": 1.027556056380272,
+          "policy_panel_families": {
+            "AE128": 0.007405499345622957,
+            "AE32": 0.6658077533356845,
+            "AE64": 0.3116648666327819,
+            "noAE": 0.015121927135623991
+          },
+          "q_normalized_mean": 0.45181040816326534,
+          "q_normalized_std": 0.2521482775628774,
+          "q_perc_training_only_mean_timely": 0.5520660096692459,
+          "reward_mean": 0.32473807630756946,
+          "state_fingerprint": "4110b9700b1ac97c5b05cf553ee8bc42fffce77bc57a207ec6c66bc1a907339d",
+          "timely_fraction": 0.9775,
+          "timeouts_or_failures": 45,
+          "under_observed_share": 0.085,
+          "updates": 500,
+          "window": "updates_3501_4000"
+        },
+        {
+          "actor_grad_norm_max": 0.1307541760681107,
+          "all_metrics_finite": true,
+          "checkpoint_update": 4500,
+          "critic_grad_norm_max": 3.4699274823793007,
+          "critic_loss_mean": 0.23573875278234482,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.3188873591112302,
+          "family_shares": {
+            "AE128": 0.0355,
+            "AE32": 0.7825,
+            "AE64": 0.1385,
+            "noAE": 0.0435
+          },
+          "manifest_sha256": "9d2f16730092ca547141a19e20753b6e2f486411a91619a600add8576e2a04ba",
+          "operational_latency_ms_timely": {
+            "p50": 131.628479,
+            "p95": 158.142574,
+            "p99": 166.598395
+          },
+          "policy_discrete_entropy_mean": 1.0563132717609405,
+          "policy_panel_families": {
+            "AE128": 0.012102745356969535,
+            "AE32": 0.7410817937925458,
+            "AE64": 0.21237269672565162,
+            "noAE": 0.03444276982918382
+          },
+          "q_normalized_mean": 0.46893862244897966,
+          "q_normalized_std": 0.24361894668489587,
+          "q_perc_training_only_mean_timely": 0.5497073447823666,
+          "reward_mean": 0.326506607767269,
+          "state_fingerprint": "b8fd4ffce42c3d88fbce99d8772ba41ad19d55a6bee0a7f816468992273899c7",
+          "timely_fraction": 0.9795,
+          "timeouts_or_failures": 41,
+          "under_observed_share": 0.07899999999999999,
+          "updates": 500,
+          "window": "updates_4001_4500"
+        },
+        {
+          "actor_grad_norm_max": 0.12785349485240013,
+          "all_metrics_finite": true,
+          "checkpoint_update": 5000,
+          "critic_grad_norm_max": 3.9196596048642878,
+          "critic_loss_mean": 0.2356945336163044,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.376144629331099,
+          "family_shares": {
+            "AE128": 0.037,
+            "AE32": 0.7715,
+            "AE64": 0.154,
+            "noAE": 0.0375
+          },
+          "manifest_sha256": "81db2fde3bf2ae6b2247daf2fcedda4811d3c8d638e445c706fa1ddd98f679e4",
+          "operational_latency_ms_timely": {
+            "p50": 132.526241,
+            "p95": 159.912107,
+            "p99": 167.190922
+          },
+          "policy_discrete_entropy_mean": 1.0965101660490035,
+          "policy_panel_families": {
+            "AE128": 0.011072581459302455,
+            "AE32": 0.7525281338021159,
+            "AE64": 0.22307668533176184,
+            "noAE": 0.013322599930688739
+          },
+          "q_normalized_mean": 0.4727030612244898,
+          "q_normalized_std": 0.2414583726647396,
+          "q_perc_training_only_mean_timely": 0.5559549687120505,
+          "reward_mean": 0.3288353955910298,
+          "state_fingerprint": "424d5359405a05a6b951023fec5d7b91918b25b50cffdb1b8f386a0dc6d63892",
+          "timely_fraction": 0.9775,
+          "timeouts_or_failures": 45,
+          "under_observed_share": 0.0745,
+          "updates": 500,
+          "window": "updates_4501_5000"
+        },
+        {
+          "actor_grad_norm_max": 0.13348395454790601,
+          "all_metrics_finite": true,
+          "checkpoint_update": 5500,
+          "critic_grad_norm_max": 3.437562618291582,
+          "critic_loss_mean": 0.23468669977784157,
+          "decisions": 2000,
+          "distinct_modes": 11,
+          "executed_mode_entropy_nats": 1.4478670838927528,
+          "family_shares": {
+            "AE128": 0.045,
+            "AE32": 0.7405,
+            "AE64": 0.1815,
+            "noAE": 0.033
+          },
+          "manifest_sha256": "7dab647df1e3c333fb8521cf809883e49776b72efb897e427934fa2a3e767b6e",
+          "operational_latency_ms_timely": {
+            "p50": 132.15986,
+            "p95": 157.591553,
+            "p99": 166.939343
+          },
+          "policy_discrete_entropy_mean": 1.1132061511278153,
+          "policy_panel_families": {
+            "AE128": 0.008363213390111923,
+            "AE32": 0.71101128985174,
+            "AE64": 0.24313367204740644,
+            "noAE": 0.03749178198631853
+          },
+          "q_normalized_mean": 0.5013306632653071,
+          "q_normalized_std": 0.23577120646021946,
+          "q_perc_training_only_mean_timely": 0.5604599623924433,
+          "reward_mean": 0.3299655942249642,
+          "state_fingerprint": "86652a5237a6c6430a564a965cb7ce7b559a5d14c94fb7d943894f6a893b4431",
+          "timely_fraction": 0.9745,
+          "timeouts_or_failures": 51,
+          "under_observed_share": 0.078,
+          "updates": 500,
+          "window": "updates_5001_5500"
+        },
+        {
+          "actor_grad_norm_max": 0.15738569920849288,
+          "all_metrics_finite": true,
+          "checkpoint_update": 6000,
+          "critic_grad_norm_max": 4.399706402610838,
+          "critic_loss_mean": 0.23481665486097336,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.360202199404956,
+          "family_shares": {
+            "AE128": 0.0415,
+            "AE32": 0.7605,
+            "AE64": 0.166,
+            "noAE": 0.032
+          },
+          "manifest_sha256": "c57cfb833a703fed6c1658c1ad59d013de232266adb2318b50e9cd65b4792641",
+          "operational_latency_ms_timely": {
+            "p50": 131.852165,
+            "p95": 158.845753,
+            "p99": 166.797584
+          },
+          "policy_discrete_entropy_mean": 1.11719646859169,
+          "policy_panel_families": {
+            "AE128": 0.009708824916742742,
+            "AE32": 0.6608022202271968,
+            "AE64": 0.31276260467711836,
+            "noAE": 0.016726357163861394
+          },
+          "q_normalized_mean": 0.49467821428571346,
+          "q_normalized_std": 0.22688419330434542,
+          "q_perc_training_only_mean_timely": 0.5514131310907923,
+          "reward_mean": 0.3278503964394603,
+          "state_fingerprint": "a4f87abb39c2a63a4f717793c556330dc9b85b763ec2d356bf1264f05c7fa731",
+          "timely_fraction": 0.9795,
+          "timeouts_or_failures": 41,
+          "under_observed_share": 0.07350000000000001,
+          "updates": 500,
+          "window": "updates_5501_6000"
+        },
+        {
+          "actor_grad_norm_max": 0.12764158556742508,
+          "all_metrics_finite": true,
+          "checkpoint_update": 6500,
+          "critic_grad_norm_max": 4.252438774789577,
+          "critic_loss_mean": 0.23145667460560798,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.4925018071304148,
+          "family_shares": {
+            "AE128": 0.0485,
+            "AE32": 0.7305,
+            "AE64": 0.186,
+            "noAE": 0.035
+          },
+          "manifest_sha256": "9df3615b173f994b051828673d9060da5176022bac055d827f353f84b655814d",
+          "operational_latency_ms_timely": {
+            "p50": 132.566132,
+            "p95": 159.271088,
+            "p99": 167.080574
+          },
+          "policy_discrete_entropy_mean": 1.1292857743501663,
+          "policy_panel_families": {
+            "AE128": 0.014724148670211434,
+            "AE32": 0.6194950974313542,
+            "AE64": 0.3558712034719065,
+            "noAE": 0.009909552056342363
+          },
+          "q_normalized_mean": 0.5071802040816326,
+          "q_normalized_std": 0.23133223632143102,
+          "q_perc_training_only_mean_timely": 0.562389514979002,
+          "reward_mean": 0.34279213623391863,
+          "state_fingerprint": "62ef2753b17d41c8f5fabb68fe745e7d200818d4a7d00d6b2cb99f312d592ae1",
+          "timely_fraction": 0.983,
+          "timeouts_or_failures": 34,
+          "under_observed_share": 0.0835,
+          "updates": 500,
+          "window": "updates_6001_6500"
+        },
+        {
+          "actor_grad_norm_max": 0.1930281324467938,
+          "all_metrics_finite": true,
+          "checkpoint_update": 7000,
+          "critic_grad_norm_max": 5.3986632410504996,
+          "critic_loss_mean": 0.2300169117450714,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.467295548657575,
+          "family_shares": {
+            "AE128": 0.045,
+            "AE32": 0.7445,
+            "AE64": 0.173,
+            "noAE": 0.0375
+          },
+          "manifest_sha256": "a51a38805da0ab3cd684791a5843533dc1e9cb9450698543b99d9645370a0696",
+          "operational_latency_ms_timely": {
+            "p50": 132.430799,
+            "p95": 159.317158,
+            "p99": 167.073423
+          },
+          "policy_discrete_entropy_mean": 1.1146999876499175,
+          "policy_panel_families": {
+            "AE128": 0.017299467930570245,
+            "AE32": 0.6392322294414043,
+            "AE64": 0.3312863005558029,
+            "noAE": 0.012182070408016443
+          },
+          "q_normalized_mean": 0.5195404081632644,
+          "q_normalized_std": 0.22920391361604098,
+          "q_perc_training_only_mean_timely": 0.5583032718638524,
+          "reward_mean": 0.3254803658418128,
+          "state_fingerprint": "0bf73127cb0b58952e9b8f186b1dc5a680322edc1e08d4af47cbff1fb0ba0e67",
+          "timely_fraction": 0.9735,
+          "timeouts_or_failures": 53,
+          "under_observed_share": 0.08249999999999999,
+          "updates": 500,
+          "window": "updates_6501_7000"
+        },
+        {
+          "actor_grad_norm_max": 0.22821741252031652,
+          "all_metrics_finite": true,
+          "checkpoint_update": 7500,
+          "critic_grad_norm_max": 4.306449406621429,
+          "critic_loss_mean": 0.2288445922732353,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.3685699212391496,
+          "family_shares": {
+            "AE128": 0.03,
+            "AE32": 0.7605,
+            "AE64": 0.1905,
+            "noAE": 0.019
+          },
+          "manifest_sha256": "5bc30ee84243fe7b3a1ee21c3f80409c1ba7a3dac9a80ca6d81a80912876760b",
+          "operational_latency_ms_timely": {
+            "p50": 131.837214,
+            "p95": 159.00351,
+            "p99": 166.855441
+          },
+          "policy_discrete_entropy_mean": 1.0982759364843369,
+          "policy_panel_families": {
+            "AE128": 0.007348592160269618,
+            "AE32": 0.6590396480169147,
+            "AE64": 0.32925273390719667,
+            "noAE": 0.004359061276772991
+          },
+          "q_normalized_mean": 0.49895387755102016,
+          "q_normalized_std": 0.21693495109363428,
+          "q_perc_training_only_mean_timely": 0.5676079197114071,
+          "reward_mean": 0.3393475836062762,
+          "state_fingerprint": "d248f0b58806e245ea28150c3d8059c4bf67de09d4c2fc37ad254e60e7ccc3c9",
+          "timely_fraction": 0.9765,
+          "timeouts_or_failures": 47,
+          "under_observed_share": 0.049,
+          "updates": 500,
+          "window": "updates_7001_7500"
+        },
+        {
+          "actor_grad_norm_max": 0.16599002186669057,
+          "all_metrics_finite": true,
+          "checkpoint_update": 8000,
+          "critic_grad_norm_max": 5.488380714036146,
+          "critic_loss_mean": 0.22606318965554237,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.3634809933901402,
+          "family_shares": {
+            "AE128": 0.025,
+            "AE32": 0.7825,
+            "AE64": 0.164,
+            "noAE": 0.0285
+          },
+          "manifest_sha256": "d884cebe40f88e3fd5a13883864a77212890d79daf74df722c89c507b155e5a1",
+          "operational_latency_ms_timely": {
+            "p50": 131.968294,
+            "p95": 159.151729,
+            "p99": 166.60604
+          },
+          "policy_discrete_entropy_mean": 1.1147807986736298,
+          "policy_panel_families": {
+            "AE128": 0.005655768793076277,
+            "AE32": 0.6477011593524367,
+            "AE64": 0.3410155694000423,
+            "noAE": 0.0056274887174367905
+          },
+          "q_normalized_mean": 0.5059503571428569,
+          "q_normalized_std": 0.21252619610240017,
+          "q_perc_training_only_mean_timely": 0.5595799677445091,
+          "reward_mean": 0.33434718887917964,
+          "state_fingerprint": "bf74838c165c4f3983ad57a4e0ea6f69bcd650fd5fc6f5746cc48b0d705729d0",
+          "timely_fraction": 0.9785,
+          "timeouts_or_failures": 43,
+          "under_observed_share": 0.053500000000000006,
+          "updates": 500,
+          "window": "updates_7501_8000"
+        },
+        {
+          "actor_grad_norm_max": 0.1538845153523189,
+          "all_metrics_finite": true,
+          "checkpoint_update": 8500,
+          "critic_grad_norm_max": 4.692113248218021,
+          "critic_loss_mean": 0.2275661518573761,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.439808517552444,
+          "family_shares": {
+            "AE128": 0.0305,
+            "AE32": 0.7505,
+            "AE64": 0.186,
+            "noAE": 0.033
+          },
+          "manifest_sha256": "6cb1e5f54670e097ea1bcd1ad5252c5a3a35245dd5ad7bb7d594424c730fcfff",
+          "operational_latency_ms_timely": {
+            "p50": 132.220603,
+            "p95": 158.063338,
+            "p99": 166.225969
+          },
+          "policy_discrete_entropy_mean": 1.1627482899427415,
+          "policy_panel_families": {
+            "AE128": 0.011698128335410729,
+            "AE32": 0.7196147253271192,
+            "AE64": 0.26512564832228236,
+            "noAE": 0.003561471065040678
+          },
+          "q_normalized_mean": 0.5189920408163256,
+          "q_normalized_std": 0.22004872435043732,
+          "q_perc_training_only_mean_timely": 0.5604312477859784,
+          "reward_mean": 0.33476348303615727,
+          "state_fingerprint": "bd9497257b7f0968df32caf4681e0c3a6f15c8a6920d3360cf6cf496c35d9855",
+          "timely_fraction": 0.978,
+          "timeouts_or_failures": 44,
+          "under_observed_share": 0.0635,
+          "updates": 500,
+          "window": "updates_8001_8500"
+        },
+        {
+          "actor_grad_norm_max": 0.14130055936189653,
+          "all_metrics_finite": true,
+          "checkpoint_update": 9000,
+          "critic_grad_norm_max": 4.867628763765472,
+          "critic_loss_mean": 0.2254996297955513,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.4792903204371255,
+          "family_shares": {
+            "AE128": 0.0385,
+            "AE32": 0.7645,
+            "AE64": 0.1585,
+            "noAE": 0.0385
+          },
+          "manifest_sha256": "2f6aac34b9ea0ad36ce8798ade2e774b2ff9efd8efca47c880e0da4168ea6fd2",
+          "operational_latency_ms_timely": {
+            "p50": 131.478577,
+            "p95": 158.061468,
+            "p99": 166.136114
+          },
+          "policy_discrete_entropy_mean": 1.1722694555521012,
+          "policy_panel_families": {
+            "AE128": 0.007314702495932579,
+            "AE32": 0.6182398940436542,
+            "AE64": 0.370754508767277,
+            "noAE": 0.0036908557231072336
+          },
+          "q_normalized_mean": 0.521228724489796,
+          "q_normalized_std": 0.22238449432245402,
+          "q_perc_training_only_mean_timely": 0.5413696880955692,
+          "reward_mean": 0.31980243800638214,
+          "state_fingerprint": "3d07c188c4a6385daf3486b9ac637e9c18e825560e46a29e6d794fa63388b522",
+          "timely_fraction": 0.9805,
+          "timeouts_or_failures": 39,
+          "under_observed_share": 0.077,
+          "updates": 500,
+          "window": "updates_8501_9000"
+        },
+        {
+          "actor_grad_norm_max": 0.16275417236186365,
+          "all_metrics_finite": true,
+          "checkpoint_update": 9500,
+          "critic_grad_norm_max": 5.276806921493502,
+          "critic_loss_mean": 0.2284348260164261,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.507197864459708,
+          "family_shares": {
+            "AE128": 0.036,
+            "AE32": 0.7205,
+            "AE64": 0.205,
+            "noAE": 0.0385
+          },
+          "manifest_sha256": "ee50166fbfbfd38b7a640d2b2114c6e6fdf9ee1a040bf1c0c2bd6fae7668d2a5",
+          "operational_latency_ms_timely": {
+            "p50": 131.602704,
+            "p95": 158.001814,
+            "p99": 165.814518
+          },
+          "policy_discrete_entropy_mean": 1.1932599360942842,
+          "policy_panel_families": {
+            "AE128": 0.012874451815150678,
+            "AE32": 0.6551092388108373,
+            "AE64": 0.3290043631568551,
+            "noAE": 0.0030119615548755974
+          },
+          "q_normalized_mean": 0.5379205102040817,
+          "q_normalized_std": 0.2191877008940737,
+          "q_perc_training_only_mean_timely": 0.5540379398249883,
+          "reward_mean": 0.32384708309401067,
+          "state_fingerprint": "dad3ef220b7e291d995747101050e67ea46386164bbc7b0d5f671fe988791351",
+          "timely_fraction": 0.9745,
+          "timeouts_or_failures": 51,
+          "under_observed_share": 0.0745,
+          "updates": 500,
+          "window": "updates_9001_9500"
+        },
+        {
+          "actor_grad_norm_max": 0.11432537854012242,
+          "all_metrics_finite": true,
+          "checkpoint_update": 10000,
+          "critic_grad_norm_max": 5.79835503873052,
+          "critic_loss_mean": 0.22353899413347245,
+          "decisions": 2000,
+          "distinct_modes": 12,
+          "executed_mode_entropy_nats": 1.5408056534702121,
+          "family_shares": {
+            "AE128": 0.0365,
+            "AE32": 0.742,
+            "AE64": 0.182,
+            "noAE": 0.0395
+          },
+          "manifest_sha256": "ec60a800449136be9e9a67c5583c77d3016880653c2149e5205f62bd8d33d73a",
+          "operational_latency_ms_timely": {
+            "p50": 131.555384,
+            "p95": 158.755275,
+            "p99": 165.912336
+          },
+          "policy_discrete_entropy_mean": 1.2098247678279876,
+          "policy_panel_families": {
+            "AE128": 0.026224820176139474,
+            "AE32": 0.590216651558876,
+            "AE64": 0.38035628269426525,
+            "noAE": 0.0032022843952290714
+          },
+          "q_normalized_mean": 0.5445702551020403,
+          "q_normalized_std": 0.22000985551567698,
+          "q_perc_training_only_mean_timely": 0.5604344028945577,
+          "reward_mean": 0.33352858258901297,
+          "state_fingerprint": "0a780ab93399b5570db13163bd697d45a77076f798f636dfc4a449ae4deab301",
+          "timely_fraction": 0.977,
+          "timeouts_or_failures": 46,
+          "under_observed_share": 0.076,
+          "updates": 500,
+          "window": "updates_9501_10000"
+        }
+      ]
+    }
+  ],
+  "smoke_seed_17": {
+    "decisions": 2288,
+    "final_update": 500,
+    "seed": 17,
+    "windows": [
+      {
+        "actor_grad_norm_max": null,
+        "all_metrics_finite": true,
+        "checkpoint_update": 0,
+        "critic_grad_norm_max": null,
+        "critic_loss_mean": null,
+        "decisions": 288,
+        "distinct_modes": 12,
+        "executed_mode_entropy_nats": 2.4849066497880012,
+        "family_shares": {
+          "AE128": 0.25,
+          "AE32": 0.25,
+          "AE64": 0.25,
+          "noAE": 0.25
+        },
+        "operational_latency_ms_timely": {
+          "p50": 136.804295,
+          "p95": 160.962712,
+          "p99": 168.676067
+        },
+        "policy_discrete_entropy_mean": null,
+        "policy_panel_families": {
+          "AE128": 0.2597207576036453,
+          "AE32": 0.2515930309891701,
+          "AE64": 0.23475223779678345,
+          "noAE": 0.25393398851156235
+        },
+        "q_normalized_mean": 0.7778443877551021,
+        "q_normalized_std": 0.21765270753871752,
+        "q_perc_training_only_mean_timely": 0.44396780335473846,
+        "reward_mean": 0.1655828841295444,
+        "timely_fraction": 0.9375,
+        "timeouts_or_failures": 18,
+        "updates": 0,
+        "window": "warmup_288"
+      },
+      {
+        "actor_grad_norm_max": 0.012509857588710854,
+        "all_metrics_finite": true,
+        "checkpoint_update": 100,
+        "critic_grad_norm_max": 1.2461932553438484,
+        "critic_loss_mean": 0.2975264456868172,
+        "decisions": 400,
+        "distinct_modes": 12,
+        "executed_mode_entropy_nats": 2.436252252495404,
+        "family_shares": {
+          "AE128": 0.215,
+          "AE32": 0.3,
+          "AE64": 0.2325,
+          "noAE": 0.2525
+        },
+        "manifest_sha256": "b857e18147931de8e5e5bc96b80d9f840fafe9212bc76e606f6624a3f10d1562",
+        "operational_latency_ms_timely": {
+          "p50": 135.34274,
+          "p95": 160.124194,
+          "p99": 167.905826
+        },
+        "policy_discrete_entropy_mean": 2.415243775844574,
+        "policy_panel_families": {
+          "AE128": 0.20077727921307087,
+          "AE32": 0.3466748520731926,
+          "AE64": 0.2757844291627407,
+          "noAE": 0.17676349356770515
+        },
+        "q_normalized_mean": 0.7976673469387755,
+        "q_normalized_std": 0.21325835015508884,
+        "q_perc_training_only_mean_timely": 0.47531899420003104,
+        "reward_mean": 0.21296528285767605,
+        "state_fingerprint": "4881fae4d0a3e62e1f4967bde156089bea3ac8843dbc9ccdaa971de3a5119ad5",
+        "timely_fraction": 0.95,
+        "timeouts_or_failures": 20,
+        "under_observed_share": 0.4675,
+        "updates": 100,
+        "window": "updates_1_100"
+      },
+      {
+        "actor_grad_norm_max": 0.029632393143077838,
+        "all_metrics_finite": true,
+        "checkpoint_update": 250,
+        "critic_grad_norm_max": 0.5263810484834878,
+        "critic_loss_mean": 0.25558387229839963,
+        "decisions": 600,
+        "distinct_modes": 12,
+        "executed_mode_entropy_nats": 1.9485584650572247,
+        "family_shares": {
+          "AE128": 0.11833333333333333,
+          "AE32": 0.59,
+          "AE64": 0.18833333333333332,
+          "noAE": 0.10333333333333333
+        },
+        "manifest_sha256": "a401acf130deea1c049a5214068d8588ed0317fe483ddfc72544ef2ebaa4bc4d",
+        "operational_latency_ms_timely": {
+          "p50": 134.866006,
+          "p95": 160.586907,
+          "p99": 167.151887
+        },
+        "policy_discrete_entropy_mean": 1.6355005399386089,
+        "policy_panel_families": {
+          "AE128": 0.10316625889390707,
+          "AE32": 0.6064281389117241,
+          "AE64": 0.21148383058607578,
+          "noAE": 0.0789217846468091
+        },
+        "q_normalized_mean": 0.58931037414966,
+        "q_normalized_std": 0.31695532117405084,
+        "q_perc_training_only_mean_timely": 0.5382589951572508,
+        "reward_mean": 0.2796392428163513,
+        "state_fingerprint": "aef7cea3cce07f1ec11c4a3520f9680f6309d251a030a83b1fcfbd7b798b5923",
+        "timely_fraction": 0.955,
+        "timeouts_or_failures": 27,
+        "under_observed_share": 0.22166666666666668,
+        "updates": 150,
+        "window": "updates_101_250"
+      },
+      {
+        "actor_grad_norm_max": 0.04603432480925899,
+        "all_metrics_finite": true,
+        "checkpoint_update": 500,
+        "critic_grad_norm_max": 0.7762963101889276,
+        "critic_loss_mean": 0.2513075839281082,
+        "decisions": 1000,
+        "distinct_modes": 12,
+        "executed_mode_entropy_nats": 1.6770871558138074,
+        "family_shares": {
+          "AE128": 0.092,
+          "AE32": 0.68,
+          "AE64": 0.162,
+          "noAE": 0.066
+        },
+        "manifest_sha256": "f7e541846853da50a44d9b5019326377438b969d6117d780fbe4ce4f41c740e6",
+        "operational_latency_ms_timely": {
+          "p50": 134.044131,
+          "p95": 160.177976,
+          "p99": 165.192732
+        },
+        "policy_discrete_entropy_mean": 1.276729433298111,
+        "policy_panel_families": {
+          "AE128": 0.18818237772211432,
+          "AE32": 0.6089163813740015,
+          "AE64": 0.11630832403898239,
+          "noAE": 0.08659291360527277
+        },
+        "q_normalized_mean": 0.5063562244897954,
+        "q_normalized_std": 0.324793669555632,
+        "q_perc_training_only_mean_timely": 0.5244891737351903,
+        "reward_mean": 0.26555465674925405,
+        "state_fingerprint": "808ae1311c1441bdb7e80808e5857fad0a68d9a59e8206f899336169efc4d729",
+        "timely_fraction": 0.954,
+        "timeouts_or_failures": 46,
+        "under_observed_share": 0.158,
+        "updates": 250,
+        "window": "updates_251_500"
+      }
+    ]
+  }
+}
