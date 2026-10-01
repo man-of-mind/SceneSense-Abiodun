@@ -124,7 +124,10 @@ ATTEMPT_PATH_OWNERSHIP: tuple[tuple[str, str, str, str, str], ...] = (
     ("target_snr_summary", "service/radio_trace.csv.summary.json",
      "ue_route_b_split_cell_adapter_v1.stop_target_snr", "file", "stop"),
     ("target_snr_start", "service/one_frame_target_start",
-     "RealProductionOpsV1.start", "file", "start"),
+     "RealProductionOpsV1.start (actuator --start-file)", "file", "start"),
+    ("collector_profile_activation", "service/collector_profile_activation",
+     "pinned PassiveSplitCollector, first processed frame "
+     "(campaign _target_start_file)", "file", "execute"),
     ("ue_telemetry", "ue_telemetry",
      "b_production_dependencies_v1.build_production_dependencies_v1",
      "dir", "start"),
@@ -796,7 +799,11 @@ class RealProductionOpsV1:
             service = paths.get("service")
             isolated = paths.get("isolated_campaign")
             target_start = paths.get("target_snr_start")
-            state.campaign["_target_start_file"] = str(target_start)
+            # The actuator's start file (created below, before the first
+            # decision) and the pinned collector's one-time profile-activation
+            # file are distinct create-only paths with separate owners.
+            state.campaign["_target_start_file"] = str(
+                paths.get("collector_profile_activation"))
             isolated.write_text(
                 yaml.safe_dump(state.campaign, sort_keys=False), encoding="utf-8")
             target, output, stop = pinned.start_target_snr(

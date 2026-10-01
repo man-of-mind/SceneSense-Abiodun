@@ -214,6 +214,17 @@ def _processor_for(request, calls):
     return processor
 
 
+def _route_driver_for(route_kwargs):
+    activation = Path(route_kwargs["campaign"]["_target_start_file"])
+
+    def driver(bridge):
+        # Exactly what the pinned collector does on its first processed
+        # frame: a one-time create-only profile-activation touch.
+        activation.touch(exist_ok=False)
+        _route_driver(bridge)
+    return driver
+
+
 def _route_driver(bridge):
     opened = _now()
     try:
@@ -278,7 +289,7 @@ class ComposedLifecycleTest(unittest.TestCase):
                     feature_schema_sha256=request.feature_schema_sha256,
                     actor_boundary_sha256=request.actor_boundary_sha256,
                     processor=_processor_for(request, calls),
-                    route_driver=_route_driver,
+                    route_driver=_route_driver_for(kwargs["route_kwargs"]),
                     raw_spool_root=kwargs["raw_spool_root"])
 
             class Receiver:
@@ -346,6 +357,9 @@ class ComposedLifecycleTest(unittest.TestCase):
                 execution = lifecycle.execute(cfg, selected)
                 execution.validate(cfg)
                 self.assertEqual(calls, [7])
+                self.assertTrue(paths.get("collector_profile_activation").is_file())
+                self.assertNotEqual(paths.get("collector_profile_activation"),
+                                    paths.get("target_snr_start"))
                 self.assertEqual(edge.acks, 1)
                 self.assertEqual(sorted(p.name for p in paths.get("ue_evidence").iterdir()),
                                  ["operational_evidence", "operational_trace"])
