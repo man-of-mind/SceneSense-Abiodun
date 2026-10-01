@@ -1,0 +1,136 @@
+{
+ "capture_id": "20261001T231343Z",
+ "claim_scope": "PROFILING_BASELINE_CAPTURE_FOR_INDEPENDENT_BOTTLENECK_ANALYSES; not a policy-performance comparison",
+ "code_commit": "6c44f53",
+ "descriptive_only": {
+  "P0_POLICY_COVERAGE": false,
+  "note": "differences against attempt 3 (55.6%) or the 6199d49 reference (48.8%) are descriptive; this run is for bottleneck analysis, not policy performance",
+  "policy_deadline_le_170": {
+   "count": 238,
+   "fraction": 0.5666666666666667,
+   "n": 420,
+   "undetermined": 0
+  }
+ },
+ "evaluator_reasons": {
+  "DELIVERED_SUCCESS": 375,
+  "EVALUATOR_FAULT:QUALITY_UNDEFINED_NO_ELIGIBLE_GT": 43
+ },
+ "evidence_sha256": {
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000.CODE_COMMIT.txt": "34d82fe48c9645f344796b2911a0c67635f866e8316ebe6a442201b182c6dc4f",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000.launch_exit": "19eaf43821a7660ec323a87c8457bf74823beb296c39f5e01aa8a683aa50f061",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000.launcher.log": "c7ccae4833b92e5db0a391d156807760e66f7ad10741ad442232f6510a660993",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/ACTOR_AUDIT_AFTER.json": "2ea9080fd3c7a25dd246d8b482c0dc5a3c65cf0b296d460fda1e224dea672b7b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/ACTOR_AUDIT_BEFORE.json": "2ea9080fd3c7a25dd246d8b482c0dc5a3c65cf0b296d460fda1e224dea672b7b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/PHASE6_TIMING_CHARACTERIZATION.json": "b87c5d38ea14a2a0f63dc4600667e3f19db339bc126f073942233880b0f7f1b9",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/PREFLIGHT.json": "2d34ba9823196869a1eb203ec6c7fd0d92d9afccfaec11b602b2b6af34ac6323",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/PROFILER_ANALYSIS.json": "8dff79def292e70e5c63ad85371a0324b816b98805776e8fb6569bdac79f5093",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/PROFILER_CONFIG.json": "ce7ac61439e8999af3bf6d520f72384c8ce2fe79de82a68897007e3271189756",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/QUALIFICATION_RESULT.json": "aeaa87e400035766124bcc7880ea57f13f008ebd554867a65477bfae3026d27b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/CELL_RESULT.json": "2ed80696510fee871a7355fbb5660f35f2c8b444381cb79368c23c6f13bc41b8",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/PHASE6_RESULT_SUMMARY.md": "7776f803d3a0eea70277c86ca63b86ddebe61bc43378a24b45ff1a4c0ac58ab0",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/carla_server.log": "f7d7dc79c12c5dad53dd1feb833dee1fb7788ca7401eac7047330c5505e0fa55",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/child_stdout_stderr.log": "6f2cbc30a62a6419a457d8edcb925e0f051c0cfb8c2878439d5afbd93f3211fb",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/direct_edge_map/direct_edge_ready.json": "1902b7f7af67e1e989585bdad307110560a3044189ec75d50e389721d26f46e1",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "e6b892669aae5ab6c5548eba5b39c66ecca11cc1d0672818b88433074de92eb6",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/direct_edge_map/direct_map_ready.json": "f7edacb6ba860e855f398580a284e3a0b39474f768f5091067a264f1ab6d52c2",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/direct_edge_map/direct_map_report.json": "1d42a8c5c90539daf4736fa25bb6ea08b445e22330c10e5812fb75b87058a294",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/direct_edge_map/run4_map_identity.csv": "c088e5b55912856b1dae7bb9f0c18539c215c819d7b7cad7083b81de535c91b2",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/edge_image_prelaunch.json": "906d3d824f7adb10d37a1ff96edd1f4f95c0bd37248551f78a7b851f8d4a2817",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/logs/ue_record.log": "11358f2ea1a0ce5eafb2fb6c09536c9d5ea4b9faa57f7b3ef2c9c352ccfc2ad7",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/logs/ue_relay.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/map_feedback.csv": "9ec288149e5f72ce60f2f1c21a9e3f7030d50a86f2348ddbc4b09535c2503146",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/per_frame_metrics.csv": "516f2a72158cd1b2066390e09f0a62473f2bfa04a6466657e771e0f6fc58cb0a",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/perception_metrics.csv": "676bd152eaebdd67e4d29d540b8640390c1ac1689873ba7298e2311b3f002c46",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/phase6_artifacts/budget_reached.json": "96c32715539dd2f26a89149639fdc46ece5d3c72e9f126af330e95ff8df69c1f",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/phase6_artifacts/child_result.json": "4284598f6939ee89d01295d46273bf7a6349ac756e7b37c445ef03e2496ee521",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/phase6_artifacts/collector_summary.json": "4ec02dc0f77f832cdc9846d7a788f82b96ab7829a10b32f1d32613d571683974",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/phase6_artifacts/route_detail.json": "47a8cdb57d59029fb385d38fffe504cc1c4288c57f420c5f1f61c42a0bc5dd66",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/phase6_artifacts/ue_route_b_metrics_7jr82bkk_population_events.jsonl": "d6f2c6ba30b98cd26e35b72e77b0dc98ada999081d0ca9321f4e75f174a295d8",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/profiler/compose_repository_mount_override.yaml": "95d559ec8b4685a7e3a3b38d665bc343ccf020ac466fc86da3e0edddbe5c1c10",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/profiler/edge/edge.profile.jsonl": "ffb159014c93426d7af69850a77b50ea9560a8d4a99863fedaf57fee04215a82",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/profiler/map.profile.jsonl": "615a765e04633dbd01da082fa8d7b23e944d44fb66b87ac96fe5e6fae10fda25",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/profiler/ue.profile.jsonl": "cb66f024a3aa9b887d1860bdd6b0ba74e27c17eb275dbe97f122838da656142f",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap": "a2dd23863b7b51f46c317c14ecb997574e8adb241dd3f6c177d1962e69baf568",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/quality_ack_tcpdump.log": "3d806b66de1e6f81225b02fbd71f0305a5aa14585c7aa3aac8b1bdc3288081a2",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/radio_trace.csv": "50a37dd36e4e79da38680dfaa8c031bee3c307f45024776577e34d73cbab4c07",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json": "93eef597ce05ea7020d34943f17e685706656d2c0b01367054ce2728f2f63656",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/edge_image_launch.json": "39d2199ddc5657ed8fdd4cfa3cf1911b2ce90a644c362db4a4b8b1b71dabd439",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/edge_report.json": "65ac156da3952a4bce4ccd27de3ea479da2da771f5d36b782bd3d6e540e7a02d",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/gt_handoff_ue.jsonl": "ba60a4a91ee154aaf82c35b79aa3b56e9cfe72e117ba76d7cd21960e5ad92562",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/gt_scratch_preserved.manifest.json": "12eff789fdf9d878225f2be95cec8bb45dd5db8436fba8b5108e987ec8a8f00e",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/prewarm_ue.json": "40d9c300f1f1739343a17e8de37d970bededcf23c17955f7dfc93e96396671a8",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_DCI_GRANT_live.csv": "adf721f34a1a4a13a900720c78017c6903e265fa73120c7cdcbca7f1a11ba43b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/telemetry_live/NRUE_MAC_RLC_BUFFER_STATUS_live.csv": "a4b3ebe6e4428c191a710ebff7c1d3867cbf1cee64dd6407b50dea04fca824c4",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/run4_phase6/telemetry_live/NR_PDCP_TX_SDU_live.csv": "6ca66308541375164afff8fc3f5257120b8b7fba8f4be4989e6e0350f0831e09",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/cells/a71__favorable_stable/ttracer/ue/ue.raw": "87bf0612b9a5b442d4aa8ab7f5a42b918de40777b0aaec4f0be20f8a3a106d85",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/profiler/sampler.jsonl": "7cbd2b1bb416cfb66784d2fc0b51a9e4aa91bad4725341fc954521be6774dfa3",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/profiler/sampler_ready.json": "c4ab425626ec06b80827c443047cb7252edc03da8758b49ba1161269ca91006b",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/profiler/sampler_stderr.log": "6f57e7d777739cfe344b840efc9a181949a3453ea09f7eafab826399d5d87f62",
+  "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/profiler/sampler_stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "frame_kinds": {
+  "FALLBACK": 122,
+  "POLICY_DECISION": 420,
+  "POLICY_HOLD": 458
+ },
+ "frozen_export": {
+  "export_sha256": {
+   "frames.csv": "c4bfec4d3ede10f1fc4898498eb0e02752f37098479d6d32796af2121127dccc",
+   "gauges.csv": "66549338fb40f2793a8e15d0e3e933e3d8c45f270c926b0affea359f50594e63",
+   "gpu.csv": "456bf1e0fa8994a8211cc77f529624d11d5ac7635ef06f8e7cb3480fe9ec4807",
+   "gpu_procs.csv": "707c92b0d9bd7a638e5c5bbd1671ed9314236ea86d5d8514cc303132bea1d685",
+   "marks.csv": "39929fdfe3b6e4f974d4f55666aaf343aaf6a0f8547a36a969fd42d1b1c0e421",
+   "procs.csv": "7a7e971fec9d885ec88657e52c6093265bdc6e5b4cdb5d8ad9da630e3d71cb7b",
+   "spans.csv": "dc7f8bb3135df74695b723b782dd60a743e33dfb632a706e8496efd53d586d17",
+   "threads.csv": "dca4ccdc01e757b12330959250c747c6a7714fe203bb6e94537fe3b99394e21d",
+   "tickets.csv": "0f8fc4578fd844801552027d20d5733abf50568756431452999f4e58c1fb723e"
+  },
+  "manifest_sha256": "5495a6311ce625dbbbaeab5847d24d8d234ca7c357103d800d11c020686f0a02",
+  "path": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/export_v1",
+  "produced_by": "export_v1 run offline after the runner (in-runner export refused: it ran before QUALIFICATION_RESULT.json existed); same code, read-only over complete evidence",
+  "read_only": true,
+  "row_counts": {
+   "frames.csv": 1000,
+   "gauges.csv": 12309,
+   "gpu.csv": 2478,
+   "gpu_procs.csv": 24126,
+   "marks.csv": 6977,
+   "procs.csv": 46574,
+   "spans.csv": 41264,
+   "threads.csv": 39789,
+   "tickets.csv": 420
+  }
+ },
+ "g1_branch": "TRANSMITTED_BUDGET_REACHED",
+ "gates": {
+  "G1_FRAME_ACCOUNTING": true,
+  "G2_ACTOR_HASH_UNCHANGED": true,
+  "G3_ZERO_IDENTITY_CONFLICTS": true,
+  "G4_COVERAGE_REPORTED": true,
+  "G5_SAMPLER_REPORTED": true,
+  "G6_NO_PROFILER_INDUCED_FAULT": true,
+  "G7_INSTRUMENTATION_EVIDENCE_VALID": true,
+  "G8_REWARD_TIMEOUT_SEMANTICS": true,
+  "G9_HOST_RESTORED_CLEAN": true
+ },
+ "profiler_overhead_in_measurements": {
+  "attempt_3_ue_frame_worker_ms_per_frame": 0.84,
+  "profiler_cpu_pct_one_core": {
+   "edge": 0.77,
+   "map": 0.12,
+   "ue": 1.06
+  },
+  "subtracted": false,
+  "ue_frame_worker_ms_per_frame": 1.023
+ },
+ "registration": "capture_run4_1000_v1.json",
+ "schema": "scenesense.single_gpu_profiler.frozen_export_reference.v1",
+ "terminals": {
+  "EVALUATOR_FAULT": 32,
+  "REGISTERED_SERVICE_FAILURE": 1,
+  "SUCCESS": 206,
+  "TIMEOUT": 181
+ },
+ "verdict": "CAPTURE_VALID"
+}

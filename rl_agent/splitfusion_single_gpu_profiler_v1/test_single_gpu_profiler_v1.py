@@ -991,6 +991,26 @@ class CapturePreparationTest(unittest.TestCase):
             with self.assertRaises(FileExistsError):                   # create-only
                 EX.export(evidence, Path(tmp) / "b")
 
+    def test_in_runner_export_does_not_need_the_result_file(self) -> None:
+        from . import export_v1 as EX
+
+        evidence = (ROOT / "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/"
+                    "20261001T230025Z_run4_instrumentation_qualification_300")
+        if not evidence.is_dir():
+            self.skipTest("attempt-3 evidence is off Git")
+        with tempfile.TemporaryDirectory() as tmp:
+            staged = Path(tmp) / "root"
+            staged.mkdir()
+            for name in ("cells", "profiler"):
+                (staged / name).symlink_to(evidence / name)
+            for name in ("PHASE6_TIMING_CHARACTERIZATION.json", "PROFILER_ANALYSIS.json"):
+                (staged / name).symlink_to(evidence / name)
+            self.assertFalse((staged / "QUALIFICATION_RESULT.json").exists())
+            manifest = EX.export(staged, Path(tmp) / "out",
+                                 result={"verdict": "CAPTURE_VALID", "gates": {}})
+            self.assertEqual(manifest["verdict"], "CAPTURE_VALID")
+            self.assertNotIn("result", manifest["source_sha256"])
+
 
 class DisabledBehaviourTest(unittest.TestCase):
     def test_absent_or_disabled_config_means_the_unchanged_child(self) -> None:

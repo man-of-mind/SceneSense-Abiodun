@@ -158,7 +158,8 @@ def _csv(path: Path) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
-def export(output_root: Path, target: Path) -> dict[str, Any]:
+def export(output_root: Path, target: Path,
+           result: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
     output_root = Path(output_root)
     cells = sorted((output_root / "cells").iterdir())
     if len(cells) != 1:
@@ -174,7 +175,8 @@ def export(output_root: Path, target: Path) -> dict[str, Any]:
                "timing": output_root / "PHASE6_TIMING_CHARACTERIZATION.json",
                "analysis": output_root / "PROFILER_ANALYSIS.json",
                "result": output_root / "QUALIFICATION_RESULT.json"}
-    missing = [name for name, path in sources.items() if not path.is_file()]
+    missing = [name for name, path in sources.items() if not path.is_file()
+               and not (name == "result" and result is not None)]
     if missing:
         raise RuntimeError(f"evidence missing: {missing}")
     streams = {name: _load(sources[name]) for name in ("ue", "edge", "map")}
@@ -255,7 +257,10 @@ def export(output_root: Path, target: Path) -> dict[str, Any]:
     for s in samples:
         for p in s.get("procs") or ():
             roles.setdefault(p["role"], set()).add(p["pid"])
-    result = json.loads(sources["result"].read_text(encoding="utf-8"))
+    if result is None:
+        result = json.loads(sources["result"].read_text(encoding="utf-8"))
+    else:
+        sources = {k: v for k, v in sources.items() if k != "result"}   # written after export
     manifest = {
         "schema": SCHEMA, "output_root": str(output_root), "cell": cell.name,
         "claim_scope": result.get("claim_scope"),

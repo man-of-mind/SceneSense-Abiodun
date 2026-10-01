@@ -598,7 +598,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
         from . import export_v1 as EX
 
         try:
-            manifest = EX.export(output_root, output_root / "export_v1")
+            manifest = EX.export(output_root, output_root / "export_v1", result=result)
             result["export"] = {"path": str(output_root / "export_v1"),
                                 "row_counts": manifest["row_counts"],
                                 "verified": EX.verify(output_root / "export_v1")["verified"]}
