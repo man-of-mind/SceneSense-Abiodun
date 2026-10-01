@@ -140,7 +140,14 @@ class _System:
     def start_carla(self, prepared, plan):
         self.events.append("carla")
         (Path(plan.output_root) / "carla_server.log").write_text("ok\n")
-        return "carla-handle"
+        events = self.events
+
+        class Lifecycle:
+            @staticmethod
+            def stop_carla(server, pgid, port, grace_s=30.0):
+                events.append(f"carla-stop:{grace_s}")
+                return {"shutdown_verified": True}
+        return (Lifecycle, "server", 4242, 2000)
 
     def stop_carla(self, handle):
         self.events.append("carla-stop")
@@ -363,8 +370,12 @@ class ComposedLifecycleTest(unittest.TestCase):
                     self.assertIsNone(state.dependencies.snr_controller_adapter)
 
                 # --- the real execute_one ------------------------------
+                keepalive = state.dependencies.uplink_keepalive
+                self.assertIsNotNone(keepalive)
+                self.assertTrue(keepalive._thread.is_alive())
                 execution = lifecycle.execute(cfg, selected)
                 execution.validate(cfg)
+                self.assertTrue(keepalive._stop.is_set())
                 self.assertEqual(calls, [7])
                 self.assertTrue(paths.get("collector_profile_activation").is_file())
                 self.assertNotEqual(paths.get("collector_profile_activation"),
@@ -393,10 +404,13 @@ class ComposedLifecycleTest(unittest.TestCase):
                 self.assertTrue(all(r.stopped for r in
                                     state.dependencies.telemetry_readers))
                 self.assertTrue(state.dependencies.sender.closed)
+                self.assertFalse(keepalive._thread.is_alive())
+                self.assertNotIn((P.O.EDGE_IP, P.O.EDGE_FEATURE_PORT), _Socket.sent)
                 self.assertTrue(paths.get("remote_edge_log").is_file())
                 self.assertTrue(paths.get("radio_restoration_trace").is_file())
                 self.assertEqual(system.events, [
-                    "prepare", "core", "ran", "carla", "ran-stop", "carla-stop"])
+                    "prepare", "core", "ran", "carla", "ran-stop",
+                    f"carla-stop:{P.CARLA_STOP_GRACE_S}"])
                 self.assertLessEqual(_present_top(paths), _declared(paths))
                 self.assertFalse(paths.get("postrun_remote_prediction").exists())
 
@@ -524,8 +538,10 @@ class OwnershipModelTest(unittest.TestCase):
                     telemetry_ready_timeout_s=5.0,
                     warmup_destination=("192.168.70.135", 9))
                 deps.close()
-        self.assertEqual(_Socket.sent, [("192.168.70.135", 9)] * 3)
+        self.assertGreaterEqual(len(_Socket.sent), 3)
+        self.assertEqual(set(_Socket.sent), {("192.168.70.135", 9)})
         self.assertNotIn(("192.168.70.140", 51002), _Socket.sent)
+        self.assertFalse(deps.uplink_keepalive._thread.is_alive())
         self.assertEqual(P.WARMUP_DISCARD_PORT, 9)
 
     def test_dependency_builder_refuses_existing_telemetry_root(self) -> None:

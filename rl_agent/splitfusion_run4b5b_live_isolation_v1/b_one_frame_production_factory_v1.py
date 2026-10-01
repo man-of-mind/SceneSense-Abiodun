@@ -77,6 +77,7 @@ MAP_API_PORT = 35001
 MAP_FEEDBACK_PORT = 39401
 SAFETY_TIMEOUT_S = 60.0
 WARMUP_DISCARD_PORT = 9  # UDP discard on the external DN; never the edge
+CARLA_STOP_GRACE_S = 1.0
 OAI_AUTHORITY_ROOT = Path(
     "/home/shr_aisvcs/workarea/carla_0_10_env/"
     "Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/"
@@ -880,6 +881,20 @@ class RealProductionOpsV1:
                 route_kwargs=route_kwargs,
                 raw_spool_root=paths.get("raw_gt_spool"),
                 postrun_materializer=None)
+            keepalive = getattr(state.dependencies, "uplink_keepalive", None)
+            if keepalive is not None:
+                inner = state.pipeline.processor
+
+                def first_decision_processor(opportunity, previous,
+                                             _inner=inner, _keepalive=keepalive):
+                    # Signal only (never blocks): the decision state is built
+                    # inside _inner with keepalive-fresh UL grants.
+                    try:
+                        return _inner(opportunity, previous)
+                    finally:
+                        _keepalive.request_stop()
+
+                state.pipeline.processor = first_decision_processor
             for owned in paths.phase("execute"):
                 _require(not owned.exists(),
                          f"execution-owned path exists after startup: {owned}")
@@ -1015,7 +1030,14 @@ class RealProductionOpsV1:
             import gc
             gc.collect()
             try:
-                self.system.stop_carla(state.carla)
+                lifecycle, server, pgid, port = state.carla
+                # CARLA absorbs SIGTERM; a long grace lets the in-process
+                # client abort first and leaves the server orphaned.  Use the
+                # same pinned helper, escalating to its PGID SIGKILL promptly.
+                report = lifecycle.stop_carla(server, pgid, port,
+                                              grace_s=CARLA_STOP_GRACE_S)
+                _require(bool(report.get("shutdown_verified")),
+                         f"CARLA shutdown not verified: {report}")
             except BaseException as exc:
                 errors.append(f"CARLA: {type(exc).__name__}: {exc}")
         if errors:

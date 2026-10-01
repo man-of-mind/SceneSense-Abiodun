@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import socket
+import threading
 import time
 from typing import Any, Callable, Mapping, Optional
 
@@ -62,6 +63,51 @@ class CausalSnrLeaseReaderV1:
         return R5B.admit_snr(observation, boundary, self.lease)
 
 
+class UplinkKeepaliveV1:
+    """Small periodic UE uplink datagrams to the external DN (never the edge).
+
+    The causal radio guard needs a fresh (<= one tensor period) new-data UL
+    grant before a decision.  An idle UE gets none, so until the first
+    decision has been processed this keeps grants fresh.  ``request_stop`` only
+    signals (it never blocks the decision path); ``stop`` joins.
+    """
+
+    PERIOD_S = 0.05
+    PAYLOAD = b"\0" * 64
+
+    def __init__(self, sock: Any, destination: tuple[str, int]) -> None:
+        self._socket, self._destination = sock, destination
+        self._stop = threading.Event()
+        self.sent = 0
+        self.error: Optional[BaseException] = None
+        self._thread = threading.Thread(target=self._run, daemon=True,
+                                        name="b-uplink-keepalive")
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def _run(self) -> None:
+        try:
+            while not self._stop.wait(self.PERIOD_S):
+                self._socket.sendto(self.PAYLOAD, self._destination)
+                self.sent += 1
+        except BaseException as exc:  # surfaced by stop()
+            self.error = exc
+
+    def request_stop(self) -> None:
+        self._stop.set()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread.is_alive():
+            self._thread.join(timeout=2.0)
+        self._socket.close()
+        _require(not self._thread.is_alive(), "uplink keepalive did not stop")
+        if self.error is not None:
+            raise ProductionDependencyError(
+                f"uplink keepalive failed: {self.error}")
+
+
 @dataclass(slots=True)
 class ProductionDependenciesV1:
     variant: L.ActorVariant
@@ -77,9 +123,13 @@ class ProductionDependenciesV1:
     models: tuple[Any, ...]
     snr_controller_adapter: Optional[SNR.RfsimLeaseSnrAdapterV1]
     snr_reader: Optional[CausalSnrLeaseReaderV1]
+    uplink_keepalive: Optional[UplinkKeepaliveV1] = None
 
     def close(self) -> None:
         errors = []
+        if self.uplink_keepalive is not None:
+            try: self.uplink_keepalive.stop()
+            except BaseException as exc: errors.append(exc)
         for reader in self.telemetry_readers:
             try: reader.stop()
             except BaseException as exc: errors.append(exc)
@@ -147,6 +197,7 @@ def build_production_dependencies_v1(
     audit = None
     sender = None
     warm = None
+    keepalive = None
     try:
         # Every started process/writer is inside the protected region, so a
         # failure at any step stops whatever was already started.
@@ -197,11 +248,17 @@ def build_production_dependencies_v1(
                                           int(warmup_destination[1])))
                 warm_datagrams += 1
             time.sleep(0.1)
+        keepalive = None
         if warm is not None:
-            warm.close()
+            # Ownership of the warm socket passes to the keepalive, which
+            # keeps UL grants fresh until the first decision is processed.
+            keepalive = UplinkKeepaliveV1(
+                warm, (str(warmup_destination[0]), int(warmup_destination[1])))
             warm = None
+            keepalive.start()
         print(f"[b-deps] telemetry decision-ready after {warm_datagrams} "
-              "warm-up datagram(s)", flush=True)
+              "warm-up datagram(s); uplink keepalive "
+              f"{'running' if keepalive is not None else 'off'}", flush=True)
         sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF,
                           socket_buffer_request_bytes)
@@ -222,7 +279,7 @@ def build_production_dependencies_v1(
             input_builder=lambda frame, radar: BASE._prepare_live_input(
                 frame, radar, device),
             models=tuple(models), snr_controller_adapter=snr_adapter,
-            snr_reader=snr_reader)
+            snr_reader=snr_reader, uplink_keepalive=keepalive)
     except BaseException:
         for reader in readers:
             try: reader.stop()
@@ -235,6 +292,9 @@ def build_production_dependencies_v1(
             except BaseException: pass
         if warm is not None:
             try: warm.close()
+            except BaseException: pass
+        if keepalive is not None:
+            try: keepalive.stop()
             except BaseException: pass
         raise
 
