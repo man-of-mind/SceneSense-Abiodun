@@ -89,6 +89,9 @@ class LocalRanOps:
     """Production OS adapter; tests replace it with a deterministic fake."""
 
     root_discovery_timeout_s = 5.0
+    process_attestation_timeout_s = 1.0
+    process_attestation_poll_s = 0.025
+    process_attestation_consecutive_matches = 2
 
     def run(self, argv: Sequence[str], *, timeout_s: float) -> CommandResultV1:
         completed = subprocess.run(
@@ -125,7 +128,7 @@ class LocalRanOps:
             ).validate()
             spawned = SpawnedProcessV1(
                 owned, process, handle, plan, root_owned=root_owned)
-            L.validate_observed_process(owned, self.observe_process(owned))
+            self._attest_stable_spawn_identity(owned)
             return spawned
         except BaseException as primary:
             cleanup_error: Optional[BaseException] = None
@@ -293,6 +296,28 @@ class LocalRanOps:
             "argv_sha256": L.sha256_json(list(argv)),
             "host": "W10275",
         }
+
+    def _attest_stable_spawn_identity(self, owned: L.OwnedProcess) -> None:
+        """Require two consecutive exact identities during process acquisition."""
+        deadline = time.monotonic() + self.process_attestation_timeout_s
+        consecutive = 0
+        last_error: Optional[BaseException] = None
+        while True:
+            try:
+                L.validate_observed_process(
+                    owned, self.observe_process(owned))
+                consecutive += 1
+                if consecutive >= self.process_attestation_consecutive_matches:
+                    return
+            except (LocalRanExecutorError, L.LocalRanLifecycleError) as exc:
+                consecutive = 0
+                last_error = exc
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(self.process_attestation_poll_s, remaining))
+        raise LocalRanExecutorError(
+            f"stable process identity not attested: {owned.role}: {last_error}")
 
     def _signal_members(self, members: Sequence[int], sig: signal.Signals,
                         *, root_owned: bool, pgid: int) -> None:

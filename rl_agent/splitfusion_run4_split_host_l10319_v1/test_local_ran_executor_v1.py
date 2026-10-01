@@ -384,6 +384,81 @@ class _RootOps(E.LocalRanOps):
         self.members.clear()
 
 
+class StableSpawnIdentityAttestationTests(unittest.TestCase):
+    @staticmethod
+    def owned() -> L.OwnedProcess:
+        return L.OwnedProcess(
+            role="tracer_multi", pid=401, pgid=401,
+            executable="/tmp/registered-multi",
+            argv_sha256="a" * 64, started_monotonic_raw_ns=1,
+        ).validate()
+
+    @staticmethod
+    def expected(owned: L.OwnedProcess) -> dict:
+        return {
+            "pid": owned.pid, "pgid": owned.pgid,
+            "executable": owned.executable,
+            "argv_sha256": owned.argv_sha256, "host": "W10275",
+        }
+
+    def test_transient_drift_then_two_exact_matches_is_accepted(self):
+        owned = self.owned()
+        exact = self.expected(owned)
+        drift = {**exact, "argv_sha256": "b" * 64}
+
+        class SequenceOps(E.LocalRanOps):
+            process_attestation_timeout_s = 0.05
+            process_attestation_poll_s = 0.0
+
+            def __init__(self):
+                self.rows = [drift, exact, exact]
+                self.reads = 0
+
+            def observe_process(self, _owned):
+                self.reads += 1
+                return self.rows.pop(0)
+
+        ops = SequenceOps()
+        ops._attest_stable_spawn_identity(owned)
+        self.assertEqual(ops.reads, 3)
+
+    def test_match_drift_match_requires_one_more_exact_match(self):
+        owned = self.owned()
+        exact = self.expected(owned)
+        drift = {**exact, "pgid": 999}
+
+        class SequenceOps(E.LocalRanOps):
+            process_attestation_timeout_s = 0.05
+            process_attestation_poll_s = 0.0
+
+            def __init__(self):
+                self.rows = [exact, drift, exact, exact]
+                self.reads = 0
+
+            def observe_process(self, _owned):
+                self.reads += 1
+                return self.rows.pop(0)
+
+        ops = SequenceOps()
+        ops._attest_stable_spawn_identity(owned)
+        self.assertEqual(ops.reads, 4)
+
+    def test_persistent_foreign_identity_remains_fail_closed(self):
+        owned = self.owned()
+        drift = {**self.expected(owned), "executable": "/tmp/foreign"}
+
+        class DriftOps(E.LocalRanOps):
+            process_attestation_timeout_s = 0.0
+            process_attestation_poll_s = 0.0
+
+            def observe_process(self, _owned):
+                return drift
+
+        with self.assertRaisesRegex(
+                E.LocalRanExecutorError, "stable process identity not attested"):
+            DriftOps()._attest_stable_spawn_identity(owned)
+
+
 class RootOwnedProcessTests(unittest.TestCase):
     def make_plan(self):
         temporary = tempfile.TemporaryDirectory()
