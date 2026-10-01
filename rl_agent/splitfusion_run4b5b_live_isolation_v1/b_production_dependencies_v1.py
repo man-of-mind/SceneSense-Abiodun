@@ -21,6 +21,7 @@ from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract as R4
 from rl_agent.splitfusion_hybrid_sac_run5_v1 import run5_snr_v2 as SNR
 from rl_agent.splitfusion_hybrid_sac_run5b_v1 import run5b_state_contract as R5B
 from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import (
+    phase6_prewarm_v2 as PW,
     continuous_execution_v2 as X,
     phase6_ue_runtime_v2 as P6,
     ue_telemetry_provider_v2 as T,
@@ -188,6 +189,16 @@ def build_production_dependencies_v1(
     continuous = X.ContinuousUERuntimeV2(
         dynamic, front=P6._SqueezedFront(ue._front, device),
         ranker=ue._ranker, ae_encoders=dict(ue._ae_encoders), codec=ue._codec)
+    # Warm every registered UE path (12 modes x lower/mid/upper q, then a hot
+    # repeat) with the frozen Phase-6 pre-warm before any frame is admitted:
+    # a cold first CUDA front/codec call otherwise consumes the ACK budget.
+    prewarm = PW.warm_ue(
+        continuous, dynamic,
+        prepare_input=lambda frame, radar: BASE._prepare_live_input(
+            frame, radar, device))
+    _require(bool(prewarm.get("completed"))
+             and prewarm.get("modes_warmed") == list(range(12)),
+             "UE pre-warm incomplete; no decision frame may be admitted")
 
     telemetry = T.UeTelemetryProviderV2(bridge=T.CausalClockBridgeV2())
     handlers = {"NRUE_MAC_DCI_GRANT": telemetry.on_dci,
@@ -208,6 +219,7 @@ def build_production_dependencies_v1(
                                            ue_relay_port, event),
                          cwd=Path(tracer_dir))
         telemetry_root.mkdir(parents=False, exist_ok=False)
+        PW.write_report_create_only(telemetry_root / "prewarm_ue.json", prewarm)
         audit = T.AuditWriterV2(readers, telemetry_root / "telemetry_live")
         audit.start()
         deadline = time.monotonic() + float(wait_timeout_s)

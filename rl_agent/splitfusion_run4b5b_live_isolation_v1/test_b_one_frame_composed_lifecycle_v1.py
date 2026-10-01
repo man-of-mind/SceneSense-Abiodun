@@ -340,6 +340,7 @@ class ComposedLifecycleTest(unittest.TestCase):
                 mock.patch.object(D.T, "CausalClockBridgeV2", lambda: None),
                 mock.patch.object(D.T, "LiveEventReaderV2", _Reader),
                 mock.patch.object(D.T, "csv_reader_argv", lambda *a: ["fake"]),
+                mock.patch.object(D.PW, "warm_ue", lambda *a, **k: {"completed": True, "modes_warmed": list(range(12)), "paths": []}),
                 mock.patch.object(D.socket, "socket", _Socket),
             ]
             with contextlib.ExitStack() as stack:
@@ -481,7 +482,8 @@ class OwnershipModelTest(unittest.TestCase):
                         mock.patch.object(D.T, "CausalClockBridgeV2", lambda: None),
                         mock.patch.object(D.T, "LiveEventReaderV2", _Reader),
                         mock.patch.object(D.T, "csv_reader_argv", lambda *a: ["x"]),
-                        mock.patch.object(D.socket, "socket", _Socket)):
+                        mock.patch.object(D.PW, "warm_ue", lambda *a, **k: {"completed": True, "modes_warmed": list(range(12)), "paths": []}),
+                mock.patch.object(D.socket, "socket", _Socket)):
                     stack.enter_context(patcher)
                 with self.assertRaisesRegex(D.ProductionDependencyError,
                                             "not decision-ready.*bridge_warm=False"):
@@ -523,7 +525,8 @@ class OwnershipModelTest(unittest.TestCase):
                         mock.patch.object(D.T, "CausalClockBridgeV2", lambda: None),
                         mock.patch.object(D.T, "LiveEventReaderV2", _Reader),
                         mock.patch.object(D.T, "csv_reader_argv", lambda *a: ["x"]),
-                        mock.patch.object(D.socket, "socket", _Socket)):
+                        mock.patch.object(D.PW, "warm_ue", lambda *a, **k: {"completed": True, "modes_warmed": list(range(12)), "paths": []}),
+                mock.patch.object(D.socket, "socket", _Socket)):
                     stack.enter_context(patcher)
                 deps = D.build_production_dependencies_v1(
                     variant=__import__(
@@ -543,6 +546,62 @@ class OwnershipModelTest(unittest.TestCase):
         self.assertNotIn(("192.168.70.140", 51002), _Socket.sent)
         self.assertFalse(deps.uplink_keepalive._thread.is_alive())
         self.assertEqual(P.WARMUP_DISCARD_PORT, 9)
+
+    def test_incomplete_ue_prewarm_is_refused(self) -> None:
+        import torch
+        from rl_agent.splitfusion_live_dispatch_v1 import live_pilot_runtime as BASE
+        with tempfile.TemporaryDirectory() as directory:
+            stub = SimpleNamespace(_front=object(), _ranker=object(),
+                                   _ae_encoders={}, _codec=object())
+            with contextlib.ExitStack() as stack:
+                for patcher in (
+                        mock.patch.object(torch.cuda, "is_available", return_value=True),
+                        mock.patch.object(BASE, "_preload_ue", return_value=(stub, None, [])),
+                        mock.patch.object(D.DEC, "load_dynamic_execution_contract",
+                                          return_value=object()),
+                        mock.patch.object(D.X, "ContinuousUERuntimeV2", lambda *a, **k: object()),
+                        mock.patch.object(D.P6, "_SqueezedFront", lambda *a: object()),
+                        mock.patch.object(D.PW, "warm_ue", lambda *a, **k: {
+                            "completed": True, "modes_warmed": list(range(11))})):
+                    stack.enter_context(patcher)
+                with self.assertRaisesRegex(D.ProductionDependencyError,
+                                            "pre-warm incomplete"):
+                    D.build_production_dependencies_v1(
+                        variant=__import__(
+                            "rl_agent.splitfusion_run4b5b_live_isolation_v1.live_adapters_v1",
+                            fromlist=["ActorVariant"]).ActorVariant.RUN4B,
+                        tracer_dir=Path(directory), t_messages=Path(directory),
+                        ue_relay_port=4044,
+                        telemetry_root=Path(directory) / "ue_telemetry",
+                        ue_bind_host="10.0.0.2", edge_remote_host="192.168.70.140",
+                        edge_receive_port=51002, udp_chunk_bytes=1200,
+                        socket_buffer_request_bytes=1 << 20)
+            self.assertFalse((Path(directory) / "ue_telemetry").exists())
+
+    def test_strided_radar_points_are_spooled_contiguously(self) -> None:
+        import numpy as np
+        from . import b_route_bridge_v3 as V3
+
+        class Base:
+            def __init__(self, **kwargs):
+                import queue as Q
+                self.evaluation_queue = Q.Queue()
+                self.stop_event = threading.Event()
+
+        written = {}
+        spool = SimpleNamespace(write_scene=lambda **kw: written.update(kw))
+        bridge = SimpleNamespace(stop_requested=threading.Event(), spool=spool)
+        collector = V3.build_b_collector_class(Base, bridge)()
+        strided = np.arange(30, dtype=np.float64).reshape(10, 3)[:, ::-1]
+        self.assertFalse(strided.flags.c_contiguous)
+        collector.evaluation_queue.put({
+            "frame_id": 1, "timestamp": 0.5, "scene": {}, "camera_matrix": None,
+            "camera_inverse": None, "camera_location": None,
+            "radar_points": {"world_xyz": strided}})
+        collector.evaluation_queue.put(None)
+        collector._evaluation_worker()
+        self.assertTrue(written["radar_world_xyz"].flags.c_contiguous)
+        self.assertTrue(np.array_equal(written["radar_world_xyz"], strided))
 
     def test_dependency_builder_refuses_existing_telemetry_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

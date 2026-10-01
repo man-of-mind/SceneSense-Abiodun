@@ -491,7 +491,10 @@ def build_b_collector_class(base: type, bridge: BRouteBridgeV3) -> type:
                         scene=ticket["scene"], camera_matrix=ticket["camera_matrix"],
                         camera_inverse=ticket["camera_inverse"],
                         camera_location=ticket["camera_location"],
-                        radar_world_xyz=ticket["radar_points"]["world_xyz"])
+                        # The collector may hand over a strided view; the
+                        # create-only spool stores exact contiguous bytes.
+                        radar_world_xyz=np.ascontiguousarray(
+                            ticket["radar_points"]["world_xyz"]))
                 finally:
                     self.evaluation_queue.task_done()
 
