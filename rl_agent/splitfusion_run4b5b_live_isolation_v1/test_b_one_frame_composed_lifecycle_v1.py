@@ -83,7 +83,12 @@ class _Reader:
 
 
 class _Socket:
+    sent: list = []
+
     def __init__(self, *_): self.closed = False
+    def sendto(self, payload, destination):
+        _Socket.sent.append(destination)
+        return len(payload)
     def setsockopt(self, *_): pass
     def bind(self, *_): pass
     def close(self): self.closed = True
@@ -476,6 +481,52 @@ class OwnershipModelTest(unittest.TestCase):
                         edge_receive_port=51002, udp_chunk_bytes=1200,
                         socket_buffer_request_bytes=1 << 20,
                         telemetry_ready_timeout_s=0.2)
+
+    def test_uplink_warmup_warms_bridge_then_stops(self) -> None:
+        import torch
+        from rl_agent.splitfusion_live_dispatch_v1 import live_pilot_runtime as BASE
+
+        class WarmsAfterTraffic(_Telemetry):
+            warm = False
+
+            def snapshot(self):
+                self.warm = len(_Socket.sent) >= 3
+                return _Telemetry.snapshot(self)
+
+        _Socket.sent = []
+        with tempfile.TemporaryDirectory() as directory:
+            stub = SimpleNamespace(_front=object(), _ranker=object(),
+                                   _ae_encoders={}, _codec=object())
+            with contextlib.ExitStack() as stack:
+                for patcher in (
+                        mock.patch.object(torch.cuda, "is_available", return_value=True),
+                        mock.patch.object(BASE, "_preload_ue", return_value=(stub, None, [])),
+                        mock.patch.object(D.DEC, "load_dynamic_execution_contract",
+                                          return_value=object()),
+                        mock.patch.object(D.X, "ContinuousUERuntimeV2", lambda *a, **k: object()),
+                        mock.patch.object(D.P6, "_SqueezedFront", lambda *a: object()),
+                        mock.patch.object(D.T, "UeTelemetryProviderV2", WarmsAfterTraffic),
+                        mock.patch.object(D.T, "CausalClockBridgeV2", lambda: None),
+                        mock.patch.object(D.T, "LiveEventReaderV2", _Reader),
+                        mock.patch.object(D.T, "csv_reader_argv", lambda *a: ["x"]),
+                        mock.patch.object(D.socket, "socket", _Socket)):
+                    stack.enter_context(patcher)
+                deps = D.build_production_dependencies_v1(
+                    variant=__import__(
+                        "rl_agent.splitfusion_run4b5b_live_isolation_v1.live_adapters_v1",
+                        fromlist=["ActorVariant"]).ActorVariant.RUN4B,
+                    tracer_dir=Path(directory), t_messages=Path(directory),
+                    ue_relay_port=4044,
+                    telemetry_root=Path(directory) / "ue_telemetry",
+                    ue_bind_host="10.0.0.2", edge_remote_host="192.168.70.140",
+                    edge_receive_port=51002, udp_chunk_bytes=1200,
+                    socket_buffer_request_bytes=1 << 20,
+                    telemetry_ready_timeout_s=5.0,
+                    warmup_destination=("192.168.70.135", 9))
+                deps.close()
+        self.assertEqual(_Socket.sent, [("192.168.70.135", 9)] * 3)
+        self.assertNotIn(("192.168.70.140", 51002), _Socket.sent)
+        self.assertEqual(P.WARMUP_DISCARD_PORT, 9)
 
     def test_dependency_builder_refuses_existing_telemetry_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

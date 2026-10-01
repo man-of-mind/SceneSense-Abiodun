@@ -100,6 +100,7 @@ def build_production_dependencies_v1(
         udp_chunk_bytes: int, socket_buffer_request_bytes: int,
         wait_timeout_s: float = 20.0,
         telemetry_ready_timeout_s: float = 30.0,
+        warmup_destination: Optional[tuple[str, int]] = None,
         ) -> ProductionDependenciesV1:
     """Start the exact UE-side dependencies; no CARLA/route is started here.
 
@@ -145,6 +146,7 @@ def build_production_dependencies_v1(
     readers = []
     audit = None
     sender = None
+    warm = None
     try:
         # Every started process/writer is inside the protected region, so a
         # failure at any step stops whatever was already started.
@@ -170,6 +172,14 @@ def build_production_dependencies_v1(
         # the clock bridge is warm and UL-grant/RLC samples exist.  Wait for
         # that here (bounded, fail-closed) so the first route opportunity is
         # not consumed by a warming telemetry pipeline.
+        # The clock bridge is anchored only by UE PDCP TX SDUs, i.e. uplink
+        # traffic, which an idle UE does not send.  Small pre-decision
+        # datagrams from the UE tunnel to the external DN (never the edge)
+        # provide those anchors; they stop as soon as telemetry is ready.
+        if warmup_destination is not None:
+            warm = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            warm.bind((str(ue_bind_host), 0))
+        warm_datagrams = 0
         ready_deadline = time.monotonic() + float(telemetry_ready_timeout_s)
         while True:
             snapshot = telemetry.snapshot()
@@ -180,8 +190,18 @@ def build_production_dependencies_v1(
                      "UE telemetry not decision-ready: "
                      f"readers_alive={snapshot.all_readers_alive} "
                      f"bridge_warm={snapshot.bridge_warm} "
-                     f"dci={len(snapshot.dci)} rlc={len(snapshot.rlc)}")
-            time.sleep(0.05)
+                     f"dci={len(snapshot.dci)} rlc={len(snapshot.rlc)} "
+                     f"warm_datagrams={warm_datagrams}")
+            if warm is not None:
+                warm.sendto(b"\0" * 64, (str(warmup_destination[0]),
+                                          int(warmup_destination[1])))
+                warm_datagrams += 1
+            time.sleep(0.1)
+        if warm is not None:
+            warm.close()
+            warm = None
+        print(f"[b-deps] telemetry decision-ready after {warm_datagrams} "
+              "warm-up datagram(s)", flush=True)
         sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sender.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF,
                           socket_buffer_request_bytes)
@@ -212,6 +232,9 @@ def build_production_dependencies_v1(
             except BaseException: pass
         if sender is not None:
             try: sender.close()
+            except BaseException: pass
+        if warm is not None:
+            try: warm.close()
             except BaseException: pass
         raise
 

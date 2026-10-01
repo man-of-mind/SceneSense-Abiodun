@@ -76,6 +76,7 @@ QUEUE_DEPTH = 64
 MAP_API_PORT = 35001
 MAP_FEEDBACK_PORT = 39401
 SAFETY_TIMEOUT_S = 60.0
+WARMUP_DISCARD_PORT = 9  # UDP discard on the external DN; never the edge
 OAI_AUTHORITY_ROOT = Path(
     "/home/shr_aisvcs/workarea/carla_0_10_env/"
     "Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/"
@@ -823,6 +824,7 @@ class RealProductionOpsV1:
                 t_messages=Path(telemetry["t_messages"]),
                 ue_relay_port=int(telemetry["ue_relay_port"]),
                 telemetry_root=paths.get("ue_telemetry"),
+                warmup_destination=(O.EXT_DN_IP, WARMUP_DISCARD_PORT),
                 ue_bind_host=O.UE_TUNNEL_IP,
                 edge_remote_host=O.EDGE_IP,
                 edge_receive_port=O.EDGE_FEATURE_PORT,
