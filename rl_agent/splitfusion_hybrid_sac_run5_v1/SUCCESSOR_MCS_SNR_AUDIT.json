@@ -1,0 +1,189 @@
+{
+ "augmentation": {
+  "base_binding_sha256": "20988f77b3439b46dece7fe02255a39125b01e83d161ddcc772f2a99c63148eb",
+  "center_by_mcs": {
+   "10": 0.20588043833818312,
+   "11": 0.3489709556237347,
+   "13": 0.38903876411581845,
+   "14": 0.40851537942813754,
+   "15": 0.3670300802884615,
+   "16": 0.48522369128148884,
+   "17": 0.5153443454644511,
+   "18": 0.504624756118007,
+   "19": 0.4882322295985372,
+   "20": 0.5399770508488222,
+   "21": 0.6358244784015327,
+   "22": 0.6604629971985251,
+   "23": 0.6118774381831983,
+   "24": 0.7753707922254556,
+   "25": 0.7157342439798414,
+   "26": 0.7544745867339896,
+   "27": 0.6251476924658399,
+   "28": 0.5630376802884614,
+   "9": 0.3040936817592358
+  },
+  "form": "W_m(m') * exp(theta * ((snr_db-5.5)/19 - xbar_m) * (m'-m))",
+  "global_center": 0.5150692961791494,
+  "shrink": 1.0,
+  "theta": 2.856727152475597
+ },
+ "claim_boundary": "TWO_REGISTERED_DYNAMIC_PROFILE_UE_DECODED_PRIOR_UL_MCS_SEQUENCE_UNDER_OAI_N78_100MHZ_273PRB_4D5U_V1_FOR_RUN4_OFFLINE_FIT_AND_INTERNAL_VALIDATION_ONLY_NOT_A_GENERALIZATION_OR_DEPLOYMENT_CLAIM",
+ "deterministic_rerun_identical": true,
+ "evidence_class": "DEVELOPMENT_EVIDENCE_ONE_REALIZATION_PER_PROFILE__NOT_GENERALIZATION",
+ "evidence_root": "main checkout, read-only (untracked retained capture)",
+ "fit_transitions": 416,
+ "gate": {
+  "FADE_RECOVERY_brier": true,
+  "FADE_RECOVERY_nll": true,
+  "MID_VARIABLE_brier": true,
+  "MID_VARIABLE_nll": true,
+  "pooled_brier": true,
+  "pooled_nll": true
+ },
+ "gate_passed": true,
+ "limitations": [
+  "one realization per profile; contiguous internal validation",
+  "development evidence, not an independent generalization claim",
+  "SNR is the commanded effective target, not a UE measurement"
+ ],
+ "run4_kernel_binding_sha256": "20988f77b3439b46dece7fe02255a39125b01e83d161ddcc772f2a99c63148eb",
+ "run4_kernel_reproduces_sealed_acceptance": true,
+ "schema": "splitfusion.run5.successor_mcs_snr_audit.v1",
+ "shuffled_snr_control": {
+  "fraction_at_or_above_real_gain": 0.0,
+  "permutations": 200,
+  "pooled_nll_gain_max": 0.01835531841949445,
+  "pooled_nll_gain_mean": -0.0003726310052608173,
+  "pooled_nll_gain_p95": 0.008357250902929714,
+  "scope": "SNR permuted within profile x partition; theta refitted on shuffled FIT",
+  "seed": 17,
+  "theta_mean": 0.0927714550531557,
+  "theta_zero_fraction": 0.435
+ },
+ "snr_reconstruction": {
+  "FADE_RECOVERY": {
+   "decisions": 300,
+   "future_joins": 0,
+   "hold_rows": 28,
+   "hold_rows_whose_schedule_target_differs_from_effective": 28,
+   "max_db": 24.200833,
+   "min_db": 5.577715
+  },
+  "MID_VARIABLE": {
+   "decisions": 300,
+   "future_joins": 0,
+   "hold_rows": 26,
+   "hold_rows_whose_schedule_target_differs_from_effective": 26,
+   "max_db": 24.138279,
+   "min_db": 6.378466
+  }
+ },
+ "snr_scaling": "(snr_db - 5.5) / 19.0",
+ "source_evidence_sha256": "7ec3edd93c67c5938188de8a24b838b5330970e357229b8a9e3eaa5000c796d5",
+ "sources": {
+  "rl_agent/experiments/ue_dynamic_mcs_273prb_v1/20260924_target_radio_capture_v1_retry3/analysis/duration2_transitions.csv": {
+   "bytes": 42565,
+   "sha256": "8a1dd320a3acc7510578425ae322f432e808380edf99de48faa030bea45fd7f2"
+  },
+  "rl_agent/experiments/ue_dynamic_mcs_273prb_v1/20260924_target_radio_capture_v1_retry3/analysis/mcs_observations.csv": {
+   "bytes": 171119,
+   "sha256": "af64fd55791e97f788fc6486d961c5d818c83f810fc51a1ed9982f4b84b33e32"
+  },
+  "rl_agent/experiments/ue_dynamic_mcs_273prb_v1/20260924_target_radio_capture_v1_retry3/cells/00__mid_variable/command_log.json": {
+   "bytes": 112076,
+   "sha256": "60350dcf68e6e31c2b138f84b17e0e96147bbf1aeebfe6891ee592813d4a507a"
+  },
+  "rl_agent/experiments/ue_dynamic_mcs_273prb_v1/20260924_target_radio_capture_v1_retry3/cells/00__mid_variable/profile_schedule.csv": {
+   "bytes": 49424,
+   "sha256": "b312e9514b7159f4d780dc71550e8013747c25767e4db36fc33ed25d590122f5"
+  },
+  "rl_agent/experiments/ue_dynamic_mcs_273prb_v1/20260924_target_radio_capture_v1_retry3/cells/01__fade_recovery/command_log.json": {
+   "bytes": 111537,
+   "sha256": "678be450fa2f4df8d792d52ed2386f33b61991d33b1b28699bb702ed51ed8396"
+  },
+  "rl_agent/experiments/ue_dynamic_mcs_273prb_v1/20260924_target_radio_capture_v1_retry3/cells/01__fade_recovery/profile_schedule.csv": {
+   "bytes": 49932,
+   "sha256": "ec9d0eeb7d99a02914101b5838a5d0f913f6ebe096da296f8b917ca53744808e"
+  },
+  "worktree:rl_agent/splitfusion_hybrid_sac_run4_v1/dynamic_mcs_273prb_evidence.py": {
+   "bytes": 38331,
+   "sha256": "eb3b61efbd131835a6342aeddd0d253d124a189727d117b5f82f23ac400d3959"
+  },
+  "worktree:rl_agent/splitfusion_hybrid_sac_run4_v1/mcs_transition_provider.py": {
+   "bytes": 14333,
+   "sha256": "5b50480e76b9b0083276fba1e31a365135ba43946201500cfed8e14a7f9a8a73"
+  },
+  "worktree:rl_agent/splitfusion_hybrid_sac_run5_v1/run5_state_contract.py": {
+   "bytes": 33648,
+   "sha256": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae"
+  },
+  "worktree:rl_agent/splitfusion_hybrid_sac_run5_v1/successor_mcs_snr_audit.py": {
+   "bytes": 19769,
+   "sha256": "08758309fa4d380777ce797aa84c86d13059d277f4d470d97cb245a16a037ebb"
+  }
+ },
+ "validation": {
+  "FADE_RECOVERY": {
+   "brier_gain": 0.04152566074568764,
+   "brier_improves": true,
+   "nll_gain": 0.2995849639883512,
+   "nll_improves": true,
+   "run4": {
+    "mean_brier": 0.7455014896182348,
+    "mean_nll": 2.0279558109017413,
+    "median_mcs_mae": 1.3068181818181819,
+    "n": 88,
+    "top1_accuracy": 0.4431818181818182
+   },
+   "snr_tilted": {
+    "mean_brier": 0.7039758288725472,
+    "mean_nll": 1.72837084691339,
+    "median_mcs_mae": 0.6136363636363636,
+    "n": 88,
+    "top1_accuracy": 0.4772727272727273
+   }
+  },
+  "MID_VARIABLE": {
+   "brier_gain": 0.06903817110605115,
+   "brier_improves": true,
+   "nll_gain": 0.6544275544053773,
+   "nll_improves": true,
+   "run4": {
+    "mean_brier": 0.8237916946025028,
+    "mean_nll": 2.7248008989414036,
+    "median_mcs_mae": 2.125,
+    "n": 88,
+    "top1_accuracy": 0.38636363636363635
+   },
+   "snr_tilted": {
+    "mean_brier": 0.7547535234964516,
+    "mean_nll": 2.0703733445360264,
+    "median_mcs_mae": 0.9545454545454546,
+    "n": 88,
+    "top1_accuracy": 0.45454545454545453
+   }
+  },
+  "pooled": {
+   "brier_gain": 0.05528191592586895,
+   "brier_improves": true,
+   "nll_gain": 0.47700625919686424,
+   "nll_improves": true,
+   "run4": {
+    "mean_brier": 0.7846465921103687,
+    "mean_nll": 2.3763783549215733,
+    "median_mcs_mae": 1.7159090909090908,
+    "n": 176,
+    "top1_accuracy": 0.4147727272727273
+   },
+   "snr_tilted": {
+    "mean_brier": 0.7293646761844997,
+    "mean_nll": 1.899372095724709,
+    "median_mcs_mae": 0.7840909090909091,
+    "n": 176,
+    "top1_accuracy": 0.4659090909090909
+   }
+  }
+ },
+ "validation_transitions": 176,
+ "verdict": "SNR_CONDITIONED_SUCCESSOR_KERNEL_ACCEPTED_FOR_DEVELOPMENT"
+}

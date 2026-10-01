@@ -32,6 +32,7 @@ import signal
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Optional
 
@@ -46,6 +47,7 @@ from rl_agent.splitfusion_operational_latency_v1 import provider as OPL
 
 from . import contract as C
 from . import environment as E
+from . import joint_channel as JC
 from . import learner as L
 from . import models as M
 
@@ -77,6 +79,31 @@ TRAINER_CONFIG = L.TrainerConfigV1(alpha_d=0.05, alpha_c=0.02, tau=0.005,
 BUNDLE_FILES = ("training_state.pt", "environment_state.json", "manifest.json")
 GENERATOR_NAMES = ("decision_q", "decision_mode", "replay", "trainer_target",
                    "trainer_actor")
+
+
+@dataclass(frozen=True)
+class VariantV1:
+    """Environment variant.  Everything else (state, reward, SAC, provider,
+    seeds, checkpoints, dominance rule) is shared and unchanged."""
+
+    name: str
+    label: str
+    runner_schema: str
+    bundle_schema: str
+    export_schema: str
+    load_sources: Callable[[], E.SharedSourcesV1]
+    environment_class: type
+
+
+PILOT = VariantV1("pilot", JC.PILOT_LABEL, RUNNER_SCHEMA, BUNDLE_SCHEMA,
+                  EXPORT_SCHEMA, E.SharedSourcesV1.load, E.Run4BEnvironmentV1)
+JOINT = VariantV1("joint", JC.LABEL,
+                  "splitfusion.run4b_joint_channel.runner.v1",
+                  "splitfusion.run4b_joint_channel.checkpoint_bundle.v1",
+                  "splitfusion.run4b_joint_channel.actor_export.v1",
+                  JC.JointSharedSourcesV1.load,
+                  JC.Run4BJointChannelEnvironmentV1)
+VARIANTS = {variant.name: variant for variant in (PILOT, JOINT)}
 
 
 class RunnerError(RuntimeError):
@@ -138,8 +165,13 @@ def fixture_states(scaling: C.ScalingV1) -> list[tuple[float, ...]]:
 class Run4BRunnerV1:
     """One registered seed: models, replay, trainer, environment, schedule."""
 
-    def __init__(self, sources: E.SharedSourcesV1, seed: int) -> None:
+    def __init__(self, sources: E.SharedSourcesV1, seed: int,
+                 variant: VariantV1 = PILOT) -> None:
         _require(seed in SEEDS, f"seed {seed} is not registered")
+        _require(isinstance(sources, E.SharedSourcesV1) and (
+            (variant is JOINT) == (type(sources) is JC.JointSharedSourcesV1)),
+            "sources do not match the variant")
+        self.variant = variant
         _require(torch.get_num_threads() == THREADS,
                  "torch intra-op threads must be exactly 4")
         _require(sources.provider.binding_sha256
@@ -165,7 +197,7 @@ class Run4BRunnerV1:
             target_generator=self.generators["trainer_target"],
             actor_generator=self.generators["trainer_actor"])
         self.replay = L.ReplayBufferV1(L.REPLAY_CAPACITY)
-        self.env = E.Run4BEnvironmentV1(sources, seed=seed)
+        self.env = variant.environment_class(sources, seed=seed)
         self.schedule = R4O.build_frozen_warmup_schedule(seed)
         _require(len(self.schedule) == WARMUP, "warm-up is not 288 decisions")
         self.decision_count = 0
@@ -178,8 +210,8 @@ class Run4BRunnerV1:
     # -- binding ---------------------------------------------------------
     def _binding_document(self) -> dict[str, Any]:
         cfg = TRAINER_CONFIG
-        return {
-            "schema": RUNNER_SCHEMA,
+        document = {
+            "schema": self.variant.runner_schema,
             "seed": self.seed,
             "seed_plan": self.plan.to_dict(),
             "feature_schema_id": C.FEATURE_SCHEMA["schema_id"],
@@ -197,6 +229,9 @@ class Run4BRunnerV1:
                         "threads": THREADS},
             "checkpoint_updates": list(CHECKPOINT_UPDATES),
         }
+        if self.variant is not PILOT:  # the pilot binding stays byte-identical
+            document["variant"] = self.variant.label
+        return document
 
     @property
     def update_count(self) -> int:
@@ -448,7 +483,7 @@ def write_bundle(runner: Run4BRunnerV1, checkpoint_dir: Path) -> Path:
                                   "counters": runner.counters(),
                                   "preflight": runner.preflight})
         manifest = {
-            "schema": BUNDLE_SCHEMA,
+            "schema": runner.variant.bundle_schema,
             "seed": runner.seed,
             "update": runner.update_count,
             "decision_count": runner.decision_count,
@@ -509,7 +544,7 @@ def read_bundle(path: Path, runner: Run4BRunnerV1) -> dict[str, Any]:
              == _sha_bytes(manifest_bytes), "COMMITTED/manifest mismatch",
              refuse)
     manifest = json.loads(manifest_bytes)
-    _require(manifest.get("schema") == BUNDLE_SCHEMA,
+    _require(manifest.get("schema") == runner.variant.bundle_schema,
              f"foreign checkpoint schema {manifest.get('schema')!r}", refuse)
     _require(manifest.get("feature_order") == list(C.FEATURE_ORDER),
              "feature order differs from Run-4B", refuse)
@@ -539,8 +574,8 @@ def read_bundle(path: Path, runner: Run4BRunnerV1) -> dict[str, Any]:
 
 
 def restore_runner(path: Path, sources: E.SharedSourcesV1,
-                   seed: int) -> Run4BRunnerV1:
-    runner = Run4BRunnerV1(sources, seed)
+                   seed: int, variant: VariantV1 = PILOT) -> Run4BRunnerV1:
+    runner = Run4BRunnerV1(sources, seed, variant)
     payload = read_bundle(path, runner)
     training = payload["training"]
     runner.actor.load_state_dict(training["actor"], strict=True)
@@ -576,7 +611,7 @@ def export_actor(runner: Run4BRunnerV1, out_dir: Path) -> dict[str, Any]:
     with torch.no_grad():
         heads = runner.actor(states)
     manifest = {
-        "schema": EXPORT_SCHEMA, "seed": runner.seed,
+        "schema": runner.variant.export_schema, "seed": runner.seed,
         "update": runner.update_count,
         "actor_state_dict_sha256": _sha_bytes(data),
         "actor_tree_sha256": R4O._tree_sha256(runner.actor.state_dict()),
@@ -597,12 +632,13 @@ def export_actor(runner: Run4BRunnerV1, out_dir: Path) -> dict[str, Any]:
     return manifest
 
 
-def load_actor_export(out_dir: Path) -> Any:
+def load_actor_export(out_dir: Path, variant: VariantV1 = PILOT) -> Any:
     refuse = CheckpointRefused
     manifest_path = Path(out_dir) / "ACTOR_EXPORT.json"
     _require(manifest_path.is_file(), "no Run-4B ACTOR_EXPORT.json", refuse)
     manifest = json.loads(manifest_path.read_text())
-    _require(manifest.get("schema") == EXPORT_SCHEMA, "foreign export schema",
+    _require(manifest.get("schema") == variant.export_schema,
+             "foreign export schema",
              refuse)
     _require(manifest.get("feature_order") == list(C.FEATURE_ORDER),
              "export feature order differs", refuse)
@@ -674,20 +710,22 @@ def family_window(seed_dir: Path, start: int, stop: int) -> dict[str, Any]:
 
 
 def run_seed(out: Path, seed: int, target: int, *, resume: bool,
-             enforce_dominance: bool) -> dict[str, Any]:
+             enforce_dominance: bool, variant: VariantV1 = PILOT
+             ) -> dict[str, Any]:
     torch.set_num_threads(THREADS)
-    sources = E.SharedSourcesV1.load()
+    sources = variant.load_sources()
     seed_dir = out / f"seed_{seed}"
     checkpoint_dir = seed_dir / "checkpoints"
     logs = SeedLogs(seed_dir)
     if resume:
         latest = json.loads((checkpoint_dir / "LATEST").read_text())
-        runner = restore_runner(checkpoint_dir / latest["bundle"], sources, seed)
+        runner = restore_runner(checkpoint_dir / latest["bundle"], sources,
+                                seed, variant)
         logs.truncate_to(runner)
     else:
         _require(not seed_dir.exists(), f"seed directory exists: {seed_dir}")
         seed_dir.mkdir(parents=True)
-        runner = Run4BRunnerV1(sources, seed)
+        runner = Run4BRunnerV1(sources, seed, variant)
     previous = {"update": runner.update_count,
                 "decisions": runner.decision_count}
 
@@ -732,13 +770,15 @@ def _git_head() -> str:
                           capture_output=True, text=True).stdout.strip()
 
 
-def _spawn(args: list[str], log: Path) -> subprocess.Popen:
+def _spawn(args: list[str], log: Path,
+           variant: VariantV1 = PILOT) -> subprocess.Popen:
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     env["CUDA_VISIBLE_DEVICES"] = ""
     handle = log.open("ab")
     return subprocess.Popen(
         [sys.executable, "-m", "rl_agent.splitfusion_hybrid_sac_run4b_v1.runner",
-         *args], cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT)
+         *args, "--variant", variant.name], cwd=ROOT, env=env, stdout=handle,
+        stderr=subprocess.STDOUT)
 
 
 def compare_seed_dirs(reference: Path, candidate: Path, update: int
@@ -766,15 +806,17 @@ def compare_seed_dirs(reference: Path, candidate: Path, update: int
 
 def cmd_smoke(args) -> int:
     out = Path(args.out)
+    variant = VARIANTS[args.variant]
     result = run_seed(out, 17, SMOKE_UPDATE, resume=False,
-                      enforce_dominance=False)
-    sources = E.SharedSourcesV1.load()
+                      enforce_dominance=False, variant=variant)
+    sources = variant.load_sources()
     seed_dir = out / "seed_17"
     reload_checks = {}
     for update in (0, 100, 250, 500):
         try:
             restored = restore_runner(seed_dir / "checkpoints" /
-                                      bundle_name(update), sources, 17)
+                                      bundle_name(update), sources, 17,
+                                      variant)
             reload_checks[str(update)] = restored.update_count == update
         except Exception as exc:  # recorded and failed below
             reload_checks[str(update)] = f"{type(exc).__name__}: {exc}"
@@ -797,7 +839,7 @@ def cmd_smoke(args) -> int:
             window["under_observed_share"] <= DOMINANCE_MAX_SHARE,
     }
     report = {"schema": "splitfusion.run4b.smoke_500_gate.v1",
-              "code_commit": _git_head(), "result": result, "gates": gates,
+              "variant": variant.label, "code_commit": _git_head(), "result": result, "gates": gates,
               "passed": all(gates.values()), "reload_checks": reload_checks,
               "actor_family_occupancy_updates_1_500": window}
     (out / "SMOKE_500_GATE.json").write_text(
@@ -810,7 +852,8 @@ def cmd_run(args) -> int:
     try:
         result = run_seed(Path(args.out), args.seed, args.target,
                           resume=args.resume,
-                          enforce_dominance=args.enforce_dominance)
+                          enforce_dominance=args.enforce_dominance,
+                          variant=VARIANTS[args.variant])
     except DominanceStop as exc:
         print(f"DOMINANCE_STOP {exc}")
         return 4
@@ -820,21 +863,22 @@ def cmd_run(args) -> int:
 
 def cmd_resume_test(args) -> int:
     smoke, work = Path(args.smoke), Path(args.work)
+    variant = VARIANTS[args.variant]
     _require(not work.exists(), f"work directory exists: {work}")
     work.mkdir(parents=True)
     log = work / "resume_test.log"
     first = _spawn(["run", "--out", str(work), "--seed", "17", "--target",
-                    str(RESUME_STOP_UPDATE)], log)
+                    str(RESUME_STOP_UPDATE)], log, variant)
     code_first = first.wait()
     second = _spawn(["run", "--out", str(work), "--seed", "17", "--target",
-                     str(SMOKE_UPDATE), "--resume"], log)
+                     str(SMOKE_UPDATE), "--resume"], log, variant)
     code_second = second.wait()
     comparison = (compare_seed_dirs(smoke / "seed_17", work / "seed_17",
                                     SMOKE_UPDATE)
                   if code_first == 0 and code_second == 0 else
                   {"passed": False, "checks": {}})
     report = {"schema": "splitfusion.run4b.resume_equivalence.v1",
-              "code_commit": _git_head(),
+              "variant": variant.label, "code_commit": _git_head(),
               "procedure": ("process 1: genesis -> update 250 and exit; "
                             "process 2: restore update-250 bundle -> 500; "
                             "compare with the uninterrupted smoke process"),
@@ -851,8 +895,14 @@ def cmd_resume_test(args) -> int:
 def cmd_campaign(args) -> int:
     torch.set_num_threads(THREADS)
     out = Path(args.out)
+    variant = VARIANTS[args.variant]
+    for path in (args.smoke_gate, args.resume_report):
+        gate = json.loads(Path(path).read_text())
+        _require(gate.get("variant", PILOT.label) == variant.label,
+                 f"gate belongs to another variant: {path}")
     out.mkdir(parents=True, exist_ok=False)
     start = {"schema": "splitfusion.run4b.campaign.v1", "status": "RUNNING",
+             "variant": variant.label,
              "code_commit": _git_head(), "seeds": list(SEEDS),
              "target_update": FINAL_UPDATE,
              "checkpoint_updates": list(CHECKPOINT_UPDATES),
@@ -870,7 +920,8 @@ def cmd_campaign(args) -> int:
     processes = {seed: _spawn(["run", "--out", str(out), "--seed", str(seed),
                                "--target", str(FINAL_UPDATE),
                                "--enforce-dominance"],
-                              out / f"seed_{seed}.log") for seed in SEEDS}
+                              out / f"seed_{seed}.log", variant)
+                 for seed in SEEDS}
     codes: dict[int, Optional[int]] = {seed: None for seed in SEEDS}
     halted = False
     while any(code is None for code in codes.values()):
@@ -892,15 +943,16 @@ def cmd_campaign(args) -> int:
             json.dumps(final, indent=2, sort_keys=True) + "\n")
         print("HALTED")
         return 4
-    return finalize_campaign(out, exit_codes=codes)
+    return finalize_campaign(out, exit_codes=codes, variant=variant)
 
 
 def finalize_campaign(out: Path, *, exit_codes: Optional[Mapping] = None,
-                      note: Optional[str] = None) -> int:
+                      note: Optional[str] = None,
+                      variant: VariantV1 = PILOT) -> int:
     """Independently verify every seed at update 10,000, then export actors."""
     torch.set_num_threads(THREADS)
     start = json.loads((out / "CAMPAIGN_START.json").read_text())
-    sources = E.SharedSourcesV1.load()
+    sources = variant.load_sources()
     verification, exports = {}, {}
     for seed in SEEDS:
         seed_dir = out / f"seed_{seed}"
@@ -909,7 +961,8 @@ def finalize_campaign(out: Path, *, exit_codes: Optional[Mapping] = None,
         final_line = json.loads(
             (out / f"seed_{seed}.log").read_text().splitlines()[-1])
         runner = restore_runner(seed_dir / "checkpoints" /
-                                bundle_name(FINAL_UPDATE), sources, seed)
+                                bundle_name(FINAL_UPDATE), sources, seed,
+                                variant)
         logs = SeedLogs(seed_dir)
         logs.truncate_to(runner)  # verifies both ledger chains; no-op length
         checks = {
@@ -935,7 +988,8 @@ def finalize_campaign(out: Path, *, exit_codes: Optional[Mapping] = None,
 
 
 def cmd_finalize(args) -> int:
-    return finalize_campaign(Path(args.out), note=args.note)
+    return finalize_campaign(Path(args.out), note=args.note,
+                             variant=VARIANTS[args.variant])
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -959,6 +1013,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     finalize = sub.add_parser("finalize")
     finalize.add_argument("--out", required=True)
     finalize.add_argument("--note", default=None)
+    for command in (smoke, run, resume, campaign, finalize):
+        command.add_argument("--variant", choices=sorted(VARIANTS),
+                             default="pilot")
     args = parser.parse_args(argv)
     return {"smoke": cmd_smoke, "run": cmd_run, "resume-test": cmd_resume_test,
             "campaign": cmd_campaign,

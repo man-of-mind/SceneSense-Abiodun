@@ -1,0 +1,90 @@
+{
+  "decisions": 600,
+  "method": "Run5BModeledCollectorV1 from git-archived run5b-no-qperc-v1 (no checkout), evidence root = main checkout read-only; tape = [prior_ul_mcs, snr_db.hex()] observed before each of the first N decisions, actions = frozen warm-up schedule cycled",
+  "run5b_source_commit": "49430a8e4753387958093841c1896db25bf4c3c1",
+  "schema": "splitfusion.run4b_joint_channel.run5b_tape_crosscheck.v1",
+  "seeds": {
+    "17": {
+      "channel_binding_sha256": "870bf3558722291f51fac594eda41fba6aca3d9225165fb645de636287518e63",
+      "channel_seed": 6707905449251883747,
+      "first5": [
+        [
+          22,
+          "0x1.ba4f45c5ddbe8p+3"
+        ],
+        [
+          18,
+          "0x1.d83a4fe436455p+3"
+        ],
+        [
+          18,
+          "0x1.18992890a9bbbp+3"
+        ],
+        [
+          10,
+          "0x1.1789dde24a167p+3"
+        ],
+        [
+          9,
+          "0x1.549fbd92dfcb9p+4"
+        ]
+      ],
+      "tape_sha256": "8076ef8d3315b1f34dbfe3d9c6b6684ded6a40febcb590a0e346682035a405fd"
+    },
+    "29": {
+      "channel_binding_sha256": "870bf3558722291f51fac594eda41fba6aca3d9225165fb645de636287518e63",
+      "channel_seed": 3794612363212927579,
+      "first5": [
+        [
+          28,
+          "0x1.42ce918c3f427p+4"
+        ],
+        [
+          27,
+          "0x1.c4783f3a01d6cp+3"
+        ],
+        [
+          22,
+          "0x1.02778ba1b6e5cp+4"
+        ],
+        [
+          18,
+          "0x1.e24577320db62p+2"
+        ],
+        [
+          10,
+          "0x1.e4e76b2b1a912p+3"
+        ]
+      ],
+      "tape_sha256": "876a7c172bcc3a2486b8cdf6b23a4272872ded354350cb0eb3a2e3aadecfece6"
+    },
+    "43": {
+      "channel_binding_sha256": "870bf3558722291f51fac594eda41fba6aca3d9225165fb645de636287518e63",
+      "channel_seed": 5478680119107464634,
+      "first5": [
+        [
+          17,
+          "0x1.c4ee423f056b9p+3"
+        ],
+        [
+          17,
+          "0x1.08a4e3592b567p+4"
+        ],
+        [
+          19,
+          "0x1.b7ce6b23a4386p+3"
+        ],
+        [
+          19,
+          "0x1.f7bbd7d4e986fp+3"
+        ],
+        [
+          19,
+          "0x1.b067366ba2e30p+3"
+        ]
+      ],
+      "tape_sha256": "6e6bf127cf86d32df7ea5bf0f84c008e306f9276e80c7dc635a24c857b3910f5"
+    }
+  },
+  "tape_script_sha256": "07c735280a2eab5a553128d9cd79cac0a42b96cb3cae43a13e29d8722399d7c8"
+}
