@@ -292,6 +292,43 @@ def ensure_legacy_fusion_namespace(root: Path) -> None:
         fusion_namespace.__path__.append(str(legacy_package.resolve()))
 
 
+COMPOSE_OVERRIDE_NAME = "compose_repository_mount_override.yaml"
+
+
+def repository_mount_override(root: Path) -> str:
+    """Compose override re-binding only ``/work/abiodun`` to this checkout, read-only.
+
+    ``receiver_container/docker-compose.yaml`` mounts ``../../abiodun``, which
+    from a worktree resolves to the *main* checkout.  Phase-6 refuses that
+    (``inspect_container``: mount source must equal ROOT).  Merged by target
+    path, this replaces exactly that one mount; image, flags and every other
+    mount are unchanged, and the unchanged post-create check still applies.
+    """
+    return ("services:\n    oai-perception-rx:\n        volumes:\n"
+            "            - type: bind\n"
+            f"              source: {Path(root).resolve()}\n"
+            "              target: /work/abiodun\n"
+            "              read_only: true\n")
+
+
+def install_repository_mount_override(edge_launch: Any, root: Path, directory: Path) -> Path:
+    """Write the override create-only and append it as the last ``-f`` file."""
+    directory.mkdir(parents=True, exist_ok=True)
+    override = directory / COMPOSE_OVERRIDE_NAME
+    with override.open("x", encoding="utf-8") as handle:
+        handle.write(repository_mount_override(root))
+    original = edge_launch.up_command
+
+    def up_command(variables: Mapping[str, str]) -> list:
+        argv = list(original(variables))
+        index = argv.index(edge_launch.UP_ARGUMENTS[0])
+        return argv[:index] + ["-f", str(override)] + argv[index:]
+
+    up_command.__wrapped__ = original  # type: ignore[attr-defined]
+    edge_launch.up_command = up_command
+    return override
+
+
 def install_ue_seams(rec: Any, *, attempt_dir: Path,
                      policy_identity: Mapping[str, Any]) -> dict[str, Any]:
     """Install every UE-process seam.  Call after the Phase-6 seams."""
@@ -345,6 +382,10 @@ def install_ue_seams(rec: Any, *, attempt_dir: Path,
     os.environ[PROFILER_DIR_ENV] = str(profiler_dir)
     D.DIRECT_EDGE_MODULE = EDGE_MODULE
     D.DIRECT_MAP_SERVER = MAP_SERVER
+    from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_edge_launch_v2 as EL
+
+    installed["compose_override"] = str(install_repository_mount_override(
+        EL, pinned.ROOT, profiler_dir))
     original_seed = pinned.seed_cell_edge_state
 
     def seed(campaign: Mapping[str, Any], edge_scratch: Path) -> None:

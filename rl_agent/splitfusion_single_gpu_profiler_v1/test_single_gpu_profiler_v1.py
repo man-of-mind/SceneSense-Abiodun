@@ -674,6 +674,9 @@ class SeamInstallTest(unittest.TestCase):
                       (pinned, "PassiveSplitCollector"), (pinned, "LivePilotCellRuntime"),
                       (pinned, "seed_cell_edge_state"), (pinned, "stop_tail"),
                       (D, "DIRECT_EDGE_MODULE"), (D, "DIRECT_MAP_SERVER"))
+        from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_edge_launch_v2 as EL
+
+        saved_launch = Saved((EL, "up_command"))
         originals = {name: getattr(module, name) for module, name, _ in saved._saved}
         env = os.environ.get(SU.PROFILER_DIR_ENV)
         try:
@@ -696,6 +699,7 @@ class SeamInstallTest(unittest.TestCase):
                 rec.close()
         finally:
             saved.restore()
+            saved_launch.restore()
             if env is None:
                 os.environ.pop(SU.PROFILER_DIR_ENV, None)
             else:
@@ -753,6 +757,28 @@ class SeamInstallTest(unittest.TestCase):
             saved.restore()
             TA.snapshot = snapshot
             RV.deactivate()
+
+    def test_repository_mount_override_rebinds_only_the_repository(self) -> None:
+        from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_edge_launch_v2 as EL
+
+        saved = Saved((EL, "up_command"))
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                variables = {name: "v" for name in EL.COMPOSE_VARIABLES}
+                before = EL.up_command(variables)
+                override = SU.install_repository_mount_override(EL, ROOT, Path(tmp))
+                after = EL.up_command(variables)
+                self.assertEqual(after, before[:-len(EL.UP_ARGUMENTS)]
+                                 + ["-f", str(override)] + list(EL.UP_ARGUMENTS))
+                self.assertEqual(EL.forbidden_operations(after), [])
+                text = override.read_text()
+                self.assertIn(f"source: {ROOT.resolve()}", text)
+                self.assertIn("target: /work/abiodun", text)
+                self.assertIn("read_only: true", text)
+                with self.assertRaises(FileExistsError):      # create-only
+                    SU.install_repository_mount_override(EL, ROOT, Path(tmp))
+        finally:
+            saved.restore()
 
     def test_edge_profile_copy_is_create_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
