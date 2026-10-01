@@ -105,15 +105,22 @@ class LocalRanOps:
     def spawn(self, plan: L.ProcessPlan, *, log_path: Path) -> SpawnedProcessV1:
         plan.validate()
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        handle = log_path.open("x", encoding="utf-8")
         root_owned = plan.role in ROOT_SOFTMODEM_ROLES
+        cwd = Path(plan.argv[0]).parent
+        if root_owned:
+            # The softmodems write nr*_stats.log into their working directory
+            # (the UE AssertFatal-s if it cannot), and the OAI tree may be a
+            # read-only bind mount.  Run them from an attempt-owned directory.
+            cwd = log_path.parent / f"{plan.role}_workdir"
+            cwd.mkdir(exist_ok=False)
+        handle = log_path.open("x", encoding="utf-8")
         launch_argv = self._launch_argv(plan, root_owned=root_owned)
         started = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
         process: Any = None
         wrapper_pgid: Optional[int] = None
         try:
             process = self._launch(
-                launch_argv, cwd=Path(plan.argv[0]).parent,
+                launch_argv, cwd=cwd,
                 log_handle=handle, new_session=plan.new_session)
             wrapper_pgid = int(os.getpgid(process.pid))
             if root_owned:
