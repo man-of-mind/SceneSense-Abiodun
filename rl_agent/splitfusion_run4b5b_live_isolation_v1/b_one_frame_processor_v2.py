@@ -10,6 +10,7 @@ substitution cannot silently recur.
 
 from __future__ import annotations
 
+import time
 from typing import Any, Optional, Sequence
 
 from phase2_map_sharing.transport import chunk_payload
@@ -57,8 +58,20 @@ class OneFrameOpportunityProcessorV2(P.BOpportunityProcessorV1):
     def __call__(self, opportunity: B.RouteOpportunityV4,
                  previous: Optional[A.OperationalOutcomeV1]
                  ) -> U.BTransmissionV1:
+        # Evidence only: raw-clock stage stamps on the action-open clock.
+        stamps: dict[str, int] = {}
+        opened = int(opportunity.action_open_monotonic_raw_ns)
+
+        def mark(name: str) -> None:
+            stamps[name] = time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW) - opened
+
+        self.stage_timing = {"action_open_monotonic_raw_ns": opened,
+                             "stages_ns_after_action_open": stamps}
+        mark("processor_entry")
         features = self._features(opportunity, previous)
+        mark("state_features")
         mode_id, q_e4 = P._actor_action(self.actor.loaded.module, features)
+        mark("actor")
         profile = self.contract.resolve_q_e4(mode_id, q_e4)
         kwargs = opportunity.submit_kwargs
         frame = X.FrameIdentityV2(
@@ -72,7 +85,9 @@ class OneFrameOpportunityProcessorV2(P.BOpportunityProcessorV1):
             reward_requested=True)
         input_7ch = self.input_builder(
             kwargs["frame_bgr"], kwargs["radar_tensor"])
+        mark("input_7ch")
         prepared = self.continuous.prepare(profile, input_7ch, frame)
+        mark("front_ae_codec")
         pose: Sequence[float] = kwargs["ego_pose"]
         if len(pose) != 6:
             raise ControllerLineageError("ego pose must contain six values")
@@ -90,8 +105,13 @@ class OneFrameOpportunityProcessorV2(P.BOpportunityProcessorV1):
             chunk_bytes=self.chunk_bytes)
         if not chunks:
             raise ControllerLineageError("SFD4 produced no datagrams")
-        for packet in chunks:
+        mark("pack_chunk")
+        for index, packet in enumerate(chunks):
             self.sender.sendto(packet, self.remote)
+            if index == 0:
+                mark("first_send")
+        mark("last_send")
+        self.stage_timing["datagrams"] = len(chunks)
         identity = L.identity_from_phase6(
             run_id=self.request.run_id, cell_id=self.cell_id,
             envelope=prepared.envelope, context=context, profile=profile,

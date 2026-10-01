@@ -215,6 +215,9 @@ class _Edge:
 def _processor_for(request, calls):
     def processor(opportunity, previous):
         calls.append(opportunity.frame_id)
+        processor.stage_timing = {
+            "action_open_monotonic_raw_ns": opportunity.action_open_monotonic_raw_ns,
+            "stages_ns_after_action_open": {"first_send": 1}}
         identity = A.FrameActionIdentityV1(
             run_id=request.run_id, cell_id="a71__favorable_stable",
             stream_id="ue0_route_b", session_uuid=_Telemetry.session_uuid,
@@ -377,6 +380,8 @@ class ComposedLifecycleTest(unittest.TestCase):
                 execution = lifecycle.execute(cfg, selected)
                 execution.validate(cfg)
                 self.assertTrue(keepalive._stop.is_set())
+                timing = json.loads(paths.get("decision_stage_timing").read_text())
+                self.assertIn("first_send", timing["stages_ns_after_action_open"])
                 self.assertEqual(calls, [7])
                 self.assertTrue(paths.get("collector_profile_activation").is_file())
                 self.assertNotEqual(paths.get("collector_profile_activation"),

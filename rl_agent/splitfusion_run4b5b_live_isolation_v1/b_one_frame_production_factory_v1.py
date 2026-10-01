@@ -145,6 +145,8 @@ ATTEMPT_PATH_OWNERSHIP: tuple[tuple[str, str, str, str, str], ...] = (
      "dir", "execute"),
     ("ue_evidence", "ue_evidence", "b_one_frame_execution_v1.execute_one",
      "dir", "execute"),
+    ("decision_stage_timing", "decision_stage_timing.json",
+     "RealProductionOpsV1.execute (evidence only)", "file", "execute"),
     ("remote_prediction", "remote_prediction",
      "RealProductionOpsV1._download_prediction", "dir", "execute"),
     ("remote_edge_log", "remote_edge.log",
@@ -472,6 +474,7 @@ class StartedOneFrameV1:
     dependencies: Optional[DEP.ProductionDependenciesV1] = None
     pipeline: Any = None
     controller_lineage_sha256: Optional[str] = None
+    decision_processor: Any = None
     campaign: Optional[dict[str, Any]] = None
     cell: Optional[dict[str, Any]] = None
     stopped: bool = False
@@ -881,6 +884,7 @@ class RealProductionOpsV1:
                 route_kwargs=route_kwargs,
                 raw_spool_root=paths.get("raw_gt_spool"),
                 postrun_materializer=None)
+            state.decision_processor = state.pipeline.processor
             keepalive = getattr(state.dependencies, "uplink_keepalive", None)
             if keepalive is not None:
                 inner = state.pipeline.processor
@@ -939,12 +943,26 @@ class RealProductionOpsV1:
                  "ACK and retained tail-output digests differ")
         return record
 
+    @staticmethod
+    def _write_stage_timing(state: StartedOneFrameV1) -> None:
+        timing = getattr(getattr(state, "decision_processor", None),
+                         "stage_timing", None)
+        if timing is None:
+            return
+        path = attempt_paths(state.config).get("decision_stage_timing")
+        with path.open("x", encoding="utf-8") as handle:
+            json.dump(timing, handle, sort_keys=True, indent=2)
+            handle.write("\n")
+
     def execute(self, state: StartedOneFrameV1) -> O.OneFrameExecutionV1:
         _require(state.pipeline is not None and state.dependencies is not None,
                  "one-frame lifecycle was not completely started")
         receiver = UE.UdpOperationalAckReceiverV1(
             O.UE_TUNNEL_IP, O.ACK_PORT)
-        result = ONE.execute_one(state.ue_request, state.pipeline, receiver)
+        try:
+            result = ONE.execute_one(state.ue_request, state.pipeline, receiver)
+        finally:
+            self._write_stage_timing(state)
         store = ACK.OperationalEvidenceStoreV1.open_existing(
             state.ue_request.evidence_root / "operational_evidence")
         snapshot = store.verify_all(require_all_resolved=True)
