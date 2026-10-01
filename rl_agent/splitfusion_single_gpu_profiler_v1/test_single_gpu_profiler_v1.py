@@ -934,6 +934,64 @@ class G1AddendumTwoTest(unittest.TestCase):
         self.assertFalse(RUN.g1_frame_accounting(**mismatch)["passed"])
 
 
+class CapturePreparationTest(unittest.TestCase):
+    def test_capture_registration_binds_the_qualified_instrumentation(self) -> None:
+        capture = RUN.load_qualification(RUN.CAPTURE_PATH)
+        self.assertEqual((capture["kind"], capture["transmitted_budget"],
+                          capture["g1_boundary_budget"]), ("PROFILING_CAPTURE", 1000, 1000))
+        self.assertEqual(capture["policy"], RUN.load_qualification()["policy"])
+        self.assertEqual(capture["semantics"], RUN.load_qualification()["semantics"])
+        bound = RUN.verify_capture_binding(capture)
+        self.assertTrue(bound["instrumentation_unchanged_since_qualification"])
+        tampered = json.loads(json.dumps(capture))
+        tampered["binds"]["qualification_result_sha256"] = "0" * 64
+        with self.assertRaises(RUN.ProfilerRunnerError):
+            RUN.verify_capture_binding(tampered)
+
+    def test_g1_boundary_follows_the_registered_budget(self) -> None:
+        inputs = G1AddendumTwoTest._inputs(stop="DECISION_CYCLE_BOUNDARY", sent=999, budget=1000)
+        self.assertTrue(RUN.g1_frame_accounting(**inputs, boundary_budget=1000)["passed"])
+        self.assertFalse(RUN.g1_frame_accounting(**inputs)["passed"])         # 300 rule
+        short = G1AddendumTwoTest._inputs(stop="DECISION_CYCLE_BOUNDARY", sent=998, budget=1000)
+        self.assertFalse(RUN.g1_frame_accounting(**short, boundary_budget=1000)["passed"])
+
+    def test_frame_table_takes_the_first_live_span_per_stage(self) -> None:
+        from . import export_v1 as EX
+
+        spans = [{"seq": 1, "stage": "ue.submit", "phase": "live", "frame_id": 7,
+                  "start_raw_ns": 10, "dur_ms": 1.5, "cuda_ms": None},
+                 {"seq": 2, "stage": "ue.submit", "phase": "live", "frame_id": 7,
+                  "start_raw_ns": 20, "dur_ms": 9.0, "cuda_ms": None},
+                 {"seq": 3, "stage": "edge.compute", "phase": "prewarm", "frame_id": 7,
+                  "start_raw_ns": 5, "dur_ms": 3.0, "cuda_ms": 2.0}]
+        ue = {"transmitted_identities": [{"frame_id": 7, "run4_identity": {
+                  "frame_id": 7, "tensor_seq": 1, "frame_kind": "POLICY_HOLD"}}],
+              "decisions": [{"frame_id": 7, "stages": {"rgb_receipt_raw_ns": 3}}]}
+        rows = EX.frame_rows(spans, ue, {}, {7: "RESULT_INSTALLED"}, {}, {})
+        self.assertEqual(len(rows), 1)
+        self.assertEqual((rows[0]["ue.submit__dur_ms"], rows[0]["edge.compute__dur_ms"],
+                          rows[0]["map_outcome"], rows[0]["rgb_receipt_raw_ns"]),
+                         (1.5, None, "RESULT_INSTALLED", 3))
+
+    def test_export_of_the_qualifying_attempt_is_reproducible(self) -> None:
+        from . import export_v1 as EX
+
+        evidence = (ROOT / "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/"
+                    "20261001T230025Z_run4_instrumentation_qualification_300")
+        if not evidence.is_dir():
+            self.skipTest("attempt-3 evidence is off Git")
+        with tempfile.TemporaryDirectory() as tmp:
+            first = EX.export(evidence, Path(tmp) / "a")
+            second = EX.export(evidence, Path(tmp) / "b")
+            self.assertEqual(first["export_sha256"], second["export_sha256"])
+            self.assertEqual(first["row_counts"]["frames.csv"], 300)
+            self.assertTrue(EX.verify(Path(tmp) / "a")["verified"])
+            (Path(tmp) / "a" / "spans.csv").write_text("tampered\n")
+            self.assertEqual(EX.verify(Path(tmp) / "a")["mismatched"], ["spans.csv"])
+            with self.assertRaises(FileExistsError):                   # create-only
+                EX.export(evidence, Path(tmp) / "b")
+
+
 class DisabledBehaviourTest(unittest.TestCase):
     def test_absent_or_disabled_config_means_the_unchanged_child(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

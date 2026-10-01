@@ -39,10 +39,15 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "rl_agent/splitfusion_single_gpu_profiler_v1"
 QUALIFICATION_PATH = Path(__file__).resolve().with_name("qualification_run4_300_v1.json")
 ADDENDUM_2_PATH = Path(__file__).resolve().with_name("qualification_addendum_2.json")
+CAPTURE_PATH = Path(__file__).resolve().with_name("capture_run4_1000_v1.json")
+ATTEMPT_3_RESULT_PATH = Path(__file__).resolve().with_name("QUALIFICATION_ATTEMPT_3_RESULT.json")
+REGISTRATION_SCHEMAS = ("scenesense.single_gpu_profiler.qualification.v1",
+                        "scenesense.single_gpu_profiler.capture.v1")
 EXECUTE_TOKEN = "SINGLE_GPU_PROFILER_V1_RUN4_INSTRUMENTATION_QUALIFICATION_300_EXECUTE"
 CHILD_MODULE = "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1"
 SAMPLER_MODULE = "rl_agent.splitfusion_single_gpu_profiler_v1.sampler_v1"
 RADIO_SCRATCH_PARENT = Path("experiments/splitfusion_oai_100mhz_4d5u_v1")
+G1_BOUNDARY_BUDGET = 300   # addendum 2 default; a registration may set g1_boundary_budget
 PROFILER_PROCESS_MARKERS = ("splitfusion_single_gpu_profiler_v1.child_v1",
                             "splitfusion_single_gpu_profiler_v1.edge_profiled_v1",
                             "map_profiled_v1.py",
@@ -81,9 +86,32 @@ def verify_addendum_2(path: Path = ADDENDUM_2_PATH) -> dict[str, Any]:
 
 def load_qualification(path: Path = QUALIFICATION_PATH) -> dict[str, Any]:
     document = json.loads(Path(path).read_text(encoding="utf-8"))
-    require(document.get("schema") == "scenesense.single_gpu_profiler.qualification.v1",
-            "foreign qualification document")
+    require(document.get("schema") in REGISTRATION_SCHEMAS, "foreign registration document")
     return document
+
+
+def verify_capture_binding(capture: Mapping[str, Any]) -> dict[str, Any]:
+    """A capture may only run on the instrumentation that qualified."""
+    binds = capture["binds"]
+    here = Path(__file__).resolve().parent
+    for name, key in (("qualification_result", "qualification_result_sha256"),
+                      ("addendum", "addendum_file_sha256")):
+        require(hashlib.sha256((here / binds[name]).read_bytes()).hexdigest() == binds[key],
+                f"capture-bound {name} drifted")
+    result = json.loads((here / binds["qualification_result"]).read_text(encoding="utf-8"))
+    require(result.get("verdict") == "INSTRUMENTATION_QUALIFIED"
+            and all((result.get("gates") or {}).values()),
+            "capture requires a qualified instrumentation result")
+    ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", binds["qualified_commit"],
+                               "HEAD"], cwd=str(ROOT)).returncode == 0
+    require(ancestor, "qualified commit is not an ancestor of HEAD")
+    changed = subprocess.run(["git", "diff", "--name-only", binds["qualified_commit"], "--",
+                              *[f"{PACKAGE}/{name}" for name in capture["instrumentation_files"]]],
+                             cwd=str(ROOT), capture_output=True, text=True,
+                             check=True).stdout.split()
+    require(not changed, f"instrumentation changed since qualification: {changed}")
+    return {"qualified_commit": binds["qualified_commit"], "qualification_verdict":
+            result["verdict"], "instrumentation_unchanged_since_qualification": True}
 
 
 # ---------------------------------------------------------------------------
@@ -186,19 +214,24 @@ def profiler_preflight(qualification: Mapping[str, Any], *, output_root: Path) -
             "free_disk_bytes": free, "host_contention": host_contention_state()}
 
 
-def preflight(config_path: Path, *, output_root: Path,
-              transmitted_budget: int) -> tuple[dict, list, dict, dict]:
+def preflight(config_path: Path, *, output_root: Path, transmitted_budget: int,
+              registration_path: Path = QUALIFICATION_PATH) -> tuple[dict, list, dict, dict]:
     from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_live_runner_v2 as R
 
-    qualification = load_qualification()
+    qualification = load_qualification(registration_path)
     require(int(transmitted_budget) == int(qualification["transmitted_budget"]),
-            "transmitted budget differs from the registered qualification")
+            "transmitted budget differs from the registration")
     config, cells, phase6 = R.offline_preflight(config_path, output_root=output_root,
                                                 transmitted_budget=int(transmitted_budget))
     report = {"schema": "scenesense.single_gpu_profiler.preflight.v1",
               "qualification_id": qualification["id"],
               "qualification_sha256": hashlib.sha256(QUALIFICATION_PATH.read_bytes()).hexdigest(),
+              "registration": {"path": str(registration_path), "kind": qualification.get(
+                  "kind", "INSTRUMENTATION_QUALIFICATION"), "sha256": hashlib.sha256(
+                  Path(registration_path).read_bytes()).hexdigest()},
               "addendum_2": verify_addendum_2(),
+              "capture_binding": (verify_capture_binding(qualification)
+                                  if "binds" in qualification else None),
               "phase6": phase6, "profiler": profiler_preflight(qualification,
                                                                output_root=output_root),
               "launcher_root": str(launcher_root(config)), "child_module": CHILD_MODULE}
@@ -296,7 +329,8 @@ def leftover_processes() -> list[dict[str, Any]]:
 def evaluate_gates(*, cell_report: Mapping[str, Any], analysis: Mapping[str, Any],
                    timing: Mapping[str, Any], audits: Mapping[str, Any],
                    expected_weights_sha256: str, sampler_stop: Mapping[str, Any],
-                   leftovers: Sequence[Any], transmitted_budget: int) -> dict[str, Any]:
+                   leftovers: Sequence[Any], transmitted_budget: int,
+                   boundary_budget: int = G1_BOUNDARY_BUDGET) -> dict[str, Any]:
     child = dict(cell_report.get("child") or {})
     phase6 = dict((cell_report.get("phase6") or {}).get("gates") or {})
     integration = dict(timing.get("integration") or {})
@@ -323,7 +357,8 @@ def evaluate_gates(*, cell_report: Mapping[str, Any], analysis: Mapping[str, Any
     gates = {
         "G1_FRAME_ACCOUNTING": g1_frame_accounting(
             child=child, timing=timing, analysis=analysis,
-            transmitted_budget=int(transmitted_budget))["passed"],
+            transmitted_budget=int(transmitted_budget),
+            boundary_budget=int(boundary_budget))["passed"],
         "G2_ACTOR_HASH_UNCHANGED": (
             audit_ok(before) and audit_ok(after)
             and stable(before.get("document") or {}) == stable(after.get("document") or {})
@@ -361,17 +396,18 @@ def evaluate_gates(*, cell_report: Mapping[str, Any], analysis: Mapping[str, Any
     }
     return {"gates": gates, "passed": all(gates.values()),
             "g1_detail": g1_frame_accounting(child=child, timing=timing, analysis=analysis,
-                                             transmitted_budget=int(transmitted_budget)),
+                                             transmitted_budget=int(transmitted_budget),
+                                             boundary_budget=int(boundary_budget)),
             "verdict": ("INSTRUMENTATION_QUALIFIED" if all(gates.values())
                         else "INSTRUMENTATION_NOT_QUALIFIED"),
             "phase6_report_only": {"status": cell_report.get("status"), "gates": phase6}}
 
 
-G1_BOUNDARY_BUDGET = 300           # addendum 2: the boundary branch is registered for 300 only
 
 
 def g1_frame_accounting(*, child: Mapping[str, Any], timing: Mapping[str, Any],
-                        analysis: Mapping[str, Any], transmitted_budget: int) -> dict[str, Any]:
+                        analysis: Mapping[str, Any], transmitted_budget: int,
+                        boundary_budget: int = G1_BOUNDARY_BUDGET) -> dict[str, Any]:
     """Addendum-2 G1: 300 at TRANSMITTED_BUDGET_REACHED, or exactly 299 at a verified
     DECISION_CYCLE_BOUNDARY (budget 300, no decision cap); both branches require
     matching transmission counts, one terminal per sent frame and zero unresolved
@@ -398,12 +434,13 @@ def g1_frame_accounting(*, child: Mapping[str, Any], timing: Mapping[str, Any],
     }
     budget_branch = stop == "TRANSMITTED_BUDGET_REACHED" and sent == budget
     boundary_branch = (stop == "DECISION_CYCLE_BOUNDARY"
-                       and budget == G1_BOUNDARY_BUDGET and sent == G1_BOUNDARY_BUDGET - 1
+                       and budget == int(boundary_budget) and sent == int(boundary_budget) - 1
                        and cycle.get("cycle_boundary_reached") is True
-                       and cycle.get("cycle_budget") == {"frame_budget": G1_BOUNDARY_BUDGET,
+                       and cycle.get("cycle_budget") == {"frame_budget": int(boundary_budget),
                                                          "decision_cap": None})
     branch = ("TRANSMITTED_BUDGET_REACHED" if budget_branch
-              else "VERIFIED_DECISION_CYCLE_BOUNDARY_299" if boundary_branch else None)
+              else f"VERIFIED_DECISION_CYCLE_BOUNDARY_{int(boundary_budget) - 1}"
+              if boundary_branch else None)
     return {"branch": branch, "stop_reason": stop, "sent": sent, "checks": checks,
             "passed": branch is not None and all(checks.values())}
 
@@ -461,20 +498,35 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
     parser.add_argument("--execute", default="")
     parser.add_argument("--config", type=Path, default=R.DEFAULT_CONFIG)
     parser.add_argument("--output-root", type=Path, required=True)
-    parser.add_argument("--transmitted-budget", type=int, default=300)
+    parser.add_argument("--registration", type=Path, default=QUALIFICATION_PATH)
+    parser.add_argument("--transmitted-budget", type=int, default=None)
     parser.add_argument("--safety-timeout-s", type=float, default=120.0)
     parser.add_argument("--child-timeout-s", type=float, default=1200.0)
     parser.add_argument("--carla-port", type=int, default=2000)
     args = parser.parse_args(list(argv) if argv is not None else None)
     output_root = args.output_root.resolve()
+    registration = load_qualification(args.registration.resolve(strict=True))
+    if args.transmitted_budget is None:
+        args.transmitted_budget = int(registration["transmitted_budget"])
+    lifecycle = dict(registration.get("lifecycle") or {})
+    if lifecycle:                         # registered bounds; no ad-hoc override
+        args.safety_timeout_s = float(lifecycle["safety_timeout_s"])
+        args.child_timeout_s = float(lifecycle["child_timeout_s"])
+    execute_token = str(registration.get("execute_token", EXECUTE_TOKEN))
+    boundary_budget = int(registration.get("g1_boundary_budget", G1_BOUNDARY_BUDGET))
     config, cells, report, qualification = preflight(
         args.config.resolve(strict=True), output_root=output_root,
-        transmitted_budget=int(args.transmitted_budget))
+        transmitted_budget=int(args.transmitted_budget),
+        registration_path=args.registration.resolve(strict=True))
+    report["lifecycle"] = {"transmitted_budget": int(args.transmitted_budget),
+                           "safety_timeout_s": float(args.safety_timeout_s),
+                           "child_timeout_s": float(args.child_timeout_s),
+                           "g1_boundary_budget": boundary_budget}
     if args.preflight:
         print(json.dumps(report, sort_keys=True, indent=1, default=str))
         print("SINGLE_GPU_PROFILER_V1_PREFLIGHT_PASS")
         return 0
-    require(args.execute == EXECUTE_TOKEN, f"live launch requires --execute {EXECUTE_TOKEN}")
+    require(args.execute == execute_token, f"live launch requires --execute {execute_token}")
     require(len(cells) == 1, "exactly one registered carrier cell is required")
     output_root.mkdir(parents=False, exist_ok=False)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -524,18 +576,35 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
                             expected_weights_sha256=qualification["policy"]
                             ["expected_weights_sha256"],
                             sampler_stop=sampler_stop, leftovers=leftovers,
-                            transmitted_budget=int(args.transmitted_budget))
+                            transmitted_budget=int(args.transmitted_budget),
+                            boundary_budget=boundary_budget)
+    if qualification.get("kind") == "PROFILING_CAPTURE":
+        result["verdict"] = "CAPTURE_VALID" if result["passed"] else "CAPTURE_INVALID"
     result.update({"schema": "scenesense.single_gpu_profiler.qualification_result.v1",
                    "qualification_id": qualification["id"], "run_id": run_id,
                    "addendum_2": report.get("addendum_2"),
                    "claim_scope": qualification["claim_scope"],
-                   "not_a_profiling_baseline": qualification["not_a_profiling_baseline"],
+                   "registration": report.get("registration"),
+                   "capture_binding": report.get("capture_binding"),
+                   "lifecycle": report.get("lifecycle"),
+                   "not_a_profiling_baseline": qualification.get("not_a_profiling_baseline"),
                    "sampler_stop": sampler_stop, "leftover_processes": leftovers,
                    "host_contention_after": host_contention_state(),
                    "post_run_errors": errors,
                    "audits": {k: {"returncode": v.get("returncode"),
                                   "verdict": (v.get("document") or {}).get("verdict")}
                               for k, v in audits.items()}})
+    if qualification.get("kind") == "PROFILING_CAPTURE":
+        from . import export_v1 as EX
+
+        try:
+            manifest = EX.export(output_root, output_root / "export_v1")
+            result["export"] = {"path": str(output_root / "export_v1"),
+                                "row_counts": manifest["row_counts"],
+                                "verified": EX.verify(output_root / "export_v1")["verified"]}
+        except Exception as exc:  # noqa: BLE001 - reported, never hidden
+            result["export"] = {"error": f"{type(exc).__name__}: {exc}"}
+            errors.append(f"export: {type(exc).__name__}: {exc}")
     write_create_only(output_root / "QUALIFICATION_RESULT.json", result)
     print(json.dumps({"verdict": result["verdict"], "gates": result["gates"],
                       "phase6": result["phase6_report_only"]["status"],
