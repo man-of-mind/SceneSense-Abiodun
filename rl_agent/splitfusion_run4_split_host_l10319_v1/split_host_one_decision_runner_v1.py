@@ -50,6 +50,7 @@ LOCAL_RADIO_STATE_BASE = (LR.ROOT / "experiments/"
                           "splitfusion_oai_100mhz_4d5u_v1")
 TRANSMITTED_BUDGET, DECISION_CAP = 40, 1
 GPU_TIMING_TRANSMITTED_BUDGET, GPU_TIMING_DECISION_CAP = 300, 30
+FULL_300_TRANSMITTED_BUDGET = 300
 SAFETY_TIMEOUT_S, OUTER_RUNTIME_S = 60.0, 600.0
 REMOTE_START_TIMEOUT_S = 360.0
 REMOTE_ABORT_TIMEOUT_S = 540.0
@@ -64,6 +65,7 @@ if REMOTE_ABORT_TIMEOUT_S <= _require_abort_timeout:
 LOCAL_CAPTURE_FILTER = RH.CAPTURE_FILTER
 RESULT_NAME = "SPLIT_HOST_ONE_DECISION_RESULT.json"
 GPU_TIMING_RESULT_NAME = "GPU_TIMING_CHARACTERIZATION_RESULT.json"
+FULL_300_RESULT_NAME = "FULL_300_PERFORMANCE_CHARACTERIZATION_RESULT.json"
 PROOF_NAME = "FIRST_REAL_TENSOR_PROOF.json"
 RELEASE_NAME = "REMOTE_TEARDOWN_RELEASE.json"
 ABORT_RELEASE_NAME = "REMOTE_ABORT_RELEASE.json"
@@ -106,6 +108,7 @@ class OneDecisionPlanV1:
     carla_port: int = 2000
     outer_runtime_s: float = OUTER_RUNTIME_S
     gpu_timing_characterization: bool = False
+    full_300_characterization: bool = False
 
     def validate(self) -> "OneDecisionPlanV1":
         supplied_output = Path(self.output_root)
@@ -128,20 +131,31 @@ class OneDecisionPlanV1:
                  "outer timeout outside [120,600]")
         _require(type(self.gpu_timing_characterization) is bool,
                  "GPU timing characterization selector must be exact bool")
+        _require(type(self.full_300_characterization) is bool,
+                 "full-300 characterization selector must be exact bool")
+        _require(not (self.gpu_timing_characterization
+                      and self.full_300_characterization),
+                 "characterization modes are mutually exclusive")
         return self
 
     @property
-    def decision_cap(self) -> int:
+    def decision_cap(self) -> Optional[int]:
+        if self.full_300_characterization:
+            return None
         return (GPU_TIMING_DECISION_CAP if self.gpu_timing_characterization
                 else DECISION_CAP)
 
     @property
     def transmitted_budget(self) -> int:
+        if self.full_300_characterization:
+            return FULL_300_TRANSMITTED_BUDGET
         return (GPU_TIMING_TRANSMITTED_BUDGET if self.gpu_timing_characterization
                 else TRANSMITTED_BUDGET)
 
     @property
     def result_name(self) -> str:
+        if self.full_300_characterization:
+            return FULL_300_RESULT_NAME
         return GPU_TIMING_RESULT_NAME if self.gpu_timing_characterization else RESULT_NAME
 
     @property
@@ -467,7 +481,7 @@ class SystemOpsV1:
         return path
 
     def context(self, pre: Any, retrieval: Any,
-                decision_cap: int = DECISION_CAP) -> Any:
+                decision_cap: Optional[int] = DECISION_CAP) -> Any:
         return CO.SplitHostPhase6ChildContextV1(
             prerequisites=pre, retrieval=retrieval, decision_cap=decision_cap)
 
@@ -704,6 +718,92 @@ def validate_gpu_timing_characterization(
             "scientific_pass": False}
 
 
+
+def validate_full_300_characterization(
+        child: Mapping[str, Any], ue: Mapping[str, Any],
+        sender_final: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Validate a complete 300-frame run without claiming P0--P8 qualification."""
+    _require(child.get("return_code") == 0 and not child.get("error"),
+             "frozen full-300 child failed")
+    _require(child.get("stop_reason") == "TRANSMITTED_BUDGET_REACHED",
+             "full-300 child did not stop at the transmitted budget")
+    collector = child.get("collector")
+    _require(type(collector) is dict
+             and collector.get("collector_cleanup_ok") is True
+             and not collector.get("collector_failures"),
+             "full-300 collector did not drain cleanly")
+    _require(collector.get("stop_reason") == "TRANSMITTED_BUDGET_REACHED"
+             and collector.get("reached_budget") is True
+             and collector.get("quality_and_evaluation_drain_complete") is True
+             and collector.get("evaluation_queues_discarded") is False,
+             "full-300 collector did not reach and drain its exact budget")
+    _require(collector.get("transmitted_budget") == FULL_300_TRANSMITTED_BUDGET
+             and collector.get("transmitted_frames") == FULL_300_TRANSMITTED_BUDGET,
+             "full-300 collector frame accounting is not exactly 300")
+
+    counters = ue.get("counters")
+    _require(type(counters) is dict, "full-300 UE counters are absent")
+    policy_decisions = counters.get("policy_decisions")
+    _require(type(policy_decisions) is int and policy_decisions > 0
+             and counters.get("actor_calls") == policy_decisions,
+             "full-300 actor/decision accounting is inconsistent")
+    _require(ue.get("faulted") is None,
+             "full-300 UE runtime has an infrastructure fault")
+    unresolved = ue.get("unresolved_tickets_at_close")
+    _require(type(unresolved) is int and unresolved in {0, 1},
+             "full-300 has more than the permitted final unresolved ticket")
+    resolutions = ue.get("resolutions")
+    _require(type(resolutions) is list
+             and len(resolutions) + unresolved == policy_decisions,
+             "full-300 ticket resolutions do not reconcile with decisions")
+    frames = ue.get("frames")
+    _require(type(frames) is list
+             and sum(row.get("reward_requested") is True for row in frames
+                     if type(row) is dict) == policy_decisions,
+             "full-300 reward-requested frames do not reconcile with decisions")
+
+    feedback_rows = ue.get("feedback_rows")
+    _require(type(feedback_rows) is list,
+             "full-300 feedback evidence is absent")
+    evaluator_faults = [row for row in feedback_rows
+                        if type(row) is dict
+                        and str(row.get("kind", "")).upper() == "EVALUATOR_FAULT"]
+    unexpected_faults = [row for row in evaluator_faults
+                         if row.get("reason")
+                         != "QUALITY_UNDEFINED_NO_ELIGIBLE_GT"]
+    _require(not unexpected_faults,
+             "full-300 contains an unexpected evaluator/ground-truth fault")
+
+    _require(type(sender_final) is dict
+             and sender_final.get("schema")
+             == "scenesense.run4.split_host.gt_sender.v1"
+             and sender_final.get("closed") is True
+             and sender_final.get("fault") is None,
+             "full-300 GT sender did not close without a lifecycle fault")
+    sender_counters = sender_final.get("counters")
+    _require(type(sender_counters) is dict,
+             "full-300 GT sender counters are absent")
+    unknown_future = sender_counters.get("unknown_future_ticket_refusals", 0)
+    failures = sender_counters.get("failures", 0)
+    _require(type(unknown_future) is int and 0 <= unknown_future <= policy_decisions
+             and type(failures) is int and failures == unknown_future,
+             "full-300 GT sender has non-isolated delivery failures")
+
+    return {
+        "transmitted_frames": FULL_300_TRANSMITTED_BUDGET,
+        "policy_decisions": policy_decisions,
+        "actor_calls": policy_decisions,
+        "resolutions": len(resolutions),
+        "unresolved_tickets": unresolved,
+        "feedback_rows": len(feedback_rows),
+        "permitted_quality_undefined_exclusions": len(evaluator_faults),
+        "unknown_future_ticket_refusals": unknown_future,
+        "stop_reason": "TRANSMITTED_BUDGET_REACHED",
+        "claim_scope": "PERFORMANCE_CHARACTERIZATION_NOT_FORMAL_P0_P8_QUALIFICATION",
+        "formal_p0_p8_qualification": False,
+    }
+
+
 class _Alarm:
     def __init__(self, seconds: float) -> None:
         self.seconds, self.previous = float(seconds), None
@@ -729,7 +829,7 @@ class _NoAlarm:
 
 def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
                      watchdog: bool = True) -> Mapping[str, Any]:
-    """Execute the default proof run or explicit non-scientific timing mode."""
+    """Execute the proof run or one explicit non-qualification characterization."""
     plan, ops = plan.validate(), (ops or SystemOpsV1())
     plan.output_root.mkdir(parents=True, exist_ok=False)
     report: dict[str, Any] = {
@@ -748,6 +848,14 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
                       scientific_pass=False,
                       first_real_tensor_proof_required=False,
                       first_real_tensor_proof_performed=False)
+    elif plan.full_300_characterization:
+        report.update(
+            mode="FULL_300_PERFORMANCE_CHARACTERIZATION",
+            claim="PERFORMANCE_CHARACTERIZATION_NOT_FORMAL_P0_P8_QUALIFICATION",
+            scientific_pass=False, formal_p0_p8_qualification=False,
+            lifecycle="ABORT_ONLY_NO_FIRST_REAL_TENSOR_PROOF",
+            first_real_tensor_proof_required=False,
+            first_real_tensor_proof_performed=False)
     prepared = ran = carla = capture = context = None
     remote_start_attempted = remote_held = False
     release_uploaded = remote_stopped = False
@@ -776,7 +884,8 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
                 remote=remote, source_route=ran.source_route,
                 policy_ownership=ran.policy_ownership).validate()
             carla = ops.start_carla(prepared, plan)
-            if not plan.gpu_timing_characterization:
+            if not (plan.gpu_timing_characterization
+                    or plan.full_300_characterization):
                 capture = ops.start_capture(plan)
             context = (ops.context(pre, prepared.retrieval)
                        if plan.decision_cap == DECISION_CAP else
@@ -788,6 +897,12 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
             if plan.gpu_timing_characterization:
                 report["gpu_timing_characterization"] = dict(
                     validate_gpu_timing_characterization(child, ue))
+                characterization_validated = True
+                return report
+            if plan.full_300_characterization:
+                sender_final = _read(plan.local_attempt / CO.LOCAL_GT_FINAL)
+                report["full_300_characterization"] = dict(
+                    validate_full_300_characterization(child, ue, sender_final))
                 characterization_validated = True
                 return report
             report["one_decision"] = dict(validate_closed_one_decision(child, ue))
@@ -841,9 +956,12 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
                     local_release = plan.output_root / ABORT_RELEASE_NAME
                     _write(local_release, abort)
                     remote_release = ops.upload_release(plan, local_release, True)
-                reason = ("GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC"
-                          if characterization_validated else
-                          report["error"] or "cleanup failure")
+                reason = (
+                    ("FULL_300_PERFORMANCE_CHARACTERIZATION_COMPLETE"
+                     if plan.full_300_characterization else
+                     "GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC")
+                    if characterization_validated else
+                    report["error"] or "cleanup failure")
                 result = ops.remote_abort(plan, reason,
                                           connected, remote_release)
                 _require(result.get("status") == "ABORTED_CLEANLY",
@@ -897,7 +1015,10 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
             report["status"] = "FAILED"
         elif (characterization_validated
               and report.get("remote_abort_status") == "ABORTED_CLEANLY"):
-            report["status"] = "GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC"
+            report["status"] = (
+                "FULL_300_PERFORMANCE_CHARACTERIZATION_COMPLETE"
+                if plan.full_300_characterization else
+                "GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC")
         _write(plan.output_root / plan.result_name, report)
     return report
 
@@ -912,7 +1033,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--carla-port", type=int, default=2000)
     parser.add_argument("--outer-runtime-s", type=float, default=OUTER_RUNTIME_S)
-    parser.add_argument("--gpu-timing-characterization", action="store_true")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--gpu-timing-characterization", action="store_true")
+    modes.add_argument("--full-300-characterization", action="store_true")
     parser.add_argument("--execute", default="")
     return parser
 
@@ -923,12 +1046,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:  # pragma: no cover
     plan = OneDecisionPlanV1(args.output_root, args.run_id, args.attempt_id,
                              args.remote_host, args.remote_repository, args.config,
                              args.carla_port, args.outer_runtime_s,
-                             args.gpu_timing_characterization)
+                             args.gpu_timing_characterization,
+                             args.full_300_characterization)
     result = run_one_decision(plan)
     print(json.dumps(result, sort_keys=True))
     return 0 if result["status"] in {
         "PASS_ONE_DECISION_SPLIT_HOST",
         "GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC",
+        "FULL_300_PERFORMANCE_CHARACTERIZATION_COMPLETE",
     } else 2
 
 
@@ -938,11 +1063,13 @@ if __name__ == "__main__":
 
 __all__ = ["SCHEMA", "EXECUTE_TOKEN", "TRANSMITTED_BUDGET", "DECISION_CAP",
            "GPU_TIMING_TRANSMITTED_BUDGET", "GPU_TIMING_DECISION_CAP",
-           "GPU_TIMING_RESULT_NAME",
+           "GPU_TIMING_RESULT_NAME", "FULL_300_TRANSMITTED_BUDGET",
+           "FULL_300_RESULT_NAME",
            "SAFETY_TIMEOUT_S", "OUTER_RUNTIME_S", "LOCAL_CAPTURE_FILTER",
            "REMOTE_CN_DIRECTORY", "REMOTE_CN_COMPOSE", "REMOTE_CN_PROJECT",
            "REMOTE_CN_SERVICES", "REMOTE_CORE_RESET_NAME",
            "SplitHostOneDecisionError", "OneDecisionPlanV1", "RemoteCliV1",
            "SystemOpsV1", "validate_closed_one_decision",
-           "validate_gpu_timing_characterization", "run_one_decision",
+           "validate_gpu_timing_characterization",
+           "validate_full_300_characterization", "run_one_decision",
            "build_parser", "main"]

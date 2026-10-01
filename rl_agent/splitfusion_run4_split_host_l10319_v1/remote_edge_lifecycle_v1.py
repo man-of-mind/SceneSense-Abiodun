@@ -22,6 +22,8 @@ from pathlib import Path, PurePosixPath
 import re
 from typing import Any, Mapping, Sequence
 
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract as R4
+
 from . import contract as C
 from . import remote_edge_gt_entry_v1 as RGT
 
@@ -42,7 +44,9 @@ GT_READY_DESTINATION = f"{STATE_DESTINATION}/remote_gt_listener_ready.json"
 GT_FINAL_DESTINATION = f"{STATE_DESTINATION}/remote_gt_listener_final.json"
 GT_PORT = RGT.REGISTERED_GT_PORT
 GT_SOCKET_TIMEOUT_S = 5.0
-GT_EXPECTATION_TIMEOUT_S = 1.0
+# Simulator-GT is a qualification oracle.  A missing tensor may hold its
+# ticket only through the already-frozen reward deadline, never the stream.
+GT_EXPECTATION_TIMEOUT_S = R4.REWARD_DEADLINE_NS / 1_000_000_000
 FCOS_DESTINATION = (
     "/home/shr_aisvcs/.cache/torch/hub/checkpoints/"
     "fcos_resnet50_fpn_coco-99b0c9b7.pth"

@@ -10,6 +10,8 @@ import sys
 import tempfile
 import unittest
 
+from rl_agent.splitfusion_hybrid_sac_run4_v1 import run4_contract as R4
+
 from . import contract as C
 from . import gt_sender_integration as SENDER
 from . import remote_edge_gt_entry_v1 as RGT
@@ -219,8 +221,9 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual((SENDER.REGISTERED_HOST, SENDER.REGISTERED_PORT),
                          (C.default_topology().edge_ip, RGT.REGISTERED_GT_PORT))
         self.assertEqual(SENDER.MAX_PENDING_IDENTITIES, RGT.MAX_GT_TICKETS)
-        self.assertLessEqual(SENDER.MAX_COMPONENT_WAIT_S,
-                             E.GT_EXPECTATION_TIMEOUT_S)
+        self.assertEqual(E.GT_EXPECTATION_TIMEOUT_S,
+                         R4.REWARD_DEADLINE_NS / 1_000_000_000)
+        self.assertEqual(E.GT_EXPECTATION_TIMEOUT_S, 0.17)
 
 
 class ExecutionTests(unittest.TestCase):

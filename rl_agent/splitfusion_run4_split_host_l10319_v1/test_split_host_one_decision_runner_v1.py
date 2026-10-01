@@ -73,6 +73,46 @@ def timing_evidence() -> tuple[dict, dict]:
     return child, ue
 
 
+
+def full_300_evidence(*, unresolved: int = 0) -> tuple[dict, dict, dict]:
+    decisions = 3
+    child = {
+        "return_code": 0, "error": "",
+        "stop_reason": "TRANSMITTED_BUDGET_REACHED",
+        "collector": {
+            "collector_cleanup_ok": True, "collector_failures": [],
+            "stop_reason": "TRANSMITTED_BUDGET_REACHED",
+            "reached_budget": True,
+            "quality_and_evaluation_drain_complete": True,
+            "evaluation_queues_discarded": False,
+            "transmitted_budget": 300, "transmitted_frames": 300,
+        },
+    }
+    resolutions = [
+        {"terminal": "SUCCESS"}, {"terminal": "TIMEOUT"},
+        {"terminal": "EVALUATOR_FAULT"},
+    ][:decisions - unresolved]
+    ue = {
+        "counters": {"policy_decisions": decisions, "actor_calls": decisions,
+                     "policy_holds": 2, "fallbacks": 295},
+        "faulted": None, "unresolved_tickets_at_close": unresolved,
+        "resolutions": resolutions,
+        "frames": ([{"reward_requested": True}] * decisions
+                   + [{"reward_requested": False}] * (300 - decisions)),
+        "feedback_rows": [
+            {"class": "ACCEPTED", "kind": "DELIVERED_SUCCESS", "reason": "NONE"},
+            {"class": "ACCEPTED", "kind": "EVALUATOR_FAULT",
+             "reason": "QUALITY_UNDEFINED_NO_ELIGIBLE_GT"},
+        ],
+    }
+    sender = {
+        "schema": "scenesense.run4.split_host.gt_sender.v1",
+        "closed": True, "connected": False, "fault": None,
+        "counters": {"failures": 0, "unknown_future_ticket_refusals": 0},
+    }
+    return child, ue, sender
+
+
 class FakeRan:
     def __init__(self, events: list) -> None:
         self.events = events
@@ -360,6 +400,104 @@ class RunnerTests(unittest.TestCase):
             "--output-root", "/tmp/explicit-timing", "--run-id", "r",
             "--attempt-id", "attempt", "--gpu-timing-characterization"])
         self.assertTrue(args.gpu_timing_characterization)
+
+    def test_full_300_mode_runs_exact_budget_uncapped_and_abort_only(self):
+        class FullOps(FakeOps):
+            def context(self, pre, retrieval, decision_cap=1):
+                self.seen_decision_cap = decision_cap
+                return super().context(pre, retrieval, decision_cap)
+
+            def child_evidence(self, plan):
+                child, ue, sender = full_300_evidence()
+                path = plan.local_attempt / CO.LOCAL_GT_FINAL
+                path.parent.mkdir(parents=True, exist_ok=True)
+                R._write(path, sender)
+                return child, ue
+
+        with tempfile.TemporaryDirectory() as directory:
+            plan = R.OneDecisionPlanV1(
+                Path(directory) / "out", "full-run", "full-attempt",
+                full_300_characterization=True)
+            ops = FullOps()
+            result = R.run_one_decision(plan, ops=ops, watchdog=False)
+            persisted = json.loads(
+                (plan.output_root / R.FULL_300_RESULT_NAME).read_text())
+        self.assertEqual(
+            result["status"], "FULL_300_PERFORMANCE_CHARACTERIZATION_COMPLETE")
+        self.assertIsNone(ops.seen_decision_cap)
+        self.assertEqual(result["transmitted_budget"], 300)
+        self.assertFalse(result["formal_p0_p8_qualification"])
+        self.assertEqual(result["lifecycle"],
+                         "ABORT_ONLY_NO_FIRST_REAL_TENSOR_PROOF")
+        self.assertNotIn("capture_start", ops.events)
+        self.assertNotIn("proof", ops.events)
+        self.assertNotIn("remote_stop", ops.events)
+        self.assertIn("remote_abort:True:True", ops.events)
+        self.assertEqual(persisted["status"], result["status"])
+
+    def test_full_300_validator_accepts_success_timeout_quality_undefined_and_one_refusal(self):
+        child, ue, sender = full_300_evidence(unresolved=1)
+        sender["counters"] = {
+            "failures": 2, "unknown_future_ticket_refusals": 2}
+        result = R.validate_full_300_characterization(child, ue, sender)
+        self.assertEqual(result["transmitted_frames"], 300)
+        self.assertEqual(result["unresolved_tickets"], 1)
+        self.assertEqual(result["unknown_future_ticket_refusals"], 2)
+        self.assertEqual(result["permitted_quality_undefined_exclusions"], 1)
+        self.assertFalse(result["formal_p0_p8_qualification"])
+
+    def test_full_300_validator_rejects_budget_gt_sender_and_ticket_faults(self):
+        cases = []
+        child, ue, sender = full_300_evidence()
+        child["collector"]["transmitted_frames"] = 299
+        cases.append((child, ue, sender, "exactly 300"))
+
+        child, ue, sender = full_300_evidence()
+        ue["feedback_rows"].append({
+            "class": "ACCEPTED", "kind": "EVALUATOR_FAULT",
+            "reason": "GROUND_TRUTH_UNAVAILABLE"})
+        cases.append((child, ue, sender, "ground-truth fault"))
+
+        child, ue, sender = full_300_evidence()
+        sender["fault"] = "SenderLifecycleError: cascaded"
+        cases.append((child, ue, sender, "lifecycle fault"))
+
+        child, ue, sender = full_300_evidence()
+        ue["unresolved_tickets_at_close"] = 2
+        cases.append((child, ue, sender, "permitted final unresolved"))
+
+        child, ue, sender = full_300_evidence()
+        sender["counters"] = {
+            "failures": 2, "unknown_future_ticket_refusals": 1}
+        cases.append((child, ue, sender, "non-isolated delivery"))
+
+        for child, ue, sender, message in cases:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(R.SplitHostOneDecisionError, message):
+                    R.validate_full_300_characterization(child, ue, sender)
+
+    def test_full_300_cli_is_explicit_mutually_exclusive_and_default_unchanged(self):
+        default = self.plan(Path("/tmp/default-full-plan"))
+        self.assertEqual((default.decision_cap, default.transmitted_budget), (1, 40))
+        args = R.build_parser().parse_args([
+            "--output-root", "/tmp/explicit-full", "--run-id", "r",
+            "--attempt-id", "attempt", "--full-300-characterization"])
+        self.assertTrue(args.full_300_characterization)
+        plan = R.OneDecisionPlanV1(
+            Path("/tmp/explicit-full"), "r", "attempt",
+            full_300_characterization=True)
+        self.assertEqual((plan.decision_cap, plan.transmitted_budget), (None, 300))
+        with self.assertRaises(SystemExit):
+            R.build_parser().parse_args([
+                "--output-root", "/tmp/conflict", "--run-id", "r",
+                "--attempt-id", "attempt", "--gpu-timing-characterization",
+                "--full-300-characterization"])
+        with self.assertRaisesRegex(R.SplitHostOneDecisionError,
+                                    "mutually exclusive"):
+            R.OneDecisionPlanV1(
+                Path("/tmp/conflict-direct"), "r", "attempt",
+                gpu_timing_characterization=True,
+                full_300_characterization=True).validate()
 
     def test_contract_has_fragment_complete_filter_and_no_cross_host_timing(self):
         self.assertIn("udp dst port 51002", R.LOCAL_CAPTURE_FILTER)
