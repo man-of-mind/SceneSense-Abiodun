@@ -1,0 +1,183 @@
+{
+  "actor_exports": {
+    "17": {
+      "actor_state_dict_sha256": "b726c34371fa9c7ea8f275cb042c8b1f2d601491c6d81988c3ddff548ded81f1",
+      "actor_tree_sha256": "510d9095d94da3265167fc892e92891a08037fd40d43f600274458de96a2682e",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success"
+      ],
+      "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+      "fixture_outputs_sha256": "cb09e474c5635257d64a2c403dfe24b67b59ba08b9b042132263348e674d1146",
+      "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": false,
+      "runner_binding_sha256": "81c3e3b265477d236d30817ab714f716edf6ce9846d18b7f816a928b9b0173c8",
+      "schema": "splitfusion.run4b.actor_export.v1",
+      "seed": 17,
+      "update": 10000
+    },
+    "29": {
+      "actor_state_dict_sha256": "2a6e0239c8404f47e84578d0db39783c6fe86a7cb71f51ae6b11756d7737c57b",
+      "actor_tree_sha256": "f1d2327861c3777f46c14bf80413ea82e5d43af8cf29a2d912ae7591bcdbdc00",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success"
+      ],
+      "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+      "fixture_outputs_sha256": "9e33f258fe0e19d849338effd13527a2cbb3ead00eba2571f767a04d08e7297a",
+      "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": false,
+      "runner_binding_sha256": "807130e7dad249a2d72505ca4600fff135582aba189ba3cb982fff5f54b6d815",
+      "schema": "splitfusion.run4b.actor_export.v1",
+      "seed": 29,
+      "update": 10000
+    },
+    "43": {
+      "actor_state_dict_sha256": "b4337f000be9acbd16113d0891ed40fdac28c4f0bcb31c5b970a52d901c2ebc2",
+      "actor_tree_sha256": "556bde87330e1bbc81681b997b891ec15bddca40ce6eed06f1b1eee5c23ae40b",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success"
+      ],
+      "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+      "fixture_outputs_sha256": "3fe4b25303661e19fcfe14a589a60e789ed2dec8cd7295f2696e208249f8205b",
+      "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": true,
+      "runner_binding_sha256": "76a7ad0da9cf151f6987b68ab32e55d45083769d8a5f1420ae3a5fe2929182d0",
+      "schema": "splitfusion.run4b.actor_export.v1",
+      "seed": 43,
+      "update": 10000
+    }
+  },
+  "checkpoint_updates": [
+    0,
+    100,
+    250,
+    500,
+    1000,
+    1500,
+    2000,
+    2500,
+    3000,
+    3500,
+    4000,
+    4500,
+    5000,
+    5500,
+    6000,
+    6500,
+    7000,
+    7500,
+    8000,
+    8500,
+    9000,
+    9500,
+    10000
+  ],
+  "code_commit": "a589250f1f53fef4703e5f9993e245fd35137869",
+  "dominance_rule": {
+    "families": [
+      "noAE",
+      "AE128"
+    ],
+    "max_share": 0.5
+  },
+  "exit_codes": null,
+  "finalization_note": "Training processes completed (all three printed update 10000 and their final fingerprints). The original driver's in-process finalization failed before writing any completion record: it never set torch intra-op threads to 4, so the restore guard refused. Fixed in the driver; this separate finalize command re-verified every seed from its bundles and exported the actors. Driver exit codes were not captured.",
+  "finished_unix": 1790825334.3282452,
+  "preregistered_live_actor": {
+    "seed": 43,
+    "update": 10000
+  },
+  "resume_equivalence_sha256": "56189065599413f0ba796a6953561916b8ca57f42f02003f1262b7832314a9e9",
+  "schema": "splitfusion.run4b.campaign.v1",
+  "seed_verification": {
+    "17": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    },
+    "29": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    },
+    "43": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    }
+  },
+  "seeds": [
+    17,
+    29,
+    43
+  ],
+  "smoke_gate_sha256": "29ce7fb70946505f073e923bfb40713634f36394f573ece6be51147520ce84a6",
+  "started_unix": 1790825123.9068358,
+  "status": "COMPLETE",
+  "target_update": 10000
+}
