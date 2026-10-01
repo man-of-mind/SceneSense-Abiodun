@@ -49,6 +49,7 @@ DEFAULT_CONFIG = (LR.ROOT / "rl_agent/configs/"
 LOCAL_RADIO_STATE_BASE = (LR.ROOT / "experiments/"
                           "splitfusion_oai_100mhz_4d5u_v1")
 TRANSMITTED_BUDGET, DECISION_CAP = 40, 1
+GPU_TIMING_TRANSMITTED_BUDGET, GPU_TIMING_DECISION_CAP = 300, 30
 SAFETY_TIMEOUT_S, OUTER_RUNTIME_S = 60.0, 600.0
 REMOTE_START_TIMEOUT_S = 360.0
 REMOTE_ABORT_TIMEOUT_S = 540.0
@@ -62,6 +63,7 @@ if REMOTE_ABORT_TIMEOUT_S <= _require_abort_timeout:
     raise RuntimeError("remote abort SSH timeout does not cover lock plus cleanup")
 LOCAL_CAPTURE_FILTER = RH.CAPTURE_FILTER
 RESULT_NAME = "SPLIT_HOST_ONE_DECISION_RESULT.json"
+GPU_TIMING_RESULT_NAME = "GPU_TIMING_CHARACTERIZATION_RESULT.json"
 PROOF_NAME = "FIRST_REAL_TENSOR_PROOF.json"
 RELEASE_NAME = "REMOTE_TEARDOWN_RELEASE.json"
 ABORT_RELEASE_NAME = "REMOTE_ABORT_RELEASE.json"
@@ -103,6 +105,7 @@ class OneDecisionPlanV1:
     config_path: Path = DEFAULT_CONFIG
     carla_port: int = 2000
     outer_runtime_s: float = OUTER_RUNTIME_S
+    gpu_timing_characterization: bool = False
 
     def validate(self) -> "OneDecisionPlanV1":
         supplied_output = Path(self.output_root)
@@ -123,7 +126,23 @@ class OneDecisionPlanV1:
         _require(1024 <= self.carla_port <= 65535, "CARLA port invalid")
         _require(120 <= float(self.outer_runtime_s) <= OUTER_RUNTIME_S,
                  "outer timeout outside [120,600]")
+        _require(type(self.gpu_timing_characterization) is bool,
+                 "GPU timing characterization selector must be exact bool")
         return self
+
+    @property
+    def decision_cap(self) -> int:
+        return (GPU_TIMING_DECISION_CAP if self.gpu_timing_characterization
+                else DECISION_CAP)
+
+    @property
+    def transmitted_budget(self) -> int:
+        return (GPU_TIMING_TRANSMITTED_BUDGET if self.gpu_timing_characterization
+                else TRANSMITTED_BUDGET)
+
+    @property
+    def result_name(self) -> str:
+        return GPU_TIMING_RESULT_NAME if self.gpu_timing_characterization else RESULT_NAME
 
     @property
     def remote_base(self) -> Path:
@@ -315,12 +334,17 @@ class SystemOpsV1:
         from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_live_runner_v2 as P
         config, cells, _ = LP.offline_preflight(
             plan.config_path, action_ids=(71,), profile_ids=("FAVORABLE_STABLE",),
-            transmitted_budget=TRANSMITTED_BUDGET,
+            transmitted_budget=plan.transmitted_budget,
             safety_timeout_s=SAFETY_TIMEOUT_S, output_root=None)
         _require(len(cells) == 1, "carrier cell count drift")
         selected = cells[0]
         campaign = LP._probe_campaign(config, run_id=plan.run_id)
-        campaign["campaign_id"] = f"splitfusion_run4_phase6_v2/{plan.run_id}"
+        # This value crosses both split-host seams: it becomes the UE GT/map
+        # run_id, while ``remote_start`` passes ``plan.run_id`` to the edge.
+        # Keep one safe atomic identity on both hosts; the single-host Phase-6
+        # namespaced campaign ID contains a slash and is intentionally not a
+        # transport/path-safe split-host identity.
+        campaign["campaign_id"] = plan.run_id
         supervisor._require_phase15_application_cold(campaign)
         cell = supervisor.Cell(
             cell_id=f"run4p6_{plan.run_id}_{selected.cell_id}",
@@ -347,7 +371,7 @@ class SystemOpsV1:
             artifacts_dir=str(attempt / "phase6_artifacts"),
             bindings_json=str(binding_path), carla_port=plan.carla_port,
             map_api_port=35001, spatial_map_port=39310, feedback_port=39401,
-            transmitted_budget=TRANSMITTED_BUDGET,
+            transmitted_budget=plan.transmitted_budget,
             safety_timeout_s=SAFETY_TIMEOUT_S)
         ran = LR.build_local_ran_plan(plan.local_radio_state, root=LR.ROOT,
                                       raw_path=attempt / "ttracer/ue/ue.raw")
@@ -438,12 +462,72 @@ class SystemOpsV1:
                  "local capture did not flush")
         return path
 
-    def context(self, pre: Any, retrieval: Any) -> Any:
+    def context(self, pre: Any, retrieval: Any,
+                decision_cap: int = DECISION_CAP) -> Any:
         return CO.SplitHostPhase6ChildContextV1(
-            prerequisites=pre, retrieval=retrieval, decision_cap=DECISION_CAP)
+            prerequisites=pre, retrieval=retrieval, decision_cap=decision_cap)
 
     def run_child(self, context: Any, prepared: PreparedLocalV1) -> int:
-        return int(context.modules.child.run(prepared.child_args))
+        """Run the CARLA-facing child behind a native-fault boundary."""
+        try:
+            pid = os.fork()
+        except OSError as exc:
+            raise SplitHostOneDecisionError(
+                f"cannot isolate CARLA-facing child: {exc}") from exc
+        if pid == 0:  # pragma: no cover - verified through parent observations
+            code = 125
+            try:
+                os.setsid()
+                code = int(context.modules.child.run(prepared.child_args))
+                if not 0 <= code <= 255:
+                    code = 125
+            except BaseException as exc:
+                try:
+                    os.write(2, (f"isolated phase6 child failed: "
+                                 f"{type(exc).__name__}: {exc}\n").encode(
+                                     "utf-8", "replace"))
+                except BaseException:
+                    pass
+            # The frozen child completed its evidence/cleanup finally block;
+            # bypass delayed CARLA libc++ destruction in this process.
+            os._exit(code)
+
+        try:
+            while True:
+                try:
+                    waited, status = os.waitpid(pid, 0)
+                    break
+                except InterruptedError:
+                    continue
+        except BaseException:
+            try:
+                os.killpg(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            try:
+                os.waitpid(pid, 0)
+            except (ChildProcessError, InterruptedError):
+                pass
+            raise
+        _require(waited == pid, "isolated child wait returned a foreign PID")
+        if os.WIFSIGNALED(status):
+            number = os.WTERMSIG(status)
+            try:
+                name = signal.Signals(number).name
+            except ValueError:
+                name = "UNKNOWN"
+            raise SplitHostOneDecisionError(
+                f"isolated CARLA-facing child terminated by {name} ({number})")
+        _require(os.WIFEXITED(status), "isolated child had no exit status")
+        code = int(os.WEXITSTATUS(status))
+        attempt = Path(prepared.child_args.attempt_dir).resolve(strict=True)
+        sender_final = attempt / CO.LOCAL_GT_FINAL
+        if sender_final.is_file():
+            context.adopt_completed_child_sender_snapshot(attempt)
+        elif code == 0:
+            raise SplitHostOneDecisionError(
+                "successful isolated child omitted sender final evidence")
+        return code
 
     def child_evidence(self, plan: OneDecisionPlanV1) -> tuple[dict, dict]:
         return (_read(plan.local_attempt / "phase6_artifacts/child_result.json"),
@@ -552,6 +636,70 @@ def validate_closed_one_decision(child: Mapping[str, Any],
             "policy_holds": len(holds), "stop_reason": "DECISION_CYCLE_BOUNDARY"}
 
 
+def validate_gpu_timing_characterization(
+        child: Mapping[str, Any], ue: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Validate exactly 30 closed cycles without making a science claim."""
+    _require(child.get("return_code") == 0 and not child.get("error"),
+             "frozen characterization child failed")
+    _require(child.get("stop_reason") == "DECISION_CYCLE_BOUNDARY",
+             "characterization did not stop at a closed decision cycle")
+    collector = child.get("collector")
+    _require(type(collector) is dict and collector.get("collector_cleanup_ok") is True
+             and not collector.get("collector_failures"), "collector did not drain")
+    sent = collector.get("transmitted_frames")
+    _require(type(sent) is int
+             and 2 * GPU_TIMING_DECISION_CAP <= sent <= GPU_TIMING_TRANSMITTED_BUDGET,
+             "30 decisions and their holds exceed or do not fill the frame budget")
+    counters = ue.get("counters")
+    _require(type(counters) is dict
+             and counters.get("policy_decisions") == GPU_TIMING_DECISION_CAP
+             and counters.get("actor_calls") == GPU_TIMING_DECISION_CAP
+             and int(counters.get("policy_holds", 0)) >= GPU_TIMING_DECISION_CAP,
+             "characterization does not contain exactly 30 actor decisions")
+    _require(ue.get("faulted") is None and ue.get("unresolved_tickets_at_close") == 0,
+             "characterization has an unresolved ticket or infrastructure fault")
+    feedback_rows = ue.get("feedback_rows")
+    _require(type(feedback_rows) is list,
+             "characterization feedback evidence is absent")
+    evaluator_faults = [row for row in feedback_rows
+                        if type(row) is dict
+                        and "FAULT" in str(row.get("kind", "")).upper()]
+    _require(not evaluator_faults,
+             "characterization contains evaluator/ground-truth faults")
+    resolutions = ue.get("resolutions")
+    _require(type(resolutions) is list
+             and len(resolutions) == GPU_TIMING_DECISION_CAP,
+             "characterization does not contain 30 terminal resolutions")
+    _require(sum(row.get("reward_requested") is True
+                 for row in ue.get("frames") or ()) == GPU_TIMING_DECISION_CAP,
+             "characterization does not contain 30 reward-requested frames")
+    identities = [row["run4_identity"]
+                  for row in ue.get("transmitted_identities") or ()
+                  if type(row.get("run4_identity")) is dict]
+    decisions = [row for row in identities
+                 if row.get("frame_kind") == "POLICY_DECISION"
+                 and row.get("reward_requested") is True]
+    _require(len(decisions) == GPU_TIMING_DECISION_CAP,
+             "30 transmitted decision identities are absent")
+    keys = [(row.get("session_uuid"), row.get("decision_seq"), row.get("ticket_seq"))
+            for row in decisions]
+    _require(len(set(keys)) == GPU_TIMING_DECISION_CAP,
+             "characterization decision identities are not unique")
+    holds = [row for row in identities if row.get("frame_kind") == "POLICY_HOLD"]
+    _require(all(any((hold.get("session_uuid"), hold.get("decision_seq"),
+                      hold.get("ticket_seq")) == key for hold in holds)
+                 for key in keys),
+             "a characterization decision has no matching hold")
+    return {"policy_decisions": GPU_TIMING_DECISION_CAP,
+            "actor_calls": GPU_TIMING_DECISION_CAP,
+            "resolutions": GPU_TIMING_DECISION_CAP,
+            "unresolved_tickets": 0, "transmitted_frames": sent,
+            "policy_holds": len(holds), "feedback_rows": len(feedback_rows),
+            "evaluator_faults": 0,
+            "stop_reason": "DECISION_CYCLE_BOUNDARY",
+            "scientific_pass": False}
+
+
 class _Alarm:
     def __init__(self, seconds: float) -> None:
         self.seconds, self.previous = float(seconds), None
@@ -577,21 +725,29 @@ class _NoAlarm:
 
 def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
                      watchdog: bool = True) -> Mapping[str, Any]:
-    """Execute one closed policy cycle; preserve primary and cleanup failures."""
+    """Execute the default proof run or explicit non-scientific timing mode."""
     plan, ops = plan.validate(), (ops or SystemOpsV1())
     plan.output_root.mkdir(parents=True, exist_ok=False)
     report: dict[str, Any] = {
         "schema": SCHEMA, "status": "FAILED", "error": "", "cleanup_errors": [],
         "run_id": plan.run_id, "attempt_id": plan.attempt_id,
-        "decision_cap": DECISION_CAP, "transmitted_budget": TRANSMITTED_BUDGET,
+        "decision_cap": plan.decision_cap,
+        "transmitted_budget": plan.transmitted_budget,
         "safety_timeout_s": SAFETY_TIMEOUT_S,
         "policy_deadline_clock": "CLOCK_MONOTONIC_RAW_ON_W10275_ONLY",
         "cross_host_monotonic_comparison_permitted": False,
         "remote_cn_owned": False,
     }
+    if plan.gpu_timing_characterization:
+        report.update(mode="GPU_TIMING_CHARACTERIZATION",
+                      claim="TIMING_CHARACTERIZATION_NOT_QUALIFICATION",
+                      scientific_pass=False,
+                      first_real_tensor_proof_required=False,
+                      first_real_tensor_proof_performed=False)
     prepared = ran = carla = capture = context = None
     remote_start_attempted = remote_held = False
     release_uploaded = remote_stopped = False
+    characterization_validated = False
     uploaded_release: Optional[Path] = None
 
     def cleanup_failure(label: str, exc: BaseException) -> None:
@@ -616,12 +772,20 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
                 remote=remote, source_route=ran.source_route,
                 policy_ownership=ran.policy_ownership).validate()
             carla = ops.start_carla(prepared, plan)
-            capture = ops.start_capture(plan)
-            context = ops.context(pre, prepared.retrieval)
+            if not plan.gpu_timing_characterization:
+                capture = ops.start_capture(plan)
+            context = (ops.context(pre, prepared.retrieval)
+                       if plan.decision_cap == DECISION_CAP else
+                       ops.context(pre, prepared.retrieval, plan.decision_cap))
             context.__enter__()
             rc = ops.run_child(context, prepared)
             child, ue = ops.child_evidence(plan)
             _require(rc == 0, "frozen child returned nonzero")
+            if plan.gpu_timing_characterization:
+                report["gpu_timing_characterization"] = dict(
+                    validate_gpu_timing_characterization(child, ue))
+                characterization_validated = True
+                return report
             report["one_decision"] = dict(validate_closed_one_decision(child, ue))
 
             # Flush both observers while the exact edge is still held. The
@@ -673,7 +837,10 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
                     local_release = plan.output_root / ABORT_RELEASE_NAME
                     _write(local_release, abort)
                     remote_release = ops.upload_release(plan, local_release, True)
-                result = ops.remote_abort(plan, report["error"] or "cleanup failure",
+                reason = ("GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC"
+                          if characterization_validated else
+                          report["error"] or "cleanup failure")
+                result = ops.remote_abort(plan, reason,
                                           connected, remote_release)
                 _require(result.get("status") == "ABORTED_CLEANLY",
                          "remote abort did not clean exact project")
@@ -724,7 +891,10 @@ def run_one_decision(plan: OneDecisionPlanV1, *, ops: Optional[Any] = None,
         if report["cleanup_errors"]:
             if not report["error"]: report["error"] = report["cleanup_errors"][0]
             report["status"] = "FAILED"
-        _write(plan.output_root / RESULT_NAME, report)
+        elif (characterization_validated
+              and report.get("remote_abort_status") == "ABORTED_CLEANLY"):
+            report["status"] = "GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC"
+        _write(plan.output_root / plan.result_name, report)
     return report
 
 
@@ -738,6 +908,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--carla-port", type=int, default=2000)
     parser.add_argument("--outer-runtime-s", type=float, default=OUTER_RUNTIME_S)
+    parser.add_argument("--gpu-timing-characterization", action="store_true")
     parser.add_argument("--execute", default="")
     return parser
 
@@ -747,10 +918,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:  # pragma: no cover
     _require(args.execute == EXECUTE_TOKEN, "execute token absent")
     plan = OneDecisionPlanV1(args.output_root, args.run_id, args.attempt_id,
                              args.remote_host, args.remote_repository, args.config,
-                             args.carla_port, args.outer_runtime_s)
+                             args.carla_port, args.outer_runtime_s,
+                             args.gpu_timing_characterization)
     result = run_one_decision(plan)
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["status"] == "PASS_ONE_DECISION_SPLIT_HOST" else 2
+    return 0 if result["status"] in {
+        "PASS_ONE_DECISION_SPLIT_HOST",
+        "GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC",
+    } else 2
 
 
 if __name__ == "__main__":
@@ -758,9 +933,12 @@ if __name__ == "__main__":
 
 
 __all__ = ["SCHEMA", "EXECUTE_TOKEN", "TRANSMITTED_BUDGET", "DECISION_CAP",
+           "GPU_TIMING_TRANSMITTED_BUDGET", "GPU_TIMING_DECISION_CAP",
+           "GPU_TIMING_RESULT_NAME",
            "SAFETY_TIMEOUT_S", "OUTER_RUNTIME_S", "LOCAL_CAPTURE_FILTER",
            "REMOTE_CN_DIRECTORY", "REMOTE_CN_COMPOSE", "REMOTE_CN_PROJECT",
            "REMOTE_CN_SERVICES", "REMOTE_CORE_RESET_NAME",
            "SplitHostOneDecisionError", "OneDecisionPlanV1", "RemoteCliV1",
-           "SystemOpsV1", "validate_closed_one_decision", "run_one_decision",
+           "SystemOpsV1", "validate_closed_one_decision",
+           "validate_gpu_timing_characterization", "run_one_decision",
            "build_parser", "main"]

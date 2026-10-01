@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from pathlib import Path
+import signal
 from types import SimpleNamespace
 import tempfile
 import unittest
@@ -38,6 +40,35 @@ def child_evidence() -> tuple[dict, dict]:
         "frames": [{"reward_requested": True}, {"reward_requested": False}],
         "transmitted_identities": [
             {"run4_identity": decision}, {"run4_identity": hold}],
+    }
+    return child, ue
+
+
+def timing_evidence() -> tuple[dict, dict]:
+    identities, frames, resolutions = [], [], []
+    for sequence in range(R.GPU_TIMING_DECISION_CAP):
+        common = {"session_uuid": "timing-session", "decision_seq": sequence,
+                  "ticket_seq": sequence, "mode_id": 7, "q_e4": 6799}
+        identities.extend((
+            {"run4_identity": {**common, "frame_kind": "POLICY_DECISION",
+                               "reward_requested": True}},
+            {"run4_identity": {**common, "frame_kind": "POLICY_HOLD",
+                               "reward_requested": False}},
+        ))
+        frames.extend(({"reward_requested": True}, {"reward_requested": False}))
+        resolutions.append({"terminal": "SUCCESS"})
+    child = {
+        "return_code": 0, "error": "", "stop_reason": "DECISION_CYCLE_BOUNDARY",
+        "collector": {"collector_cleanup_ok": True, "collector_failures": [],
+                      "transmitted_frames": len(identities)},
+    }
+    ue = {
+        "counters": {"policy_decisions": R.GPU_TIMING_DECISION_CAP,
+                     "actor_calls": R.GPU_TIMING_DECISION_CAP,
+                     "policy_holds": R.GPU_TIMING_DECISION_CAP},
+        "faulted": None, "unresolved_tickets_at_close": 0,
+        "resolutions": resolutions, "frames": frames,
+        "transmitted_identities": identities, "feedback_rows": [],
     }
     return child, ue
 
@@ -150,7 +181,7 @@ class FakeOps:
             raise RuntimeError("capture cleanup boom")
         return Path("/fake/local.pcap")
 
-    def context(self, _pre, _retrieval):
+    def context(self, _pre, _retrieval, _decision_cap=1):
         self.events.append("context_make")
         self.context_value = FakeContext(self)
         return self.context_value
@@ -294,6 +325,41 @@ class RunnerTests(unittest.TestCase):
         ue["unresolved_tickets_at_close"] = 1
         with self.assertRaisesRegex(R.SplitHostOneDecisionError, "unresolved"):
             R.validate_closed_one_decision(child, ue)
+
+    def test_gpu_timing_mode_uses_30_closed_decisions_and_abort_only(self):
+        class TimingOps(FakeOps):
+            def context(self, pre, retrieval, decision_cap=1):
+                self.seen_decision_cap = decision_cap
+                return super().context(pre, retrieval, decision_cap)
+
+        with tempfile.TemporaryDirectory() as directory:
+            plan = R.OneDecisionPlanV1(
+                Path(directory) / "out", "timing-run", "timing-attempt",
+                gpu_timing_characterization=True)
+            ops = TimingOps()
+            ops.evidence = timing_evidence()
+            result = R.run_one_decision(plan, ops=ops, watchdog=False)
+            persisted = json.loads(
+                (plan.output_root / R.GPU_TIMING_RESULT_NAME).read_text())
+        self.assertEqual(result["status"],
+                         "GPU_TIMING_CHARACTERIZATION_COMPLETE_NON_SCIENTIFIC")
+        self.assertEqual(ops.seen_decision_cap, 30)
+        self.assertEqual(result["transmitted_budget"], 300)
+        self.assertFalse(result["scientific_pass"])
+        self.assertFalse(result["first_real_tensor_proof_performed"])
+        self.assertNotIn("capture_start", ops.events)
+        self.assertNotIn("proof", ops.events)
+        self.assertNotIn("remote_stop", ops.events)
+        self.assertIn("remote_abort:True:True", ops.events)
+        self.assertEqual(persisted["status"], result["status"])
+
+    def test_gpu_timing_cli_is_explicit_and_default_stays_one_decision(self):
+        default = self.plan(Path("/tmp/default-plan"))
+        self.assertEqual((default.decision_cap, default.transmitted_budget), (1, 40))
+        args = R.build_parser().parse_args([
+            "--output-root", "/tmp/explicit-timing", "--run-id", "r",
+            "--attempt-id", "attempt", "--gpu-timing-characterization"])
+        self.assertTrue(args.gpu_timing_characterization)
 
     def test_contract_has_fragment_complete_filter_and_no_cross_host_timing(self):
         self.assertIn("udp dst port 51002", R.LOCAL_CAPTURE_FILTER)
@@ -441,6 +507,101 @@ class RunnerTests(unittest.TestCase):
                          ("ensure", plan.remote_repository, plan.remote_base))
         self.assertEqual(events[1][0:2], ("call", "start"))
         self.assertEqual(events[1][3], R.REMOTE_START_TIMEOUT_S)
+
+    def test_local_campaign_and_remote_edge_share_atomic_run_id(self):
+        source = Path(R.__file__).read_text(encoding="utf-8")
+        self.assertIn('campaign["campaign_id"] = plan.run_id', source)
+        self.assertNotIn(
+            'campaign["campaign_id"] = f"splitfusion_run4_phase6_v2/{plan.run_id}"',
+            source,
+        )
+
+        events = []
+
+        class RemoteSpy:
+            def ensure_attempt_parent(self, *, repository, parent):
+                events.append(("ensure", repository, parent))
+
+            def call(self, operation, args, timeout, *, repository):
+                events.append(("call", operation, tuple(args), timeout, repository))
+                return {"status": "HELD_READY_CAPTURE_ACTIVE"}
+
+        with tempfile.TemporaryDirectory() as directory:
+            plan = self.plan(Path(directory))
+            R.SystemOpsV1(remote=RemoteSpy()).remote_start(plan)
+        remote_args = events[1][2]
+        self.assertEqual(remote_args[remote_args.index("--run-id") + 1], plan.run_id)
+        self.assertRegex(plan.run_id, r"^[A-Za-z0-9_.-]+$")
+
+    @unittest.skipUnless(hasattr(os, "fork"), "requires POSIX child isolation")
+    def test_system_ops_isolates_success_and_adopts_sender_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            attempt = Path(directory) / "attempt"
+            sender_final = attempt / CO.LOCAL_GT_FINAL
+            sender_final.parent.mkdir(parents=True)
+
+            class Child:
+                @staticmethod
+                def run(args):
+                    Path(args.sender_final).write_text(
+                        "{}\n", encoding="utf-8")
+                    return 0
+
+            class Context:
+                modules = SimpleNamespace(child=Child())
+
+                def __init__(self):
+                    self.adopted = None
+
+                def adopt_completed_child_sender_snapshot(self, path):
+                    self.adopted = Path(path)
+
+            context = Context()
+            prepared = SimpleNamespace(child_args=SimpleNamespace(
+                attempt_dir=str(attempt), sender_final=str(sender_final)))
+            code = R.SystemOpsV1.__new__(R.SystemOpsV1).run_child(
+                context, prepared)
+            self.assertEqual(code, 0)
+            self.assertEqual(context.adopted, attempt.resolve())
+            self.assertTrue(sender_final.is_file())
+
+    @unittest.skipUnless(hasattr(os, "fork"), "requires POSIX child isolation")
+    def test_signaled_isolated_child_is_reported_and_parent_cleans_up(self):
+        class AbortOps(FakeOps):
+            def prepare(self, plan):
+                prepared = super().prepare(plan)
+                plan.local_attempt.mkdir(parents=True)
+                prepared.child_args.attempt_dir = str(plan.local_attempt)
+                return prepared
+
+            def context(self, pre, retrieval, decision_cap=1):
+                context = super().context(pre, retrieval, decision_cap)
+
+                class Child:
+                    @staticmethod
+                    def run(_args):
+                        os.kill(os.getpid(), signal.SIGABRT)
+                        return 0
+
+                context.modules = SimpleNamespace(child=Child())
+                return context
+
+            def run_child(self, context, prepared):
+                return R.SystemOpsV1.run_child(self, context, prepared)
+
+        with tempfile.TemporaryDirectory() as directory:
+            plan = self.plan(Path(directory))
+            ops = AbortOps()
+            result = R.run_one_decision(plan, ops=ops, watchdog=False)
+            persisted = json.loads(
+                (plan.output_root / R.RESULT_NAME).read_text(encoding="utf-8"))
+
+        self.assertIn("terminated by SIGABRT", result["error"])
+        self.assertEqual(persisted["status"], "FAILED")
+        self.assertIn("context_close", ops.events)
+        self.assertIn("carla_stop", ops.events)
+        self.assertIn("ran_close", ops.events)
+        self.assertIn("remote_abort:False:False", ops.events)
 
 
 if __name__ == "__main__":

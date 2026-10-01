@@ -627,8 +627,9 @@ class SplitHostPhase6ChildContextV1:
         self.retrieval = retrieval.validate()
         self.modules = modules if modules is not None else _default_modules()
         self.sender_factory = sender_factory
-        _require(decision_cap is None or type(decision_cap) is int and decision_cap == 1,
-                 "bounded split-host decision cap must be exactly one")
+        _require(decision_cap is None or type(decision_cap) is int
+                 and decision_cap in {1, 30},
+                 "bounded split-host decision cap must be one or 30")
         self.decision_cap = decision_cap
         self._saved: list[tuple[Any, str, Any]] = []
         self._saved_endpoint: Optional[dict[str, Any]] = None
@@ -794,6 +795,37 @@ class SplitHostPhase6ChildContextV1:
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("x", encoding="utf-8") as handle:
             handle.write(json.dumps(snapshot, sort_keys=True, indent=2) + "\n")
+        self._sender_snapshot_written = True
+
+    def adopt_completed_child_sender_snapshot(self, attempt_dir: Path) -> None:
+        """Adopt the durable sender close written by an isolated child.
+
+        The one-decision launcher executes the CARLA-facing child in a forked
+        process so CARLA's native client cannot abort the lifecycle owner after
+        the Python child has returned.  The sender itself therefore lives and
+        closes in that process.  Only these three already-durable facts are
+        needed by the parent to construct the proof-bound release or abort:
+        the attempt path, that a connection existed, and that the final sender
+        snapshot was written.
+        """
+        _require(self._installed and not self._closed,
+                 "cannot adopt child state outside an active context")
+        _require(self._sender is None and not self._sender_ever_connected
+                 and not self._sender_snapshot_written,
+                 "parent already owns sender state")
+        root = Path(attempt_dir).resolve(strict=True)
+        target = root / LOCAL_GT_FINAL
+        _require(target.is_file(), "isolated child sender final evidence is absent")
+        try:
+            snapshot = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SplitHostCoordinatorError(
+                "isolated child sender final evidence is malformed") from exc
+        _require(type(snapshot) is dict,
+                 "isolated child sender final evidence is not an object")
+        self._attempt_dir = root
+        self._sender_connected = False
+        self._sender_ever_connected = True
         self._sender_snapshot_written = True
 
     def finalize_radio_tensor_path(
