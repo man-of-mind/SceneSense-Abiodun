@@ -29,6 +29,7 @@ from typing import Any, Mapping, Optional, Protocol, Sequence
 
 from rl_agent.splitfusion_run4_split_host_l10319_v1 import contract as C
 from rl_agent.splitfusion_run4_split_host_l10319_v1 import (
+    local_ran_lifecycle_v1 as LR,
     local_ran_executor_v1 as LX,
     remote_edge_lifecycle_v1 as RE,
     split_host_one_decision_runner_v1 as OLD,
@@ -75,6 +76,12 @@ QUEUE_DEPTH = 64
 MAP_API_PORT = 35001
 MAP_FEEDBACK_PORT = 39401
 SAFETY_TIMEOUT_S = 60.0
+OAI_AUTHORITY_ROOT = Path(
+    "/home/shr_aisvcs/workarea/carla_0_10_env/"
+    "Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/"
+    "abiodun/OAI/openairinterface5g"
+)
+OAI_GITLINK_COMMIT = "7473cdb52e1cf3c40e1e1f189f03b2785bf15610"
 
 
 class ProductionOneFrameError(O.OneFrameEngineeringError):
@@ -402,12 +409,90 @@ class RealProductionOpsV1:
             _require(_sha_file(path) == artifact.sha256,
                      f"local retained artifact hash differs: {path}")
 
+    @staticmethod
+    def _git_object(repository: Path, name: str) -> str:
+        result = subprocess.run(
+            ["git", "-C", str(repository), "rev-parse", name],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, timeout=15.0, check=False)
+        _require(result.returncode == 0,
+                 f"cannot resolve git object {name} in {repository}: "
+                 f"{result.stderr[-600:]}")
+        value = result.stdout.strip()
+        _require(bool(re.fullmatch(r"[0-9a-f]{40}", value)),
+                 f"git object is not exact: {repository}:{name}")
+        return value
+
+    @staticmethod
+    def _mountinfo_path(value: str) -> str:
+        for escaped, decoded in ((r"\134", "\\"), (r"\040", " "),
+                                 (r"\011", "\t"), (r"\012", "\n")):
+            value = value.replace(escaped, decoded)
+        return value
+
+    @classmethod
+    def _require_local_oai_binding(cls, config: O.OneFrameConfigV1) -> None:
+        authority = OAI_AUTHORITY_ROOT.resolve(strict=True)
+        target = (config.local_repository / "OAI/openairinterface5g").resolve(
+            strict=True)
+        expected_target = (config.local_repository.resolve(strict=True)
+                           / "OAI/openairinterface5g")
+        _require(target == expected_target,
+                 "local OAI target resolves away from the moved repository")
+        authority_stat, target_stat = authority.stat(), target.stat()
+        _require((authority_stat.st_dev, authority_stat.st_ino)
+                 == (target_stat.st_dev, target_stat.st_ino),
+                 "local OAI bind target is not the authority inode")
+
+        records: list[list[str]] = []
+        for line in Path("/proc/self/mountinfo").read_text(
+                encoding="utf-8").splitlines():
+            fields = line.split()
+            if (len(fields) >= 10
+                    and cls._mountinfo_path(fields[4]) == str(target)):
+                records.append(fields)
+        _require(len(records) == 1,
+                 "local OAI target is not one exact mountpoint")
+        record = records[0]
+        _require(cls._mountinfo_path(record[3]) == str(authority),
+                 "local OAI bind source differs from authority")
+        _require("ro" in set(record[5].split(",")),
+                 "local OAI bind mount is not read-only")
+        _require(cls._git_object(authority, "HEAD") == OAI_GITLINK_COMMIT,
+                 "OAI authority commit differs")
+        _require(cls._git_object(
+            config.local_repository, "HEAD:OAI/openairinterface5g"
+        ) == OAI_GITLINK_COMMIT, "moved-worktree OAI gitlink differs")
+
+        observed = LR.verify_source_pins(config.local_repository)
+        _require(len(observed) == len(LR.SOURCE_PINS),
+                 "local-RAN source-pin verification is incomplete")
+        for name in ("nr_softmodem", "nr_uesoftmodem",
+                     "tracer_multi", "tracer_record"):
+            pin = next(item for item in LR.SOURCE_PINS if item.name == name)
+            _require(os.access(config.local_repository / pin.relative_path,
+                               os.X_OK),
+                     f"local-RAN executable is not executable: {name}")
+
+        from rl_agent import splitfusion_phase14a_100mhz_calibration_v1 as A
+        audit = A.reconcile_contract(
+            config.local_repository /
+            "rl_agent/configs/splitfusion_phase14a_100mhz_calibration_v1.json",
+            config.local_repository /
+            "rl_agent/configs/splitfusion_phase14a_campaign_binding_v1.json")
+        _require(audit.get("status") == "PHASE14A_CPU_RECONCILIATION_PASSED",
+                 "Phase14a CPU reconciliation did not pass")
+        _require(not (OLD.LOCAL_RADIO_STATE_BASE
+                      / f"split_host_{config.run_id}").exists(),
+                 "local radio state is not create-only")
+
     def preflight(self, config: O.OneFrameConfigV1,
                   actor: F.LoadedFinalActorV2) -> None:
         _require(config.local_repository.is_dir(),
                  "local repository is absent")
         _require(config.route_config.is_file(), "local route config is absent")
         self._require_local_artifacts(config)
+        self._require_local_oai_binding(config)
         plan = build_remote_edge_plan(config, actor)
         _require(not config.local_attempt_root.exists(),
                  "local attempt root is not create-only")
