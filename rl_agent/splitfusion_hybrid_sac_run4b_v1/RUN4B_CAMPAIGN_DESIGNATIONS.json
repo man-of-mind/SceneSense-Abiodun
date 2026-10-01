@@ -1,8 +1,12 @@
 {
   "RUN4B_JOINT_CHANNEL_COMPARATOR_V1": {
+    "code_commit": "7598e4d853aef320a498ba8da5d4b9fdde1f9027",
     "evidence_dir": "rl_agent/splitfusion_hybrid_sac_run4b_v1/evidence_joint_channel_v1",
+    "live_actor_sha256": "643cb7adee66bc7e82665bf5cdbbcead39d6690c7af4fe988bd48be730753c3c",
+    "payload_index": "rl_agent/splitfusion_hybrid_sac_run4b_v1/evidence_joint_channel_v1/PAYLOAD_INDEX.json",
     "registration": "rl_agent/splitfusion_hybrid_sac_run4b_v1/RUN4B_JOINT_CHANNEL_COMPARATOR_V1_REGISTRATION.json",
-    "status": "PREREGISTERED"
+    "run_dir": "rl_agent/experiments/splitfusion_hybrid_sac_run4b_v1/20261001_7598e4d_joint_channel_comparator_v1",
+    "status": "COMPLETE"
   },
   "RUN4B_SNR_FREE_CHANNEL_PILOT": {
     "code_commits": [

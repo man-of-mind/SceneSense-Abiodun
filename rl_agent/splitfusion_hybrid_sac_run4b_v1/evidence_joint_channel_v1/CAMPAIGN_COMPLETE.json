@@ -1,0 +1,188 @@
+{
+  "actor_exports": {
+    "17": {
+      "actor_state_dict_sha256": "b3620a28d9fd95a4c1d69ed9b8deb1dd707cf5650219e61b76f6a7b1e4350230",
+      "actor_tree_sha256": "2d145bf30aaff34d867ba8a5242989a0d153ff6829063a0030c33a96cec2dbd9",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success"
+      ],
+      "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+      "fixture_outputs_sha256": "4d3464e8707f109e2cb33ce13cd500d0127d93120c1e070a0d3276ba386009ab",
+      "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": false,
+      "runner_binding_sha256": "f9fe9ebde00dea8fb0e339eb26cf988351ec6afb8d6ba75069986ac6a01f4c14",
+      "schema": "splitfusion.run4b_joint_channel.actor_export.v1",
+      "seed": 17,
+      "update": 10000
+    },
+    "29": {
+      "actor_state_dict_sha256": "41e123d3ebc49dee610e90743ea939fb49f1656dcb20473ff601c027521c82d9",
+      "actor_tree_sha256": "a4236d04e709ca158c89421b7c85174cf275683626e91646392d05b0c43b7e53",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success"
+      ],
+      "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+      "fixture_outputs_sha256": "4576346edf9739317ea864a74c33b0a0c6cb19fe62153e254b81a055cfbbcbfd",
+      "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": false,
+      "runner_binding_sha256": "b803e70ab7ca924dbacc48666e685ab886e348bf73f2447e0e7b6eb940f5fd07",
+      "schema": "splitfusion.run4b_joint_channel.actor_export.v1",
+      "seed": 29,
+      "update": 10000
+    },
+    "43": {
+      "actor_state_dict_sha256": "643cb7adee66bc7e82665bf5cdbbcead39d6690c7af4fe988bd48be730753c3c",
+      "actor_tree_sha256": "998a519f2f2039b1779c381ce247fbaeeb42f0edd138def75efd66d1932c6fc9",
+      "feature_order": [
+        "camera_si_scaled",
+        "radar_p40",
+        "prior_ul_mcs_normalized",
+        "pre_action_rlc_backlog_log1p_scaled",
+        "prev_joint_mode_0_one_hot",
+        "prev_joint_mode_1_one_hot",
+        "prev_joint_mode_2_one_hot",
+        "prev_joint_mode_3_one_hot",
+        "prev_joint_mode_4_one_hot",
+        "prev_joint_mode_5_one_hot",
+        "prev_joint_mode_6_one_hot",
+        "prev_joint_mode_7_one_hot",
+        "prev_joint_mode_8_one_hot",
+        "prev_joint_mode_9_one_hot",
+        "prev_joint_mode_10_one_hot",
+        "prev_joint_mode_11_one_hot",
+        "prev_q_normalized",
+        "prev_operational_latency_normalized",
+        "prev_present",
+        "prev_operational_success"
+      ],
+      "feature_schema_sha256": "217ed502dfbbd02807e55d9261a38570b04d9f805c67e1ca548c1aa7254a8e0d",
+      "fixture_outputs_sha256": "118060041d337dff32c12f758891cefeabfcb2543db1d64c84c2b20875e7b8a0",
+      "model_binding_sha256": "ed44a5c6c8cef661865ab64fbf821797e35fc072c83d78dd9bee4b28688cf992",
+      "operational_latency_provider_sha256": "3cc1e6e36ae6e4f43dc8110077c62efbf5c719aaa179935b0f6de4c5bb1f6c29",
+      "preregistered_live_actor": true,
+      "runner_binding_sha256": "3c014497ec599d0073e74b28b7ac57b6980b605b98b684c75b96e691ed7fb69f",
+      "schema": "splitfusion.run4b_joint_channel.actor_export.v1",
+      "seed": 43,
+      "update": 10000
+    }
+  },
+  "checkpoint_updates": [
+    0,
+    100,
+    250,
+    500,
+    1000,
+    1500,
+    2000,
+    2500,
+    3000,
+    3500,
+    4000,
+    4500,
+    5000,
+    5500,
+    6000,
+    6500,
+    7000,
+    7500,
+    8000,
+    8500,
+    9000,
+    9500,
+    10000
+  ],
+  "code_commit": "7598e4d853aef320a498ba8da5d4b9fdde1f9027",
+  "dominance_rule": {
+    "families": [
+      "noAE",
+      "AE128"
+    ],
+    "max_share": 0.5
+  },
+  "exit_codes": {
+    "17": 0,
+    "29": 0,
+    "43": 0
+  },
+  "finalization_note": null,
+  "finished_unix": 1790826593.6392605,
+  "preregistered_live_actor": {
+    "seed": 43,
+    "update": 10000
+  },
+  "resume_equivalence_sha256": "5cf2d3cb9142636e2c0f35bef336ae5152ad25580295931da1342f72d37f2dd0",
+  "schema": "splitfusion.run4b.campaign.v1",
+  "seed_verification": {
+    "17": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    },
+    "29": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    },
+    "43": {
+      "all_registered_bundles": true,
+      "decision_accounting": true,
+      "no_dominance_halt": true,
+      "process_final_line_update": true,
+      "restored_fingerprint_equals_process": true
+    }
+  },
+  "seeds": [
+    17,
+    29,
+    43
+  ],
+  "smoke_gate_sha256": "85ed08e3ede280e6c06c4df26de3e3d02a813889a3456f0a6fe783ff02ba5897",
+  "started_unix": 1790826430.7774003,
+  "status": "COMPLETE",
+  "target_update": 10000,
+  "variant": "RUN4B_JOINT_CHANNEL_COMPARATOR_V1"
+}
