@@ -18,6 +18,7 @@ runtime.  Live-only authorities are imported inside :func:`real_factory`.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import signal
@@ -31,6 +32,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 from phase2_map_sharing.transport import ChunkReassembler
 
+from . import b_edge_engineering_request_v2 as Q
 from . import b_edge_process_v1 as E
 from . import b_edge_service_v2 as S
 from . import branch_evidence_v1 as B
@@ -186,24 +188,55 @@ class BuiltRuntimeV2:
         result = self.service.close()
         self._closed = True
         return result
+def _validated_request(encoded: str, *,
+                       find_module: Callable[[str], Any] | None = None,
+                       ) -> dict[str, Any]:
+    """Select one exact schema without weakening either validator."""
+    try:
+        padding = "=" * (-len(encoded) % 4)
+        preview = json.loads(base64.b64decode(
+            encoded + padding, altchars=b"-_", validate=True).decode("ascii"))
+    except (ValueError, UnicodeError, json.JSONDecodeError) as exc:
+        raise BEdgeRuntimeError("runtime request cannot be decoded") from exc
+    _require(type(preview) is dict, "runtime request is not an object")
+    schema = preview.get("schema")
+    if schema == Q.SCHEMA:
+        raw = Q.decode_and_validate(encoded)
+        if find_module is not None:
+            for module in (*E.REQUIRED_AUTHORITIES, E.PROVEN_EDGE_MODULE):
+                _require(find_module(module) is not None,
+                         f"runtime authority is missing: {module}")
+        return raw
+    if schema == E.REQUEST_SCHEMA:
+        if find_module is not None:
+            E.preflight_request(encoded, find_module=find_module)
+        raw = E._validate_request(E._decode_request(encoded))
+        return {**raw,
+                "purpose": "FROZEN_300_FRAME_QUALIFICATION",
+                "claim_scope": "REGISTERED_QUALIFICATION",
+                "transmitted_budget": 300}
+    raise BEdgeRuntimeError("runtime request schema is unknown")
+
 
 
 def runtime_preflight(args: RuntimeArgumentsV2, *,
                       find_module: Callable[[str], Any] = E._find_module,
                       ) -> Mapping[str, Any]:
-    request = E.preflight_request(args.request_b64, find_module=find_module)
+    request = _validated_request(args.request_b64, find_module=find_module)
     _require(Path(args.campaign_config).is_file(),
              "campaign config is absent")
     _require(not Path(args.ready_file).exists(),
              "ready file must be create-only")
-    attempt = Path(E._validate_request(E._decode_request(
-        args.request_b64))["remote_attempt_root"])
+    attempt = Path(request["remote_attempt_root"])
     _require(not attempt.exists(), "remote attempt root must be create-only")
     return {
         "schema": RUNTIME_PREFLIGHT_SCHEMA,
         "run_id": request["run_id"],
         "variant": request["variant"],
         "cell_id": args.cell_id,
+        "purpose": request["purpose"],
+        "claim_scope": request["claim_scope"],
+        "transmitted_budget": request["transmitted_budget"],
         "feature_transport": "UDP_SFD4_CHUNKED",
         "operational_ack_transport": "UDP_COMPACT_ACK",
         "direct_map_transport": "UDP_DIRECT_MAP",
@@ -230,7 +263,7 @@ def _safe_prediction_callback(store: B.PredictionEvidenceStoreV1,
 def build_runtime(args: RuntimeArgumentsV2, authorities: RuntimeAuthoritiesV2,
                   ) -> BuiltRuntimeV2:
     """Construct, bind and warm the real edge without starting worker loops."""
-    request = E._validate_request(E._decode_request(args.request_b64))
+    request = _validated_request(args.request_b64)
     campaign = authorities.load_campaign(Path(args.campaign_config))
     _require(isinstance(campaign, Mapping)
              and isinstance(campaign.get("runtime"), Mapping),
@@ -331,6 +364,9 @@ def build_runtime(args: RuntimeArgumentsV2, authorities: RuntimeAuthoritiesV2,
             "schema": READY_SCHEMA,
             "run_id": request["run_id"], "cell_id": args.cell_id,
             "variant": request["variant"],
+            "purpose": request["purpose"],
+            "claim_scope": request["claim_scope"],
+            "transmitted_budget": request["transmitted_budget"],
             "edge_port": args.edge_port,
             "direct_map_host": args.direct_map_host,
             "direct_map_port": args.direct_map_port,
