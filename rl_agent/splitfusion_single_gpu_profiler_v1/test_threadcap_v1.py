@@ -311,3 +311,42 @@ class ComparatorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FreshnessAnalysisTest(unittest.TestCase):
+    def test_reason_classes(self) -> None:
+        from . import freshness_fallback_analysis_v1 as FA
+
+        rc = FA.Capture.reason_class
+        self.assertEqual(rc(["camera_si is stale (119035738 ns)", "use external fallback"]), "SCENE_STALE")
+        self.assertEqual(rc(["UE_PRIOR_NEW_DATA_UL_MCS_INDEX:STALE:100295329"]), "MCS_STALE")
+        self.assertEqual(rc(["CLOCK_BRIDGE_INVALID_OR_WARMING", "UE_PRIOR_NEW_DATA_UL_MCS_INDEX:MISSING:X"]),
+                         "STARTUP_CLOCK_BRIDGE_WARMING")
+        self.assertEqual(rc(["UE_PRE_ACTION_RLC_BACKLOG_BYTES:MISSING:X"]), "RADIO_MISSING_STEADY_STATE")
+
+    def test_radio_stale_classification_uses_only_rows_received_before_the_boundary(self) -> None:
+        from . import freshness_fallback_analysis_v1 as FA
+
+        boundary = 1_000_000_000
+        late = {"receipt_raw": boundary + 5_000_000, "event_raw": boundary - 20_000_000, "direction": "1", "round": "0"}
+        old = {"receipt_raw": boundary - 150_000_000, "event_raw": boundary - 151_000_000, "direction": "1", "round": "0"}
+        out = FA.classify_radio_stale(boundary, 151_000_000, [old, late], FA.dci_eligible, "prior_ul_mcs")
+        self.assertEqual(out["cause"], "SOURCE_TO_READER_DELAY")
+        self.assertEqual(out["eligible_events_in_window_received_after_boundary"], 1)
+        retx = dict(old, receipt_raw=boundary - 10_000_000, event_raw=boundary - 11_000_000, round="1")
+        out = FA.classify_radio_stale(boundary, 151_000_000, [old, retx], FA.dci_eligible, "prior_ul_mcs")
+        self.assertEqual(out["cause"], "NO_ELIGIBLE_SOURCE_EVENT__ONLY_INELIGIBLE_IN_WINDOW")
+
+    def test_runs_on_the_frozen_capture(self) -> None:
+        from . import freshness_fallback_analysis_v1 as FA
+
+        root = (ROOT / "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/"
+                "20261001T231343Z_run4_profiling_capture_1000")
+        if not root.is_dir():
+            self.skipTest("frozen capture is off Git")
+        result = FA.Capture(root).analyze()
+        self.assertEqual(result["fallback_classes"], {"STARTUP_CLOCK_BRIDGE_WARMING": 2,
+                                                      "SCENE_STALE": 107, "MCS_STALE": 13})
+        self.assertEqual(result["radio_stale"]["stream_agrees_with_provider"], 13)
+        self.assertEqual(result["identity"]["rgb_receipt_equals_collector_trace"],
+                         result["identity"]["frames_checked"])

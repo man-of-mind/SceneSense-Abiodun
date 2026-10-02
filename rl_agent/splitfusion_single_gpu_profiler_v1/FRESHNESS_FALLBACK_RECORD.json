@@ -1,0 +1,43 @@
+{
+ "analysis_dir": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T025556Z_freshness_fallback_analysis",
+ "fix_candidate": "wire the validated bit-exact radar-chain optimization (CUDA rasterizer + single-sort tracker) into the Phase-6 path; measure in its own capture",
+ "inputs": {
+  "A": "20261002T024038Z_threadcap_arm_A_baseline_1000",
+  "B": "20261002T024743Z_threadcap_arm_B_treatment_1000",
+  "frozen": "20261001T231343Z_run4_profiling_capture_1000"
+ },
+ "outputs_sha256": {
+  "FRESHNESS_A.json": "38e9d2a33cf27ad6aacdafd16859ad5a0bb012157b49b8761374f1c1b86584d7",
+  "FRESHNESS_B.json": "03fff860440f79ae6219a24fa2a3912e277553624989a1ce2a98a6cf417dc3cd",
+  "FRESHNESS_frozen.json": "b36c8c2fffd2d41cc4493c73df0a55d175c5086328f61afb1e3c8b7332f2fc06",
+  "SUMMARY.md": "5d200dfa390fab41a463d39a547c8d42262ea0979a9546881c83cfc1da33844b"
+ },
+ "report": "FRESHNESS_FALLBACK_REPORT.md",
+ "schema": "scenesense.single_gpu_profiler.freshness_fallback_record.v1",
+ "summary": {
+  "A": {
+   "fallback_classes": {
+    "MCS_STALE": 12,
+    "SCENE_STALE": 91,
+    "STARTUP_CLOCK_BRIDGE_WARMING": 2
+   },
+   "fallbacks_total": 105
+  },
+  "B": {
+   "fallback_classes": {
+    "MCS_STALE": 3,
+    "SCENE_STALE": 11,
+    "STARTUP_CLOCK_BRIDGE_WARMING": 2
+   },
+   "fallbacks_total": 16
+  },
+  "frozen": {
+   "fallback_classes": {
+    "MCS_STALE": 13,
+    "SCENE_STALE": 107,
+    "STARTUP_CLOCK_BRIDGE_WARMING": 2
+   },
+   "fallbacks_total": 122
+  }
+ }
+}
