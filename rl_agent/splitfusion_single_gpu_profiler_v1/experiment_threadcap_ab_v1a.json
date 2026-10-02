@@ -1,0 +1,207 @@
+{
+ "arms": {
+  "A": {
+   "env": {},
+   "execute_token": "SINGLE_GPU_PROFILER_V1_THREADCAP_AB_ARM_A_EXECUTE",
+   "label": "baseline"
+  },
+  "B": {
+   "env": {
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+   },
+   "execute_token": "SINGLE_GPU_PROFILER_V1_THREADCAP_AB_ARM_B_EXECUTE",
+   "label": "treatment"
+  }
+ },
+ "base_commit": "6199d49a4a6091b5f6fa0be9f94d1c4afd0dff0b",
+ "binds": {
+  "addendum": "qualification_addendum_2.json",
+  "addendum_file_sha256": "6c281f156dc86708b7b65e38a014a3857eb447cac63023ce4cadc43c0aa55457",
+  "qualification_result": "QUALIFICATION_ATTEMPT_3_RESULT.json",
+  "qualification_result_sha256": "98fbe6c964be248dcddd5f700af1ec0cd5ee68071828320faf274fafe91052a7",
+  "qualified_commit": "59f40d13e080bef934da3a96c5dae9565d03ba1b"
+ },
+ "child_module": "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1_threadcap",
+ "experiment_binds": {
+  "actor_replay_A": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T022754Z_threadcap_offline_parity/actor_replay_A.jsonl",
+   "sha256": "9c58e2b06a0e76eee4ebd6ad1114c0bc6e07241805304c6e31dd28f634ed7396"
+  },
+  "actor_replay_B": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T022754Z_threadcap_offline_parity/actor_replay_B.jsonl",
+   "sha256": "a4caca27449c695d29398100c95178a603a121e72b4c25b4514ae42bfeffa41d"
+  },
+  "arm_a_attempt_1_record": {
+   "path": "THREADCAP_ARM_A_ATTEMPT_1_RECORD.json",
+   "sha256": "46565995df7589246486c44c3eef176c97442172e59c0e3ace733e808aad839d"
+  },
+  "baseline_capture_manifest": {
+   "path": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261001T231343Z_run4_profiling_capture_1000/export_v1/MANIFEST.json",
+   "sha256": "5495a6311ce625dbbbaeab5847d24d8d234ca7c357103d800d11c020686f0a02"
+  },
+  "capture_registration": {
+   "path": "capture_run4_1000_v1.json",
+   "sha256": "952cc2f784cd50f26ffc84e039ba225f0a36ff80b3068de73d41bbfc0f873bee"
+  },
+  "frozen_export_record": {
+   "path": "CAPTURE_1000_FROZEN_EXPORT.json",
+   "sha256": "c4e5ba90d62ed74093775c715661923ecff56a06f731e48425b7e9bdcb475ebe"
+  },
+  "joint_review": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_single_gpu_profiling_review_v1/JOINT_REVIEW.json",
+   "sha256": "a01b3a33c118fa7b0fd6e507e3f63a27c2d78155bc5a20a978be8b5a18fbb226"
+  },
+  "offline_parity_result": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T022754Z_threadcap_offline_parity/OFFLINE_PARITY_RESULT.json",
+   "sha256": "159c900d6fd76ce068fc00bfdeee873d2075569280bdffb1b936487eeae23964"
+  },
+  "superseded_registration": {
+   "path": "experiment_threadcap_ab_v1.json",
+   "sha256": "1ba003f788ae3af975cd8c6d150cafaeb06861a1877f0afb0959afbcfa94f919"
+  }
+ },
+ "experiment_checks_reported_not_gated": {
+  "E1_UE_SETTINGS_RECORDED": "pre-import and post-run UE settings snapshots exist",
+  "E2_UE_CAP_STATE_AS_REGISTERED": "B: variables present at exec and every observed OpenMP/MKL/PyTorch pool reports one thread; A: variables absent and pools at their defaults",
+  "E3_SCOPE_OTHER_PROCESSES_BASELINE": "no process outside the UE child carries a cap variable away from its baseline (parent-side /proc inventory)"
+ },
+ "export": "after the gates, export_v1 writes <output_root>/export_v1 (create-only CSV tables + MANIFEST.json with source and export SHA-256); each analysis starts with `export_v1 --verify-only`",
+ "g1_boundary_budget": 1000,
+ "gates": {
+  "G1_FRAME_ACCOUNTING": "exactly 1,000 frames at TRANSMITTED_BUDGET_REACHED, or exactly 999 at a verified DECISION_CYCLE_BOUNDARY (budget 1,000, no decision cap, boundary reached); matching transmission counts, one terminal per sent frame, zero unresolved tickets (the addendum-2 rule at budget 1,000)",
+  "G2_ACTOR_HASH_UNCHANGED": "weights SHA-256 equals the registered value before and after; the live actor's boundary equals the binding; the read-only actor audit passes before and after and is identical",
+  "G3_ZERO_IDENTITY_CONFLICTS": "no profiler record (UE, edge, map) disagrees with the transmitted identity of its frame; no edge/map record names an untransmitted frame; the Phase-6 integration identity checks pass",
+  "G4_COVERAGE_REPORTED": "per-stage coverage, denominators and missing counts are reported for every registered stage",
+  "G5_SAMPLER_REPORTED": "sampler header and footer present; interval P50/P95/max, dropped samples and sampler CPU reported",
+  "G6_NO_PROFILER_INDUCED_FAULT": "child exit 0; Phase-6 P8 (no infrastructure fault); zero edge processing failures; zero profiler write failures, dropped records and internal errors in every process",
+  "G7_INSTRUMENTATION_EVIDENCE_VALID": "every profiler stream has one header and one footer; no duplicate sequence, negative interval, crossed sibling, nesting-registry violation, out-of-parent span or non-monotonic per-thread timestamp; every CUDA span resolved or explicitly marked unresolved",
+  "G8_REWARD_TIMEOUT_SEMANTICS": "every live actor decision replays offline to the identical mode, q_e4, state and head digests; every resolution obeys the inclusive 170-ms deadline and the registered reward formula exactly; every feedback-receipt mark equals the authoritative receipt stamp; Phase-6 P3/P4/P5 pass",
+  "G9_HOST_RESTORED_CLEAN": "Phase-6 cleanup gates pass (tracer, application, CARLA, radio, cold-after); sampler exited with a footer; no profiler, edge, map or child process remains"
+ },
+ "id": "UE_NUMERICAL_THREAD_CAP_AB_V1A",
+ "instrumentation_files": [
+  "__init__.py",
+  "analyze_v1.py",
+  "child_v1.py",
+  "edge_profiled_v1.py",
+  "identity_v1.py",
+  "map_profiled_v1.py",
+  "nvml_v1.py",
+  "recorder_v1.py",
+  "sampler_v1.py",
+  "seams_ue_v1.py",
+  "stages_v1.py"
+ ],
+ "intervention": {
+  "applied": "in the UE child's environment at exec (lifecycle.child_env() + the two variables), before any numerical library initializes",
+  "not_changed": [
+   "inter-op threads",
+   "affinity",
+   "OMP_WAIT_POLICY",
+   "MPS",
+   "precision",
+   "rendering",
+   "radio/channel settings",
+   "queues",
+   "scheduling",
+   "timeouts",
+   "prewarm",
+   "profiler sampling interval"
+  ],
+  "scoped": "the child restores the baseline values (unset) in every process it launches (subprocess.Popen restore, both arms); CARLA, OAI, the sampler and the parent never receive the variables; a parent-side /proc inventory records the cap variables of every role process",
+  "treatment_env_ue_child_only": {
+   "MKL_NUM_THREADS": "1",
+   "OMP_NUM_THREADS": "1"
+  }
+ },
+ "kind": "PROFILING_CAPTURE",
+ "known_limitations": [
+  "the sampler classifies each PID once at first sight, so the edge container process (first seen as its entrypoint shell) is usually never matched: no edge container rows in procs/threads (matched by chance in attempt 3, not in the 1,000-frame capture); retained unchanged in both arms",
+  "one A/B pair: engineering evidence, not causal proof or frame-level replication; trajectories, action mixes and feedback histories differ between arms"
+ ],
+ "lifecycle": {
+  "child_timeout_s": 1800.0,
+  "rationale": "the collector safety timeout is a wall-clock bound on the route loop (live_cell_child, time.monotonic) and also the route's maximum loop sim-seconds; the qualified 300-frame route took ~67 s wall, so 1,000 frames need ~220 s and would stop near frame 540 at the qualification's 120 s. 600 s / 1800 s are bounds only; the 170-ms reward clock, the 2-s edge GT wait and every other timeout are unchanged.",
+  "safety_timeout_s": 600.0
+ },
+ "objective": "Determine whether limiting the UE Python child's numerical thread pool reduces CPU pressure and improves action-open -> quality-feedback latency. The busy-thread/OpenMP mechanism remains a hypothesis; this experiment compares outcomes between two fresh captures and proves no mechanism.",
+ "offline_parity_summary": {
+  "a_vs_b_mismatches": 0,
+  "a_vs_live_mismatches": 0,
+  "actor_inputs": 420,
+  "b_vs_live_mismatches": 0,
+  "parity_tests": {
+   "A": "Ran 22 tests in 17.469s OK",
+   "B": "Ran 22 tests in 17.341s OK"
+  },
+  "tolerances": "existing exact-equality tests, unchanged",
+  "torch_intra_op_threads": {
+   "A": 24,
+   "B": 1
+  }
+ },
+ "order": "A first; if A fails G1-G9 do not run B; if B fails, preserve it and stop",
+ "policy": {
+  "audit_module": "rl_agent.splitfusion_hybrid_sac_checkpoint_sidecar_v1.audit_run4_selected_actor_v1",
+  "binding_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/ACTOR_EXPORT_MANIFEST.json",
+  "expected_weights_sha256": "d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29",
+  "weights_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/actor_state_dict.pt"
+ },
+ "primary_metrics": [
+  "feedback within the inclusive 170 ms / ALL policy decisions",
+  "action-open -> feedback P50/P95/P99 over received feedback, missing feedback counted separately"
+ ],
+ "profiler": {
+  "flush_interval_s": 0.2,
+  "gauge_interval_s": 0.1,
+  "minimum_free_disk_bytes": 1000000000,
+  "sampler_interval_ms": 100.0
+ },
+ "registration_sha256": "6ba1e1ea731b778f8040100533e4415ca6cefe9dccb8d2aa42797846207e1908",
+ "retry": "none; poor timing is a result, not a reason to retry; narrow setup-only wiring errors before frames are sent may be corrected with the failed attempt retained",
+ "runs_per_arm": 1,
+ "schema": "scenesense.single_gpu_profiler.experiment.v1",
+ "secondary_metrics": [
+  "defined-quality successes, undefined-quality exclusions, timeouts, service failures",
+  "fallback counts/reasons, decision/hold counts",
+  "UE CPU, effective threads, host busy, run queue",
+  "SI/P40, sensor preparation, actor, UE codec, uplink, edge and evaluator timings",
+  "GPU utilization, memory, power; frame/map freshness",
+  "profiler overhead and workload differences"
+ ],
+ "semantics": {
+  "act_on_vector": "act_on_vector",
+  "actor_loader": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.frozen_actor_v2:load_registered_actor",
+  "contract_module": "rl_agent.splitfusion_hybrid_sac_run4_v1.run4_contract",
+  "controller_module": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.reward_hold_controller_v2"
+ },
+ "status": "REGISTERED_BEFORE_ARM_A_ATTEMPT_2_AND_ARM_B",
+ "supersedes": {
+  "arm_a_attempt_1": {
+   "id": "20261002T023245Z",
+   "record": "THREADCAP_ARM_A_ATTEMPT_1_RECORD.json",
+   "record_sha256": "46565995df7589246486c44c3eef176c97442172e59c0e3ace733e808aad839d",
+   "status": "preserved; not the baseline arm; timing observed before this amendment"
+  },
+  "reason": "child module renamed so the pinned sampler UE role rule matches the UE child; nothing else changed",
+  "registration": "experiment_threadcap_ab_v1.json",
+  "sha256": "1ba003f788ae3af975cd8c6d150cafaeb06861a1877f0afb0959afbcfa94f919"
+ },
+ "transmitted_budget": 1000,
+ "unchanged": [
+  "original Run-4 seed-43/update-10,000 frozen actor (actor_state_dict.pt SHA-256 d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29)",
+  "21-feature state including previous Q_perc",
+  "CARLA-GT quality evaluator active",
+  "reward formula and exact inclusive 170-ms action-open deadline",
+  "k_min = 2 action hold",
+  "FAVORABLE_STABLE network profile",
+  "Route B, traffic seed, sensor configuration, Epic rendering",
+  "codec, edge model, map path, OAI configuration",
+  "all components on the local RTX 5090; no split-host/L10319 path",
+  "no retraining, no precision change, no rendering reduction, no MPS, no CUDA scheduling change, no timeout change",
+  "existing prewarm procedure",
+  "profiler sampling interval (100 ms)",
+  "the qualified timing instrumentation (files pinned to 59f40d1)"
+ ]
+}

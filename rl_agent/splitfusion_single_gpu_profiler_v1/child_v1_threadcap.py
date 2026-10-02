@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """UE child entry point for the thread-cap experiment (both arms).
 
+The module name keeps ``splitfusion_single_gpu_profiler_v1.child_v1`` as a
+substring on purpose: the pinned sampler classifies the UE process by that
+substring of its command line, and the instrumentation must stay unchanged.
+
 Runs the unchanged profiled child (``child_v1.main``) with the same argv.
 Before it, using only the standard library:
 

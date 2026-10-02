@@ -681,7 +681,8 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
     result.update({"schema": "scenesense.single_gpu_profiler.qualification_result.v1",
                    "qualification_id": qualification["id"], "run_id": run_id,
                    "addendum_2": report.get("addendum_2"),
-                   "claim_scope": qualification["claim_scope"],
+                   "claim_scope": qualification.get("claim_scope")
+                   or qualification.get("objective"),
                    "registration": report.get("registration"),
                    "arm": report.get("arm"),
                    "capture_binding": report.get("capture_binding"),

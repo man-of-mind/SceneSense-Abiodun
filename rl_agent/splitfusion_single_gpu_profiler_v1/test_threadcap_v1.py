@@ -22,7 +22,7 @@ from . import threadcap_v1 as TC
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = Path(__file__).resolve().parent
-EXPERIMENT_PATH = PACKAGE / "experiment_threadcap_ab_v1.json"
+EXPERIMENT_PATH = PACKAGE / "experiment_threadcap_ab_v1a.json"
 
 
 def fresh_python(script: str, *, env: dict | None = None, timeout: float = 300.0) -> str:
@@ -168,7 +168,7 @@ class ChildProcessScopingTest(unittest.TestCase):
             line = fresh_python(f"""
                 import json, os, sys
                 from rl_agent.splitfusion_single_gpu_profiler_v1 import child_v1 as CH
-                from rl_agent.splitfusion_single_gpu_profiler_v1 import threadcap_child_v1 as TCC
+                from rl_agent.splitfusion_single_gpu_profiler_v1 import child_v1_threadcap as TCC
                 seen = []
                 CH.main = lambda args: seen.append(list(args)) or 7
                 argv = ["--attempt-dir", {str(attempt)!r}, "--carla-port", "2000"]
