@@ -49,10 +49,17 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 SCHEMA = "scenesense.single_gpu_profiler.threadcap.v1"
 CAP_VARIABLES = ("OMP_NUM_THREADS", "MKL_NUM_THREADS")
 TREATMENT = {"OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"}
-ARMS: dict[str, dict[str, str]] = {"A": {}, "B": dict(TREATMENT)}
+# A/B: the thread-cap experiment.  C/T: the radar-bundle experiment, both with
+# the UE-only cap retained; T additionally engages the optimized radar bundle.
+ARMS: dict[str, dict[str, str]] = {"A": {}, "B": dict(TREATMENT), "C": dict(TREATMENT),
+                                   "T": dict(TREATMENT)}
+BUNDLES: dict[str, str] = {"A": "production", "B": "production", "C": "production",
+                           "T": "optimized"}
+BUNDLE_SNAPSHOT_ARMS = ("C", "T")      # arms registered after the bundle existed must record it
 ARM_ENV = "SCENESENSE_THREADCAP_ARM"
 RESTORE_ENV = "SCENESENSE_THREADCAP_RESTORE_JSON"
-MARKER_VARIABLES = (ARM_ENV, RESTORE_ENV)
+BUNDLE_ENV = "SCENESENSE_RADAR_BUNDLE"
+MARKER_VARIABLES = (ARM_ENV, RESTORE_ENV, BUNDLE_ENV)
 OBSERVED_VARIABLES = CAP_VARIABLES + (
     "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS", "OMP_WAIT_POLICY", "OMP_PROC_BIND",
     "OMP_PLACES", "OMP_DYNAMIC", "KMP_AFFINITY", "KMP_BLOCKTIME", "GOMP_CPU_AFFINITY",
@@ -95,6 +102,7 @@ def arm_environment(base: Mapping[str, str], arm: str) -> dict[str, str]:
     env.update(ARMS[arm])
     env[ARM_ENV] = arm
     env[RESTORE_ENV] = json.dumps(baseline_values(base), sort_keys=True)
+    env[BUNDLE_ENV] = BUNDLES[arm]
     return env
 
 
@@ -356,6 +364,8 @@ def child_arm() -> tuple[str, dict[str, Optional[str]]]:
         for key, value in restore.items():
             require(os.environ.get(key) == value,
                     f"arm A requires baseline {key}={value!r}; got {os.environ.get(key)!r}")
+    require(os.environ.get(BUNDLE_ENV, BUNDLES[arm]) == BUNDLES[arm],
+            f"arm {arm} requires {BUNDLE_ENV}={BUNDLES[arm]!r}")
     return arm, restore
 
 

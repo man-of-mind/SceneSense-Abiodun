@@ -25,9 +25,42 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 from . import threadcap_v1 as TC
+
+
+def install_bundle_seams(arm: str, attempt_dir: Path) -> None:
+    """Arms whose registered bundle is ``optimized`` get the radar bundle around
+    the profiler's UE seams: packing before them, builder/tracker after them.
+    Production arms record a production snapshot at the same point."""
+    from . import radar_bundle_v1 as RB
+    from . import seams_ue_v1 as SU
+
+    evidence = attempt_dir / "radar_bundle"
+    original = SU.install_ue_seams
+    bundle = TC.BUNDLES[arm]
+
+    def install_ue_seams(rec: Any, *, attempt_dir: Path, policy_identity: Any) -> Any:
+        record = {}
+        if bundle == RB.OPTIMIZED:
+            from rl_agent.splitfusion_live_dispatch_v1 import live_pilot_runtime as live_base
+
+            record = RB.install_packing_short_circuit(live_base)
+        out = original(rec, attempt_dir=attempt_dir, policy_identity=policy_identity)
+        if bundle == RB.OPTIMIZED:
+            from rl_agent import ue_route_b_split_cell_adapter_v1 as pinned
+            from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_ue_runtime_v2 as U
+
+            RB.install_builder_and_tracker(pinned=pinned, phase6_ue=U, evidence_dir=evidence,
+                                           record=record)
+        else:
+            RB.record_production(evidence)
+        rec.note("radar_bundle", bundle=bundle)
+        return out
+
+    install_ue_seams.__wrapped__ = original  # type: ignore[attr-defined]
+    SU.install_ue_seams = install_ue_seams
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:  # pragma: no cover - live
@@ -39,6 +72,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:  # pragma: no cover - liv
     attempt_dir = CH.attempt_dir_from_argv(args)
     TC.require(attempt_dir is not None, "--attempt-dir is required")
     evidence = Path(attempt_dir) / TC.EVIDENCE_LEAF
+    install_bundle_seams(arm, Path(attempt_dir))
     TC.write_snapshot(evidence, TC.settings_snapshot("pre", arm=arm))
     try:
         return CH.main(args)

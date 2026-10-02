@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 from . import threadcap_v1 as TCAP
+from .radar_bundle_v1 import COMPONENTS as RB_COMPONENTS
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "rl_agent/splitfusion_single_gpu_profiler_v1"
@@ -121,7 +122,10 @@ def select_arm(registration: Mapping[str, Any], arm: Optional[str]) -> dict[str,
                                                                            EXECUTE_TOKEN)}
     require(arm in arms, f"--arm must be one of {sorted(arms)}")
     selected = dict(arms[arm])
+    require(str(selected.get("bundle", "production")) == TCAP.BUNDLES[arm],
+            "registered arm bundle differs from threadcap_v1")
     return {"arm": arm, "env": dict(selected.get("env") or {}),
+            "bundle": str(selected.get("bundle", "production")),
             "execute_token": str(selected["execute_token"])}
 
 
@@ -503,17 +507,30 @@ def experiment_checks(*, cell: Path, arm: str, inventory: Optional[Mapping[str, 
     pre = snapshots["pre"] or {}
     env_post = dict(post.get("environment") or {})
     expected = TCAP.ARMS[arm]
+    capped = bool(expected)                     # arms B, C, T carry the UE cap; A does not
     ue_env_ok = (bool(pre) and bool(post)
                  and all((pre.get("environment") or {}).get(k) == v for k, v in expected.items())
                  and all(env_post.get(k) == v for k, v in expected.items())
-                 and (arm == "B" or all(env_post.get(k) is None for k in TCAP.CAP_VARIABLES)))
+                 and (capped or all(env_post.get(k) is None for k in TCAP.CAP_VARIABLES)))
     cap_state = post.get("cap_effective")
-    e2 = ue_env_ok and (cap_state is True if arm == "B" else cap_state is False)
+    e2 = ue_env_ok and (cap_state is True if capped else cap_state is False)
+    bundle_path = Path(cell) / "radar_bundle" / "RADAR_BUNDLE.json"
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8")) if bundle_path.is_file() else None
+    expected_bundle = TCAP.BUNDLES[arm]
+    if arm in TCAP.BUNDLE_SNAPSHOT_ARMS:
+        e4 = (bundle is not None and bundle.get("bundle") == expected_bundle
+              and (expected_bundle != "optimized"
+                   or (list(bundle.get("components") or []) == list(RB_COMPONENTS)
+                       and bundle.get("tracker") == "SingleSortStationaryTrackAccumulator")))
+    else:                                  # thread-cap arms predate the bundle: production only
+        e4 = bundle is None or bundle.get("bundle") == "production"
     checks = {"E1_UE_SETTINGS_RECORDED": bool(pre) and bool(post),
               "E2_UE_CAP_STATE_AS_REGISTERED": bool(e2),
-              "E3_SCOPE_OTHER_PROCESSES_BASELINE": bool(inventory and inventory.get("scope_ok"))}
+              "E3_SCOPE_OTHER_PROCESSES_BASELINE": bool(inventory and inventory.get("scope_ok")),
+              "E4_RADAR_BUNDLE_AS_REGISTERED": bool(e4)}
     torch = post.get("torch") if isinstance(post.get("torch"), Mapping) else {}
     return {"arm": arm, "checks": checks, "all_passed": all(checks.values()),
+            "radar_bundle": bundle,
             "effective": {"torch_intra_op_threads": torch.get("intra_op_threads"),
                           "torch_inter_op_threads": torch.get("inter_op_threads"),
                           "openmp_max_threads": post.get("openmp_max_threads"),

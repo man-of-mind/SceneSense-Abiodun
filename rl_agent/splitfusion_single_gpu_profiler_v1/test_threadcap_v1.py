@@ -51,7 +51,7 @@ class ArmEnvironmentTest(unittest.TestCase):
         self.assertEqual(added, {"OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"})
         self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "0")
         with self.assertRaises(TC.ThreadCapError):
-            TC.arm_environment(base, "C")
+            TC.arm_environment(base, "Z")
 
     def test_lifecycle_proxy_changes_only_the_ue_child_env(self) -> None:
         module = SimpleNamespace(child_env=lambda: {"PATH": "/bin", "PYTHONPATH_REMOVED": "1"},
