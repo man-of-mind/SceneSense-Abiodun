@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -35,6 +36,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
+from . import threadcap_v1 as TCAP
+
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "rl_agent/splitfusion_single_gpu_profiler_v1"
 QUALIFICATION_PATH = Path(__file__).resolve().with_name("qualification_run4_300_v1.json")
@@ -42,7 +45,8 @@ ADDENDUM_2_PATH = Path(__file__).resolve().with_name("qualification_addendum_2.j
 CAPTURE_PATH = Path(__file__).resolve().with_name("capture_run4_1000_v1.json")
 ATTEMPT_3_RESULT_PATH = Path(__file__).resolve().with_name("QUALIFICATION_ATTEMPT_3_RESULT.json")
 REGISTRATION_SCHEMAS = ("scenesense.single_gpu_profiler.qualification.v1",
-                        "scenesense.single_gpu_profiler.capture.v1")
+                        "scenesense.single_gpu_profiler.capture.v1",
+                        "scenesense.single_gpu_profiler.experiment.v1")
 EXECUTE_TOKEN = "SINGLE_GPU_PROFILER_V1_RUN4_INSTRUMENTATION_QUALIFICATION_300_EXECUTE"
 CHILD_MODULE = "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1"
 SAMPLER_MODULE = "rl_agent.splitfusion_single_gpu_profiler_v1.sampler_v1"
@@ -87,7 +91,38 @@ def verify_addendum_2(path: Path = ADDENDUM_2_PATH) -> dict[str, Any]:
 def load_qualification(path: Path = QUALIFICATION_PATH) -> dict[str, Any]:
     document = json.loads(Path(path).read_text(encoding="utf-8"))
     require(document.get("schema") in REGISTRATION_SCHEMAS, "foreign registration document")
+    if "registration_sha256" in document:          # sealed experiment registration
+        body = {k: v for k, v in document.items() if k != "registration_sha256"}
+        require(canonical_sha256(body) == document["registration_sha256"],
+                "experiment registration seal broken")
     return document
+
+
+def verify_experiment_binding(registration: Mapping[str, Any]) -> dict[str, Any]:
+    """An experiment registration also pins its offline parity evidence and inputs."""
+    here = Path(__file__).resolve().parent
+    out = {}
+    for name, entry in (registration.get("experiment_binds") or {}).items():
+        path = Path(entry["path"])
+        if not path.is_absolute():
+            path = (here / path) if (here / path).exists() else (ROOT / path)
+        require(path.is_file(), f"experiment-bound {name} missing: {path}")
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        require(digest == entry["sha256"], f"experiment-bound {name} drifted")
+        out[name] = digest
+    return out
+
+
+def select_arm(registration: Mapping[str, Any], arm: Optional[str]) -> dict[str, Any]:
+    arms = registration.get("arms")
+    if not arms:
+        require(arm is None, "this registration has no arms")
+        return {"arm": None, "env": {}, "execute_token": registration.get("execute_token",
+                                                                           EXECUTE_TOKEN)}
+    require(arm in arms, f"--arm must be one of {sorted(arms)}")
+    selected = dict(arms[arm])
+    return {"arm": arm, "env": dict(selected.get("env") or {}),
+            "execute_token": str(selected["execute_token"])}
 
 
 def verify_capture_binding(capture: Mapping[str, Any]) -> dict[str, Any]:
@@ -232,9 +267,13 @@ def preflight(config_path: Path, *, output_root: Path, transmitted_budget: int,
               "addendum_2": verify_addendum_2(),
               "capture_binding": (verify_capture_binding(qualification)
                                   if "binds" in qualification else None),
+              "experiment_binding": (verify_experiment_binding(qualification)
+                                     if "experiment_binds" in qualification else None),
+              "child_module": str(qualification.get("child_module", CHILD_MODULE)),
               "phase6": phase6, "profiler": profiler_preflight(qualification,
                                                                output_root=output_root),
-              "launcher_root": str(launcher_root(config)), "child_module": CHILD_MODULE}
+              "launcher_root": str(launcher_root(config))}
+    importlib.import_module(report["child_module"])          # importable before any launch
     return config, cells, report, qualification
 
 
@@ -445,6 +484,48 @@ def g1_frame_accounting(*, child: Mapping[str, Any], timing: Mapping[str, Any],
             "passed": branch is not None and all(checks.values())}
 
 
+def experiment_checks(*, cell: Path, arm: str, inventory: Optional[Mapping[str, Any]]
+                      ) -> dict[str, Any]:
+    """Thread-cap experiment evidence (reported beside G1-G9, not a capture gate).
+
+    E1: both UE settings snapshots exist;  E2: the UE child saw the arm's
+    variables and, for B, every observed OpenMP/MKL/PyTorch pool reports one
+    thread (for A the variables are absent);  E3: no process outside the UE child
+    carried a cap variable away from its baseline value.
+    """
+    leaf = Path(cell) / TCAP.EVIDENCE_LEAF
+    snapshots = {}
+    for stage in ("PRE", "POST"):
+        path = leaf / TCAP.UE_SETTINGS_NAME.format(stage=stage)
+        snapshots[stage.lower()] = (json.loads(path.read_text(encoding="utf-8"))
+                                    if path.is_file() else None)
+    post = snapshots["post"] or {}
+    pre = snapshots["pre"] or {}
+    env_post = dict(post.get("environment") or {})
+    expected = TCAP.ARMS[arm]
+    ue_env_ok = (bool(pre) and bool(post)
+                 and all((pre.get("environment") or {}).get(k) == v for k, v in expected.items())
+                 and all(env_post.get(k) == v for k, v in expected.items())
+                 and (arm == "B" or all(env_post.get(k) is None for k in TCAP.CAP_VARIABLES)))
+    cap_state = post.get("cap_effective")
+    e2 = ue_env_ok and (cap_state is True if arm == "B" else cap_state is False)
+    checks = {"E1_UE_SETTINGS_RECORDED": bool(pre) and bool(post),
+              "E2_UE_CAP_STATE_AS_REGISTERED": bool(e2),
+              "E3_SCOPE_OTHER_PROCESSES_BASELINE": bool(inventory and inventory.get("scope_ok"))}
+    torch = post.get("torch") if isinstance(post.get("torch"), Mapping) else {}
+    return {"arm": arm, "checks": checks, "all_passed": all(checks.values()),
+            "effective": {"torch_intra_op_threads": torch.get("intra_op_threads"),
+                          "torch_inter_op_threads": torch.get("inter_op_threads"),
+                          "openmp_max_threads": post.get("openmp_max_threads"),
+                          "threadpools": post.get("threadpools"),
+                          "cv2": post.get("cv2"), "cap_effective": cap_state,
+                          "ue_environment": env_post,
+                          "launch_restore": post.get("launch_restore"),
+                          "numerical_libraries_loaded": post.get("numerical_libraries_loaded"),
+                          "affinity_cpus": post.get("affinity_cpus")},
+            "inventory": inventory}
+
+
 def _profiler_clean(row: Mapping[str, Any]) -> bool:
     counters = dict(row.get("counters") or {})
     return (row.get("footer_present", True) is not False
@@ -492,6 +573,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
 
     from . import analyze_v1 as AN
     from . import recorder_v1 as RV
+    from . import sampler_v1 as SA
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight", action="store_true")
@@ -499,6 +581,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
     parser.add_argument("--config", type=Path, default=R.DEFAULT_CONFIG)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--registration", type=Path, default=QUALIFICATION_PATH)
+    parser.add_argument("--arm", default=None, help="experiment arm (registrations with arms)")
     parser.add_argument("--transmitted-budget", type=int, default=None)
     parser.add_argument("--safety-timeout-s", type=float, default=120.0)
     parser.add_argument("--child-timeout-s", type=float, default=1200.0)
@@ -512,7 +595,8 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
     if lifecycle:                         # registered bounds; no ad-hoc override
         args.safety_timeout_s = float(lifecycle["safety_timeout_s"])
         args.child_timeout_s = float(lifecycle["child_timeout_s"])
-    execute_token = str(registration.get("execute_token", EXECUTE_TOKEN))
+    arm = select_arm(registration, args.arm)
+    execute_token = str(arm["execute_token"])
     boundary_budget = int(registration.get("g1_boundary_budget", G1_BOUNDARY_BUDGET))
     config, cells, report, qualification = preflight(
         args.config.resolve(strict=True), output_root=output_root,
@@ -522,6 +606,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
                            "safety_timeout_s": float(args.safety_timeout_s),
                            "child_timeout_s": float(args.child_timeout_s),
                            "g1_boundary_budget": boundary_budget}
+    report["arm"] = {"arm": arm["arm"], "ue_child_env_additions": arm["env"],
+                     "parent_env_cap_variables": {k: os.environ.get(k)
+                                                  for k in TCAP.CAP_VARIABLES}}
     if args.preflight:
         print(json.dumps(report, sort_keys=True, indent=1, default=str))
         print("SINGLE_GPU_PROFILER_V1_PREFLIGHT_PASS")
@@ -535,7 +622,14 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
     write_create_only(output_root / "PROFILER_CONFIG.json", profile_config)
     audits = {"before": run_audit(qualification["policy"]["audit_module"],
                                   output_root / "ACTOR_AUDIT_BEFORE.json")}
-    R.CHILD_MODULE = CHILD_MODULE
+    R.CHILD_MODULE = report["child_module"]
+    inventory = None
+    if arm["arm"] is not None:
+        require(arm["env"] == TCAP.ARMS[arm["arm"]], "registered arm env differs from threadcap_v1")
+        TCAP.install_lifecycle_arm(SUP, arm["arm"])
+        inventory = TCAP.ProcessEnvironmentInventory(
+            output_root / TCAP.EVIDENCE_LEAF / TCAP.INVENTORY_NAME, root_pid=os.getpid(),
+            baseline=TCAP.baseline_values(os.environ), classify=SA.classify).start()
     if not hasattr(SUP._live_radio_state, "original"):
         SUP._live_radio_state = anchored_live_radio_state(SUP, launcher_root(config))
     sampler = None
@@ -550,6 +644,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
         time.sleep(3.0)                       # post-teardown samples
     finally:
         sampler_stop = stop_sampler(sampler)
+        inventory_summary = None if inventory is None else inventory.stop()
     audits["after"] = run_audit(qualification["policy"]["audit_module"],
                                 output_root / "ACTOR_AUDIT_AFTER.json")
     leftovers = leftover_processes()
@@ -578,6 +673,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
                             sampler_stop=sampler_stop, leftovers=leftovers,
                             transmitted_budget=int(args.transmitted_budget),
                             boundary_budget=boundary_budget)
+    if arm["arm"] is not None:
+        result["threadcap"] = experiment_checks(cell=cell, arm=arm["arm"],
+                                                inventory=inventory_summary)
     if qualification.get("kind") == "PROFILING_CAPTURE":
         result["verdict"] = "CAPTURE_VALID" if result["passed"] else "CAPTURE_INVALID"
     result.update({"schema": "scenesense.single_gpu_profiler.qualification_result.v1",
@@ -585,7 +683,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
                    "addendum_2": report.get("addendum_2"),
                    "claim_scope": qualification["claim_scope"],
                    "registration": report.get("registration"),
+                   "arm": report.get("arm"),
                    "capture_binding": report.get("capture_binding"),
+                   "experiment_binding": report.get("experiment_binding"),
                    "lifecycle": report.get("lifecycle"),
                    "not_a_profiling_baseline": qualification.get("not_a_profiling_baseline"),
                    "sampler_stop": sampler_stop, "leftover_processes": leftovers,
@@ -608,6 +708,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # pragma: no cover - live
     write_create_only(output_root / "QUALIFICATION_RESULT.json", result)
     print(json.dumps({"verdict": result["verdict"], "gates": result["gates"],
                       "phase6": result["phase6_report_only"]["status"],
+                      "threadcap": (result.get("threadcap") or {}).get("checks"),
                       "errors": errors}, sort_keys=True, indent=1, default=str))
     return 0 if result["passed"] else 1
 
