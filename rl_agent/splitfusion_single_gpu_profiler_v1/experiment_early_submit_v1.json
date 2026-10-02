@@ -1,0 +1,233 @@
+{
+ "approved_task": "Submit each reward-requested frame to the existing asynchronous evaluator as soon as its prediction records, CPU-accessible labels and verified identities are ready, before map-update construction/publication. Then build and publish the map update normally. Neither branch waits for the other. One ordering change, not a new evaluator, queue or GPU optimization.",
+ "arms": {
+  "C2": {
+   "bundle": "production",
+   "env": {
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+   },
+   "execute_token": "SINGLE_GPU_PROFILER_V1_EARLY_SUBMIT_ARM_C2_EXECUTE",
+   "label": "control: UE cap on, production radar path, current ordering (compute -> map build -> publish -> evaluator submit)",
+   "ordering": "serial"
+  },
+  "E": {
+   "bundle": "production",
+   "env": {
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+   },
+   "execute_token": "SINGLE_GPU_PROFILER_V1_EARLY_SUBMIT_ARM_E_EXECUTE",
+   "label": "treatment: UE cap on, production radar path, early ordering (compute -> evaluator submit -> map build -> publish)",
+   "ordering": "early"
+  }
+ },
+ "base_commit": "6199d49a4a6091b5f6fa0be9f94d1c4afd0dff0b",
+ "binds": {
+  "addendum": "qualification_addendum_2.json",
+  "addendum_file_sha256": "6c281f156dc86708b7b65e38a014a3857eb447cac63023ce4cadc43c0aa55457",
+  "qualification_result": "QUALIFICATION_ATTEMPT_3_RESULT.json",
+  "qualification_result_sha256": "98fbe6c964be248dcddd5f700af1ec0cd5ee68071828320faf274fafe91052a7",
+  "qualified_commit": "59f40d13e080bef934da3a96c5dae9565d03ba1b"
+ },
+ "child_module": "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1_threadcap",
+ "decision_rule": "retain / reject / inconclusive on the primary metric with the ~4-pt run-to-run spread seen between same-configuration captures (B 75.2%, C 71.4%) as context, not as a noise band; mechanism evidence must show the submission actually moved earlier; any regression in map freshness/outcomes or service failures weighs against retention",
+ "experiment_binds": {
+  "child_entry": {
+   "path": "child_v1_threadcap.py",
+   "sha256": "8ed22d339210436e5068080c1632f6596dd34e130ed4b4b7f39391b8dfc66ce4"
+  },
+  "control_reference_manifest_C": {
+   "path": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T032922Z_radar_bundle_arm_C_control_1000/export_v1/MANIFEST.json",
+   "sha256": "1e1fe4b8a8cf484ed480e20c5c33eb9c9ba42613736d33144db705a07d81ac0d"
+  },
+  "decision_memo": {
+   "path": "BOTTLENECK_DECISION_MEMO_V1.md",
+   "sha256": "80e26375bfdc99e9058b9c5730b8b6c8104602cc9590ce589e0a10424550213b"
+  },
+  "early_submit_tests": {
+   "path": "test_early_submit_v1.py",
+   "sha256": "e039ab8c34685ca7b40c4c1b33189637ddaddd7028c9b639d43c9f397e3d9b2a"
+  },
+  "early_submit_tests_gpu_visible_log": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T042519Z_early_submit_offline_tests/early_submit_tests_gpu_visible.log",
+   "sha256": "98359827c2ccab12ee597a1c66cdfc238e26c37e8996380da535509e75e590de"
+  },
+  "edge_ordering_entry": {
+   "path": "edge_profiled_v1_ordering.py",
+   "sha256": "3ce793e0bc980832b028d2bb63ea4c4725f0eb29b3ea19542b9ff379e06281ad"
+  },
+  "edge_ordering_module": {
+   "path": "edge_ordering_v1.py",
+   "sha256": "f7c83c4a2c42bc5d9c38fe858d3aeaf1e01a8331bb3952d603b7e7c2802f75e7"
+  },
+  "freshness_fallback_record": {
+   "path": "FRESHNESS_FALLBACK_RECORD.json",
+   "sha256": "413f938424065c5f7d69c06eb2aecb7f0f04142ff2eb6059c2a8384847ef0577"
+  },
+  "mechanism_comparator": {
+   "path": "compare_ordering_mechanism_v1.py",
+   "sha256": "20559ffea7d4387d49955a04eeee6a233380b6d11553cd7d8efa3b4c776a9b8a"
+  },
+  "phase6_package_tests_log": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T042519Z_early_submit_offline_tests/phase6_package_tests.log",
+   "sha256": "5a398d8abdf5c1778470a2687c41449adb0fd0007250ed6edbb5cdb79bdfbc9b"
+  },
+  "profiler_package_tests_log": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T042519Z_early_submit_offline_tests/profiler_package_tests.log",
+   "sha256": "1f7a93f410f790a252166938742759af3898c1d7c2d50549b04ffb72bc04a849"
+  },
+  "radar_bundle_result": {
+   "path": "RADAR_BUNDLE_CT_RESULT.json",
+   "sha256": "840c0cf8159330afc0a9a0c47ef3d2a9da73012f894d39e4316c21ea92f489d2"
+  },
+  "runner_module": {
+   "path": "runner_v1.py",
+   "sha256": "db488b99c82b756f9d64a3a218477d9079e5b0efa76e277152acf300f6179ab4"
+  },
+  "threadcap_ab_result": {
+   "path": "THREADCAP_AB_RESULT.json",
+   "sha256": "c355311fd0d1faa50b6ab8425f02dde4922761f137f1443ab2321b2af2c87b38"
+  },
+  "threadcap_module": {
+   "path": "threadcap_v1.py",
+   "sha256": "cf1cdc6e6c2dff5c87fc1407c643a928de96cfcc81c116045561527f728ef377"
+  }
+ },
+ "experiment_checks_reported_not_gated": {
+  "E1_UE_SETTINGS_RECORDED": "pre-import and post-run UE settings snapshots exist",
+  "E2_UE_CAP_STATE_AS_REGISTERED": "B: variables present at exec and every observed OpenMP/MKL/PyTorch pool reports one thread; A: variables absent and pools at their defaults",
+  "E3_SCOPE_OTHER_PROCESSES_BASELINE": "no process outside the UE child carries a cap variable away from its baseline (parent-side /proc inventory)",
+  "E4_RADAR_BUNDLE_AS_REGISTERED": "the UE child recorded bundle=production (both arms)",
+  "E5_EDGE_ORDERING_AS_REGISTERED": "EDGE_ORDERING.json in the edge profiler leaf records the registered ordering; treatment: early_submissions == evaluator.submitted, loop evaluations_submitted == 0, zero early_submit_errors, zero live-gate rejections; control: zero early submissions and loop == evaluator.submitted"
+ },
+ "export": "after the gates, export_v1 writes <output_root>/export_v1 (create-only CSV tables + MANIFEST.json with source and export SHA-256); each analysis starts with `export_v1 --verify-only`",
+ "g1_boundary_budget": 1000,
+ "gates": {
+  "G1_FRAME_ACCOUNTING": "exactly 1,000 frames at TRANSMITTED_BUDGET_REACHED, or exactly 999 at a verified DECISION_CYCLE_BOUNDARY (budget 1,000, no decision cap, boundary reached); matching transmission counts, one terminal per sent frame, zero unresolved tickets (the addendum-2 rule at budget 1,000)",
+  "G2_ACTOR_HASH_UNCHANGED": "weights SHA-256 equals the registered value before and after; the live actor's boundary equals the binding; the read-only actor audit passes before and after and is identical",
+  "G3_ZERO_IDENTITY_CONFLICTS": "no profiler record (UE, edge, map) disagrees with the transmitted identity of its frame; no edge/map record names an untransmitted frame; the Phase-6 integration identity checks pass",
+  "G4_COVERAGE_REPORTED": "per-stage coverage, denominators and missing counts are reported for every registered stage",
+  "G5_SAMPLER_REPORTED": "sampler header and footer present; interval P50/P95/max, dropped samples and sampler CPU reported",
+  "G6_NO_PROFILER_INDUCED_FAULT": "child exit 0; Phase-6 P8 (no infrastructure fault); zero edge processing failures; zero profiler write failures, dropped records and internal errors in every process",
+  "G7_INSTRUMENTATION_EVIDENCE_VALID": "every profiler stream has one header and one footer; no duplicate sequence, negative interval, crossed sibling, nesting-registry violation, out-of-parent span or non-monotonic per-thread timestamp; every CUDA span resolved or explicitly marked unresolved",
+  "G8_REWARD_TIMEOUT_SEMANTICS": "every live actor decision replays offline to the identical mode, q_e4, state and head digests; every resolution obeys the inclusive 170-ms deadline and the registered reward formula exactly; every feedback-receipt mark equals the authoritative receipt stamp; Phase-6 P3/P4/P5 pass",
+  "G9_HOST_RESTORED_CLEAN": "Phase-6 cleanup gates pass (tracer, application, CARLA, radio, cold-after); sampler exited with a footer; no profiler, edge, map or child process remains"
+ },
+ "id": "EDGE_EVALUATOR_SUBMIT_BEFORE_MAP_C2E_V1",
+ "instrumentation_files": [
+  "__init__.py",
+  "analyze_v1.py",
+  "child_v1.py",
+  "edge_profiled_v1.py",
+  "identity_v1.py",
+  "map_profiled_v1.py",
+  "nvml_v1.py",
+  "recorder_v1.py",
+  "sampler_v1.py",
+  "seams_ue_v1.py",
+  "stages_v1.py"
+ ],
+ "intervention": {
+  "changed_files": {
+   "modified": [
+    "threadcap_v1.py (arms C2/E, ORDERINGS, ORDERING_ARMS)",
+    "child_v1_threadcap.py (ordering route + ordering config file for ORDERING_ARMS)",
+    "runner_v1.py (arm ordering consistency, E5 ordering evidence, historical-bind verification at a launch commit for completed experiments)",
+    "test_radar_bundle_v1.py (verifies the completed radar-bundle registration's source binds at its launch commit 74d1e95)"
+   ],
+   "new": [
+    "edge_ordering_v1.py",
+    "edge_profiled_v1_ordering.py",
+    "test_early_submit_v1.py",
+    "compare_ordering_mechanism_v1.py"
+   ]
+  },
+  "early_ordering_mechanism": "a subclass of the profiled Run4EdgeProcessorV2 wraps the (already edge.compute-span-wrapped) compute callable: after it returns the materialized records list and numpy labels, and only for reward_requested envelopes after the service has published READY, it constructs the identical EvaluationTicketV2 (same envelope, context, gt_identity from the verified identities; records as bounded dict copies) and calls the live evaluator's submit (put_nowait); the base process then builds the map update exactly as before and the returned ProcessedFrameV2 carries evaluation=None so the unchanged process loop cannot submit a second time",
+  "exactly_once": "per-frame identity key set in the processor; prewarm frames are reward_requested=False and the live gate is closed until publish_ready_after_warmup; holds/fallbacks have no reward request; E5 cross-checks early_submissions == evaluator.submitted and loop evaluations_submitted == 0 (treatment) or early == 0 and loop == evaluator.submitted (control)",
+  "failure_accounting": "map-build/publish failures raise/count where they do today (edge_processing_failed, publisher counters); quality feedback is not treated as proof of map installation; map outcomes come from the map server as before",
+  "non_blocking": "submit is put_nowait; queue-full emits the infrastructure-fault feedback synchronously exactly as today; exceptions from the early path are counted (early_submit_errors), noted in the profiler and never stop the map update",
+  "not_changed": [
+   "UE child, actor, 21-D state, reward, inclusive 170-ms action-open deadline, k_min = 2, holds, 100-ms freshness limits, latest-frame admission",
+   "production CPU radar path (bundle disabled; the radar bundle is rejected for retention)",
+   "codec, precision, OAI, rendering, MPS, route, seeds, channel, prewarm",
+   "the qualified timing instrumentation (files pinned to 59f40d1) and sampling",
+   "UE-child OMP_NUM_THREADS=1 and MKL_NUM_THREADS=1 (both arms)",
+   "map update content, bytes and publication path"
+  ],
+  "ownership": "ticket records are copies; build_run4_map_update copies again; labels are read-only in both consumers; tests assert no mutation in both evaluator-first and map-first completion orders",
+  "where": "edge container only (edge_profiled_v1_ordering entry = the pinned edge_profiled_v1 main plus edge_ordering_v1 seams installed after the profiler's); both arms run this entry so the only difference is the ordering file the UE child writes into the edge scratch profiler leaf"
+ },
+ "kind": "PROFILING_CAPTURE",
+ "known_limitations": [
+  "the sampler classifies each PID once at first sight, so the edge container process (first seen as its entrypoint shell) is usually never matched: no edge container rows in procs/threads (matched by chance in attempt 3, not in the 1,000-frame capture); retained unchanged in both arms",
+  "one C2/E pair: engineering evidence, not causal proof; trajectories, action mixes and feedback histories differ between arms; two captures do not define a noise band",
+  "a queue overflow on the treatment arm would emit edge.feedback_emit inside edge.process (G7 nesting) \u2014 but any overflow is an INFRASTRUCTURE_FAULT that already fails P8/G6 in either arm, so this cannot change a verdict",
+  "the loop counter evaluations_submitted reads 0 on the treatment arm by construction; the evaluator's own submitted/emitted counters are authoritative"
+ ],
+ "lifecycle": {
+  "child_timeout_s": 1800.0,
+  "rationale": "the collector safety timeout is a wall-clock bound on the route loop (live_cell_child, time.monotonic) and also the route's maximum loop sim-seconds; the qualified 300-frame route took ~67 s wall, so 1,000 frames need ~220 s and would stop near frame 540 at the qualification's 120 s. 600 s / 1800 s are bounds only; the 170-ms reward clock, the 2-s edge GT wait and every other timeout are unchanged.",
+  "safety_timeout_s": 600.0
+ },
+ "mechanism_metrics": [
+  "per reward ticket, by identity, one raw clock, two parallel branches reported separately (never summed): evaluator branch compute end -> submit -> Q_perc start/end -> emit -> UE receipt; map branch compute end -> map built -> published -> installed",
+  "retrospective check of the memo's '23 recovered tickets' hypothesis against the measured late-excess distribution"
+ ],
+ "no_further_work": "after the two captures: report and stop; no further optimization, retraining, Run-5 integration or additional captures; no push",
+ "objective": "Measure, in one fresh control/treatment pair, whether submitting each reward-requested frame to the existing asynchronous evaluator before map-update construction/publication (one ordering change on the edge compute thread) improves whole-pipeline feedback timeliness under the retained UE-only numerical-thread cap and the production CPU radar path.",
+ "offline_tests_summary": {
+  "covers": [
+   "ticket identity/records/labels/gt_identity equal between orderings",
+   "map update content and encoded bytes identical",
+   "exactly-once incl. holds and pre-READY frames",
+   "no mutation in both completion orders",
+   "Q_perc/kind/reason identical between orderings",
+   "queue-full synchronous infrastructure emission with the map update intact",
+   "send error on overflow counted, map update intact",
+   "map-build failure after early submission still raises; evaluation once",
+   "counters file create-only",
+   "serial install leaves the processor class alone",
+   "arm wiring, ordering file round trip, E5 exactly-once evidence, sampler edge-rule match of the new entry module name"
+  ],
+  "early_submit_gpu_visible": "Ran 13 tests OK",
+  "phase6_package": "Ran 250 tests OK (skipped=6)",
+  "profiler_package": "Ran 91 tests OK (skipped=1)"
+ },
+ "order": "C2 first; if C2 fails G1-G9 do not run E; if E fails, preserve it and stop. Cold host (load < 1, no CARLA/OAI/edge/map processes) before each arm.",
+ "policy": {
+  "audit_module": "rl_agent.splitfusion_hybrid_sac_checkpoint_sidecar_v1.audit_run4_selected_actor_v1",
+  "binding_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/ACTOR_EXPORT_MANIFEST.json",
+  "expected_weights_sha256": "d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29",
+  "weights_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/actor_state_dict.pt"
+ },
+ "primary_metrics": [
+  "timely feedback / all policy decisions",
+  "action-open -> feedback P50/P95/P99 over received feedback; missing replies separately"
+ ],
+ "profiler": {
+  "flush_interval_s": 0.2,
+  "gauge_interval_s": 0.1,
+  "minimum_free_disk_bytes": 1000000000,
+  "sampler_interval_ms": 100.0
+ },
+ "registration_sha256": "796f2179c5286651ccc769e2da2ee612899a511584542b422c9a956e9354372d",
+ "regression_metrics": [
+  "map publication / install latency and freshness, map outcomes",
+  "edge queue, supersessions, service failures, missing replies",
+  "quality parity (Q_perc distribution, kinds, exclusions)",
+  "CPU/GPU load, profiler overhead ms/frame",
+  "fallbacks (scene-stale / MCS-stale / startup)"
+ ],
+ "retry": "none. Once frames have been sent a failed capture remains a failed capture; a sampler/reporting problem discovered afterwards does not authorize a replacement run. Setup-only corrections before any frame is sent remain permitted with the failed attempt retained.",
+ "runs_per_arm": 1,
+ "schema": "scenesense.single_gpu_profiler.experiment.v1",
+ "semantics": {
+  "act_on_vector": "act_on_vector",
+  "actor_loader": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.frozen_actor_v2:load_registered_actor",
+  "contract_module": "rl_agent.splitfusion_hybrid_sac_run4_v1.run4_contract",
+  "controller_module": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.reward_hold_controller_v2"
+ },
+ "status": "REGISTERED_BEFORE_ANY_LIVE_ARM",
+ "transmitted_budget": 1000
+}

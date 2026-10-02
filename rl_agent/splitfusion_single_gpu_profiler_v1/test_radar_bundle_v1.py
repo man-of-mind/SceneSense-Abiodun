@@ -207,7 +207,10 @@ class ArmsTest(unittest.TestCase):
             self.assertEqual(registration["arms"][arm]["env"], TC.TREATMENT)
             self.assertEqual(RUN.select_arm(registration, arm)["bundle"], TC.BUNDLES[arm])
         RUN.verify_capture_binding(registration)
-        bound = RUN.verify_experiment_binding(registration)
+        # completed experiment: tracked sources are verified at its launch commit
+        result = json.loads((PACKAGE / "RADAR_BUNDLE_CT_RESULT.json").read_text())
+        bound = RUN.verify_experiment_binding(registration,
+                                              at_commit=result["code_commit_at_launch"])
         self.assertIn("offline_parity_result", bound)
         self.assertIn("optimized_stages", bound)
 

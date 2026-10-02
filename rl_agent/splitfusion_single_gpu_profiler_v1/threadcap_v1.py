@@ -52,10 +52,15 @@ TREATMENT = {"OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"}
 # A/B: the thread-cap experiment.  C/T: the radar-bundle experiment, both with
 # the UE-only cap retained; T additionally engages the optimized radar bundle.
 ARMS: dict[str, dict[str, str]] = {"A": {}, "B": dict(TREATMENT), "C": dict(TREATMENT),
-                                   "T": dict(TREATMENT)}
+                                   "T": dict(TREATMENT), "C2": dict(TREATMENT),
+                                   "E": dict(TREATMENT)}
 BUNDLES: dict[str, str] = {"A": "production", "B": "production", "C": "production",
-                           "T": "optimized"}
-BUNDLE_SNAPSHOT_ARMS = ("C", "T")      # arms registered after the bundle existed must record it
+                           "T": "optimized", "C2": "production", "E": "production"}
+# C2/E: the edge evaluator-submission ordering experiment (cap on, production radar).
+ORDERINGS: dict[str, str] = {"A": "serial", "B": "serial", "C": "serial", "T": "serial",
+                             "C2": "serial", "E": "early"}
+ORDERING_ARMS = ("C2", "E")             # arms that route the edge through the ordering entry
+BUNDLE_SNAPSHOT_ARMS = ("C", "T", "C2", "E")   # arms registered after the bundle existed must record it
 ARM_ENV = "SCENESENSE_THREADCAP_ARM"
 RESTORE_ENV = "SCENESENSE_THREADCAP_RESTORE_JSON"
 BUNDLE_ENV = "SCENESENSE_RADAR_BUNDLE"

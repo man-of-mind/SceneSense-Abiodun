@@ -40,6 +40,7 @@ def install_bundle_seams(arm: str, attempt_dir: Path) -> None:
     evidence = attempt_dir / "radar_bundle"
     original = SU.install_ue_seams
     bundle = TC.BUNDLES[arm]
+    ordering = TC.ORDERINGS[arm]
 
     def install_ue_seams(rec: Any, *, attempt_dir: Path, policy_identity: Any) -> Any:
         record = {}
@@ -57,10 +58,36 @@ def install_bundle_seams(arm: str, attempt_dir: Path) -> None:
         else:
             RB.record_production(evidence)
         rec.note("radar_bundle", bundle=bundle)
+        if arm in TC.ORDERING_ARMS:
+            install_ordering_route(arm, ordering, rec)
         return out
 
     install_ue_seams.__wrapped__ = original  # type: ignore[attr-defined]
     SU.install_ue_seams = install_ue_seams
+
+
+ORDERING_EDGE_MODULE = "-m rl_agent.splitfusion_single_gpu_profiler_v1.edge_profiled_v1_ordering"
+
+
+def install_ordering_route(arm: str, ordering: str, rec: Any) -> None:
+    """Both ordering arms run the ordering edge entry; the registered ordering is
+    handed to the container as a file in the edge scratch's profiler leaf (the
+    leaf the profiler's seed seam creates), written right after that seed."""
+    from rl_agent import ue_route_b_split_cell_adapter_v1 as pinned
+    from rl_agent.splitfusion_direct_edge_map_v1 import adapter_direct_v1 as D
+
+    from . import edge_ordering_v1 as OR
+    from . import seams_ue_v1 as SU
+
+    D.DIRECT_EDGE_MODULE = ORDERING_EDGE_MODULE
+    inner_seed = pinned.seed_cell_edge_state
+
+    def seed(campaign: Any, edge_scratch: Path) -> None:
+        inner_seed(campaign, edge_scratch)
+        path = OR.write_ordering_config(Path(edge_scratch) / SU.EDGE_SCRATCH_LEAF, ordering, arm)
+        rec.note("edge_ordering_config", ordering=ordering, path=str(path))
+
+    pinned.seed_cell_edge_state = seed
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:  # pragma: no cover - live

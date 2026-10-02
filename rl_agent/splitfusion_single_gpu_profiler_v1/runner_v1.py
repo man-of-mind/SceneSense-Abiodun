@@ -99,8 +99,14 @@ def load_qualification(path: Path = QUALIFICATION_PATH) -> dict[str, Any]:
     return document
 
 
-def verify_experiment_binding(registration: Mapping[str, Any]) -> dict[str, Any]:
-    """An experiment registration also pins its offline parity evidence and inputs."""
+def verify_experiment_binding(registration: Mapping[str, Any], *,
+                              at_commit: Optional[str] = None) -> dict[str, Any]:
+    """An experiment registration also pins its offline parity evidence and inputs.
+
+    ``at_commit``: for a *completed* experiment whose tracked source files have
+    since moved on, a repo-tracked bind may instead match the file content at
+    the commit the experiment ran from (``git show <commit>:<path>``).  A live
+    launch never passes it: the working tree must match."""
     here = Path(__file__).resolve().parent
     out = {}
     for name, entry in (registration.get("experiment_binds") or {}).items():
@@ -109,6 +115,12 @@ def verify_experiment_binding(registration: Mapping[str, Any]) -> dict[str, Any]
             path = (here / path) if (here / path).exists() else (ROOT / path)
         require(path.is_file(), f"experiment-bound {name} missing: {path}")
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != entry["sha256"] and at_commit:
+            rel = os.path.relpath(path.resolve(), ROOT)
+            shown = subprocess.run(["git", "-C", str(ROOT), "show", f"{at_commit}:{rel}"],
+                                   capture_output=True, check=False)
+            if shown.returncode == 0:
+                digest = hashlib.sha256(shown.stdout).hexdigest()
         require(digest == entry["sha256"], f"experiment-bound {name} drifted")
         out[name] = digest
     return out
@@ -124,8 +136,11 @@ def select_arm(registration: Mapping[str, Any], arm: Optional[str]) -> dict[str,
     selected = dict(arms[arm])
     require(str(selected.get("bundle", "production")) == TCAP.BUNDLES[arm],
             "registered arm bundle differs from threadcap_v1")
+    require(str(selected.get("ordering", "serial")) == TCAP.ORDERINGS.get(arm, "serial"),
+            "registered arm ordering differs from threadcap_v1")
     return {"arm": arm, "env": dict(selected.get("env") or {}),
             "bundle": str(selected.get("bundle", "production")),
+            "ordering": str(selected.get("ordering", "serial")),
             "execute_token": str(selected["execute_token"])}
 
 
@@ -528,9 +543,13 @@ def experiment_checks(*, cell: Path, arm: str, inventory: Optional[Mapping[str, 
               "E2_UE_CAP_STATE_AS_REGISTERED": bool(e2),
               "E3_SCOPE_OTHER_PROCESSES_BASELINE": bool(inventory and inventory.get("scope_ok")),
               "E4_RADAR_BUNDLE_AS_REGISTERED": bool(e4)}
+    ordering = None
+    if arm in TCAP.ORDERING_ARMS:
+        ordering = ordering_evidence(cell, expected=TCAP.ORDERINGS[arm])
+        checks["E5_EDGE_ORDERING_AS_REGISTERED"] = bool(ordering["passed"])
     torch = post.get("torch") if isinstance(post.get("torch"), Mapping) else {}
     return {"arm": arm, "checks": checks, "all_passed": all(checks.values()),
-            "radar_bundle": bundle,
+            "radar_bundle": bundle, "edge_ordering": ordering,
             "effective": {"torch_intra_op_threads": torch.get("intra_op_threads"),
                           "torch_inter_op_threads": torch.get("inter_op_threads"),
                           "openmp_max_threads": post.get("openmp_max_threads"),
@@ -541,6 +560,32 @@ def experiment_checks(*, cell: Path, arm: str, inventory: Optional[Mapping[str, 
                           "numerical_libraries_loaded": post.get("numerical_libraries_loaded"),
                           "affinity_cpus": post.get("affinity_cpus")},
             "inventory": inventory}
+
+
+def ordering_evidence(cell: Path, *, expected: str) -> dict[str, Any]:
+    """E5: the edge recorded the registered ordering and submitted each reward
+    ticket exactly once (early arm: all from the compute wrapper, none from the
+    loop; serial arm: all from the loop, none early)."""
+    leaf = Path(cell) / "profiler" / "edge"
+    counters_path = leaf / "EDGE_ORDERING.json"
+    report_path = Path(cell) / "run4_phase6" / "edge_report.json"
+    document = json.loads(counters_path.read_text()) if counters_path.is_file() else None
+    report = json.loads(report_path.read_text()) if report_path.is_file() else {}
+    evaluator_submitted = int((report.get("evaluator") or {}).get("submitted") or 0)
+    loop_submitted = int((report.get("counters") or {}).get("evaluations_submitted") or 0)
+    counters = dict((document or {}).get("counters") or {})
+    early = int(counters.get("early_submissions", 0))
+    if expected == "early":
+        exact_once = (early == evaluator_submitted and loop_submitted == 0
+                      and counters.get("early_submit_errors", 0) == 0
+                      and counters.get("loop_submission_suppressed", 0) == early
+                      and counters.get("live_gate_rejected", 0) == 0)
+    else:
+        exact_once = early == 0 and loop_submitted == evaluator_submitted
+    return {"expected": expected, "recorded": None if document is None else document.get("ordering"),
+            "counters": counters, "evaluator_submitted": evaluator_submitted,
+            "loop_submitted": loop_submitted,
+            "passed": bool(document is not None and document.get("ordering") == expected and exact_once)}
 
 
 def _profiler_clean(row: Mapping[str, Any]) -> bool:
