@@ -64,6 +64,16 @@ TIMING = (
 )
 
 
+def normalize_reason(reason: str) -> str:
+    """Group fallback reasons: ages/values stripped, generic suffixes dropped."""
+    import re
+
+    if reason == "use external fallback":
+        return "(external fallback marker)"
+    text = re.sub(r"\s*\(\d+ ns\)", "", reason)            # 'camera_si is stale (N ns)'
+    return ":".join(text.split(":")[:2])
+
+
 def pct(values: Sequence[float], p: float) -> Optional[float]:
     ordered = sorted(values)
     if not ordered:
@@ -134,7 +144,7 @@ class Arm:
         for decision in self.ue.get("decisions") or ():
             if decision.get("kind") == "FALLBACK":
                 for reason in decision.get("fallback_reasons") or ("UNSPECIFIED",):
-                    reasons[":".join(str(reason).split(":")[:2])] += 1
+                    reasons[normalize_reason(str(reason))] += 1
         ue_rows = [r for r in self.procs if r["role"] == "ue" and self._in_window(r)]
         busy_by_tick: dict[str, int] = collections.defaultdict(int)
         tids_with_cpu = set()
