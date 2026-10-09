@@ -1,0 +1,402 @@
+"""M3.1 v9 prospective identity: the v8 binding plus four registered changes (one GOOD_ALL Route-B qualification).
+
+1. GT accounting (GT prep worker only).  ``WORKER_ENTRY`` is the native v9 worker trampoline: for ``--role prep`` it
+   installs the offline-qualified exact storage accounting (``splitfusion_gt_storage_accounting_v1.switch``:
+   ``numeric_gt_integration_v2.ownership.payload_storage_bytes`` -> ``accounting.payload_storage_bytes``, sources at
+   the digests of ``experiments/splitfusion_gt_storage_accounting_v1``) wrapped by a bounded per-call timer
+   (``accounting_timing.AccountingTimer``: same integer, same exceptions), then runs the UNCHANGED v8 worker trampoline
+   (tilt-aware AVO -> v7 FREEZE lifetime repair -> v4 -> v3).  ``--role score`` runs v8 unchanged.  The 64-MiB
+   reservation, capacity rule, history, rollback, GT definitions and every limit are unchanged.
+2. GOOD_ALL = constant 23.5 dB nominal -> RFsim noise_power_dB -12.0 (Phase-14A anchor 01; radio-only qualification
+   ``experiments/splitfusion_m3_good_all_snr_qual_v1/20261008_run01``).  The registered schedule and the causal
+   commanded-target actor input change together (native v9 controller module reading this contract); the actor sees
+   (23.5 - 5.5) / 19 = 0.947368..., inside its unchanged [5.5, 24.5] dB support.  No gNB measurement reaches the actor;
+   normalisation, weights, power control, MCS policy and support are unchanged.
+3. Radio telemetry (evidence only): see ``radio_telemetry_registration``.
+4. Bookkeeping, prospectively: a bounded end-of-route terminal drain (``route_drain``) and the registered P3 pose rule
+   applied to offline rescoring / GT-reference verification (``offline_p3``), exactly as in the live workers.
+
+Everything else is v8 (and through it v7/v4/v3): per-role launcher binding, child/edge production scopes, retention
+plan, limits, actor, reward, deadline, route, density, input processing, GT definitions, tilt-aware AVO, GC policy,
+map publication/freshness, capacity substitutions C1-C5 and the abort exporter.
+"""
+from pathlib import Path
+import sys
+
+from rl_agent.splitfusion_m3_route_b_v3 import contract as V3
+from rl_agent.splitfusion_m3_route_b_v4 import contract as V4
+from rl_agent.splitfusion_m3_route_b_v7 import contract as V7
+from rl_agent.splitfusion_m3_route_b_v8 import contract as V8
+from rl_agent.splitfusion_m3_route_b_v8.contract import *  # noqa: F401,F403
+
+PACKAGE = "rl_agent/splitfusion_m3_route_b_v9"
+MODULE = "rl_agent.splitfusion_m3_route_b_v9"
+LAUNCHER_REVISION = "M3_1_ROUTE_B_STARTUP_BINDING_V9"
+ID = "M3_1_ROUTE_B_GOOD_ALL_V9"
+RUNTIME_REVISION = ID
+SCIENTIFIC_RUNTIME_BASIS = V4.ID
+
+CHILD = "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1_m3_route_b_v9"
+EDGE = "rl_agent.splitfusion_single_gpu_profiler_v1.edge_profiled_v1_m3_route_b_v9"
+RUNNER = MODULE + ".runner"
+PARTITION = MODULE + ".partition"
+HOST = MODULE + ".host"
+ENTRIES = MODULE + ".entries"
+GC_SEAM = MODULE + ".gc_seams"
+RETENTION = MODULE + ".retention"
+SERVICE_ENTRY = MODULE + ".service_entry"           # native copy of the v8 service_entry reading this contract
+WORKER_ENTRY = MODULE + ".worker_entry"             # prep: storage accounting + timer; both roles -> V8_WORKER_ENTRY
+V8_WORKER_ENTRY = V8.WORKER_ENTRY                   # unchanged v8 trampoline: prep tilt-aware AVO -> v7 repair
+V7_WORKER_ENTRY = V7.WORKER_ENTRY
+EDGE_REGISTRATION_PATH = "/partition_output/registration.json"
+VERIFY_FLAG = "--m3-verify-startup"
+SHIMS = {f"{PACKAGE}/runtime_shims/child_v1_m3_route_b_v9.py":
+         "rl_agent/splitfusion_single_gpu_profiler_v1/child_v1_m3_route_b_v9.py",
+         f"{PACKAGE}/runtime_shims/edge_profiled_v1_m3_route_b_v9.py":
+         "rl_agent/splitfusion_single_gpu_profiler_v1/edge_profiled_v1_m3_route_b_v9.py"}
+
+# ---- 1. exact GT storage accounting (prep only), at the digests qualified offline
+#         (experiments/splitfusion_gt_storage_accounting_v1/SOURCES_SHA256.txt; service_proof_03 / output_parity_01)
+ACCOUNTING_PACKAGE = "rl_agent/splitfusion_gt_storage_accounting_v1"
+ACCOUNTING_MODULE = "rl_agent.splitfusion_gt_storage_accounting_v1"
+ACCOUNTING_QUALIFIED = {
+    f"{ACCOUNTING_PACKAGE}/__init__.py": "9e497c924f8546282affea1655498e1e44eaf7ab1b66de89dcf870538522e28e",
+    f"{ACCOUNTING_PACKAGE}/accounting.py": "79a8966b5c127d52a7f00e295ab0225eb290b6616b021c3b5986950d90b1b5a0",
+    f"{ACCOUNTING_PACKAGE}/switch.py": "d86bdc9fec57cd23a9a42ff84eec9ffe7b489c1881074d8024cf60545c0631cb"}
+ACCOUNTING_VERSION = "splitfusion_gt_storage_accounting_v1.flat_scalar_containers.v2"
+ACCOUNTING_SWITCH = ACCOUNTING_MODULE + ".switch"
+ACCOUNTING_SUBSTITUTION = dict(target="rl_agent.splitfusion_numeric_gt_integration_v2.ownership:payload_storage_bytes",
+                               replacement=ACCOUNTING_MODULE + ".accounting:payload_storage_bytes",
+                               process="GT prep worker only")
+ACCOUNTING_BINDING_RECORD = "storage_accounting_binding.json"
+ACCOUNTING_TIMING_RECORD = "storage_accounting_timing.json"
+ACCOUNTING_TIMING_CAPACITY = 16 * FRAME_CEILING     # = trace_limits max_ops; overflow counted, never silent
+# Candidate evidence reused (main checkout, each sealed by its OUTPUT_SHA256.json): RESULT/SUMMARY digests.
+ACCOUNTING_EVIDENCE_DIR = "experiments/splitfusion_gt_storage_accounting_v1"
+ACCOUNTING_EVIDENCE_FILES = {"replay_parity_02": "SUMMARY.json", "process_parity_01": "SUMMARY.json",
+                             "output_parity_01": "SUMMARY.json", "service_proof_03": "RESULT.json"}
+
+# ---- 2. GOOD_ALL constant 23.5 dB (replaces the v3 21.5-dB schedule; carrier cell unchanged)
+CONTROLLER_MODULE = MODULE + ".good_all_controller"
+V3_SCHEDULE = dict(V3.SCHEDULE)
+SCHEDULE = dict(V3.SCHEDULE, trace_id="CONST_GOOD_ALL_23P5DB_V1", target_snr_db=23.5, expected_rfsim_command_db=-12.0,
+                mapping_point="PHASE14A_100MHZ_ANCHOR_01",
+                qualification="experiments/splitfusion_m3_good_all_snr_qual_v1/20261008_run01/REPORT.md: per-transmission "
+                              "PUSCH snrx10 median 23.5 / P05 23.0 / P95 24.0 dB, MCS 27, 0 errors (radio only, 45 s)",
+                actor_observation="the retained causal SNR proxy is the ACKed COMMANDED TARGET (controller publication), "
+                                  "constant 23.5 dB -> feature 22 = (23.5-5.5)/19 = 0.947368...; it is not a measured "
+                                  "achieved SNR; schedule identity/step/route progress never enter the actor state")
+SCHEDULE_FIELDS_CHANGED = ("trace_id", "target_snr_db", "expected_rfsim_command_db", "mapping_point", "qualification",
+                           "actor_observation")
+ACTOR_SNR_FEATURE = (23.5 - 5.5) / 19.0
+
+
+def schedule_prefix(count):
+    """The GOOD_ALL prefix in the retained (state, target) form, and its digest computed like prepare_sequence."""
+    import hashlib
+    import numpy as np
+    prefix = [(int(SCHEDULE["state_index"]), float(SCHEDULE["target_snr_db"]))] * int(count)
+    states = np.asarray([row[0] for row in prefix], dtype="<i4")
+    targets = np.asarray([row[1] for row in prefix], dtype="<f8")
+    return prefix, hashlib.sha256(states.tobytes() + targets.tobytes()).hexdigest()
+
+
+def channel_registration(root):
+    """v3 ``channel_registration`` reading the v9 SCHEDULE (same pinned config/design/traces/mapping checks)."""
+    import csv
+    import json
+    root = Path(root).resolve(strict=True)
+    config = json.loads((root / LIVE_CONFIG).read_bytes())
+    network = config["network"]
+    carrier = [row for row in network["profiles"] if row["profile_id"] == ORIGINAL_PROFILE]
+    if len(carrier) != 1 or {k: carrier[0][k] for k in CARRIER_TRACE} != CARRIER_TRACE:
+        raise ValueError("carrier FAVORABLE_STABLE cell is not pinned by the live config as registered")
+    for key, digest in (("design_config", "design_config_sha256"), ("traces_csv", "traces_sha256"),
+                        ("mapping_csv", "mapping_sha256")):
+        if sha(root / network[key]) != network[digest]:
+            raise ValueError("pinned channel input drift: " + network[key])
+    with (root / network["mapping_csv"]).open(newline="") as handle:
+        points = [row for row in csv.DictReader(handle)]
+    anchor = [row for row in points if float(next(iter(row.values()))) == SCHEDULE["target_snr_db"]]
+    if (len(anchor) != 1 or float(list(anchor[0].values())[1]) != SCHEDULE["expected_rfsim_command_db"]
+            or list(anchor[0].values())[2] != SCHEDULE["mapping_point"]):
+        raise ValueError("GOOD_ALL target is not the registered measured mapping point")
+    from rl_agent.splitfusion_hybrid_sac_run5_v1 import run5_snr_v2 as R5
+    if R5.scale_snr_db(SCHEDULE["target_snr_db"]) != ACTOR_SNR_FEATURE:
+        raise ValueError("GOOD_ALL target is outside the actor's registered SNR support or scaling drifted")
+    count = int(network["prefix_samples"])
+    _, digest = schedule_prefix(count)
+    return dict(schedule=dict(SCHEDULE, prefix_samples=count, trace_sha256=digest,
+                              continuation="CONSTANT (same value every 100-ms step after the prefix)"),
+                carrier_cell=dict(action=CARRIER_ACTION, network_profile=ORIGINAL_PROFILE, trace=dict(CARRIER_TRACE),
+                                  profile_substituted=False),
+                controller_module=CONTROLLER_MODULE, retained_controller_module=RETAINED_CONTROLLER_MODULE,
+                seam="UE child sets splitfusion_run5_full_live_v1.runtime_policy.CONTROLLER_MODULE; the controller "
+                     "replaces only ue_target_snr_cell_runtime_v1.prepare_sequence and rewrites --profile-id to GOOD_ALL",
+                live_config=LIVE_CONFIG, live_config_sha256=sha(root / LIVE_CONFIG),
+                design_config=network["design_config"], design_config_sha256=network["design_config_sha256"],
+                traces_csv=network["traces_csv"], traces_sha256=network["traces_sha256"],
+                mapping_csv=network["mapping_csv"], mapping_sha256=network["mapping_sha256"],
+                sample_period_ms=int(network["sample_period_ms"]), catch_up_policy=network["catch_up_policy"],
+                radio_profile=network["radio_baseline"]["profile_id"],
+                restore="retained runtime: noise_power_dB -50 commanded, read back and verified at teardown",
+                later_schedules_not_implemented=list(LATER_SCHEDULES_NOT_IMPLEMENTED),
+                transitions_depend_on_actor=False,
+                actor_input=dict(source="ACKed commanded target (retained controller publication)",
+                                 feature_index=22, value=ACTOR_SNR_FEATURE, support_db=[5.5, 24.5],
+                                 normalisation_changed=False, gnb_measurement_to_actor=False),
+                changed_from_v8=dict(fields=list(SCHEDULE_FIELDS_CHANGED),
+                                     v8=dict(target_snr_db=V3_SCHEDULE["target_snr_db"],
+                                             expected_rfsim_command_db=V3_SCHEDULE["expected_rfsim_command_db"],
+                                             trace_id=V3_SCHEDULE["trace_id"]),
+                                     power_control_changed=False, mcs_policy_changed=False))
+
+
+# ---- 3. calibrated radio telemetry (evidence only; the actor input is unchanged)
+RADIO_TELEMETRY_MODULE = MODULE + ".radio_telemetry"
+RADIO_TELEMETRY_MAX_ROWS = 2_000_000                 # per stream (~110 rows/s measured); overflow counted
+TRACER_DIR = "OAI/openairinterface5g/common/utils/T/tracer"
+T_MESSAGES = "OAI/openairinterface5g/common/utils/T/T_messages.txt"
+T_MESSAGES_SHA256 = "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5"
+MAC_LOG_OBSERVER = "rl_agent.splitfusion_m3_route_b_v3.radio_observer"   # unchanged; separately labelled
+
+
+def _t_event_fields(root, event):
+    """The field names of one T event, read from the tracer database that the collectors are given."""
+    lines = (Path(root) / T_MESSAGES).read_text().splitlines()
+    for index, line in enumerate(lines):
+        if line.strip() == "ID = " + event:
+            for follow in lines[index + 1:]:
+                if follow.strip().startswith("FORMAT = "):
+                    return tuple(item.split(",")[1].strip()
+                                 for item in follow.split("FORMAT = ", 1)[1].split(" : "))
+                if follow.strip().startswith("ID = "):
+                    break
+    raise ValueError("T event not found in the tracer database: " + event)
+
+
+def radio_telemetry_registration(root):
+    """Hash-bound identity of the calibrated channel telemetry: database, events, fields, placement and semantics."""
+    from . import radio_telemetry as RT
+    root = Path(root).resolve(strict=True)
+    if sha(root / T_MESSAGES) != T_MESSAGES_SHA256:
+        raise ValueError("T-tracer database drift: " + T_MESSAGES)
+    for event, fields in ((RT.PUSCH_EVENT, RT.PUSCH_FIELDS), (RT.MCS_EVENT, RT.MCS_FIELDS)):
+        if ("time",) + _t_event_fields(root, event) != tuple(fields):
+            raise ValueError("collector field list differs from the tracer database: " + event)
+    for name in ("multi", "csv"):
+        if not (root / TRACER_DIR / name).is_file():
+            raise ValueError("T-tracer tool missing: " + name)
+    return dict(
+        module=RADIO_TELEMETRY_MODULE, database=T_MESSAGES, database_sha256=T_MESSAGES_SHA256,
+        relay=dict(tool=f"{TRACER_DIR}/multi", gnb_port=RT.GNB_T_PORT, relay_port=RT.RELAY_PORT,
+                   why="the gNB T server accepts one client and closes its listener while connected"),
+        client=dict(tool=f"{TRACER_DIR}/csv", flags=["-f", "-s", ",", "-t", "time"]),
+        events={RT.PUSCH_EVENT: list(RT.PUSCH_FIELDS), RT.MCS_EVENT: list(RT.MCS_FIELDS)},
+        quantities=dict(
+            pusch_snr_db=f"{RT.PUSCH_EVENT}.snrx10/10, per transmission (Phase-14A calibrated channel SNR)",
+            scheduler_avg_snr_db=f"{RT.MCS_EVENT}.avg_snr_x10/10 (EMA; read by the SINR MCS lookup)",
+            mcs=f"{RT.MCS_EVENT}.selected_mcs and .final_mcs; {RT.PUSCH_EVENT}.mcs",
+            mac_log_snr=dict(kept=True, where="m3_radio/gnb_stats_observed.jsonl", observer=MAC_LOG_OBSERVER,
+                             label="power-control SNR (avg_snr + tpc_in_flight), NOT channel SNR")),
+        placement=dict(cpus="the registered radio CPUs of this attempt (arm.json radio_cpus)", mechanism="taskset",
+                       rationale="the gNB tracer worker these read from is already pinned there"),
+        ingest="runner-parent daemon drain threads; each line prefixed with host wall_ns and CLOCK_MONOTONIC_RAW ns",
+        bounds=dict(max_rows_per_stream=RADIO_TELEMETRY_MAX_ROWS, overflow="counted, never silent"),
+        lifecycle=dict(start="after _start_live_radio returned (radio attached, its cold check already run)",
+                       stop="before the retained _stop_live_radio teardown; the relay port must be free again "
+                            "for the post-teardown cold proof"),
+        decision_path=dict(inference=False, gt=False, scoring=False, map=False, synchronous_work=False),
+        actor_input="unchanged: the ACKed commanded target; no gNB measurement reaches the actor",
+        evidence=["m3_radio/ttracer/live_pusch_with_ingest.csv", "m3_radio/ttracer/live_mcs_with_ingest.csv",
+                  "m3_radio/RADIO_TELEMETRY.json"],
+        qualification="experiments/splitfusion_m3_good_all_snr_qual_v1/20261008_run01")
+
+
+# ---- 4. prospective bookkeeping repairs
+DRAIN_SETTLE_MARGIN_S = 0.25        # after an obligation's own ack_timeout_at, before the retained watchdog closes it
+DRAIN_IN_FLIGHT_CAP_S = 10.0        # the one token already inside _process_token (base slot drain is 10 s)
+DRAIN_ABSOLUTE_CAP_S = 20.0         # hard bound on the whole drain
+ROUTE_DRAIN_MODULE = MODULE + ".route_drain"
+POSTFLIGHT_P3_MODULE = MODULE + ".postflight_p3"
+
+
+def bookkeeping_registration():
+    from . import postflight_p3 as P3
+    from . import route_drain as RD
+    return dict(end_of_route_drain=RD.drain_registration(), offline_p3=P3.postflight_registration(),
+                v8_verdict_preserved="experiments/splitfusion_m3_route_b_v8 (REPORT.md, LIVE_CAPTURE_REPORT.md, "
+                                     "capture_01, analysis_01_ROUTE_COMPLETED, presentation_route_layers_01_"
+                                     "ROUTE_COMPLETED) is unchanged; V8's registered verdict and evidence stand")
+
+
+# ---- identity, sources and binding
+ROLE_CONSTANTS = (
+    ("rl_agent.splitfusion_m3_route_b_v3.entries", "v3", ("MAP_SERVER_TRAMPOLINE", "RETAINED_MAP_SERVER")),
+    ("rl_agent.splitfusion_m3_route_b_v3.capacity", "v3", ("CAPACITY_SUBSTITUTIONS", "POSE_SUBSTITUTIONS")),
+    ("rl_agent.splitfusion_m3_route_b_v3.pose_tolerance", "v3", ("POSE",)),
+    ("rl_agent.splitfusion_m3_route_b_v3.route_completion", "v3", ("MAP_JOURNAL_DIR",)),
+    ("rl_agent.splitfusion_m3_route_b_v3.map_class", "v3", ("MAP_CLASS",)),
+    ("rl_agent.splitfusion_m3_route_b_v3.retention", "v3", ("RETENTION_DIR", "RETENTION_RESULT_FILE")),
+    ("rl_agent.splitfusion_m3_route_b_v3.worker_entry", "v4",
+     ("ARMS", "BUDGETS", "GC_POLICY", "POSE", "PRODUCERS", "PRODUCER_CLASS", "SAFETY", "trace_limits")),
+)
+# The v3 GOOD_ALL controller is NOT executed in a v9 run (its 21.5-dB schedule is the v3 one); the v9 controller is,
+# and it reads this contract.  The v3 entries' controller installer is likewise replaced by the v9 one.
+V9_CONTROLLER_CONSTANTS = ("ORIGINAL_PROFILE", "SCHEDULE", "CONTROLLER_MODULE", "RETAINED_CONTROLLER_MODULE")
+V3_ENTRY_HELPERS = ("install_ue_capacity", "install_map_trampoline", "_write")
+
+
+def repo_root():
+    return Path(__file__).resolve().parents[2]
+
+
+def module_identity(function):
+    """Import name of the module that defines ``function`` (a ``-m`` entry point executes as ``__main__``)."""
+    spec = getattr(sys.modules.get(function.__module__), "__spec__", None)
+    return spec.name if spec is not None else function.__module__
+
+
+def role_constant_audit():
+    """Per (module, name): the value the retained module reads equals the v9 value (functions: same object)."""
+    contracts = dict(v3=V3, v4=V4)
+    out = {}
+    for module, bound, names in ROLE_CONSTANTS:
+        for name in names:
+            seen, mine = getattr(contracts[bound], name), globals()[name]
+            out[f"{module}[C={bound}].{name}"] = (seen is mine) if callable(mine) else (seen == mine)
+    from . import good_all_controller as GC
+    for name in V9_CONTROLLER_CONSTANTS:
+        out[f"{CONTROLLER_MODULE}.{name}"] = getattr(GC.C, name) == globals()[name]
+    out[f"{CONTROLLER_MODULE}.contract"] = GC.C.__name__ == __name__
+    return out
+
+
+def token(arm, budget=FRAME_CEILING, producer="v2"):
+    if arm not in ARMS or producer not in PRODUCERS:
+        raise ValueError("unknown arm/producer")
+    return f"M3_1_ROUTE_B_GOOD_ALL_V9_{arm.upper()}_{producer.upper()}_C{int(budget):04d}_ONCE_EXECUTE_V1"
+
+
+def accounting_registration():
+    return dict(version=ACCOUNTING_VERSION, switch=ACCOUNTING_SWITCH, substitution=dict(ACCOUNTING_SUBSTITUTION),
+                roles=["prep"], sources=dict(ACCOUNTING_QUALIFIED),
+                value_contract="returns exactly the original payload_storage_bytes integer; same exceptions",
+                cache=None, reservation_bytes_unchanged=True, capacity_rule_unchanged=True,
+                timing=dict(module=MODULE + ".accounting_timing", capacity=ACCOUNTING_TIMING_CAPACITY,
+                            records="per call: CLOCK_MONOTONIC_RAW begin/end, thread CPU ns, returned bytes, the "
+                                    "ProducerOwner method that called _account",
+                            why="the diagnosis fitted the late-route accounting cost; it was never measured per call",
+                            overflow="counted in dropped, never silent", writes_on_request_path=False),
+                binding_record=f"{TRACE_DIR}/{ACCOUNTING_BINDING_RECORD}",
+                timing_record=f"{TRACE_DIR}/{ACCOUNTING_TIMING_RECORD}",
+                qualification=dict(directory=ACCOUNTING_EVIDENCE_DIR, records=dict(ACCOUNTING_EVIDENCE_FILES)))
+
+
+def gc_registration(arm, budget, producer="v2"):
+    value = V8.gc_registration(arm, budget, producer)
+    value["trampolines"] = dict(service=SERVICE_ENTRY, worker=WORKER_ENTRY)
+    value["implementations"] = dict(value["implementations"], service=SERVICE_ENTRY, v8_worker=V8_WORKER_ENTRY)
+    value["storage_accounting"] = accounting_registration()
+    value["seam"] = GC_SEAM
+    return value
+
+
+def retention_registration(plan_sha256):
+    value = V3.retention_registration(plan_sha256)
+    value["plan_id"] = RETENTION_PLAN_ID
+    value["loader"] = RETENTION + ".load_observer"
+    return value
+
+
+def retention_plan(budget):
+    return V4.retention_plan(budget)
+
+
+def own_sources(root):
+    """v4 sources, every file of this package and of the sealed v7/v8 packages, the FREEZE lifetime repair, the
+    tilt-aware AVO and the exact storage-accounting runtime files."""
+    root = Path(root).resolve(strict=True)
+    result = dict(V4.own_sources(root))
+    for package in (V7.PACKAGE, V8.PACKAGE, PACKAGE):
+        result.update({str(p.relative_to(root)): sha(p) for p in sorted((root / package).glob("*.py"))})
+    for qualified in (PREP_LIFETIME_QUALIFIED, AVO_TILT_QUALIFIED, ACCOUNTING_QUALIFIED):
+        result.update({name: sha(root / name) for name in qualified})
+    return result
+
+
+def exact_sources(root):
+    result = dict(V3.E.exact_sources(root))
+    result.update(own_sources(root))
+    return dict(sorted(result.items()))
+
+
+def source_inventory(root):
+    root = Path(root).resolve(strict=True)
+    result = dict(V3.E.source_inventory(root))
+    result.update(own_sources(root))
+    for path in [root / (module.replace(".", "/") + ".py") for module in (CHILD, EDGE)] + [root / MAP_SERVER_TRAMPOLINE]:
+        if not path.is_file() or path.is_symlink():
+            raise ValueError("missing real M3 v9 trampoline: " + str(path))
+        result[str(path.relative_to(root))] = sha(path)
+    for relative, digest in result.items():
+        path = root / relative
+        if not path.is_file() or path.is_symlink() or sha(path) != digest:
+            raise ValueError("M3 v9 source drift: " + relative)
+    for label, qualified in (("prep lifetime repair", PREP_LIFETIME_QUALIFIED), ("tilt-aware AVO", AVO_TILT_QUALIFIED),
+                             ("storage accounting", ACCOUNTING_QUALIFIED)):
+        for relative, digest in qualified.items():
+            if result[relative] != digest:
+                raise ValueError(f"{label} differs from the qualified source: " + relative)
+    return dict(sorted(result.items()))
+
+
+def launcher_binding():
+    """The exact module identity of every validating function, per process role (registered and re-checked)."""
+    return dict(
+        launcher_revision=LAUNCHER_REVISION, runtime_revision=RUNTIME_REVISION,
+        scientific_runtime_basis=SCIENTIFIC_RUNTIME_BASIS, contract_module=MODULE + ".contract",
+        host=dict(verify_prospective=HOST, verify_prerequisite=HOST, check_prerequisites=HOST,
+                  verify_startup_proof=HOST),
+        runner=dict(module=RUNNER, validate_parent=RUNNER, verify_prospective=HOST, verify_prerequisite=HOST,
+                    radio_telemetry=RADIO_TELEMETRY_MODULE, mac_log_observer=MAC_LOG_OBSERVER),
+        child=dict(module=CHILD, entries=ENTRIES, validate_child_startup=ENTRIES, verify_prospective=HOST,
+                   registration=ENTRIES, load_observer=RETENTION, seam_parameters=GC_SEAM,
+                   controller=CONTROLLER_MODULE, collector_layer=ROUTE_DRAIN_MODULE),
+        edge=dict(module=EDGE, entries=ENTRIES, validate_edge_startup=ENTRIES, registration=ENTRIES,
+                  registration_path=EDGE_REGISTRATION_PATH),
+        gt_service=dict(seam=GC_SEAM, trampoline=SERVICE_ENTRY, implementation=SERVICE_ENTRY,
+                        retained_service=SERVICE_MODULE,
+                        registration_check="rl_agent.splitfusion_exact_gt_live_v2.service.verify_sources"),
+        gt_workers=dict(trampoline=WORKER_ENTRY, v8_trampoline=V8_WORKER_ENTRY, v7_trampoline=V7_WORKER_ENTRY,
+                        retained_trampoline=RETAINED_WORKER_ENTRY,
+                        implementation="rl_agent.splitfusion_m3_route_b_v3.worker_entry",
+                        prep_core=PREP_LIFETIME_MODULE + ".PrepCoreLifetime",
+                        prep_avo=AVO_SUBSTITUTION["replacement"], prep_avo_switch=AVO_SWITCH,
+                        prep_accounting=ACCOUNTING_SUBSTITUTION["replacement"], prep_accounting_switch=ACCOUNTING_SWITCH,
+                        score_core="rl_agent.splitfusion_exact_gt_service_proto_v2.worker.ScoreCore",
+                        registration_check=None),
+        postflight=dict(p3=POSTFLIGHT_P3_MODULE),
+        partition=PARTITION)
+
+
+def lineage(root, actor_boundary, support_sha256, budget, arm, producer="v2", retention_plan_sha256=None):
+    if arm not in ARMS or producer not in PRODUCERS:
+        raise ValueError("unknown arm/producer")
+    if not isinstance(retention_plan_sha256, str) or len(retention_plan_sha256) != 64:
+        raise ValueError("retention launcher lineage requires the pre-launch retention plan digest")
+    return canonical(dict(
+        launcher_revision=LAUNCHER_REVISION, runtime_revision=RUNTIME_REVISION,
+        scientific_runtime_basis=SCIENTIFIC_RUNTIME_BASIS, launcher_binding=launcher_binding(),
+        retention_plan_sha256=retention_plan_sha256,
+        retention_registration=retention_registration(retention_plan_sha256),
+        channel=channel_registration(root), route=route_registration(root), capacity=capacity_registration(),
+        evidence_additions=evidence_registration(), pose_repair=pose_registration(), map_class=map_class_registration(),
+        avo_geometry=avo_registration(), storage_accounting=accounting_registration(),
+        radio_telemetry=radio_telemetry_registration(root), bookkeeping=bookkeeping_registration(),
+        actor_boundary_sha256=actor_boundary, support_sha256=support_sha256,
+        sources=source_inventory(root), metrics=metrics(), state="ORIGINAL_RUN5_22D_QUALITY_AWARE",
+        controller="RewardHoldControllerV2", deadline_ns=170_000_000, deadline_inclusive=True,
+        fixed_fallback="mode11_q9800_a71", no_retraining=True, forced_action=None, budget=int(budget),
+        gt_gc_arm=arm, gc_policy=GC_POLICY, gc_safety=SAFETY, numeric_producer=producer,
+        producer_substitutions=list(SUBSTITUTIONS) if producer == "v2" else []))

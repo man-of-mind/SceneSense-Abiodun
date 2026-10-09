@@ -26,6 +26,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .presentation_quality_components import quality_components_for_rows
+
 
 SEEDS = (17, 29, 43)
 UPDATES = tuple(range(0, 5001, 500))
@@ -250,7 +252,8 @@ def _bold_ticks(axis: plt.Axes) -> None:
 
 
 def _save(fig: plt.Figure, output_stem: Path) -> Tuple[Path, Path]:
-    fig.tight_layout()
+    layout_rect = getattr(fig, "_splitfusion_tight_layout_rect", None)
+    fig.tight_layout(rect=layout_rect)
     png = output_stem.with_suffix(".png")
     pdf = output_stem.with_suffix(".pdf")
     fig.savefig(png, dpi=300, bbox_inches="tight", metadata={"Software": RESULT_SCHEMA})
@@ -293,10 +296,12 @@ def _seed_series(inputs: Inputs, field: str, profile: str) -> Dict[int, np.ndarr
 
 def plot_training_reward(inputs: Inputs, output_dir: Path) -> Tuple[Path, Path]:
     fig, axis = plt.subplots(figsize=(11.5, 6.4))
+    observed_batch_means: List[float] = []
     for seed in SEEDS:
         rows = inputs.training[seed]
         x = np.asarray([_int(row, "update_index") for row in rows])
         y = np.asarray([_float(row, "reward_mean") for row in rows])
+        observed_batch_means.extend(float(value) for value in y)
         smooth = rolling_mean(y, ROLLING_WINDOW)
         smooth_x = x[ROLLING_WINDOW - 1 :]
         color = SEED_COLORS[seed]
@@ -306,13 +311,21 @@ def plot_training_reward(inputs: Inputs, output_dir: Path) -> Tuple[Path, Path]:
             smooth,
             color=color,
             linewidth=2.1,
-            label=f"Seed {seed}: {ROLLING_WINDOW}-update rolling mean",
+            label=f"Seed {seed}: mean of {ROLLING_WINDOW} minibatches",
         )
-    axis.set_title("Training diagnostic: replay-batch reward (not online reward)")
+    maximum_batch_mean = max(observed_batch_means)
+    axis.axhline(
+        maximum_batch_mean,
+        color="#6A3D9A",
+        linestyle="--",
+        linewidth=1.6,
+        label=f"Highest observed minibatch mean: {maximum_batch_mean:.3f}",
+    )
+    axis.set_title("Training diagnostic: replay-batch reward")
     axis.set_xlabel("SAC gradient updates")
     axis.set_ylabel("Replay-batch reward mean")
     axis.set_xlim(1, 5000)
-    axis.legend(frameon=False, ncol=1)
+    axis.legend(frameon=False, ncol=1, loc="upper left")
     _bold_ticks(axis)
     return _save(fig, output_dir / "01_training_replay_batch_reward")
 
@@ -350,7 +363,7 @@ def plot_validation_reward(inputs: Inputs, output_dir: Path) -> Tuple[Path, Path
     )
     overall_axis.set_title("All network profiles")
     overall_axis.set_xlabel("Checkpoint update")
-    overall_axis.set_ylabel("Frozen fit-validation expected reward")
+    overall_axis.set_ylabel("Mean validation reward")
     overall_axis.legend(frameon=False)
 
     for profile in PROFILES:
@@ -367,9 +380,9 @@ def plot_validation_reward(inputs: Inputs, output_dir: Path) -> Tuple[Path, Path
         )
     profile_axis.set_title("Cross-seed mean by network profile")
     profile_axis.set_xlabel("Checkpoint update")
-    profile_axis.set_ylabel("Frozen fit-validation expected reward")
+    profile_axis.set_ylabel("Mean validation reward")
     profile_axis.legend(frameon=False)
-    fig.suptitle("Deterministic policy on the frozen fit-validation panel")
+    fig.suptitle("Run 1: policy reward on the validation set")
     for axis in (overall_axis, profile_axis):
         axis.set_xticks(UPDATES[::2])
         _bold_ticks(axis)
@@ -528,6 +541,231 @@ def plot_final_action_behavior(inputs: Inputs, output_dir: Path) -> Tuple[Path, 
     return _save(fig, output_dir / "04_final_hybrid_action_behavior")
 
 
+def plot_validation_latency_by_profile(
+    inputs: Inputs, output_dir: Path
+) -> Tuple[Path, Path]:
+    """Show checkpoint latency percentiles and the 200-ms budget directly."""
+
+    fields = (
+        ("latency_proxy_ms", "P50", "#0072B2", "-"),
+        ("latency_proxy_p95_ms", "P95", "#D55E00", "--"),
+        ("latency_proxy_p99_ms", "P99", "#111111", ":"),
+    )
+    fig, axes = plt.subplots(2, 2, figsize=(14.2, 9.2), sharex=True)
+    for axis, profile in zip(axes.flat, PROFILES):
+        for field, label, color, linestyle in fields:
+            means = []
+            seed_min = []
+            seed_max = []
+            for update in UPDATES:
+                per_seed = []
+                for seed in SEEDS:
+                    values = [
+                        _float(row, field)
+                        for row in inputs.validation_context
+                        if _int(row, "seed") == seed
+                        and _int(row, "update_index") == update
+                        and row["network_profile"] == profile
+                    ]
+                    if len(values) != 85:
+                        raise ResultsError(
+                            f"expected 85 latency rows for {(seed, update, profile, field)}"
+                        )
+                    per_seed.append(float(np.mean(values)))
+                means.append(float(np.mean(per_seed)))
+                seed_min.append(min(per_seed))
+                seed_max.append(max(per_seed))
+            axis.fill_between(
+                UPDATES, seed_min, seed_max, color=color, alpha=0.08
+            )
+            axis.plot(
+                UPDATES,
+                means,
+                color=color,
+                linestyle=linestyle,
+                marker="o",
+                markersize=3.6,
+                linewidth=2.1,
+                label=label,
+            )
+        axis.axhline(
+            200.0,
+            color="#CC0000",
+            linestyle="-.",
+            linewidth=1.5,
+            label="200-ms budget",
+        )
+        axis.set_title(PROFILE_LABELS[profile])
+        axis.set_xticks(UPDATES[::2])
+        _bold_ticks(axis)
+    for axis in axes[-1, :]:
+        axis.set_xlabel("SAC gradient updates")
+    for axis in axes[:, 0]:
+        axis.set_ylabel("Modeled end-to-feedback latency (ms)")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="center right",
+        bbox_to_anchor=(1.02, 0.5),
+        frameon=False,
+    )
+    fig.suptitle("Run 1: validation latency across training checkpoints")
+    setattr(fig, "_splitfusion_tight_layout_rect", (0.0, 0.0, 0.88, 0.96))
+    return _save(fig, output_dir / "05_fit_validation_latency_by_profile")
+
+
+def plot_validation_quality_components(
+    inputs: Inputs, output_dir: Path
+) -> Tuple[Path, Path]:
+    """Rejoin saved actions to the bound localization/segmentation surface."""
+
+    project_root = Path(__file__).resolve().parents[2]
+    derived = quality_components_for_rows(
+        inputs.validation_context, project_root=project_root
+    )
+    enriched = tuple(zip(inputs.validation_context, derived))
+    specifications = (
+        ("q_loc", "Localization quality", "#0072B2", "-"),
+        ("q_seg", "Segmentation quality (diagnostic)", "#D55E00", "--"),
+        ("q_perc", "Joint perception quality", "#009E73", "-."),
+    )
+    fig, axes = plt.subplots(2, 2, figsize=(14.2, 9.2), sharex=True, sharey=True)
+    for axis, profile in zip(axes.flat, PROFILES):
+        for field, label, color, linestyle in specifications:
+            means = []
+            for update in UPDATES:
+                values = [
+                    components[field]
+                    for row, components in enriched
+                    if _int(row, "update_index") == update
+                    and row["network_profile"] == profile
+                ]
+                if len(values) != len(SEEDS) * 85:
+                    raise ResultsError(
+                        f"expected 255 quality rows for {(update, profile, field)}"
+                    )
+                means.append(float(np.mean(values)))
+            axis.plot(
+                UPDATES,
+                means,
+                color=color,
+                linestyle=linestyle,
+                marker="o",
+                markersize=3.6,
+                linewidth=2.1,
+                label=label,
+            )
+        axis.set_title(PROFILE_LABELS[profile])
+        axis.set_xticks(UPDATES[::2])
+        axis.set_ylim(0.0, 1.0)
+        _bold_ticks(axis)
+    for axis in axes[-1, :]:
+        axis.set_xlabel("SAC gradient updates")
+    for axis in axes[:, 0]:
+        axis.set_ylabel("Quality score")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="center right",
+        bbox_to_anchor=(1.02, 0.5),
+        frameon=False,
+    )
+    fig.suptitle("Run 1: perception-quality behavior across checkpoints")
+    setattr(fig, "_splitfusion_tight_layout_rect", (0.0, 0.025, 0.86, 0.96))
+    fig.text(
+        0.5,
+        0.005,
+        "Qloc and Qperc passed surface qualification; off-anchor Qseg interpolation is diagnostic only.",
+        ha="center",
+        fontsize=9,
+    )
+    return _save(fig, output_dir / "06_fit_validation_quality_components")
+
+
+def plot_final_validation_latency_trace(
+    inputs: Inputs, output_dir: Path
+) -> Tuple[Path, Path]:
+    """Plot the final policy's ordered P50 latency contexts without inventing time."""
+
+    fig, axes = plt.subplots(2, 2, figsize=(14.2, 9.2), sharex=True, sharey=True)
+    for axis, profile in zip(axes.flat, PROFILES):
+        profile_misses = 0
+        profile_decisions = 0
+        for seed in SEEDS:
+            rows = sorted(
+                _final_rows(inputs, seed, profile),
+                key=lambda row: _int(row, "scene_rank"),
+            )
+            scene_ranks = [_int(row, "scene_rank") for row in rows]
+            if scene_ranks != list(range(85)):
+                raise ResultsError(
+                    f"final {(seed, profile)} scene ranks are not exactly 0..84"
+                )
+            x = np.arange(1, 86, dtype=np.int64)
+            latency = np.asarray(
+                [_float(row, "latency_proxy_ms") for row in rows],
+                dtype=np.float64,
+            )
+            misses = latency > 200.0
+            profile_misses += int(np.count_nonzero(misses))
+            profile_decisions += len(latency)
+            axis.plot(
+                x,
+                latency,
+                color=SEED_COLORS[seed],
+                linewidth=1.25,
+                alpha=0.78,
+                label=f"Seed {seed}",
+            )
+            axis.scatter(
+                x[misses],
+                latency[misses],
+                color="#CC0000",
+                marker="x",
+                s=34,
+                linewidth=1.3,
+                zorder=4,
+                label="> 200 ms" if seed == SEEDS[0] else None,
+            )
+        axis.axhline(
+            200.0,
+            color="#111111",
+            linestyle="--",
+            linewidth=1.5,
+            label="200-ms budget",
+        )
+        axis.set_title(
+            f"{PROFILE_LABELS[profile]} · >200 ms: "
+            f"{profile_misses}/{profile_decisions}"
+        )
+        axis.set_xticks((1, 20, 40, 60, 85))
+        _bold_ticks(axis)
+    for axis in axes[-1, :]:
+        axis.set_xlabel("Ordered held-out context (not elapsed time)")
+    for axis in axes[:, 0]:
+        axis.set_ylabel("Modeled conditional P50 latency (ms)")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    legend_order = [
+        labels.index("Seed 17"),
+        labels.index("Seed 29"),
+        labels.index("Seed 43"),
+        labels.index("> 200 ms"),
+        labels.index("200-ms budget"),
+    ]
+    fig.legend(
+        [handles[index] for index in legend_order],
+        [labels[index] for index in legend_order],
+        loc="center right",
+        bbox_to_anchor=(1.015, 0.5),
+        frameon=False,
+    )
+    fig.suptitle("Run 1 final policy: latency across frozen validation contexts")
+    setattr(fig, "_splitfusion_tight_layout_rect", (0.0, 0.0, 0.88, 0.96))
+    return _save(fig, output_dir / "07_final_validation_p50_latency_trace")
+
+
 def _cross_seed_checkpoint_rows(inputs: Inputs) -> List[Dict[str, object]]:
     output: List[Dict[str, object]] = []
     fields = (
@@ -654,6 +892,7 @@ def _validation_summary(inputs: Inputs) -> Dict[str, object]:
         decomposition[field] = {"update_0": start, "update_5000": final, "change": final - start}
 
     per_profile_final: Dict[str, object] = {}
+    final_p50_misses: Dict[str, object] = {}
     for profile in PROFILES:
         values = [
             _float(_aggregate_row(inputs, seed, 5000, profile), "reward_mean")
@@ -663,6 +902,22 @@ def _validation_summary(inputs: Inputs) -> Dict[str, object]:
             "cross_seed_reward_mean": float(np.mean(values)),
             "seed_min": min(values),
             "seed_max": max(values),
+        }
+        final_rows = [
+            row
+            for row in inputs.validation_context
+            if _int(row, "update_index") == 5000
+            and row["network_profile"] == profile
+        ]
+        if len(final_rows) != len(SEEDS) * 85:
+            raise ResultsError(
+                f"final profile {profile} has {len(final_rows)} rows, expected 255"
+            )
+        miss_count = sum(_float(row, "latency_proxy_ms") > 200.0 for row in final_rows)
+        final_p50_misses[profile] = {
+            "miss_count": miss_count,
+            "decision_count": len(final_rows),
+            "miss_rate": miss_count / len(final_rows),
         }
     return {
         "metric_identity": "MODELED_EXPECTED_UTILITY_ON_FROZEN_FIT_VALIDATION_PANEL",
@@ -683,6 +938,7 @@ def _validation_summary(inputs: Inputs) -> Dict[str, object]:
         ),
         "decomposition": decomposition,
         "per_profile_final": per_profile_final,
+        "final_p50_budget_misses_by_profile": final_p50_misses,
     }
 
 
@@ -719,6 +975,9 @@ def write_report(output_dir: Path, summary: Mapping[str, object], artifact_hashe
         "- `02_fit_validation_expected_reward.{png,pdf}`",
         "- `03_fit_validation_decomposition.{png,pdf}`",
         "- `04_final_hybrid_action_behavior.{png,pdf}`",
+        "- `05_fit_validation_latency_by_profile.{png,pdf}`",
+        "- `06_fit_validation_quality_components.{png,pdf}`",
+        "- `07_final_validation_p50_latency_trace.{png,pdf}`",
         "- `checkpoint_summary.csv`",
         "- `final_action_summary.csv`",
         "- `summary.json`",
@@ -731,6 +990,7 @@ def write_report(output_dir: Path, summary: Mapping[str, object], artifact_hashe
         "- The training schedule has no episode boundary: each gradient update samples terminal contextual transitions. Therefore an episode-return plot would be false for this experiment.",
         "- Modeled admission probability and latency proxy are not live measurements.",
         "- A deadline curve is the fraction of frozen validation contexts whose modeled conditional P50/P95/P99 latency exceeds 200 ms; it is not an empirical per-frame timeout or packet-loss probability.",
+        "- Figure 07 orders held-out contexts by registered scene rank for readability. It is not a continuous drive or an elapsed-time trace.",
         "- Three seeds characterize preliminary variability but do not establish statistical generalization.",
         "- SHAP/state-attribution analysis is deliberately deferred until the policy/reward choice is stable.",
         "",
@@ -753,6 +1013,9 @@ def render(inputs: Inputs, output_dir: Path) -> Dict[str, object]:
         plot_validation_reward,
         plot_validation_decomposition,
         plot_final_action_behavior,
+        plot_validation_latency_by_profile,
+        plot_validation_quality_components,
+        plot_final_validation_latency_trace,
     ):
         figure_paths.extend(renderer(inputs, output_dir))
 

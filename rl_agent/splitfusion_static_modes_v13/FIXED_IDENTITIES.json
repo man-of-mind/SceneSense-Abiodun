@@ -1,0 +1,94 @@
+{
+ "modes": {
+  "0": "583cbab6b68449495e779259507fdf7dcdfba56b5d31894ab9f8955da4deb10a",
+  "1": "94f1702958bdabb8f9a838504c31bf6d51e3041fe720962b5183a809d7d33d6a",
+  "10": "4163a37a6ed31cb86085654172457f3ba1569dd326bc661b409e0705565ac205",
+  "11": "d0406a5203828c81c82ea624f69cfa8cbf4e982e7d4e8657c594e23ddceaaeb4",
+  "2": "f9580cede2273fef5d24f6647192c59097995b38d12e91c3f45e82880d37320f",
+  "3": "ed41ee367d7817430bdf61ddb4493f07b98af9ea9948507ad989a35650e5e01b",
+  "4": "57776597a4242ba614851caec43aaf95b17af7add267f61bdab165bda96534fd",
+  "5": "81958472414f7545bf5973b41d7a517fa7b970f03cf7c705d9f71a61b620183e",
+  "6": "d99b779bb9cc321cd26b860843eb1f14406a4ae8ddcd334a2e79abac939af8b5",
+  "7": "a57393eebbbd62d5e542ae53b3e790ab5f55594a3e268dc1e3701ac343421737",
+  "8": "4e461c73792d1fe0741b72b8b4c326985b43c1308dcaabeca82ebe1a0c7fd78b",
+  "9": "dbe6a1e5ee1b0c0e2ab8617a35ad6388f2325aff3b1761c1cf958a8a1ee976cc"
+ },
+ "profiles": {
+  "0": [
+   "noAE",
+   "UINT8",
+   0,
+   "split_noae_uint8_q0000"
+  ],
+  "1": [
+   "noAE",
+   "UINT6",
+   6,
+   "split_noae_uint6_q0000"
+  ],
+  "10": [
+   "AE32",
+   "UINT6",
+   60,
+   "split_ae32_uint6_q0000"
+  ],
+  "11": [
+   "AE32",
+   "UINT4",
+   66,
+   "split_ae32_uint4_q0000"
+  ],
+  "2": [
+   "noAE",
+   "UINT4",
+   12,
+   "split_noae_uint4_q0000"
+  ],
+  "3": [
+   "AE128",
+   "UINT8",
+   18,
+   "split_ae128_uint8_q0000"
+  ],
+  "4": [
+   "AE128",
+   "UINT6",
+   24,
+   "split_ae128_uint6_q0000"
+  ],
+  "5": [
+   "AE128",
+   "UINT4",
+   30,
+   "split_ae128_uint4_q0000"
+  ],
+  "6": [
+   "AE64",
+   "UINT8",
+   36,
+   "split_ae64_uint8_q0000"
+  ],
+  "7": [
+   "AE64",
+   "UINT6",
+   42,
+   "split_ae64_uint6_q0000"
+  ],
+  "8": [
+   "AE64",
+   "UINT4",
+   48,
+   "split_ae64_uint4_q0000"
+  ],
+  "9": [
+   "AE32",
+   "UINT8",
+   54,
+   "split_ae32_uint8_q0000"
+  ]
+ },
+ "q_e4": 0,
+ "schema": "splitfusion.static_modes_v13.fixed_identities.v1",
+ "source": "experiments/splitfusion_static_modes_v13/identities_01/IDENTITIES.json",
+ "source_sha256": "c8035693c6923f0b7484c569f9c0b708fec77151eb03cccaa62e319e27989f4e"
+}

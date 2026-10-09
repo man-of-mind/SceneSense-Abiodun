@@ -24,15 +24,19 @@ from rl_agent.ue_n3_structured_udp_receiver import HEADER, MAGIC
 from . import contract as C
 
 
-SUMMARY_SCHEMA = "scenesense.run4_calibration_tagged_sender_summary.v1"
-FRAME_SCHEMA = "scenesense.run4_calibration_tagged_sender_frame.v1"
-READY_SCHEMA = "scenesense.run4_calibration_tagged_sender_ready.v1"
-EPOCH_SCHEMA = "scenesense.run4_calibration_shared_epoch.v1"
+SUMMARY_SCHEMA = "scenesense.run4_calibration_tagged_sender_summary.v2"
+FRAME_SCHEMA = "scenesense.run4_calibration_tagged_sender_frame.v2"
+READY_SCHEMA = "scenesense.run4_calibration_tagged_sender_ready.v2"
+EPOCH_SCHEMA = "scenesense.run4_calibration_shared_epoch.v2"
 FRAME_FIELDS = (
-    "schema", "cell_id", "decision_index", "block_index", "tier",
+    "schema", "cell_id", "tensor_frame_index", "policy_decision_seq",
+    "tensor_ordinal", "frame_role", "reward_requested",
+    "causal_reward_tensor_frame_index", "held_ordinal",
+    "block_index", "tier",
     "action_id", "frame_index_in_block", "is_first_frame_of_block",
-    "decisions_since_transition", "previous_tier", "epoch_monotonic_ns",
-    "scheduled_monotonic_ns", "decision_monotonic_ns", "decision_wall_ns",
+    "tensor_frames_since_transition", "previous_tier", "epoch_monotonic_ns",
+    "scheduled_monotonic_ns", "tensor_release_monotonic_ns",
+    "tensor_release_wall_ns",
     "first_send_monotonic_ns", "last_send_monotonic_ns", "payload_bytes",
     "chunks_per_frame", "datagrams_handed_to_socket",
     "datagrams_dropped_at_socket", "application_payload_bytes_handed_to_socket",
@@ -181,7 +185,7 @@ def run(args: argparse.Namespace) -> int:
     )
     epoch_monotonic_ns = int(epoch_contract["epoch_monotonic_ns"])
     epoch_contract_sha256 = C.sha256_file(epoch_contract_path)
-    decision_index = 0
+    tensor_frame_index = 0
     previous_tier: str | None = None
     _wait_until(epoch_monotonic_ns)
     actual_epoch_release_ns = time.monotonic_ns()
@@ -194,10 +198,17 @@ def run(args: argparse.Namespace) -> int:
             block_spans = spans[tier]
             remote = (args.remote_host, int(block["port"]))
             for frame_index in range(C.FRAMES_PER_BLOCK):
-                scheduled = epoch_monotonic_ns + decision_index * period_ns
+                scheduled = epoch_monotonic_ns + tensor_frame_index * period_ns
                 _wait_until(scheduled)
-                decision_mono = time.monotonic_ns()
-                decision_wall = time.time_ns()
+                tensor_release_mono = time.monotonic_ns()
+                tensor_release_wall = time.time_ns()
+                tensor_ordinal = tensor_frame_index % C.TENSORS_PER_POLICY_DECISION
+                policy_decision_seq = (
+                    tensor_frame_index // C.TENSORS_PER_POLICY_DECISION)
+                frame_role = C.REWARD_THEN_HELD_ROLES[tensor_ordinal]
+                reward_requested = tensor_ordinal == 0
+                causal_reward_tensor_frame_index = (
+                    policy_decision_seq * C.TENSORS_PER_POLICY_DECISION)
                 handed = dropped = payload_handed = wire_handed = 0
                 first_send: int | None = None
                 last_send: int | None = None
@@ -227,17 +238,24 @@ def run(args: argparse.Namespace) -> int:
                 )
                 rows.append({
                     "schema": FRAME_SCHEMA, "cell_id": args.cell_id,
-                    "decision_index": decision_index,
+                    "tensor_frame_index": tensor_frame_index,
+                    "policy_decision_seq": policy_decision_seq,
+                    "tensor_ordinal": tensor_ordinal,
+                    "frame_role": frame_role,
+                    "reward_requested": reward_requested,
+                    "causal_reward_tensor_frame_index":
+                        causal_reward_tensor_frame_index,
+                    "held_ordinal": "" if reward_requested else tensor_ordinal,
                     "block_index": int(block["block_index"]), "tier": tier,
                     "action_id": int(block["action_id"]),
                     "frame_index_in_block": frame_index,
                     "is_first_frame_of_block": frame_index == 0,
-                    "decisions_since_transition": frame_index,
+                    "tensor_frames_since_transition": frame_index,
                     "previous_tier": previous_tier if frame_index == 0 else tier,
                     "epoch_monotonic_ns": epoch_monotonic_ns,
                     "scheduled_monotonic_ns": scheduled,
-                    "decision_monotonic_ns": decision_mono,
-                    "decision_wall_ns": decision_wall,
+                    "tensor_release_monotonic_ns": tensor_release_mono,
+                    "tensor_release_wall_ns": tensor_release_wall,
                     "first_send_monotonic_ns": first_send,
                     "last_send_monotonic_ns": last_send,
                     "payload_bytes": int(block["payload_bytes"]),
@@ -248,10 +266,10 @@ def run(args: argparse.Namespace) -> int:
                     "bytes_handed_to_socket": wire_handed,
                     "send_span_ms": ((last_send - first_send) / 1e6
                                      if first_send is not None else None),
-                    "schedule_lag_ms": (decision_mono - scheduled) / 1e6,
+                    "schedule_lag_ms": (tensor_release_mono - scheduled) / 1e6,
                     "terminal_reason": terminal,
                 })
-                decision_index += 1
+                tensor_frame_index += 1
             previous_tier = tier
     finally:
         sock.close()
@@ -263,7 +281,12 @@ def run(args: argparse.Namespace) -> int:
         writer.writerows(rows)
     summary = {
         "schema": SUMMARY_SCHEMA, "cell_id": args.cell_id,
-        "decisions": len(rows), "fps": args.fps,
+        "tensor_frames": len(rows),
+        "policy_decisions": len(rows) // C.TENSORS_PER_POLICY_DECISION,
+        "reward_requested_frames": sum(row["reward_requested"] for row in rows),
+        "held_no_reward_frames": sum(
+            row["frame_role"] == "HELD_NO_REWARD" for row in rows),
+        "fps": args.fps,
         "epoch_monotonic_ns": epoch_monotonic_ns,
         "sender_ready_sha256": ready_sha256,
         "epoch_contract_sha256": epoch_contract_sha256,
@@ -273,7 +296,9 @@ def run(args: argparse.Namespace) -> int:
         "chunk_bytes": args.chunk_bytes, "payload_seed_base": args.payload_seed,
         "wire_contract": {"magic": MAGIC.decode("ascii"),
                           "header_struct": HEADER.format,
-                          "header_bytes": HEADER.size},
+                          "header_bytes": HEADER.size,
+                          "byte_domain":
+                              "CALIBRATION_UDP_1200B_CHUNKS_NOT_PRODUCTION_PACKETIZATION"},
         "remote_host": args.remote_host, "bind_host": args.bind_host,
         "blocks": [{
             "block_index": int(row["block_index"]), "tier": row["tier"],
@@ -294,7 +319,9 @@ def run(args: argparse.Namespace) -> int:
         "max_schedule_lag_ms": max(
             (row["schedule_lag_ms"] for row in rows), default=None),
         "per_tier": {tier: {
-            "decisions": sum(row["tier"] == tier for row in rows),
+            "tensor_frames": sum(row["tier"] == tier for row in rows),
+            "policy_decisions": sum(row["tier"] == tier for row in rows)
+                // C.TENSORS_PER_POLICY_DECISION,
             "datagrams_handed_to_socket": sum(
                 row["datagrams_handed_to_socket"] for row in rows
                 if row["tier"] == tier),

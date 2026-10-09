@@ -1,0 +1,49 @@
+{
+  "status": "OFFLINE_FOUNDATION_NOT_RUNTIME_INTEGRATED",
+  "package": "rl_agent.splitfusion_numeric_gt_integration_v1",
+  "purpose": "Coordinator-owned interface for the concurrent numerical producer and scorer. No external component is imported or modified by this package.",
+  "producer_entry": {
+    "function": "contract.admit_target",
+    "arguments": ["metadata", "segmentation", "object_ignore", "expected_binding", "expected_capture_identity", "expected_policy_identity", "expected_plan_sha256"],
+    "metadata_schema": "splitfusion.numeric_gt.semantic_target.v1",
+    "required_metadata_fields": ["schema", "target_contract", "binding", "capture_identity", "policy_identity", "plan_sha256", "sample_id", "input_content_sha256", "history_before_sha256", "history_after_sha256", "provenance", "camera_inverse", "object_boxes", "object_ignore_regions", "avo", "artifact_source_sha256", "avo_document_sha256"],
+    "mask_storage": "Two immutable bytes objects, uint8 C-order, 432x768 = 331776 bytes each. The admitted object exposes immutable NumPy views.",
+    "rows": "Original ordered CSV-value object_boxes and object_ignore_regions, with no float32 narrowing or altered conversion/tie ordering. New producer must prove original serialized values are preserved.",
+    "source_attachment": "evidence.admit_source_evidence(input_metadata, avo_document, expected_capture_identity) owns full original metadata and AVO document. Use its content_sha256 as artifact_source_sha256 and its avo_document_sha256 in the target; evidence.reconcile_source(target, source) proves numerical/source agreement. Keep this attachment owned until the archive finishes.",
+    "no_png_requirement": "Target manifest rows containing PNG hashes belong to deferred evidence; admission does not require their premature construction. Raw numerical semantic digest is explicitly distinct from the legacy prepared-target digest."
+  },
+  "scorer_entry": {
+    "function": "oracle_bridge.scorer_inputs",
+    "input": "Only an admitted contract.NumericalTarget",
+    "output_fields": ["identity", "sample_id", "segmentation", "object_ignore", "object_boxes", "avo"],
+    "ownership": "Masks are bytes-backed read-only NumPy views; metadata maps and ordered sequences are deeply immutable. No original-source reads, PNG decoding or repeated numerical admission occurs in this accessor.",
+    "prediction_responsibility": "The scorer must independently retain full original prediction record validation and numerical semantics. The event join checks opaque prediction bytes and checksum only, not those numerical fields.",
+    "result_responsibility": "Return exact measurement and matching associations; deferred evidence reconstruction remains necessary and is not implemented by this interface."
+  },
+  "wire": {
+    "functions": ["contract.encode_target", "contract.decode_target"],
+    "schema": "splitfusion.numeric_gt.envelope.v1",
+    "behavior": "Bounded header and finite JSON metadata plus two fixed-size raw masks, full integrity and identity checks on receiving admission. Ready stamps do not alter action-open.",
+    "not_yet_implemented": "Authenticated live socket publisher, live pose reconciliation and actual runtime broker wiring. A checksum is not publisher authentication."
+  },
+  "source_verification": {
+    "function": "sources.verify_sources_once",
+    "behavior": "Verify exact bytes, compile those retained bytes with their original future-import semantics, and verify disk pins again at postflight. The numerical worker must execute these bytes, not reopen paths or silently import unbound code."
+  },
+  "scheduling": {
+    "controller": "transactions.TransactionController",
+    "join": "join.BoundedTargetPredictionJoin",
+    "behavior": "Reserve complete identities and bounded storage; one ordered provisional history computation at a time; admit numerical completion and exact send confirmation before history commit/publication. Join prediction and target by notification, not periodic polling. Timeout never silently evicts an accepted frame.",
+    "archive": "Scoring/feedback and archival completion are independent. Reservations remain until consumers acknowledge release; archive failure invalidates the run without erasing a previously emitted feedback count.",
+    "history_limit": "The controller currently operates on opaque history receipts. Actual stationary/conflict producer ownership is not yet integrated or parity-proven. Do not infer that deep-copying the growing tracker is required or already implemented.",
+    "integration_strategy_to_verify": "Prefer one private serial producer with no next request before confirmation; any failed post-plan transmission faults/ends that session before speculative state can be reused. Verify this against the actual retained fault contract before enabling. If any nonfatal post-plan cancellation must continue, exact rollback or isolated deltas are required.",
+    "remaining": "Real plan-hook dispatch and send-event bridge, complete FrameContext identity checks, source handle lifetime across actual worker/archiver, worker cancellation, and runtime startup/teardown proof remain."
+  },
+  "offline_reference_helpers": {
+    "legacy_bridge": "oracle_bridge.from_legacy uses the old full target validator only to derive fixtures. It MUST NOT become the new live producer, because that would retain PNG restoration on readiness.",
+    "artifact_ownership": "evidence.own_legacy_reference retains full original target tables and the old prepared digest for offline reference checks.",
+    "replay_command": "env -u PYTHONPATH CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /usr/bin/python3 -B -m rl_agent.splitfusion_numeric_gt_integration_v1.replay_contract --output <fresh-output-directory>",
+    "replay_scope": "49 unique sealed target imports/wire roundtrips with 8 undefined-quality cases. Not a numerical producer/scorer replacement run, actual tracker transaction proof, timing benchmark or live qualification."
+  },
+  "next_gate": "Integrate the external producer and scorer only after their exact-parity reports are available. Run full-path offline correctness before serial performance measurement. No live run or deadline claim is authorized by this interface."
+}

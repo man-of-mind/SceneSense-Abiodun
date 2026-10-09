@@ -1,0 +1,316 @@
+{
+  "actor": {
+    "actor_class": "ConditionalHybridActor",
+    "boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+    "weights_file_name": "actor_state_dict.pt",
+    "weights_file_sha256": "bb9b0d256de79b4498cd622e1daa59edcf43ff3072dc9f675b265aac579ed3ce"
+  },
+  "batch1_fixtures": [
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "d67530e4680e1e467c20d88703f3e9e50d0fc5297099d548c39858a2a6592580",
+      "mode_id": 11,
+      "q_e4": 9390,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "ae608eb51fa1fcebd6b220f07c554773d3ec1a663d682d95a3e4e49cee505f2d"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "aeeae935766756b8cce7c9edd3337b8a209429937c120bb08237b37c41f2ea91",
+      "mode_id": 6,
+      "q_e4": 9416,
+      "q_support_lower_e4": 6603,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "d4d155b944ad6d60e2e15ff31a69b15571e8e5a196102965890efcfa028857ae"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "b9a3c88864002028a776a8e13ec1e673c5c04979c879c9d0bdbe71eed3997609",
+      "mode_id": 11,
+      "q_e4": 2617,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "64f1aa6827eff64153da175c6a76545ea4b8c4a5128cc3da8a55750c12682c06"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "12bda98775beae7229e56e5625d08cf809a3805617de1136759a7972c5be288d",
+      "mode_id": 11,
+      "q_e4": 5672,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "40d4c977fcfee6e63a9c37d170453dadc014db13cbfe88eff7f35ed3ab20ed08"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "ced89fcb072d4983924834f631c97fd0c557c6c4195ee8164b59bec271cd383c",
+      "mode_id": 8,
+      "q_e4": 9145,
+      "q_support_lower_e4": 1946,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "08ae3fa68efb9f8c33463283b70318dc9e843206ba6ffce02fc714b913c0c0f3"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "aff07c7f119a789c3c9a6053c6b11847dec916387fa28fb97cf15109dbe61dc2",
+      "mode_id": 8,
+      "q_e4": 7843,
+      "q_support_lower_e4": 1946,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "96ce3ddfa5b58aae1b8582e0988851c61bdb16e0d682a8188b3d4dfc65a56211"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "8b4469a3ca385b04b98e1ed20f6c1942cb1a5fb2c198e8e984ed842b2b8a4583",
+      "mode_id": 11,
+      "q_e4": 6317,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "9aeaca38069ac3861c0a3b8aa44bc8aef869097cbe8d1ca7fa45280dfaf90883"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "0abe4a1adbf92e501a4881986c3b2a4735a720c6e7581076c87ebaf5a0e323de",
+      "mode_id": 4,
+      "q_e4": 9302,
+      "q_support_lower_e4": 7827,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "483dca5b10c0e41dee64bfb0183c504b7a0138ea9121a0487a2c860d140831f9"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "09527a7280db1b4cd4ff8962fe25256c0d55a0de0572004f36b7019cdb5c1f9d",
+      "mode_id": 11,
+      "q_e4": 5851,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "c57c92b0515c51610c3e3d02b370620df120c2d80b7d24d9350f29f4865612ab"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "ebaeec2a9d564e5f45fa1cda820ee3634217281ebc53df8f9101003c50d3587e",
+      "mode_id": 11,
+      "q_e4": 8790,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "9189db63d49868b1f35609f6b2f887362d1a9c3ffa037bcb7202eb4f920f542b"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "bcea36e240e229e4d491eb885a2030061ccd2ec69c62f02ee522900a9355341f",
+      "mode_id": 8,
+      "q_e4": 5255,
+      "q_support_lower_e4": 1946,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "a9e962cdb4e8a3b99c72dced0996549250fafcfaeb16c792f0408269f98fa914"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "bb987ecd46fd2c985a26233e312d40de60907799dd1ac35fd46a6b4426df944b",
+      "mode_id": 8,
+      "q_e4": 4462,
+      "q_support_lower_e4": 1946,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "1355ee6286a7864fd36ec3c8775758d1f27cb22b0da0a907687e07b9f0a0bec2"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "2281b7212cfa524bdc5b84548846fab0d7c948c4e937f194dc2843fd0ccef65e",
+      "mode_id": 11,
+      "q_e4": 9149,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "5ac8331fefb9e1b604095e8f9e10985f2e68084d6ff89eb9fd3cf2bf149f0c63"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "0e53a9f90e068e2bf4207bb7b55d51cff319f9a72d5ed9822b1a069c7a9f0410",
+      "mode_id": 11,
+      "q_e4": 9273,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "5f17f9daee8e56100da1270a3f41744763083414cb6b49fa998e5367cf7939a5"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "77f8fa24686acac1d556c82681bb7c77f647e40fc227747ea3438880fab7a31b",
+      "mode_id": 9,
+      "q_e4": 6072,
+      "q_support_lower_e4": 3110,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "88852e80db57062a67af37ab33077a764d8ad247d59ff4efe406d5d9d893ad49"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "435803f53af7cb3b8e1577e63318b8b3d9a5396a569e3a5893d9f1446dce3752",
+      "mode_id": 11,
+      "q_e4": 5135,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "507750de7cfa1e04d839e880168a4802392cf4a27d68be16517a94a27f262810"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "cf82168fe06fc9e7524e2316f4d8052c6d845682da65d26d506ab2dcf78c8f1a",
+      "mode_id": 11,
+      "q_e4": 9261,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "81a61e2a74a1d66c1758651f9fc62690a19999cee3bcc7098740f9e33b55a6e7"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "ab151f465c4cd8bf28c9556fae58c70c7d294ddcec9a08b70e6a4a07522b3639",
+      "mode_id": 11,
+      "q_e4": 8157,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "9fae7b819b59c0810374efbb6105a244379b9d8b240bf2de9c370659d9504a55"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "22e2b0189ecbece02fc6e9310ab8cdcb1cc325854cf7693967d77c7e92e37aea",
+      "mode_id": 11,
+      "q_e4": 7419,
+      "q_support_lower_e4": 0,
+      "q_support_upper_e4": 9791,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "fcb5a3e583bce8a22b48e4f62b341343857d3d02ceae6fd242be12a66c73cc9b"
+    },
+    {
+      "actor_boundary_sha256": "4e28b9ff6b2173f466bc80781e3395f2b5666075d2926e3aa6b7aa848ca0039b",
+      "heads_sha256": "70e0362d150feaaff3bf802d2cf5133758aadf5fec05752632d6755945620a7e",
+      "mode_id": 6,
+      "q_e4": 9006,
+      "q_support_lower_e4": 6603,
+      "q_support_upper_e4": 9800,
+      "schema": "scenesense.run5_live_avo.actor_decision.v1",
+      "state_sha256": "c5889d1895a98a08d8d7ee20bee86105dd40a0911252edadde3b2f5ddc0cc891"
+    }
+  ],
+  "binding": {
+    "deployment_rule": "CPU_FLOAT32_BATCH1_EVAL_INFERENCE_MODE__ARGMAX_MODE__SELECTED_CONDITIONAL_MEAN__REGISTERED_PER_MODE_SUPPORT__DECIMAL_HALF_UP_Q_E4",
+    "feature_schema_id": "splitfusion_run5_policy_features_v2",
+    "feature_schema_sha256": "487015205070d0a5dac6e61b9fe7aa8f39351bda5d1710de3bbaadc78358e596",
+    "policy_feature_count": 22,
+    "policy_feature_order": [
+      "camera_si_scaled",
+      "radar_p40",
+      "prior_ul_mcs_normalized",
+      "pre_action_rlc_backlog_log1p_scaled",
+      "prev_joint_mode_0_one_hot",
+      "prev_joint_mode_1_one_hot",
+      "prev_joint_mode_2_one_hot",
+      "prev_joint_mode_3_one_hot",
+      "prev_joint_mode_4_one_hot",
+      "prev_joint_mode_5_one_hot",
+      "prev_joint_mode_6_one_hot",
+      "prev_joint_mode_7_one_hot",
+      "prev_joint_mode_8_one_hot",
+      "prev_joint_mode_9_one_hot",
+      "prev_joint_mode_10_one_hot",
+      "prev_joint_mode_11_one_hot",
+      "prev_q_normalized",
+      "prev_quality_qperc",
+      "prev_latency_normalized",
+      "prev_present",
+      "prev_success",
+      "effective_external_ul_snr_proxy_scaled"
+    ],
+    "quality_in_state": "prev_quality_qperc = original Q_perc"
+  },
+  "frozen_dependencies": {
+    "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_snr_v2.py": "94d68d5a0e048c35b02a04932c3594185da4977eb2f1d18f62e371bd9a9c1846",
+    "rl_agent/splitfusion_hybrid_sac_run5_v1/run5_state_contract.py": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae"
+  },
+  "manifest_sha256": "25aa70d58658d239341d10f2ed23f9b5156d5d4163b6c7d44bcc77d907027c8c",
+  "provenance": {
+    "evidence_label": "FULL_RUN5_MODELED_TRAINING; live use is frozen inference only",
+    "run_binding_sha256": "4bc8cc986e33a99dacde18193ae1f2eda2dcc7872394a08799ffd3c9ecd178d5",
+    "run_result_sha256": "3fbbd2d49465ae2e3b8347e49dcea96fc7a7c16e67e73b5a99019b27c47fd728",
+    "source_weights": "experiments/splitfusion_run5_full_v1/runs_01/seed43/actor_u10000.pt",
+    "training_authorization": "experiments/splitfusion_run5_full_v1/authorization_01/AUTHORIZATION.json"
+  },
+  "schema": "scenesense.run5_full_live.actor_binding.v1",
+  "selected": {
+    "run": "FULL_RUN5",
+    "seed": 43,
+    "update": 10000
+  },
+  "selection_scope": "PRESELECTED_LIVE_CHOICE__FULL_RUN5_SEED43_UPDATE10000__NOT_A_BEST_SEED_CLAIM",
+  "support": {
+    "bounds": [
+      [
+        8812,
+        9800
+      ],
+      [
+        8493,
+        9800
+      ],
+      [
+        7491,
+        9800
+      ],
+      [
+        8280,
+        9800
+      ],
+      [
+        7827,
+        9800
+      ],
+      [
+        5902,
+        9800
+      ],
+      [
+        6603,
+        9800
+      ],
+      [
+        5682,
+        9800
+      ],
+      [
+        1946,
+        9800
+      ],
+      [
+        3110,
+        9800
+      ],
+      [
+        1217,
+        9800
+      ],
+      [
+        0,
+        9791
+      ]
+    ],
+    "mask": null,
+    "modes": 12,
+    "source": "MODELED_SMOKE_SUPPORT (original Run-5 continuous-q support)"
+  },
+  "support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566"
+}

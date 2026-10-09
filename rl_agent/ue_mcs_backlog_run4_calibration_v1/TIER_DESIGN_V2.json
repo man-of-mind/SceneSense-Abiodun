@@ -1,0 +1,76 @@
+{
+  "schema": "scenesense.run4_physical_queue_tier_design.v2",
+  "status": "PROSPECTIVE_REVIEWED_NOT_EXECUTED",
+  "claim_boundary": "BYTE_LOAD_CALIBRATION_ONLY_NOT_PERCEPTION_ENDORSEMENT_NOT_POLICY_VALIDATION",
+  "payload_coordinate": "production_total_transmitted_bytes_replayed_as_calibration_application_bytes",
+  "production_support_bytes": [6423, 427605],
+  "production_support_sha256": "dc545c8703c9763165240bec5ad3f341979d1dd3b64e5bd5615222adeb24f566",
+  "catalog_sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+  "train_scene_count": 391,
+  "train_inventory_sha256": "1d0d102fafb8797fd4b69e8524dd301229ddbc6f9bc76072048545c1d022ebbd",
+  "production_verification_sha256": "f1635d5dca7a65eaf0ef6732b1249d35ad04e9c6374bb8d623d2b658d7e1ac47",
+  "quantile_method": "inverse_inclusion_weighted_empirical_quantile_sorted_by_payload_then_sample_id_first_cumulative_weight_ge_quantile_times_total",
+  "selection_rationale": "low uses a robust observed lower quartile below the common support floor; medium uses the observed median between the adverse and favorable capacity estimates; high uses the observed median above the common support ceiling and both capacity estimates",
+  "tiers": {
+    "low": {
+      "action_id": 71,
+      "mode_id": 11,
+      "family": "AE32",
+      "quantizer": "UINT4",
+      "q_e4": 9800,
+      "profile_id": "split_ae32_uint4_q9800",
+      "source_quantile": 0.25,
+      "payload_bytes": 6398,
+      "offered_mbps_at_10hz": 0.51184,
+      "observed_min_bytes": 6224,
+      "observed_max_bytes": 6671,
+      "source_row_inventory_sha256": "9b2dc8cac96ad058104d13dae470f67e75df8e6cd191782c36804254ea0bb0ee",
+      "selected_sample_id": "canonical_v3_05_val_30_30_s601_tm1601_001326_frame5553",
+      "selected_row_sha256": "8c771b40849da25821d851a7a334ec0dbba434caa362427c27a6ed8d86bc0f92"
+    },
+    "medium": {
+      "action_id": 22,
+      "mode_id": 3,
+      "family": "AE128",
+      "quantizer": "UINT8",
+      "q_e4": 9000,
+      "profile_id": "split_ae128_uint8_q9000",
+      "source_quantile": 0.5,
+      "payload_bytes": 248703,
+      "offered_mbps_at_10hz": 19.89624,
+      "observed_min_bytes": 246458,
+      "observed_max_bytes": 250756,
+      "source_row_inventory_sha256": "7c97c084cd22bbec3b54c0cabe2c94b8ee743e063432083d21aa0024fa683a07",
+      "selected_sample_id": "canonical_v3_05_val_30_30_s601_tm1601_000773_frame3341",
+      "selected_row_sha256": "58d370bc003b38a1ec79f61800fd5d765e3cbda34b05be533e36166867e8f0b7"
+    },
+    "high": {
+      "action_id": 38,
+      "mode_id": 6,
+      "family": "AE64",
+      "quantizer": "UINT8",
+      "q_e4": 5000,
+      "profile_id": "split_ae64_uint8_q5000",
+      "source_quantile": 0.5,
+      "payload_bytes": 619858,
+      "offered_mbps_at_10hz": 49.58864,
+      "observed_min_bytes": 610700,
+      "observed_max_bytes": 625366,
+      "source_row_inventory_sha256": "f076a945c04b4c16a6ef2ee33e8ba7cc312b543bf01a020dff44989970886350",
+      "selected_sample_id": "canonical_v3_05_val_30_30_s601_tm1601_000240_frame1209",
+      "selected_row_sha256": "a168c1252a909747fe610b5fb6496760c439650acc1110305d6c82c62382b750"
+    }
+  },
+  "capacity_context_mbps": {
+    "adverse_p50": 12.05,
+    "favorable_p50": 42.13,
+    "status": "historical_capacity_context_only_not_reestimated_by_this_design"
+  },
+  "bracketing_gates": {
+    "low_at_or_below_production_support_floor": true,
+    "medium_between_adverse_and_favorable_capacity": true,
+    "high_at_or_above_production_support_ceiling": true,
+    "high_above_favorable_capacity": true
+  },
+  "packetization_boundary": "the numeric production byte coordinate is replayed with a separate 1200-byte MTU-safe calibration application chunk; it is not production packetization"
+}

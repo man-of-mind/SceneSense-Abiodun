@@ -1,0 +1,3 @@
+[submodule "OAI/openairinterface5g"]
+	path = OAI/openairinterface5g
+	url = https://github.com/man-of-mind/openairinterface5g-scenesense.git

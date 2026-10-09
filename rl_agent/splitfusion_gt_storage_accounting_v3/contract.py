@@ -1,0 +1,68 @@
+"""Candidate-only GT trampoline identities for the V3 exact storage accounting inside the real GT service, on the V8
+runtime (tilt-aware AVO + V7 FREEZE lifetime repair) -- the same proof basis as the V2 candidate.
+
+NOT a launch identity: there is no host, runner, child, edge, registration or startup proof here.  A live capture
+would need a new prospective revision (V10-derived) that registers these sources and the substitution.  Everything
+not named below is the V8 contract (``from ...v8.contract import *``); V8 and V2 are imported, never edited.
+
+  seam (this package) -> service_entry (this package; versioned copy reading THIS contract)
+    -> worker_entry (this package): prep refuses without the fast-path capability, installs ``switch`` (V3
+       accounting), then the UNCHANGED V8 worker trampoline (tilt-aware AVO -> V7 FREEZE repair -> V4 -> V3 worker);
+       score: the V8 trampoline unchanged (nothing installed here).
+"""
+from pathlib import Path
+
+from rl_agent.splitfusion_m3_route_b_v8 import contract as V8
+from rl_agent.splitfusion_m3_route_b_v8.contract import *  # noqa: F401,F403
+
+from . import accounting as A, switch as SW
+
+PACKAGE = "rl_agent/splitfusion_gt_storage_accounting_v3"
+MODULE = "rl_agent.splitfusion_gt_storage_accounting_v3"
+ID = "M3_1_GT_STORAGE_ACCOUNTING_CANDIDATE_V3_OFFLINE_ONLY"
+SERVICE_ENTRY = MODULE + ".service_entry"
+WORKER_ENTRY = MODULE + ".worker_entry"
+GC_SEAM = MODULE + ".gc_seams"
+V8_WORKER_ENTRY = V8.WORKER_ENTRY
+ACCOUNTING_BINDING_RECORD = "storage_accounting_binding.json"
+ACCOUNTING_SWITCH = MODULE + ".switch"
+ACCOUNTING_SUBSTITUTION = dict(SW.SUBSTITUTION)
+ACCOUNTING_VERSION = A.VERSION
+
+
+def accounting_registration():
+    return dict(version=ACCOUNTING_VERSION, switch=ACCOUNTING_SWITCH, substitution=dict(ACCOUNTING_SUBSTITUTION),
+                roles=["prep"], value_contract="returns exactly the original payload_storage_bytes integer",
+                memo=dict(max_objects=A.DEFAULT_MAX_OBJECTS,
+                          rows="CPython dict version tag (globally unique per dict state; re-proved at import)",
+                          tuples="strong identity pin while reachable from the latest rebuilt snapshot",
+                          pair_history="own size from exact field types each call; fields read afresh",
+                          context="set difference against the call's own visited set; no subtotal caches",
+                          bound="snapshot whose reachable count may exceed max_objects takes the exact traversal",
+                          cleanup="worker finally: switch.uninstall -> AccountingSession.close"),
+                owner_shortcut="bind_plan/set_ready after stage_products/bind_plan only; same staged/products; exact "
+                               "immutable plan delta; whole-graph witness (dict tags, list/set element identities, "
+                               "ndarray nbytes, dataclass/closure identities, PairHistory dict tags) unchanged",
+                capability="worker refuses to start unless every accounting.capabilities() reason is None",
+                reservation_bytes_unchanged=True, binding_record=f"{TRACE_DIR}/{ACCOUNTING_BINDING_RECORD}")
+
+
+def gc_registration(arm, budget, producer="v2"):
+    value = V8.gc_registration(arm, budget, producer)
+    value["trampolines"] = dict(service=SERVICE_ENTRY, worker=WORKER_ENTRY)
+    value["implementations"] = dict(value["implementations"], service=SERVICE_ENTRY, v8_worker=V8_WORKER_ENTRY)
+    value["storage_accounting"] = accounting_registration()
+    value["seam"] = GC_SEAM
+    return value
+
+
+def own_sources(root):
+    root = Path(root).resolve(strict=True)
+    return {str(p.relative_to(root)): sha(p) for p in sorted((root / PACKAGE).glob("*.py"))
+            if not p.name.startswith("test_")}
+
+
+def exact_sources(root):
+    result = dict(V8.exact_sources(root))
+    result.update(own_sources(root))
+    return dict(sorted(result.items()))

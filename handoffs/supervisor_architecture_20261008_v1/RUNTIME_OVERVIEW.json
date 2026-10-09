@@ -1,0 +1,747 @@
+{
+  "_handoff_note": "Verbatim selected fields from this run registration. For current cross-condition status see README; inherited comments or fields describe that individual revision, not every later condition.",
+  "bookkeeping": {
+    "end_of_route_drain": {
+      "bounds": {
+        "absolute_cap_s": 20.0,
+        "ack_horizon": "unchanged per-obligation ack_timeout_at (capture + ack_timeout_ms)",
+        "in_flight_cap_s": 10.0,
+        "settle_margin_s": 0.25
+      },
+      "evidence": "m3_route/END_OF_ROUTE_DRAIN.json",
+      "layer": "rl_agent.splitfusion_m3_route_b_v11.route_drain.build_drain_layer",
+      "never": [
+        "declaring a missing terminal successful (a timeout terminal is written as a timeout)",
+        "resending",
+        "re-stamping",
+        "omitting a sent frame"
+      ],
+      "position": "directly above the unchanged splitfusion_m3_route_b_v3.route_completion.M3CollectorLayer, below EarlyGtCollector; same builder seam (live_gt.build_live_gt_collector)",
+      "schema": "splitfusion.m3_route_b_v11.end_of_route_drain.v1",
+      "seam": "rl_agent.splitfusion_m3_route_b_v11.route_drain.install_collector_layer",
+      "steps": [
+        "stop new submissions (DROPPED_END_OF_ROUTE_DRAIN, counted, never sent)",
+        "wait for the one in-flight token to finish registering/sending (bounded)",
+        "wait for outstanding terminals within each obligation's own registered ACK horizon",
+        "close anything still open through the retained record_expired on the real clock"
+      ],
+      "thread": "main route-runner thread (collecting_drive finally), before the retained PassiveSplitCollector.finish forced expiry and stop_event",
+      "unchanged": [
+        "170 ms decision deadline and reward resolution",
+        "all timestamps",
+        "the final transmitted frame",
+        "the ACK horizon",
+        "map freshness rules",
+        "every retained finish() step (run unchanged afterwards)"
+      ],
+      "v8_failure": "G1 one_terminal_per_sent_frame on the final in-flight frame 8595 (ACK at +80 ms, inside its 500 ms horizon, 110 ms after finish() began)"
+    },
+    "offline_p3": {
+      "covers": [
+        "the registered M3 integration verdict tool's archive rescore (splitfusion_m3_route_b_v3_analysis.integration.evaluate -> splitfusion_fixed_action_screen_analysis_v2.analyze.rescore)",
+        "the retention GT-reference adapter (splitfusion_paired_retention_v2.gt_adapter.resolve_gt_references)"
+      ],
+      "equivalence": "the same two steps the live GT prep and score workers run (splitfusion_m3_route_b_v3.worker_entry)",
+      "modes": [
+        "verdict",
+        "retention"
+      ],
+      "module": "rl_agent.splitfusion_m3_route_b_v11.postflight_p3",
+      "rule": {
+        "coordinate_range_m": 512.0,
+        "evidence": "v1 capture: 2,412 ego/mount radar + 2,412 ego/mount RGB camera + 1,204 wire/source camera comparisons, max 0.988 / 0.997 / 0.963 ULP; failing frame 3765 1.043e-5 m at ~128.6 m = 0.68 ULP; v2 capture: 2,469 + 2,469 + 2,469 + 1,232 UE comparisons up to 132.8 m, max 0.988 ULP, 0 rejected; GT worker live context/source camera rejected 1.0009e-5 m under the retained bound (v2 stop)",
+        "floor_m": 1e-05,
+        "max_tolerance_m": 0.0001220703125,
+        "scale": "ULP32 of the largest absolute translation component of the two compared matrices (norm-wise; the composed float32 translation error is set by the largest term, not by each element's own magnitude)",
+        "strict_unchanged": [
+          "rotation 3x3 block <= 1e-5",
+          "homogeneous row <= 1e-5 (and _matrix 1e-8)",
+          "rigid rotation / finite / shape (_matrix)",
+          "owned RGB camera vs snapshot",
+          "owned radar vs snapshot",
+          "preparation sensor records",
+          "live-GT camera checks",
+          "numeric producer camera checks",
+          "identity/frame/timestamp/calibration hashes"
+        ],
+        "ulps": 2
+      },
+      "schema": "splitfusion.m3_route_b_v11.postflight_p3.v1",
+      "substitutions": [
+        "P3_GT_LIVE_CONTEXT_SOURCE_CAMERA"
+      ],
+      "target": "rl_agent.splitfusion_numeric_gt_integration_v2.ready:_frame_geometry",
+      "unchanged": [
+        "rotation / homogeneous-row / rigidity / finiteness bounds",
+        "512 m coordinate range",
+        "identity, frame, timestamp and calibration hashes",
+        "every strict copy-of-the-same-source comparison",
+        "the archive bytes and the scores"
+      ],
+      "v8_evidence": "unregistered wrapper experiments/splitfusion_m3_route_b_v8/postflight_registered_p3.py; live P3 on that capture: 1,786 calls per GT worker, 0 rejected, max 1.417e-5 m at 140.66 m, 15 calls above the retained 1e-5 bound"
+    },
+    "registered_assessment": {
+      "binding": "rl_agent.splitfusion_m3_route_b_v11_offline_v1.binding",
+      "derives": "schedule, controller module, progress coverage, trace dir, pose rule, map class and map journal directory from the verified registration, after verify_prospective and verify_prerequisite",
+      "integration": "rl_agent.splitfusion_m3_route_b_v11_offline_v1.integration",
+      "module": "rl_agent.splitfusion_m3_route_b_v11_offline_v1.postflight",
+      "numeric_host_exit_status": "CAPTURED at launch and required by the integration verdict",
+      "package": "rl_agent/splitfusion_m3_route_b_v11_offline_v1",
+      "qualification": "V10 registration-bound assessment pattern (binding regression: the legitimate prospective accepted, six isolated negatives rejected -- wrong target, controller, trace identity, runtime/registration revision, exact-source binding and runtime source inventory)",
+      "refuses": "any declared revision other than this one; any registration whose assessment fields differ from the declared contract; any storage-accounting version other than the registered one",
+      "v3_pinned_verdict_tool": {
+        "authority": false,
+        "module": "rl_agent.splitfusion_m3_route_b_v3_analysis.integration",
+        "why": "its module-global contract supplies the V3 21.5-dB schedule to three SCHEDULE_* checks; it is still run unmodified and recorded beside the bound assessment"
+      }
+    },
+    "v8_verdict_preserved": "experiments/splitfusion_m3_route_b_v8 (REPORT.md, LIVE_CAPTURE_REPORT.md, capture_01, analysis_01_ROUTE_COMPLETED, presentation_route_layers_01_ROUTE_COMPLETED) is unchanged; V8's registered verdict and evidence stand"
+  },
+  "capacity": {
+    "archive_job_cap": 4000,
+    "frame_ceiling": 3900,
+    "mechanism": "inspect.getsource of the exact pinned function, each replacement must occur exactly once, no zero-argument super()/closure, compiled under a registered filename and installed on the owning class in that process only; every installation is recorded",
+    "substitutions": [
+      {
+        "id": "C1_PREP_DEFERRED_ENGINE",
+        "process": "GT prep worker (worker_entry)",
+        "replacements": [
+          [
+            "1 <= max_frames <= 1000",
+            "1 <= max_frames <= 3900"
+          ],
+          [
+            "1 <= source_max_frames <= 1000",
+            "1 <= source_max_frames <= 3900"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_exact_gt_service_proto_v2.deferred:DeferredProducerEngine.__init__"
+      },
+      {
+        "id": "C2_PREP_PRODUCER_SOURCE",
+        "process": "GT prep worker (worker_entry)",
+        "replacements": [
+          [
+            "1 <= max_frames <= 1000",
+            "1 <= max_frames <= 3900"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_numeric_gt_producer_v1.source:NumericSourceProducer.__init__"
+      },
+      {
+        "id": "C3_SERVICE_ARCHIVE_SIZING",
+        "process": "GT service (service_entry)",
+        "replacements": [
+          [
+            "max_frames=4 * self.limits[\"max_frames\"]",
+            "max_frames=4000"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_exact_gt_live_v2.service:Service.__init__"
+      },
+      {
+        "id": "C4_UE_TICKETS",
+        "process": "UE child (entries.child)",
+        "replacements": [
+          [
+            "len(self._tickets) < 1000",
+            "len(self._tickets) < 3900"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_exact_gt_live_v2.ue:EarlyGtUeHandoff.stage_before_action"
+      },
+      {
+        "id": "C5_UE_POSE_ARCHIVE",
+        "process": "UE child (entries.child)",
+        "replacements": [
+          [
+            "1 <= max_frames <= 1000",
+            "1 <= max_frames <= 3900"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_live_parity_runtime_v1.pose:PoseArchive.__init__"
+      }
+    ],
+    "unchanged": [
+      "archive MAX_CUMULATIVE_JOBS 4000 and MAX_BOOKKEEPING_BYTES 64 MiB (archive child, file unchanged)",
+      "outstanding job/byte credits, prep_jobs 4, scorer_jobs 4, freeze_queue 1, max_waiting 2, ue_freeze_queue 2, horizon_ms 2000, drain_s 120",
+      "duplicate refusal, durability, back-pressure",
+      "pose archive 32,768 events / 64 MiB",
+      "map installed-frame history 4,096 (rolling)",
+      "SNR provider history 8,192 snapshots (~819 s of 100-ms steps)"
+    ]
+  },
+  "channel": {
+    "actor_input": {
+      "feature_index": 22,
+      "gnb_measurement_to_actor": false,
+      "normalisation_changed": false,
+      "source": "ACKed commanded target (retained controller publication)",
+      "support_db": [
+        5.5,
+        24.5
+      ],
+      "value": 0.9473684210526315
+    },
+    "carrier_cell": {
+      "action": 71,
+      "network_profile": "FAVORABLE_STABLE",
+      "profile_substituted": false,
+      "trace": {
+        "profile_id": "FAVORABLE_STABLE",
+        "seed": 2026082101,
+        "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101"
+      }
+    },
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST",
+    "changed_from_v8": {
+      "fields": [
+        "trace_id",
+        "target_snr_db",
+        "expected_rfsim_command_db",
+        "mapping_point",
+        "qualification",
+        "actor_observation"
+      ],
+      "mcs_policy_changed": false,
+      "power_control_changed": false,
+      "v8": {
+        "expected_rfsim_command_db": -11.0,
+        "target_snr_db": 21.5,
+        "trace_id": "CONST_GOOD_ALL_21P5DB_V1"
+      }
+    },
+    "controller_module": "rl_agent.splitfusion_m3_route_b_v11.good_all_controller",
+    "design_config": "rl_agent/configs/network_profile_design_v2.json",
+    "design_config_sha256": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483",
+    "later_schedules_not_implemented": [
+      "BAD_ALL",
+      "GOOD_TO_BAD",
+      "BAD_TO_GOOD"
+    ],
+    "live_config": "rl_agent/configs/splitfusion_direct_edge_map_live_validation_v1.json",
+    "live_config_sha256": "fd9bdae329ca7e275520f13bce8737d4bdc23e285bff7fa0b23867a14ac4d6e2",
+    "mapping_csv": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/target_to_rfsim_mapping.csv",
+    "mapping_sha256": "f1cc9c48bd5cd55d2de2421d07c23dd3deff2bca3497e3a5d5e87aaa11ec2a3d",
+    "radio_profile": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "restore": "retained runtime: noise_power_dB -50 commanded, read back and verified at teardown",
+    "retained_controller_module": "rl_agent.splitfusion_run5_live_avo_v1.snr_live",
+    "sample_period_ms": 100,
+    "schedule": {
+      "actor_observation": "the retained causal SNR proxy is the ACKed COMMANDED TARGET (controller publication), constant 23.5 dB -> feature 22 = (23.5-5.5)/19 = 0.947368...; it is not a measured achieved SNR; schedule identity/step/route progress never enter the actor state",
+      "continuation": "CONSTANT (same value every 100-ms step after the prefix)",
+      "expected_rfsim_command_db": -12.0,
+      "hold_semantics": "constant by design; the config's forbidden_after_prefix (wrap/hold_final_value/reseed) governs the Gaussian-Markov traces and is not violated: no stochastic trace is replayed",
+      "kind": "CONSTANT_TARGET_EVERY_STEP",
+      "mapping_point": "PHASE14A_100MHZ_ANCHOR_01",
+      "not_the_stochastic_profile": "FAVORABLE_STABLE is a Gaussian-Markov trace (profile mean ~20.0 dB); GOOD_ALL is a new deterministic constant schedule and is reported under its own name",
+      "prefix_samples": 4200,
+      "qualification": "experiments/splitfusion_m3_good_all_snr_qual_v1/20261008_run01/REPORT.md: per-transmission PUSCH snrx10 median 23.5 / P05 23.0 / P95 24.0 dB, MCS 27, 0 errors (radio only, 45 s)",
+      "schedule_id": "GOOD_ALL",
+      "seed": 0,
+      "state_index": 2,
+      "target_snr_db": 23.5,
+      "trace_id": "CONST_GOOD_ALL_23P5DB_V1",
+      "trace_sha256": "ca0e95289d257c5a88784585671dae24291adbebe70782d70c1ef32cdd433ba6"
+    },
+    "seam": "UE child sets splitfusion_run5_full_live_v1.runtime_policy.CONTROLLER_MODULE; the controller replaces only ue_target_snr_cell_runtime_v1.prepare_sequence and rewrites --profile-id to GOOD_ALL",
+    "traces_csv": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+    "traces_sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+    "transitions_depend_on_actor": false
+  },
+  "frozen_deadline_ms": 170,
+  "gt_gc": {
+    "arm": "candidate",
+    "avo_geometry": {
+      "binding_record": "gt_gc_trace/avo_tilt_binding.json",
+      "geometry_version": "route_b_actor_volume_visibility_v1__tilt_aware_candidate_v1",
+      "ground_rule_envelope_m": 0.03,
+      "refused_fatal": [
+        "TILT_OUTSIDE_GROUND_RULE_ENVELOPE_TARGET",
+        "nonzero bbox.rotation",
+        "invalid/inconsistent rotation evidence",
+        "foreign geometry version"
+      ],
+      "roles": [
+        "prep"
+      ],
+      "silently_skipped": false,
+      "sources": {
+        "rl_agent/splitfusion_avo_tilt_v1/__init__.py": "ef79a34679f3901240e17068bbcd3f1ed0a601a1a54516039a1acd3c77a0add9",
+        "rl_agent/splitfusion_avo_tilt_v1/geometry.py": "d0f34d88be786a76df56f6224b7eb17c7ad7311729654e7a0b23c193ad6cd26a",
+        "rl_agent/splitfusion_avo_tilt_v1/quality.py": "d536bc4fe24d12ac0f7cd2f115141d72bb6d49e62a0589b814ef634d0b736404",
+        "rl_agent/splitfusion_avo_tilt_v1/switch.py": "81f20880d7c09391c40516b4dfabaf0da77fbd4500746a4774fd55125156bff6"
+      },
+      "substitution": {
+        "process": "GT prep worker only",
+        "replacement": "rl_agent.splitfusion_avo_tilt_v1.quality:numeric_avo",
+        "target": "rl_agent.splitfusion_numeric_gt_producer_v1.avo:numeric_avo"
+      },
+      "switch": "rl_agent.splitfusion_avo_tilt_v1.switch",
+      "thresholds_changed": false,
+      "tilted_representation": "frozen CARLA actor matrix 3x3 (validated vs CARLA Euler, proper rotation)",
+      "upright_boundary_deg": 1e-06,
+      "upright_representation": "frozen core.yaw_rotation (bit-identical to v7)"
+    },
+    "implementations": {
+      "retained_worker_trampoline": "rl_agent.splitfusion_m3_route_b_v4.worker_entry",
+      "service": "rl_agent.splitfusion_m3_route_b_v11.service_entry",
+      "v7_worker": "rl_agent.splitfusion_m3_route_b_v7.worker_entry",
+      "v8_worker": "rl_agent.splitfusion_m3_route_b_v8.worker_entry",
+      "worker": "rl_agent.splitfusion_m3_route_b_v3.worker_entry"
+    },
+    "policy": {
+      "gen2_threshold": 200,
+      "idle_min_gen1": 1,
+      "idle_ops": [
+        "CANCEL_BOUND",
+        "CANCEL_UNBOUND",
+        "EVIDENCE_DURABLE",
+        "UNSCORED_DURABLE",
+        "VOID"
+      ],
+      "warmup_decisions": 2
+    },
+    "prep_freeze_lifetime": {
+      "binding_record": "gt_gc_trace/prep_lifetime_binding.json",
+      "core": "PrepCoreLifetime",
+      "failure_snapshot": "gt_gc_trace/freeze_failure_v1",
+      "fatal_freeze_only": true,
+      "gt_semantics_changed": false,
+      "max_source_bytes": 33554432,
+      "module": "rl_agent.splitfusion_gt_freeze_lifetime_v1.repair",
+      "roles": [
+        "prep"
+      ],
+      "sources": {
+        "rl_agent/splitfusion_gt_freeze_lifetime_v1/__init__.py": "e7b78cd9f694dd1f913cab9308bf0290fe863e7142990dbd7a12b58ab3ac58e4",
+        "rl_agent/splitfusion_gt_freeze_lifetime_v1/repair.py": "8f415c8b93087455d1acdd13f6b97f25bb831ae031fc2c8da172877318240db3"
+      }
+    },
+    "producer": "v2",
+    "producer_class": "NumericSourceProducerV2",
+    "producer_rollback": "producer v1 through the same launcher (no substitution)",
+    "producer_substitutions": [
+      {
+        "purpose": "producer construction",
+        "target": "rl_agent.splitfusion_exact_gt_service_proto_v2.deferred.NS",
+        "value": "proxy module, NumericSourceProducer = NumericSourceProducerV2"
+      },
+      {
+        "purpose": "ownership guard accepted exact type (type(producer) is ... still exact)",
+        "target": "rl_agent.splitfusion_numeric_gt_integration_v2.ownership.NumericSourceProducer",
+        "value": "NumericSourceProducerV2"
+      }
+    ],
+    "role": "prep",
+    "safety": {
+      "host_mem_available_min_bytes": 4294967296,
+      "idle_collection_wall_max_ms": 50.0,
+      "prep_rss_growth_after_freeze_max_bytes": 268435456,
+      "prep_rss_max_bytes": 1610612736
+    },
+    "seam": "rl_agent.splitfusion_m3_route_b_v11.gc_seams",
+    "storage_accounting": {
+      "binding_record": "gt_gc_trace/storage_accounting_binding.json",
+      "cache": {
+        "cleanup": "worker finally: timer removed, session.snapshot() recorded, session restored as the owner global, then switch.uninstall() -> AccountingSession.close()",
+        "cleanup_record": "gt_gc_trace/storage_accounting_binding.json:accounting_session",
+        "max_objects": 32768,
+        "mutation_guard": "whole-graph witness: every reached dict/list/set/object identity and ndarray (dtype.hasobject, nbytes); mismatch performs the exact traversal",
+        "owner_cache": "the last owner call only (stage_products -> bind_plan -> set_ready, or stage_products -> set_ready, with identical staged/products identities)",
+        "required_capabilities": [
+          "dict_tags",
+          "mappingproxy",
+          "pair_history"
+        ],
+        "snapshot_context": "computed afresh from reachable(snapshot) minus the caller's current seen set; no partial snapshot subtotal is reusable"
+      },
+      "capacity_rule_unchanged": true,
+      "qualification": {
+        "directory": "experiments/splitfusion_gt_storage_accounting_v3",
+        "records": {
+          "final_tests_02": "FAULT_INJECTION.json",
+          "output_parity_03": "SUMMARY.json",
+          "process_qualification_V10_03": "SUMMARY.json",
+          "process_qualification_V8_02": "SUMMARY.json",
+          "replay_qualification_V10_02": "SUMMARY.json",
+          "replay_qualification_V8_02": "SUMMARY.json",
+          "service_proof_02": "RESULT.json"
+        }
+      },
+      "reservation_bytes_unchanged": true,
+      "roles": [
+        "prep"
+      ],
+      "sources": {
+        "rl_agent/splitfusion_gt_storage_accounting_v3/__init__.py": "871029a0f75c9115b42642403f2d23eba48a58f149d25b0e0e0b3407177f5391",
+        "rl_agent/splitfusion_gt_storage_accounting_v3/accounting.py": "b6f4a655b65f98ac10d31227372eba78c60672fba7c25a55debe03199f391baa",
+        "rl_agent/splitfusion_gt_storage_accounting_v3/switch.py": "3510b0f118eab1ea6ac2b94db9b9cd0cf18ce40d3d7ab17836c4ec76890eeb79"
+      },
+      "substitution": {
+        "default": "OFF",
+        "process": "GT prep worker only",
+        "replacement": "rl_agent.splitfusion_gt_storage_accounting_v3.accounting:AccountingSession",
+        "target": "rl_agent.splitfusion_numeric_gt_integration_v2.ownership:payload_storage_bytes"
+      },
+      "switch": "rl_agent.splitfusion_gt_storage_accounting_v3.switch",
+      "timing": {
+        "capacity": 62400,
+        "module": "rl_agent.splitfusion_m3_route_b_v11.accounting_timing",
+        "overflow": "counted in dropped, never silent",
+        "records": "per call: CLOCK_MONOTONIC_RAW begin/end, thread CPU ns, returned bytes, the ProducerOwner method that called _account",
+        "why": "the diagnosis fitted the late-route accounting cost; it was never measured per call",
+        "writes_on_request_path": false
+      },
+      "timing_record": "gt_gc_trace/storage_accounting_timing.json",
+      "v1_sources": {
+        "rl_agent/splitfusion_gt_storage_accounting_v1/__init__.py": "9e497c924f8546282affea1655498e1e44eaf7ab1b66de89dcf870538522e28e",
+        "rl_agent/splitfusion_gt_storage_accounting_v1/accounting.py": "79a8966b5c127d52a7f00e295ab0225eb290b6616b021c3b5986950d90b1b5a0",
+        "rl_agent/splitfusion_gt_storage_accounting_v1/switch.py": "d86bdc9fec57cd23a9a42ff84eec9ffe7b489c1881074d8024cf60545c0631cb"
+      },
+      "v2_comparison_sources": {
+        "rl_agent/splitfusion_gt_storage_accounting_v2/__init__.py": "8a0e1a50fbb7f5a54e838ef9573078a620466ed0864f3e7af26ad213a6f1c7d2",
+        "rl_agent/splitfusion_gt_storage_accounting_v2/accounting.py": "f8e66a8e209e99366207ea9ab97ce24591dd67ee27f69c89b3271acc634c8e18",
+        "rl_agent/splitfusion_gt_storage_accounting_v2/switch.py": "7033b5345ffa80e4463a5087ec64c2a15331b0017d3d1645e8b3ba8d3a48f5e5"
+      },
+      "value_contract": "returns exactly the original payload_storage_bytes integer; same exceptions",
+      "version": "splitfusion_gt_storage_accounting_v3.per_object_reachable_set.v2"
+    },
+    "substituted": {
+      "service": "rl_agent.splitfusion_exact_gt_live_v2.service",
+      "worker": "rl_agent.splitfusion_exact_gt_service_proto_v2.worker"
+    },
+    "threshold_wording": "gen2 threshold bounds gen1 collections between full collections; NOT a memory cap",
+    "trace_dir": "gt_gc_trace",
+    "trace_limits": {
+      "max_gen2_events": 15600,
+      "max_ops": 62400,
+      "max_policy_events": 15600
+    },
+    "trampolines": {
+      "service": "rl_agent.splitfusion_m3_route_b_v11.service_entry",
+      "worker": "rl_agent.splitfusion_m3_route_b_v11.worker_entry"
+    },
+    "validation": {
+      "frame_budget": "retained rules: G1 on TRANSMITTED_BUDGET_REACHED or the verified whole-cycle boundary",
+      "gc_trace": "traces present, roles as registered, GC policy only in the prep worker, GC state restored, no overflow, no safety stop",
+      "integration": "splitfusion_run5_full_live_analysis_v1.integration.evaluate == PASS_ACTOR_DRIVEN_INTEGRATION (unchanged R/X/A/E/S/Q)",
+      "producer": "prep worker constructed exactly the registered producer class; both substitutions restored at exit",
+      "reported": "GT readiness, feedback latency, timeliness, memory, exact rescoring, existing quality metrics; earlier sessions descriptive only"
+    }
+  },
+  "launcher_binding": {
+    "child": {
+      "collector_layer": "rl_agent.splitfusion_m3_route_b_v11.route_drain",
+      "controller": "rl_agent.splitfusion_m3_route_b_v11.good_all_controller",
+      "entries": "rl_agent.splitfusion_m3_route_b_v11.entries",
+      "load_observer": "rl_agent.splitfusion_m3_route_b_v11.retention",
+      "module": "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1_m3_route_b_v11",
+      "registration": "rl_agent.splitfusion_m3_route_b_v11.entries",
+      "seam_parameters": "rl_agent.splitfusion_m3_route_b_v11.gc_seams",
+      "validate_child_startup": "rl_agent.splitfusion_m3_route_b_v11.entries",
+      "verify_prospective": "rl_agent.splitfusion_m3_route_b_v11.host"
+    },
+    "contract_module": "rl_agent.splitfusion_m3_route_b_v11.contract",
+    "edge": {
+      "entries": "rl_agent.splitfusion_m3_route_b_v11.entries",
+      "module": "rl_agent.splitfusion_single_gpu_profiler_v1.edge_profiled_v1_m3_route_b_v11",
+      "registration": "rl_agent.splitfusion_m3_route_b_v11.entries",
+      "registration_path": "/partition_output/registration.json",
+      "validate_edge_startup": "rl_agent.splitfusion_m3_route_b_v11.entries"
+    },
+    "gt_service": {
+      "implementation": "rl_agent.splitfusion_m3_route_b_v11.service_entry",
+      "registration_check": "rl_agent.splitfusion_exact_gt_live_v2.service.verify_sources",
+      "retained_service": "rl_agent.splitfusion_exact_gt_live_v2.service",
+      "seam": "rl_agent.splitfusion_m3_route_b_v11.gc_seams",
+      "trampoline": "rl_agent.splitfusion_m3_route_b_v11.service_entry"
+    },
+    "gt_workers": {
+      "implementation": "rl_agent.splitfusion_m3_route_b_v3.worker_entry",
+      "prep_accounting": "rl_agent.splitfusion_gt_storage_accounting_v3.accounting:AccountingSession",
+      "prep_accounting_switch": "rl_agent.splitfusion_gt_storage_accounting_v3.switch",
+      "prep_avo": "rl_agent.splitfusion_avo_tilt_v1.quality:numeric_avo",
+      "prep_avo_switch": "rl_agent.splitfusion_avo_tilt_v1.switch",
+      "prep_core": "rl_agent.splitfusion_gt_freeze_lifetime_v1.repair.PrepCoreLifetime",
+      "registration_check": null,
+      "retained_trampoline": "rl_agent.splitfusion_m3_route_b_v4.worker_entry",
+      "score_core": "rl_agent.splitfusion_exact_gt_service_proto_v2.worker.ScoreCore",
+      "trampoline": "rl_agent.splitfusion_m3_route_b_v11.worker_entry",
+      "v7_trampoline": "rl_agent.splitfusion_m3_route_b_v7.worker_entry",
+      "v8_trampoline": "rl_agent.splitfusion_m3_route_b_v8.worker_entry"
+    },
+    "host": {
+      "check_prerequisites": "rl_agent.splitfusion_m3_route_b_v11.host",
+      "verify_prerequisite": "rl_agent.splitfusion_m3_route_b_v11.host",
+      "verify_prospective": "rl_agent.splitfusion_m3_route_b_v11.host",
+      "verify_startup_proof": "rl_agent.splitfusion_m3_route_b_v11.host"
+    },
+    "launcher_revision": "M3_1_ROUTE_B_STARTUP_BINDING_V11",
+    "partition": "rl_agent.splitfusion_m3_route_b_v11.partition",
+    "postflight": {
+      "assessment": "rl_agent.splitfusion_m3_route_b_v11_offline_v1.postflight",
+      "assessment_binding": "rl_agent.splitfusion_m3_route_b_v11_offline_v1.binding",
+      "assessment_integration": "rl_agent.splitfusion_m3_route_b_v11_offline_v1.integration",
+      "p3": "rl_agent.splitfusion_m3_route_b_v11.postflight_p3"
+    },
+    "runner": {
+      "mac_log_observer": "rl_agent.splitfusion_m3_route_b_v3.radio_observer",
+      "module": "rl_agent.splitfusion_m3_route_b_v11.runner",
+      "radio_telemetry": "rl_agent.splitfusion_m3_route_b_v11.radio_telemetry",
+      "validate_parent": "rl_agent.splitfusion_m3_route_b_v11.runner",
+      "verify_prerequisite": "rl_agent.splitfusion_m3_route_b_v11.host",
+      "verify_prospective": "rl_agent.splitfusion_m3_route_b_v11.host"
+    },
+    "runtime_revision": "M3_1_ROUTE_B_GOOD_ALL_V11",
+    "scientific_runtime_basis": "M3_1_ROUTE_B_GOOD_ALL_V4"
+  },
+  "map_class": {
+    "gt_used": false,
+    "mapping": {
+      "person": "Pedestrian",
+      "vehicle": "Vehicle"
+    },
+    "retained": "rl_agent/splitfusion_single_gpu_profiler_v1/map_profiled_v1.py",
+    "scope": "every Run-4 map update installed (policy decisions, holds, fallbacks) in the map process only",
+    "seam": "seams_ue_v1.MAP_SERVER -> m3v3_map_profiled_v1.py (sampler/marker substring map_profiled_v1.py kept), which wraps phase6_map_server_v2.install to convert on a copy before the frozen install",
+    "source_field": "class_name",
+    "target_field": "type",
+    "trampoline": "rl_agent/splitfusion_single_gpu_profiler_v1/m3v3_map_profiled_v1.py",
+    "unchanged": "object count, order, scores, coordinates, all other fields; edge records, scorer inputs, hashes, confidence thresholds and filtering",
+    "unknown_class": "left without type (baseline -> Unknown) and counted"
+  },
+  "numeric_prediction_contract": {
+    "camera_model_sha256": "c4a1349b416448169a8ced2808389797dae3822a75d62c0c2f066b6b13657009",
+    "camera_mount_sha256": "d54a19cabb31623d0fdc41956c529a6af12694dd0c174ebe3084481f8f8080d8",
+    "dtype": "uint8",
+    "kind": "NATIVE_CALIBRATED",
+    "labels": [
+      0,
+      1,
+      2
+    ],
+    "schema": "splitfusion.parity_repair.prediction_contract.v2",
+    "shape": [
+      720,
+      1280
+    ],
+    "transformation": "NONE__PRESERVE_ACTUAL_NATIVE_LABELS"
+  },
+  "policy": {
+    "audit_module": "rl_agent.splitfusion_run5_full_live_v1.audit_actor",
+    "binding_path": "rl_agent/splitfusion_run5_full_live_v1/actor_export/ACTOR_BINDING.json",
+    "expected_weights_sha256": "bb9b0d256de79b4498cd622e1daa59edcf43ff3072dc9f675b265aac579ed3ce",
+    "weights_path": "rl_agent/splitfusion_run5_full_live_v1/actor_export/actor_state_dict.pt"
+  },
+  "pose_repair": {
+    "rule": {
+      "coordinate_range_m": 512.0,
+      "evidence": "v1 capture: 2,412 ego/mount radar + 2,412 ego/mount RGB camera + 1,204 wire/source camera comparisons, max 0.988 / 0.997 / 0.963 ULP; failing frame 3765 1.043e-5 m at ~128.6 m = 0.68 ULP; v2 capture: 2,469 + 2,469 + 2,469 + 1,232 UE comparisons up to 132.8 m, max 0.988 ULP, 0 rejected; GT worker live context/source camera rejected 1.0009e-5 m under the retained bound (v2 stop)",
+      "floor_m": 1e-05,
+      "max_tolerance_m": 0.0001220703125,
+      "scale": "ULP32 of the largest absolute translation component of the two compared matrices (norm-wise; the composed float32 translation error is set by the largest term, not by each element's own magnitude)",
+      "strict_unchanged": [
+        "rotation 3x3 block <= 1e-5",
+        "homogeneous row <= 1e-5 (and _matrix 1e-8)",
+        "rigid rotation / finite / shape (_matrix)",
+        "owned RGB camera vs snapshot",
+        "owned radar vs snapshot",
+        "preparation sensor records",
+        "live-GT camera checks",
+        "numeric producer camera checks",
+        "identity/frame/timestamp/calibration hashes"
+      ],
+      "ulps": 2
+    },
+    "substitutions": [
+      {
+        "id": "P1_OWNED_POSE_RECONSTRUCTED",
+        "process": "UE child (entries.child)",
+        "replacements": [
+          [
+            "_agree(ego, owned[\"ego\"].get_matrix(), \"owned ego\")",
+            "_M3_AGREE_RECONSTRUCTED(ego, owned[\"ego\"].get_matrix(), \"owned ego\")"
+          ],
+          [
+            "_agree(ego @ np.asarray(calibration.camera_to_ego_values), camera, \"ego/mount RGB camera\")",
+            "_M3_AGREE_RECONSTRUCTED(ego @ np.asarray(calibration.camera_to_ego_values), camera, \"ego/mount RGB camera\")"
+          ],
+          [
+            "_agree(ego @ carla_transform_matrix(RADAR_MOUNT), radar, \"ego/mount radar\")",
+            "_M3_AGREE_RECONSTRUCTED(ego @ carla_transform_matrix(RADAR_MOUNT), radar, \"ego/mount radar\")"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_live_parity_runtime_v1.pose:capture_owned_pose"
+      },
+      {
+        "id": "P2_WIRE_SOURCE_CAMERA",
+        "nested_classes": true,
+        "process": "UE child (entries.child)",
+        "replacements": [
+          [
+            "delta = _agree(context_camera(context), source.matrix(\"camera\"), \"wire/source camera\")",
+            "delta = _M3_AGREE_RECONSTRUCTED(context_camera(context), source.matrix(\"camera\"), \"wire/source camera\")"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_live_parity_runtime_v1.pose:install_ue_pose"
+      },
+      {
+        "id": "P3_GT_LIVE_CONTEXT_SOURCE_CAMERA",
+        "process": "GT prep worker (BIND) and GT score worker (TARGET) (worker_entry)",
+        "replacements": [
+          [
+            "PO._agree(camera, PO.context_camera(context, _CAMERA_REGISTRY), \"live context/source camera\")",
+            "_M3_AGREE_RECONSTRUCTED(camera, PO.context_camera(context, _CAMERA_REGISTRY), \"live context/source camera\")"
+          ]
+        ],
+        "target": "rl_agent.splitfusion_numeric_gt_integration_v2.ready:_frame_geometry"
+      }
+    ]
+  },
+  "radio_telemetry": {
+    "actor_input": "unchanged: the ACKed commanded target; no gNB measurement reaches the actor",
+    "bounds": {
+      "max_rows_per_stream": 2000000,
+      "overflow": "counted, never silent"
+    },
+    "client": {
+      "flags": [
+        "-f",
+        "-s",
+        ",",
+        "-t",
+        "time"
+      ],
+      "tool": "OAI/openairinterface5g/common/utils/T/tracer/csv"
+    },
+    "database": "OAI/openairinterface5g/common/utils/T/T_messages.txt",
+    "database_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+    "decision_path": {
+      "gt": false,
+      "inference": false,
+      "map": false,
+      "scoring": false,
+      "synchronous_work": false
+    },
+    "events": {
+      "GNB_MAC_PUSCH_POWER_CONTROL": [
+        "time",
+        "rnti",
+        "frame",
+        "slot",
+        "snrx10",
+        "phr",
+        "tpc",
+        "tb_size",
+        "txpower_calc",
+        "rbSize",
+        "mcs",
+        "rssi"
+      ],
+      "GNB_MAC_UL_MCS_DECISION": [
+        "time",
+        "rnti",
+        "frame",
+        "slot",
+        "sched_frame",
+        "sched_slot",
+        "avg_snr_x10",
+        "mcs_table",
+        "ul_bler_mcs_before",
+        "selected_mcs",
+        "pre_phr_mcs",
+        "post_phr_mcs",
+        "final_mcs",
+        "estimated_ul_buffer",
+        "sched_ul_bytes",
+        "B",
+        "min_rb",
+        "available_rb_before",
+        "available_rb_after",
+        "ph",
+        "pcmax",
+        "rb_size_final",
+        "tbs_final",
+        "force_ul_mcs"
+      ]
+    },
+    "evidence": [
+      "m3_radio/ttracer/live_pusch_with_ingest.csv",
+      "m3_radio/ttracer/live_mcs_with_ingest.csv",
+      "m3_radio/RADIO_TELEMETRY.json"
+    ],
+    "ingest": "runner-parent daemon drain threads; each line prefixed with host wall_ns and CLOCK_MONOTONIC_RAW ns",
+    "lifecycle": {
+      "start": "after _start_live_radio returned (radio attached, its cold check already run)",
+      "stop": "before the retained _stop_live_radio teardown; the relay port must be free again for the post-teardown cold proof"
+    },
+    "module": "rl_agent.splitfusion_m3_route_b_v11.radio_telemetry",
+    "placement": {
+      "cpus": "the registered radio CPUs of this attempt (arm.json radio_cpus)",
+      "mechanism": "taskset",
+      "rationale": "the gNB tracer worker these read from is already pinned there"
+    },
+    "qualification": "experiments/splitfusion_m3_good_all_snr_qual_v1/20261008_run01",
+    "quantities": {
+      "mac_log_snr": {
+        "kept": true,
+        "label": "power-control SNR (avg_snr + tpc_in_flight), NOT channel SNR",
+        "observer": "rl_agent.splitfusion_m3_route_b_v3.radio_observer",
+        "where": "m3_radio/gnb_stats_observed.jsonl"
+      },
+      "mcs": "GNB_MAC_UL_MCS_DECISION.selected_mcs and .final_mcs; GNB_MAC_PUSCH_POWER_CONTROL.mcs",
+      "pusch_snr_db": "GNB_MAC_PUSCH_POWER_CONTROL.snrx10/10, per transmission (Phase-14A calibrated channel SNR)",
+      "scheduler_avg_snr_db": "GNB_MAC_UL_MCS_DECISION.avg_snr_x10/10 (EMA; read by the SINR MCS lookup)"
+    },
+    "relay": {
+      "gnb_port": 2021,
+      "relay_port": 2031,
+      "tool": "OAI/openairinterface5g/common/utils/T/tracer/multi",
+      "why": "the gNB T server accepts one client and closes its listener while connected"
+    }
+  },
+  "route": {
+    "cadence": "20 Hz world ticks (fixed_delta 0.05 s, real-time paced), one prepared frame per 2 ticks",
+    "child_timeout_s": 2400.0,
+    "completion": {
+      "final_cycle_exception": "P3_HOLD_TICKET admits exactly one single-frame decision group iff it is the last decision of the last session, its frame is the last transmitted frame and it is reward-requested (the loop can end between a decision and its hold); every other group needs >= 2 frames",
+      "incomplete": "FRAME_CEILING reached, SAFETY_TIMEOUT_EXPIRED, route watchdog/abort, missing/mismatched route summary, collector failure: INCOMPLETE_ROUTE (evidence kept, never a pass, no retry)",
+      "progress_evidence": {
+        "match_radius_m": 8.0,
+        "minimum_ordered_coverage": 0.98,
+        "ordered": true,
+        "reference": "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv",
+        "source": "UE pose archive ego_world per transmitted frame (scientific, measured pose)"
+      },
+      "runner_criteria": {
+        "abort_reason": "",
+        "all_ordered_waypoints_reached": true,
+        "completion_heading_tolerance_deg": 25.0,
+        "completion_radius_m": 6.0,
+        "loops": 1,
+        "route_outcome": "classification in the retained ue_route_b_split_cell_adapter_v1.ROUTE_ACCEPTABLE_OUTCOMES (PASS; INTERVENED with permitted roadblock clearing; proven collision-only; proven no-pedestrian-braking) -- the run_route_b 'accepted' result, unchanged",
+        "watchdog_aborted": false,
+        "waypoints_expected": 19
+      },
+      "terminal": "ROUTE_COMPLETED: run_route_b returned accepted with route_completed, the durable route summary persisted with matching identity, and the collector made no early stop (no frame-ceiling / safety-timeout / decision-cycle stop)"
+    },
+    "derivation": "full loops 298.75-309.2 s simulated (2,990-3,060 frames; 14 direct-edge-map loops), slowest observed 361.5 s (~3,615 frames, 288 campaign); ceiling 3,900 frames; watchdog 900 s",
+    "frame_ceiling": 3900,
+    "host_route_lifecycle_s": 2400,
+    "progress_csv": "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv",
+    "progress_csv_sha256": "974593859368f24ee2bc4ac31b82118bf2e932d0de1c96858b8771e2dd4d90c0",
+    "route_json": "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.json",
+    "route_json_sha256": "fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5",
+    "route_name": "Town10HD_Opt Route B full-map loop v1",
+    "safety_timeout_s": 900.0,
+    "scenario_seed": 31,
+    "traffic_manager_seed": 31
+  },
+  "runtime_revision": "M3_1_ROUTE_B_GOOD_ALL_V11",
+  "selection": {
+    "run": "FULL_RUN5",
+    "seed": 43,
+    "update": 10000
+  }
+}

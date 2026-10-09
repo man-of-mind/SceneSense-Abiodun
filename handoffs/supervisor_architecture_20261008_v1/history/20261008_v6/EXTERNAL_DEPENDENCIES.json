@@ -1,0 +1,11 @@
+{
+  "carla": "CARLA 0.10.0 installation and Python API are external; not copied.",
+  "oai": {
+    "head": "7473cdb52e1cf3c40e1e1f189f03b2785bf15610",
+    "local_source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g",
+    "note": "Only modified telemetry/scheduler sources are copied, not the complete OAI/core-network repository or container images."
+  },
+  "perception": "FCOS, AE and ranker weights are external; see MODEL_WEIGHT_REFERENCES.json.",
+  "runtime": "Requires original environment, deployed container images, approved registrations and source pins. This snapshot is for reading, not an authorized launch bundle.",
+  "training": "Measured calibration chains, quality database, datasets and durable training bundles are intentionally omitted."
+}

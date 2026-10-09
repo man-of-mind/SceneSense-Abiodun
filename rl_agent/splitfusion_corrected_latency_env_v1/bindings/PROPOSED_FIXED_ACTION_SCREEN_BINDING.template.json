@@ -1,0 +1,50 @@
+{
+ "schema": "splitfusion.corrected_latency_env.calibration_binding.v1",
+ "binding_id": "fixed_action_screen_a71_favorable_v1",
+ "binding_version": 1,
+ "candidate_version": "splitfusion_corrected_latency_env_v1",
+ "purpose": "PROPOSED_CALIBRATION: fixed-action screen, 7 registered arms (catalogue action ids 33, 65, 17, 50, 67, 53, 35), cell a71__favorable_stable, early-GT pipeline. TEMPLATE: every <FILL_AFTER_SEALED_DELIVERY> must be replaced from the sealed delivery; the loader rejects the template as is.",
+ "deadline_ms": 170,
+ "pipeline_identity": "<FILL_AFTER_SEALED_DELIVERY: B's run-level pipeline-identity record, byte-for-byte identical across all arms (registration is excluded; edge image, runtime source digest, CPU partition, perception input, deadline)>",
+ "sources": [
+  {
+   "source_id": "screen_arm_<ACTION_ID>",
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "pipeline_identity": "<identical to the binding-level record>",
+   "files": {"boundaries": {"path": "<FILL_AFTER_SEALED_DELIVERY>", "sha256": "<FILL_AFTER_SEALED_DELIVERY>"}},
+   "field_map": {
+    "mode_id": "<executed action mode_id field>",
+    "q_e4": "<executed action q_e4 field>",
+    "family": "<executed family>",
+    "quantizer": "<executed quantizer>",
+    "payload_bytes": "<payload (chunking-coordinate) bytes>",
+    "prior_ul_mcs": "<prior UL MCS at decision>",
+    "backlog_bytes": "<pre-action RLC backlog bytes>",
+    "camera_si": "<raw camera SI (not scaled)>",
+    "radar_p40": "<radar P40>",
+    "network_profile": "<network profile id>",
+    "cold": "<cold flag>"
+   }
+  }
+ ],
+ "policy": {
+  "exclude_cold": true,
+  "action_match": {"rule": "EXACT_MODE_Q", "q_tolerance_e4": 0},
+  "min_chains_per_stratum": 30,
+  "scene_conditioning": {"descriptors": ["camera_si", "radar_p40"], "k": 5, "support_margin_fraction": 0.0},
+  "uplink": {
+   "mode": "TRANSPORT_MODEL_DELTA",
+   "transport_artifact_sha256": "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c",
+   "validation": {
+    "file": {"path": "abiodun/experiments/splitfusion_training_live_mismatch_v1/20261005_v1/CALCULATIONS.json",
+             "sha256": "5e1c68fb48fddcf0c6f3b69ee74cc7375bfee894fa3c4a959728389657c01041"},
+    "scope": {"profiles": ["FAVORABLE_STABLE"], "mcs_range": [24, 28], "wire_range": [96627, 403480],
+              "max_median_abs_error_ms": 5.0,
+              "evidence_keys": ["live100.transport_model_on_live", "run5_capture.transport_model_on_live"]}
+   }
+  },
+  "fallback": {"status": "UNCALIBRATED"}
+ }
+}

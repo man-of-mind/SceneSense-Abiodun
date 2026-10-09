@@ -1,0 +1,12 @@
+{
+  "carla": "Native CARLA 0.10.0 installation and Python API are external. Current experiments launch CarlaUnreal.sh directly; they do not require the old carlasim/carla Docker image.",
+  "gt_accounting": "Qualified V3 fast path runs only in the prep worker and requires checked CPython 3.10 capabilities; the worker refuses unsupported runtimes.",
+  "oai": {
+    "head": "7473cdb52e1cf3c40e1e1f189f03b2785bf15610",
+    "local_source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g",
+    "note": "Only modified telemetry/scheduler sources are copied, not the complete OAI/core-network repository or container images."
+  },
+  "perception": "FCOS, AE and ranker weights are external; see MODEL_WEIGHT_REFERENCES.json.",
+  "runtime": "Reading snapshot of the qualified V11/V12 system, not an authorized launch bundle. Original environment, sealed source inventories, registrations, OAI/core/edge images and external prerequisite evidence remain required.",
+  "training": "Measured calibration chains, quality database, datasets and durable training bundles are intentionally omitted."
+}

@@ -1,0 +1,93 @@
+{
+ "binding_id": "live100_actor_chosen_regression_fixture",
+ "binding_version": 1,
+ "candidate_version": "splitfusion_corrected_latency_env_v1",
+ "deadline_ms": 170,
+ "pipeline_identity": {
+  "cpu_partition": "radio 0-3,8-19; edge 4-7,20-23; GT prep/score/service CPUs 4/5/6; UE child OMP/MKL=1",
+  "deadline_ms_inclusive": 170,
+  "edge_image_id": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+  "exact_gt_runtime_source_count": 414,
+  "exact_gt_runtime_sources_digest": "f30c3d6a321200b352402028d606310c2a0029cdd390b4013e1d8e0cc86ac65b",
+  "perception_input": "corrected 432+16 PIL packing (live parity repair)"
+ },
+ "policy": {
+  "action_match": {
+   "q_tolerance_e4": 0,
+   "rule": "EXACT_MODE_Q"
+  },
+  "exclude_cold": true,
+  "fallback": {
+   "status": "UNCALIBRATED"
+  },
+  "min_chains_per_stratum": 1,
+  "scene_conditioning": {
+   "descriptors": [
+    "camera_si",
+    "radar_p40"
+   ],
+   "k": 3,
+   "support_margin_fraction": 0.0
+  },
+  "uplink": {
+   "mode": "TRANSPORT_MODEL_DELTA",
+   "transport_artifact_sha256": "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c",
+   "validation": {
+    "file": {
+     "path": "abiodun/experiments/splitfusion_training_live_mismatch_v1/20261005_v1/CALCULATIONS.json",
+     "sha256": "5e1c68fb48fddcf0c6f3b69ee74cc7375bfee894fa3c4a959728389657c01041"
+    },
+    "scope": {
+     "evidence_keys": [
+      "live100.transport_model_on_live",
+      "run5_capture.transport_model_on_live"
+     ],
+     "max_median_abs_error_ms": 5.0,
+     "mcs_range": [
+      24,
+      28
+     ],
+     "profiles": [
+      "FAVORABLE_STABLE"
+     ],
+     "wire_range": [
+      96627,
+      403480
+     ]
+    }
+   }
+  }
+ },
+ "purpose": "REGRESSION_FIXTURE_AND_EXAMPLE_ONLY: 46 warm actor-chosen decisions, one cell, one profile; not a training calibration",
+ "schema": "splitfusion.corrected_latency_env.calibration_binding.v1",
+ "sources": [
+  {
+   "action_selection": "ACTOR_CHOSEN_RUN5",
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_exact_gt_live_v1/closeout_01/BOUNDARIES.jsonl",
+     "sha256": "d7b4636de21e5910bb421d5eecf399be8f9c0939ba31c2ab7343e0564fd4f135"
+    },
+    "evidence": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_exact_gt_early_service_live100_v1/capture/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json",
+     "sha256": "f77f3c73b9a7523ed6fb3fdf0d4deb82069f596e0ebd2169dbe020fa477c68aa"
+    },
+    "per_frame": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_exact_gt_early_service_live100_v1/capture/cells/a71__favorable_stable/per_frame_metrics.csv",
+     "sha256": "33445a9dd9d6c25df037049574256ca872705ec3341f60757a0630363f87ac5f"
+    }
+   },
+   "kind": "BOUNDARIES_WITH_PHASE6_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": "radio 0-3,8-19; edge 4-7,20-23; GT prep/score/service CPUs 4/5/6; UE child OMP/MKL=1",
+    "deadline_ms_inclusive": 170,
+    "edge_image_id": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_runtime_source_count": 414,
+    "exact_gt_runtime_sources_digest": "f30c3d6a321200b352402028d606310c2a0029cdd390b4013e1d8e0cc86ac65b",
+    "perception_input": "corrected 432+16 PIL packing (live parity repair)"
+   },
+   "source_id": "live100_20261006T022850Z_a71_favorable"
+  }
+ ]
+}

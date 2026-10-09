@@ -1,0 +1,220 @@
+"""M3.1 v2 entries: the v1 entries plus R-POSE (P1/P2 with the UE capacity substitutions) and R-CLASS (map
+server trampoline). v1 header: M3.1 child/edge entry points: the channel-response/retention entries plus (child) the registered UE capacity
+substitutions, the M3 collector layer (finish-result repair + map journal tee) between the owned-pose and early-GT
+layers, the route-completion stop rule and the GOOD_ALL controller-module seam; (edge) the guarded evaluator submit.
+Retention stays the innermost scope. Header of the copied entries follows.
+
+Child and edge entry points for the retention launcher (versioned copy of the gc_v2 entries; the ONLY addition over
+gc_v2 is the paired-input retention scope, entered innermost in the UE child, and its post-drain finalize).
+
+Original gc_v2 header: Child and edge entry points for the paired live GC qualification (versioned copy of
+``splitfusion_run5_full_live_v1.entries``; the ONLY addition is the UE-child GT-service trampoline seam).
+
+The early-GT composition of ``splitfusion_fixed_action_screen_v3.entries`` WITHOUT the forced-action layer: the frozen
+full Run-5 actor (via the full Run-5 child entry and policy seams) drives every decision. The UE pose bound and the exact-GT
+limits follow the registered frame budget.
+"""
+from contextlib import contextmanager
+import json
+import os
+from pathlib import Path
+import sys
+
+from . import contract as C
+
+
+def _write(path, value):
+    with open(path, "x") as stream:
+        json.dump(value, stream, indent=1, sort_keys=True, default=str)
+        stream.write("\n")
+
+
+def registration(path, root):
+    value = json.loads(Path(path).read_bytes())
+    if (value.get("id") != C.ID or value.get("transmitted_budget") not in C.BUDGETS
+            or value.get("g1_boundary_budget") != value.get("transmitted_budget")
+            or value.get("exact_gt_limits") != C.limits(value.get("transmitted_budget"))
+            or value.get("child_module") != C.CHILD or value.get("edge_module") != C.EDGE
+            or value.get("live_metric_contract") != C.metrics()
+            or value.get("registration_sha256") != C.canonical({k: v for k, v in value.items() if k != "registration_sha256"})):
+        raise ValueError("full Run-5 live entry requires its exact sealed registration")
+    root = Path(root)
+    for relative, digest in value["exact_gt_sources"].items():
+        path = root / relative
+        if not path.is_file() or path.is_symlink() or C.sha(path) != digest:
+            raise ValueError("registered source drift: " + relative)
+    for name in ("actor.py", "runtime_policy.py", "child_entry.py", "entries.py", "contract.py"):
+        if C.V1.PACKAGE + "/" + name not in value["exact_gt_sources"]:
+            raise ValueError("registration omits full live source " + name)
+    for name in ("contract.py", "entries.py", "gc_seams.py", "service_entry.py", "worker_entry.py", "gc_policy_live.py",
+                 *C.GC_SOURCES, *C.PRODUCER_SOURCES):
+        key = name if "/" in name else C.PACKAGE + "/" + name
+        if key not in value["exact_gt_sources"]:
+            raise ValueError("registration omits GC-qualification source " + key)
+    gc_reg = value.get("gt_gc") or {}
+    if gc_reg != C.gc_registration(gc_reg.get("arm"), value["transmitted_budget"], gc_reg.get("producer")):
+        raise ValueError("registration GC arm/limits differ from the contract")
+    if "forced_action" in value:
+        raise ValueError("an actor-driven registration must not carry a forced action")
+    retention = value.get("paired_retention") or {}
+    if retention != C.retention_registration(retention.get("plan_sha256")):
+        raise ValueError("registration retention section differs from the contract")
+    for key in (*C.RETENTION_SOURCES, C.PACKAGE + "/retention.py"):
+        if key not in value["exact_gt_sources"]:
+            raise ValueError("registration omits retention source " + key)
+    return value
+
+
+@contextmanager
+def install_ue_capacity(attempt):
+    """C4/C5 + P1/P2 (UE child): registered source substitutions, recorded under <attempt>/m3_route. P1/P2 route the
+    four reconstructed-vs-CARLA pose comparisons through pose_tolerance.agree_reconstructed (v2 repair R-POSE)."""
+    from rl_agent.splitfusion_live_parity_runtime_v1 import pose as POSE
+    from . import capacity as CAP
+    from . import pose_tolerance as PT
+    if hasattr(POSE, "_M3_AGREE_RECONSTRUCTED"):
+        raise RuntimeError("reconstructed pose comparison already installed")
+    POSE._M3_AGREE_RECONSTRUCTED = PT.agree_reconstructed
+    installed = CAP.install(CAP.UE_CHILD + CAP.POSE)
+    try:
+        yield installed
+    finally:
+        installed.uninstall()
+        del POSE._M3_AGREE_RECONSTRUCTED
+        directory = Path(attempt) / "m3_route"
+        directory.mkdir(exist_ok=True)
+        CAP.write_record(installed, directory / "UE_CAPACITY_SUBSTITUTIONS.json")
+        PT.write(directory / "POSE_TOLERANCE.json")
+
+
+@contextmanager
+def install_map_trampoline(attempt):
+    """R-CLASS: the retained profiled map entry is launched through the registered class-preserving trampoline."""
+    from rl_agent.splitfusion_single_gpu_profiler_v1 import seams_ue_v1 as SU
+    if SU.MAP_SERVER != C.RETAINED_MAP_SERVER:
+        raise ValueError("retained map server path drift: " + repr(SU.MAP_SERVER))
+    SU.MAP_SERVER = C.MAP_SERVER_TRAMPOLINE
+    try:
+        yield
+    finally:
+        SU.MAP_SERVER = C.RETAINED_MAP_SERVER
+        directory = Path(attempt) / "m3_route"
+        directory.mkdir(exist_ok=True)
+        _write(directory / "MAP_SERVER_SEAM.json", dict(schema="splitfusion.m3_route_b_v2.map_seam.v1",
+            substituted=C.MAP_SERVER_TRAMPOLINE, retained=C.RETAINED_MAP_SERVER,
+            restored=SU.MAP_SERVER == C.RETAINED_MAP_SERVER))
+
+
+@contextmanager
+def install_good_all_controller(attempt):
+    """GOOD_ALL: the retained runtime_policy launches the controller module named by its CONTROLLER_MODULE global."""
+    from rl_agent.splitfusion_run5_full_live_v1 import runtime_policy as RP
+    if RP.CONTROLLER_MODULE != C.RETAINED_CONTROLLER_MODULE:
+        raise ValueError("retained controller module drift: " + repr(RP.CONTROLLER_MODULE))
+    RP.CONTROLLER_MODULE = C.CONTROLLER_MODULE
+    try:
+        yield
+    finally:
+        RP.CONTROLLER_MODULE = C.RETAINED_CONTROLLER_MODULE
+        directory = Path(attempt) / "m3_route"
+        directory.mkdir(exist_ok=True)
+        _write(directory / "CONTROLLER_MODULE_SEAM.json", dict(
+            schema="splitfusion.m3_route_b_v2.controller_seam.v1", substituted=C.CONTROLLER_MODULE,
+            retained=C.RETAINED_CONTROLLER_MODULE, restored=RP.CONTROLLER_MODULE == C.RETAINED_CONTROLLER_MODULE))
+
+
+def child(argv=None):
+    from rl_agent.splitfusion_single_gpu_profiler_v1 import child_v1 as BASE
+    from rl_agent.splitfusion_run5_full_live_v1 import child_entry as CHILD
+    from .gc_seams import install_ue_service_seam
+    from rl_agent.splitfusion_live_parity_repair_v1.gt_bridge import bind_legacy_namespace
+    from rl_agent.splitfusion_live_parity_repair_v1.runtime import install_ue_perception
+    from rl_agent.splitfusion_live_parity_runtime_v1 import pose as POSE   # resolved after the P2 substitution
+    from rl_agent.splitfusion_live_parity_runtime_v8.startup import preserve_startup
+    from rl_agent.splitfusion_numeric_gt_runtime_v1.live_entries import preserve_numeric_evidence
+    from rl_agent.splitfusion_ue_input_prep_v1.candidate import install_bgr2rgb_candidate
+    from rl_agent.splitfusion_ue_input_prep_v2.candidate import install_fused_candidate
+    from rl_agent.splitfusion_exact_gt_live_v2.ue import install_early_gt_ue
+    from .host import verify_prospective
+    from . import route_completion as RC
+    args = list(sys.argv[1:] if argv is None else argv)
+    attempt = Path(BASE.attempt_dir_from_argv(args)).resolve(strict=True)
+    config = BASE.load_config(attempt)
+    if (config is None or config.get("qualification_id") != C.ID
+            or config.get("sha256") != C.canonical({k: v for k, v in config.items() if k != "sha256"})):
+        raise ValueError("sealed enabled full Run-5 live profiler configuration required")
+    output = attempt.parent.parent.parent
+    verify_prospective(output)
+    root = Path(__file__).resolve().parents[2]
+    reg = registration(output / "registration.json", root)
+    from rl_agent.splitfusion_paired_retention_v2.observer import install_retention
+    from .retention import load_observer, finalize_after_child
+    observer = load_observer(output, reg)          # digest-bound pre-launch plan; refuses before any frame
+    bind_legacy_namespace()
+    original = CHILD.EDGE_MODULE
+    CHILD.EDGE_MODULE = C.EDGE
+    result, error = None, None
+    try:
+        with install_good_all_controller(attempt), RC.install_child_stop_rule(), install_map_trampoline(attempt), \
+                install_ue_service_seam(registration=reg, output=output), \
+                preserve_numeric_evidence(), preserve_startup(attempt), install_ue_perception(), \
+                install_bgr2rgb_candidate(), install_fused_candidate(), install_ue_capacity(attempt), \
+                POSE.install_ue_pose(attempt_dir=attempt, max_frames=int(reg["transmitted_budget"])), \
+                RC.install_collector_layer(), \
+                install_early_gt_ue(attempt_dir=attempt, registration=reg), \
+                install_retention(observer):
+            result = CHILD.main(args)
+            return result
+    except BaseException as exc:
+        error = f"{type(exc).__name__}: {exc}"[:500]
+        raise
+    finally:
+        CHILD.EDGE_MODULE = original
+        # every production scope has exited; persistence happens only after the owning frame worker is dead
+        finalize_after_child(observer, output, child_returncode=result, child_error=error)
+
+
+def edge(argv=None):
+    from rl_agent.splitfusion_numeric_gt_runtime_v1.live_entries import handoff_numeric_evidence, _run_edge_ordered
+    from rl_agent.splitfusion_single_gpu_profiler_v1 import edge_profiled_v1 as EP
+    from rl_agent.splitfusion_single_gpu_profiler_v1 import edge_profiled_v1_ordering as ORDERED
+    from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_prewarm_v2 as PW
+    from rl_agent.splitfusion_exact_gt_live_v2.edge import install_early_gt_edge, EarlyGtEvaluatorV1
+    args = list(sys.argv[1:] if argv is None else argv)
+    root = Path(__file__).resolve().parents[2]
+    reg = registration("/partition_output/registration.json", root)
+    profile = EP.profile_path(args).parent
+    directory = profile / "numeric_runtime"
+    directory.mkdir(parents=True, exist_ok=False)
+    result, error, state = None, None, None
+    try:
+        sys.path.insert(0, "/cpu_partition_code")
+        import edge_gate
+        edge_gate.install("/partition_output", PW)
+        base = Path("/work/torch_cache/segmentation_evidence")
+        with install_early_gt_edge(socket_path=base / reg["exact_gt_socket_name"],
+                                   capability_path=base / reg["exact_gt_capability_name"]) as state:
+            from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_edge_runtime_v2 as E
+            from .edge_guard import build_guarded_evaluator
+            if E.Run4EvaluatorV2 is not EarlyGtEvaluatorV1:
+                raise RuntimeError("early-GT evaluator is not the installed edge evaluator")
+            E.Run4EvaluatorV2 = build_guarded_evaluator(EarlyGtEvaluatorV1)
+            state["m3_edge_guard"] = dict(installed=True, base="EarlyGtEvaluatorV1")
+            result = _run_edge_ordered(ORDERED.main, args)
+            instance = EarlyGtEvaluatorV1._instance
+            if instance is not None:
+                state["evaluator_counters"] = {k: v for k, v in instance.counters.items()}
+                state["m3_edge_guard"]["guarded_errors"] = list(getattr(instance, "m3_guarded_errors", []))
+                state["m3_edge_guard"]["instance_class"] = type(instance).__name__
+                state["frames"] = {str(k): v for k, v in instance._frames.items()}
+                state["records"] = [dict(r, measurement=None) for r in instance.records]
+        return result
+    except BaseException as exc:
+        error = f"{type(exc).__name__}: {exc}"
+        raise
+    finally:
+        _write(directory / "EDGE_EARLY_GT.json", dict(state=state, returncode=result, error=error, pid=os.getpid()))
+        _write(profile / "numeric_edge_scope.json", dict(schema="splitfusion.m3_route_b_v2.edge_scope.v1",
+            returncode=result, error=error, live_qualified=False))
+        handoff_numeric_evidence(directory, profile / "numeric_edge_scope.json",
+                                 publisher_uid=reg["publisher_uid"], publisher_gid=reg["publisher_gid"])

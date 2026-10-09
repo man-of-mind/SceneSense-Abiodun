@@ -1,0 +1,55 @@
+{
+  "family_routes": {
+    "AE128": {
+      "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72",
+      "family_id": 1,
+      "latent_width": 128,
+      "routing_tag": 204186532,
+      "transported_channels": 128
+    },
+    "AE32": {
+      "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271",
+      "family_id": 3,
+      "latent_width": 32,
+      "routing_tag": 3807930229,
+      "transported_channels": 32
+    },
+    "AE64": {
+      "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0",
+      "family_id": 2,
+      "latent_width": 64,
+      "routing_tag": 3715911972,
+      "transported_channels": 64
+    },
+    "noAE": {
+      "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2",
+      "family_id": 0,
+      "latent_width": null,
+      "routing_tag": 0,
+      "transported_channels": 256
+    }
+  },
+  "note": "Paths and hashes only. Large FCOS, AE and ranker checkpoints are not copied.",
+  "selected_checkpoints": {
+    "AE128": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+      "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+    },
+    "AE32": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+      "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+    },
+    "AE64": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+      "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+    },
+    "perception": {
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    "ranker": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    }
+  }
+}

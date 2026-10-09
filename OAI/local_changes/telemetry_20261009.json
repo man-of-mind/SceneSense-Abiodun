@@ -1,0 +1,9 @@
+{
+  "apply_on_clean_base_only": "git apply --check ../local_changes/telemetry_20261009.patch && git apply ../local_changes/telemetry_20261009.patch",
+  "base_commit": "7473cdb52e1cf3c40e1e1f189f03b2785bf15610",
+  "local_checkout_not_modified": true,
+  "note": "The gitlink retains the existing published base. These local telemetry/scheduler edits are preserved as a patch; no OAI commit or push was made.",
+  "origin": "https://github.com/man-of-mind/openairinterface5g-scenesense.git",
+  "patch": "telemetry_20261009.patch",
+  "sha256": "84f9c7c799b560fc8cf43ed0c1e34c39c76e04457fb2c00658d3e63fd241447d"
+}

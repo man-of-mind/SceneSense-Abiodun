@@ -325,14 +325,14 @@ The following claims are not supported yet:
 - AVO is not an exact anatomical visibility percentage or actor-instance silhouette.
 - The 100-person human pilot does not provide population-wide precision.
 - Radar's causal contribution has not been isolated by a locked modality ablation.
-- Raspberry-Pi latency, compressed payload size and compression-induced accuracy changes have not yet been measured for this architecture.
+- Raspberry-Pi and live OAI latency have not yet been measured for this architecture. Host-side payload sizes and compression-induced perception changes are now measured, but they do not establish end-device or radio performance.
 - Validation threshold behavior was explored during development; the untouched test set remains necessary for independent publication confirmation.
 
 The defensible publication wording is that AVO provides a reproducible actor-volume-based binary observability view, supported by human annotation at the selected cutoff, with explicitly documented geometric limitations.
 
 ---
 
-## 9. Forward lock and next phase
+## 9. Forward lock
 
 Perception is frozen at:
 
@@ -344,11 +344,87 @@ Perception is frozen at:
 - person processing: fixed semantic consolidation followed by score `>=0.25`;
 - vehicle calibration, output schema and evaluation matching: unchanged.
 
-Hybrid-q, fixed quantization, zstd and AE128/64/32 may change only the encoding and decoding of `C2`. Each variant must report payload size, vehicle-side processing time, network time, edge-side processing time and the same frozen perception metrics.
+Hybrid-q, fixed quantization, zstd and AE128/64/32 change only the encoding and decoding of `C2`. The perception heads, p025 processing, scoring and evaluation remain frozen. The completed offline studies report payload size and the same frozen perception metrics; the forthcoming live studies add vehicle-side processing time, network time, edge-side processing time and delivery behavior.
 
 ---
 
-## 10. Reproducibility paths
+## 10. Current engineering status: hybrid-q, AE variants and system measurements
+
+**Status as of September 4, 2026.**
+
+### 10.1 Hybrid-q ranker training
+
+The base SplitFusion-FCOS perception model was **not retrained** during hybrid-q development. Its 371 perception parameters and buffers remained frozen. Hybrid-q trains a small 2,144-parameter spatial ranker that orders the 21,504 `C2` locations; a drop fraction `q` then retains
+
+`K(q) = round((1 - q) × 21,504)`
+
+locations from that fixed ordering. The continuous transport interface can execute any finite `q` from `0` to `0.98` at wire resolution `0.0001`, although the initial agent catalog uses the six measured anchors `{0, 0.30, 0.50, 0.70, 0.90, 0.98}`.
+
+The first four distillation-only epochs trained normally, reducing the ranker's listwise loss from approximately `9.32` to `9.16`. The subsequent eight q-aware epochs were structurally valid but unstable: almost every update reached the gradient clip, total loss rose from `31.1` to `245.3`, and the ranker weight norm grew from `5.87` to `40.56`. The q-aware epochs therefore were not promoted. The retained ranker is the stable **epoch-4 distillation-only checkpoint**, before the unstable stage.
+
+This outcome means that the attempted q-aware objective failed, not that the frozen perception model failed. The stable ranker still produced a useful measured validation curve:
+
+| q | Framed FP32 payload ratio | Vehicle F1 | Person AVO P/R/F1 | Vehicle/person XY MAE | Foreground mIoU | Operational reading |
+|---:|---:|---:|---:|---:|---:|---|
+| 0.00 | 1.000 | .8989 | .7042/.7132/.7087 | .4787/.8122 m | .7135 | Accuracy reference |
+| 0.30 | .700 | .8991 | .6404/.7299/.6823 | .4860/.8099 m | .6881 | Localization retained; segmentation reduced |
+| 0.50 | .500 | .8973 | .6305/.7313/.6772 | .4999/.8054 m | .6559 | Localization retained; segmentation reduced |
+| 0.70 | .300 | .8854 | .6310/.7209/.6729 | .5343/.8193 m | .5816 | Aggressive localization-oriented option |
+| 0.90 | .100 | .8195 | .5625/.6270/.5930 | .6683/.8360 m | .3850 | Emergency/stress option |
+| 0.98 | .020 | .5391 | .5476/.3757/.4457 | .9445/.9561 m | .1288 | Extreme emergency/stress option |
+
+The main pattern is consistent across the study: segmentation degrades before detection and physical localization. Vehicle F1 stays within `0.002` of the dense reference through `q=0.50`, while foreground mIoU falls from `.7135` to `.6559`. The extreme `q=0.90` and `q=0.98` settings remain valid executable actions so the controller can learn when severe bandwidth pressure justifies them; they are not normal operating profiles.
+
+### 10.2 Autoencoder training and selection
+
+Three task-aware autoencoder families were trained to reconstruct the frozen `C2` tensor at latent widths 128, 64 and 32. Training used the fit split only, with the perception network and stable ranker frozen. Each family used four dense reconstruction epochs followed by eight epochs cycling through `q={0,0.30,0.50,0.70}`. Holdout selection was separate from training and used the same registered 12-metric preservation rule.
+
+| Family | Selected epoch | Holdout preservation summary | Interpretation |
+|---|---:|---:|---|
+| AE128 | 8 | 47/48 gates across four q values | Highest-fidelity AE family |
+| AE64 | 12 | 43/48 gates | Strong size-quality compromise |
+| AE32 | 8 | 21/48 gates | Most compact; visibly larger perception trade-off |
+
+Checkpoint selection is not itself a service-readiness claim. The selected checkpoints were subsequently exercised through the real quantization, mandatory zstd level-1 transport, decoder dispatch and frozen edge tail.
+
+The following representative validation rows show the resulting payload-quality trade-off. Payloads are median zstd wire bytes per frame. `UINT4/q=0` isolates most of the family-width effect; the final two rows illustrate additional q reduction.
+
+| Profile | Median payload | Vehicle P/R | Person AVO P/R | Person XY MAE | 0-30 m person recall | Foreground mIoU |
+|---|---:|---:|---:|---:|---:|---:|
+| noAE, UINT8, q=0 | 3.568 MB | .9316/.8684 | .7042/.7132 | .8122 m | not recorded | .7135 |
+| noAE, UINT4, q=0 | 1.436 MB | .933/.869 | .706/.712 | .817 m | .830 | .713 |
+| AE128, UINT4, q=0 | .881 MB | .935/.866 | .696/.703 | .823 m | .824 | .707 |
+| AE64, UINT4, q=0 | .468 MB | .929/.866 | .697/.689 | .807 m | .816 | .708 |
+| AE32, UINT4, q=0 | .230 MB | .927/.863 | .642/.664 | .824 m | .805 | .682 |
+| AE128, UINT4, q=.50 | .500 MB | .925/.869 | .651/.711 | .801 m | .827 | .676 |
+| AE64, UINT4, q=.50 | .264 MB | .912/.869 | .648/.701 | .803 m | .820 | .675 |
+| AE32, UINT4, q=.70 | .081 MB | .885/.863 | .536/.685 | .838 m | .814 | .593 |
+
+Across the full UINT6/UINT4 study, 47 of 48 profiles passed all 12 preservation checks against their corresponding same-family, same-q UINT8 reference; only AE64/UINT4/q=.98 passed 11/12. This demonstrates that reducing a given UINT8 latent to UINT6 or UINT4 usually adds little further model loss. It does **not** mean that every AE or q profile matches dense noAE accuracy: most of the quality trade-off comes from AE width and q, while low-bit quantization is comparatively benign.
+
+The registered low-bit classification labeled 32 of these 48 profiles `FULL_PRESERVATION` and the 16 profiles at `q=.90/.98` `EMERGENCY_ONLY`. No low-bit profile met all nine original absolute service targets because the frozen dense baseline itself meets seven of nine; relative preservation and absolute service attainment must therefore remain separate claims.
+
+### 10.3 Locked action catalog and next measurement milestone
+
+The current split-action catalog contains **72 valid and agent-enabled profiles**:
+
+`4 representations × 3 quantizers × 6 q values = 72 actions`
+
+where the representations are noAE, AE128, AE64 and AE32; the quantizers are UINT8, UINT6 and UINT4; and the q values are `{0, .30, .50, .70, .90, .98}`. All profiles remain available so the future controller can learn the state-dependent trade-off rather than having perception degradation hard-coded as an action mask. The 24 `q=.90/.98` profiles are explicitly marked as emergency/stress profiles.
+
+The 72 actions are hash-bound to four prepared 5G channel profiles—`FAVORABLE_STABLE`, `MID_VARIABLE`, `ADVERSE_STABLE` and `FADE_RECOVERY`—giving the planned **288 split/network measurement cells**. The locked radio baseline is n78, 100 MHz, 273 PRBs, numerology 1, 4-downlink/5-uplink TDD and 5QI 6.
+
+The immediate execution order is:
+
+1. qualify the preloaded localhost split dispatcher;
+2. measure the 36 core localhost profiles—four representations, three quantizers and `q={0,.30,.50}`—for 300 frames each to obtain the full front/codec/transport/tail latency breakdown; and
+3. recalibrate the RFsim command mapping for the 100 MHz/273-PRB radio, pass the 16-cell integration pilot, and then begin the 288-cell campaign.
+
+The 288 measurements are therefore the next major campaign and are targeted to begin later today **if these fail-closed launch gates pass**. The four network traces themselves and the 72-action mapping are already frozen; the remaining work is runtime and radio qualification, not further perception or AE training.
+
+---
+
+## 11. Reproducibility paths
 
 ### Models and reports
 
@@ -365,5 +441,13 @@ Hybrid-q, fixed quantization, zstd and AE128/64/32 may change only the encoding 
 - Final p025 validation confirmation: `experiments/splitfusion_fcos_person_p025_calibration_v1/validation_confirmation.json`
 - Human visibility pilot: `data_collection/experiments/route_b_publication_human_occlusion_pilot_v1/20260901_030234_seed20260831/`
 - Forward lock: `pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.md`
+
+- Hybrid-q training report: `experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/training_report.json`
+- Hybrid-q validation curve: `experiments/splitfusion_fcos_hybrid_q_v1/20260902_182401_phase6_validation_curve/`
+- AE128 holdout selection: `experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/holdout_selection/holdout_selection.json`
+- AE64/AE32 holdout selections: `experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/holdout_selection_ae64/` and `experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/holdout_selection_ae32/`
+- Full low-bit validation: `experiments/splitfusion_fcos_ae_v1/20260903_phase11d_lowbit_validation/`
+- Locked 72-action catalog: `rl_agent/splitfusion_action_catalog_v1/`
+- Bound 72x4 campaign: `rl_agent/configs/splitfusion_72x4_campaign_binding_v1.json`
 
 All values are rounded for readability. The linked JSON artifacts contain exact counts, values, hashes and provenance.

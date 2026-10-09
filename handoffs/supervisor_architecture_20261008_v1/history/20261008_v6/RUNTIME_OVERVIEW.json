@@ -1,0 +1,179 @@
+{
+  "channel": {
+    "carrier_cell": {
+      "action": 71,
+      "network_profile": "FAVORABLE_STABLE",
+      "profile_substituted": false,
+      "trace": {
+        "profile_id": "FAVORABLE_STABLE",
+        "seed": 2026082101,
+        "trace_id": "GM_V2_FAVORABLE_STABLE_SEED_2026082101"
+      }
+    },
+    "catch_up_policy": "SKIP_OBSOLETE_NEVER_BURST",
+    "controller_module": "rl_agent.splitfusion_m3_route_b_v3.good_all_controller",
+    "design_config": "rl_agent/configs/network_profile_design_v2.json",
+    "design_config_sha256": "056247e5731c1ae9ac281432034e1b79d1e6da24ab4a2d579a7fe2d85917e483",
+    "later_schedules_not_implemented": [
+      "BAD_ALL",
+      "GOOD_TO_BAD",
+      "BAD_TO_GOOD"
+    ],
+    "live_config": "rl_agent/configs/splitfusion_direct_edge_map_live_validation_v1.json",
+    "live_config_sha256": "fd9bdae329ca7e275520f13bce8737d4bdc23e285bff7fa0b23867a14ac4d6e2",
+    "mapping_csv": "experiments/splitfusion_phase14a_100mhz_calibration_v1/20260904_phase14a_live_calibration_retry3/target_to_rfsim_mapping.csv",
+    "mapping_sha256": "f1cc9c48bd5cd55d2de2421d07c23dd3deff2bca3497e3a5d5e87aaa11ec2a3d",
+    "radio_profile": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+    "restore": "retained runtime: noise_power_dB -50 commanded, read back and verified at teardown",
+    "retained_controller_module": "rl_agent.splitfusion_run5_live_avo_v1.snr_live",
+    "sample_period_ms": 100,
+    "schedule": {
+      "actor_observation": "the retained causal SNR proxy is the ACKed COMMANDED TARGET (controller publication), constant 21.5 dB -> feature 22 = (21.5-5.5)/19 = 0.842105...; it is not a measured achieved SNR; schedule identity/step/route progress never enter the actor state",
+      "continuation": "CONSTANT (same value every 100-ms step after the prefix)",
+      "expected_rfsim_command_db": -11.0,
+      "hold_semantics": "constant by design; the config's forbidden_after_prefix (wrap/hold_final_value/reseed) governs the Gaussian-Markov traces and is not violated: no stochastic trace is replayed",
+      "kind": "CONSTANT_TARGET_EVERY_STEP",
+      "mapping_point": "PHASE14A_100MHZ_ANCHOR_02",
+      "not_the_stochastic_profile": "FAVORABLE_STABLE is a Gaussian-Markov trace (profile mean ~20.0 dB); GOOD_ALL is a new deterministic constant schedule and is reported under its own name",
+      "prefix_samples": 4200,
+      "schedule_id": "GOOD_ALL",
+      "seed": 0,
+      "state_index": 2,
+      "target_snr_db": 21.5,
+      "trace_id": "CONST_GOOD_ALL_21P5DB_V1",
+      "trace_sha256": "0e152f3f2f25f62c46f80636c394cd8fc658dc36091b9a01c2b1494a48190582"
+    },
+    "seam": "UE child sets splitfusion_run5_full_live_v1.runtime_policy.CONTROLLER_MODULE; the controller replaces only ue_target_snr_cell_runtime_v1.prepare_sequence and rewrites --profile-id to GOOD_ALL",
+    "traces_csv": "rl_agent/experiments/network_profile_design_v2/20260822_route_b_v2/traces.csv",
+    "traces_sha256": "32f1be66e976cba322803c128eefdeb81a8d31ed64bd253ff85ea1ab0583303d",
+    "transitions_depend_on_actor": false
+  },
+  "frozen_deadline_ms": 170,
+  "launcher_binding": {
+    "child": {
+      "entries": "rl_agent.splitfusion_m3_route_b_v6.entries",
+      "load_observer": "rl_agent.splitfusion_m3_route_b_v6.retention",
+      "module": "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1_m3_route_b_v6",
+      "registration": "rl_agent.splitfusion_m3_route_b_v6.entries",
+      "seam_parameters": "rl_agent.splitfusion_m3_route_b_v6.gc_seams",
+      "validate_child_startup": "rl_agent.splitfusion_m3_route_b_v6.entries",
+      "verify_prospective": "rl_agent.splitfusion_m3_route_b_v6.host"
+    },
+    "contract_module": "rl_agent.splitfusion_m3_route_b_v6.contract",
+    "edge": {
+      "entries": "rl_agent.splitfusion_m3_route_b_v6.entries",
+      "module": "rl_agent.splitfusion_single_gpu_profiler_v1.edge_profiled_v1_m3_route_b_v6",
+      "registration": "rl_agent.splitfusion_m3_route_b_v6.entries",
+      "registration_path": "/partition_output/registration.json",
+      "validate_edge_startup": "rl_agent.splitfusion_m3_route_b_v6.entries"
+    },
+    "gt_service": {
+      "implementation": "rl_agent.splitfusion_m3_route_b_v3.service_entry",
+      "registration_check": "rl_agent.splitfusion_exact_gt_live_v2.service.verify_sources",
+      "seam": "rl_agent.splitfusion_m3_route_b_v6.gc_seams",
+      "trampoline": "rl_agent.splitfusion_m3_route_b_v4.service_entry"
+    },
+    "gt_workers": {
+      "implementation": "rl_agent.splitfusion_m3_route_b_v3.worker_entry",
+      "registration_check": null,
+      "trampoline": "rl_agent.splitfusion_m3_route_b_v4.worker_entry"
+    },
+    "host": {
+      "check_prerequisites": "rl_agent.splitfusion_m3_route_b_v6.host",
+      "verify_prerequisite": "rl_agent.splitfusion_m3_route_b_v6.host",
+      "verify_prospective": "rl_agent.splitfusion_m3_route_b_v6.host",
+      "verify_startup_proof": "rl_agent.splitfusion_m3_route_b_v6.host"
+    },
+    "launcher_revision": "M3_1_ROUTE_B_STARTUP_BINDING_V6",
+    "partition": "rl_agent.splitfusion_m3_route_b_v6.partition",
+    "runner": {
+      "module": "rl_agent.splitfusion_m3_route_b_v6.runner",
+      "validate_parent": "rl_agent.splitfusion_m3_route_b_v6.runner",
+      "verify_prerequisite": "rl_agent.splitfusion_m3_route_b_v6.host",
+      "verify_prospective": "rl_agent.splitfusion_m3_route_b_v6.host"
+    },
+    "runtime_revision": "M3_1_ROUTE_B_GOOD_ALL_V6",
+    "scientific_runtime_basis": "M3_1_ROUTE_B_GOOD_ALL_V4"
+  },
+  "map_class": {
+    "gt_used": false,
+    "mapping": {
+      "person": "Pedestrian",
+      "vehicle": "Vehicle"
+    },
+    "retained": "rl_agent/splitfusion_single_gpu_profiler_v1/map_profiled_v1.py",
+    "scope": "every Run-4 map update installed (policy decisions, holds, fallbacks) in the map process only",
+    "seam": "seams_ue_v1.MAP_SERVER -> m3v3_map_profiled_v1.py (sampler/marker substring map_profiled_v1.py kept), which wraps phase6_map_server_v2.install to convert on a copy before the frozen install",
+    "source_field": "class_name",
+    "target_field": "type",
+    "trampoline": "rl_agent/splitfusion_single_gpu_profiler_v1/m3v3_map_profiled_v1.py",
+    "unchanged": "object count, order, scores, coordinates, all other fields; edge records, scorer inputs, hashes, confidence thresholds and filtering",
+    "unknown_class": "left without type (baseline -> Unknown) and counted"
+  },
+  "numeric_prediction_contract": {
+    "camera_model_sha256": "c4a1349b416448169a8ced2808389797dae3822a75d62c0c2f066b6b13657009",
+    "camera_mount_sha256": "d54a19cabb31623d0fdc41956c529a6af12694dd0c174ebe3084481f8f8080d8",
+    "dtype": "uint8",
+    "kind": "NATIVE_CALIBRATED",
+    "labels": [
+      0,
+      1,
+      2
+    ],
+    "schema": "splitfusion.parity_repair.prediction_contract.v2",
+    "shape": [
+      720,
+      1280
+    ],
+    "transformation": "NONE__PRESERVE_ACTUAL_NATIVE_LABELS"
+  },
+  "policy": {
+    "audit_module": "rl_agent.splitfusion_run5_full_live_v1.audit_actor",
+    "binding_path": "rl_agent/splitfusion_run5_full_live_v1/actor_export/ACTOR_BINDING.json",
+    "expected_weights_sha256": "bb9b0d256de79b4498cd622e1daa59edcf43ff3072dc9f675b265aac579ed3ce",
+    "weights_path": "rl_agent/splitfusion_run5_full_live_v1/actor_export/actor_state_dict.pt"
+  },
+  "route": {
+    "cadence": "20 Hz world ticks (fixed_delta 0.05 s, real-time paced), one prepared frame per 2 ticks",
+    "child_timeout_s": 2400.0,
+    "completion": {
+      "final_cycle_exception": "P3_HOLD_TICKET admits exactly one single-frame decision group iff it is the last decision of the last session, its frame is the last transmitted frame and it is reward-requested (the loop can end between a decision and its hold); every other group needs >= 2 frames",
+      "incomplete": "FRAME_CEILING reached, SAFETY_TIMEOUT_EXPIRED, route watchdog/abort, missing/mismatched route summary, collector failure: INCOMPLETE_ROUTE (evidence kept, never a pass, no retry)",
+      "progress_evidence": {
+        "match_radius_m": 8.0,
+        "minimum_ordered_coverage": 0.98,
+        "ordered": true,
+        "reference": "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv",
+        "source": "UE pose archive ego_world per transmitted frame (scientific, measured pose)"
+      },
+      "runner_criteria": {
+        "abort_reason": "",
+        "all_ordered_waypoints_reached": true,
+        "completion_heading_tolerance_deg": 25.0,
+        "completion_radius_m": 6.0,
+        "loops": 1,
+        "route_outcome": "classification in the retained ue_route_b_split_cell_adapter_v1.ROUTE_ACCEPTABLE_OUTCOMES (PASS; INTERVENED with permitted roadblock clearing; proven collision-only; proven no-pedestrian-braking) -- the run_route_b 'accepted' result, unchanged",
+        "watchdog_aborted": false,
+        "waypoints_expected": 19
+      },
+      "terminal": "ROUTE_COMPLETED: run_route_b returned accepted with route_completed, the durable route summary persisted with matching identity, and the collector made no early stop (no frame-ceiling / safety-timeout / decision-cycle stop)"
+    },
+    "derivation": "full loops 298.75-309.2 s simulated (2,990-3,060 frames; 14 direct-edge-map loops), slowest observed 361.5 s (~3,615 frames, 288 campaign); ceiling 3,900 frames; watchdog 900 s",
+    "frame_ceiling": 3900,
+    "host_route_lifecycle_s": 2400,
+    "progress_csv": "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.progress.csv",
+    "progress_csv_sha256": "974593859368f24ee2bc4ac31b82118bf2e932d0de1c96858b8771e2dd4d90c0",
+    "route_json": "data_collection/routes/town10hd_opt_route_b_full_map_loop_v1.json",
+    "route_json_sha256": "fc4518a8746b9417a64616b8e544f59b16b5a31b7585298a316a59662ecfd6e5",
+    "route_name": "Town10HD_Opt Route B full-map loop v1",
+    "safety_timeout_s": 900.0,
+    "scenario_seed": 31,
+    "traffic_manager_seed": 31
+  },
+  "runtime_revision": "M3_1_ROUTE_B_GOOD_ALL_V6",
+  "selection": {
+    "run": "FULL_RUN5",
+    "seed": 43,
+    "update": 10000
+  }
+}

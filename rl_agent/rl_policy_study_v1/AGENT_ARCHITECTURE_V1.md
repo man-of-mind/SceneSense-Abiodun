@@ -339,3 +339,376 @@ supersession, edge completion, installation probability and map AoI. Training
 starts only after those checks pass. The registered forecast ablation has three
 arms: no forecast, auxiliary-only forecast, and forecast supplied to the
 current policy.
+
+
+
+# Old and Updated Reward Formulations
+
+## 1. Definitions
+
+For policy decision $t$, let:
+
+- $a_t = (m_t,q_t)$: selected compression mode and compression setting.
+- $L_t$: elapsed time from action-open to feedback receipt at the UE, in milliseconds.
+- $D = 170\,\mathrm{ms}$: inclusive feedback deadline.
+- $c \in \{v,p\}$: vehicle and person classes.
+- $N_{t,c}$: number of eligible ground-truth objects.
+- $\mathcal{M}_{t,c}$: prediction–GT matches accepted by the existing 3 m matching gate.
+- $TP_{t,c} = |\mathcal{M}_{t,c}|$: number of accepted matches.
+
+The planar localization error of matched object $j$ is
+
+$$
+e_{t,c,j}
+=
+\sqrt{
+(\hat{x}_{t,c,j}-x_{t,c,j})^2
++
+(\hat{y}_{t,c,j}-y_{t,c,j})^2
+}.
+$$
+
+The class weights are
+
+$$
+w_v = 0.4,
+\qquad
+w_p = 0.6.
+$$
+
+Only classes with eligible GT contribute to localization quality:
+
+$$
+\mathcal{C}_t
+=
+\{c \in \{v,p\}:N_{t,c}>0\}.
+$$
+
+Weights are renormalized over the participating classes:
+
+$$
+\bar{w}_{t,c}
+=
+\frac{w_c}{\sum_{k\in\mathcal{C}_t}w_k}.
+$$
+
+If neither class has eligible GT, localization quality is undefined,
+not zero.
+
+## 2. Segmentation Quality — Shared by Both Formulations
+
+Let $G_{t,c}$ and $P_{t,c}$ denote the GT and predicted pixel sets
+after applying the evaluation contract's pixel mask.
+
+For a nonempty union,
+
+$$
+\operatorname{IoU}_{t,c}
+=
+\frac{|G_{t,c}\cap P_{t,c}|}
+{|G_{t,c}\cup P_{t,c}|}.
+$$
+
+Normalize each class IoU using its fixed reference:
+
+$$
+s_{t,c}
+=
+\min\left(
+\frac{\operatorname{IoU}_{t,c}}{b_c},
+1
+\right),
+$$
+
+where
+
+$$
+b_v = 0.899012847,
+\qquad
+b_p = 0.52789408.
+$$
+
+The segmentation class set is
+
+$$
+\mathcal{S}_t
+=
+\{c:|G_{t,c}\cup P_{t,c}|>0\}.
+$$
+
+For $\mathcal{S}_t\neq\varnothing$, segmentation quality is the
+weighted geometric mean:
+
+$$
+Q_{\mathrm{seg},t}
+=
+\prod_{c\in\mathcal{S}_t}
+s_{t,c}^{\,
+w_c/\sum_{k\in\mathcal{S}_t}w_k}.
+$$
+
+A participating class with zero IoU makes this geometric mean zero.
+A class with both GT and prediction masks empty is excluded.
+
+Define the segmentation modifier:
+
+$$
+M_t
+=
+\begin{cases}
+0.7+0.3Q_{\mathrm{seg},t},
+& \mathcal{S}_t\neq\varnothing,\\
+1,
+& \mathcal{S}_t=\varnothing.
+\end{cases}
+$$
+
+The second case means both class unions are empty in valid evidence.
+Missing or malformed evidence is not silently treated as perfect
+segmentation.
+
+## 3. Old Localization Quality and Perception Quality
+
+### 3.1 Recall within the original matching gate
+
+For each class with eligible GT,
+
+$$
+R^{\mathrm{gate}}_{t,c}
+=
+\frac{TP_{t,c}}{N_{t,c}}.
+$$
+
+This counts matches accepted within 3 m, including matches outside
+our desired 1.0 m vehicle and 1.2 m person tolerances.
+
+### 3.2 Soft localization utility
+
+For classes with at least one match, define the median matched error:
+
+$$
+\tilde{e}_{t,c}
+=
+\operatorname{median}
+\{e_{t,c,j}:j\in\mathcal{M}_{t,c}\}.
+$$
+
+The per-class localization utility is
+
+$$
+U_{t,c}
+=
+\begin{cases}
+\sqrt{
+R^{\mathrm{gate}}_{t,c}
+\exp\left(-\dfrac{\tilde{e}_{t,c}}{\tau_c}\right)
+},
+& TP_{t,c}>0,\\
+0,
+& TP_{t,c}=0,
+\end{cases}
+$$
+
+with error-decay scales
+
+$$
+\tau_v = 1.0\,\mathrm{m},
+\qquad
+\tau_p = 1.2\,\mathrm{m}.
+$$
+
+These are soft decay scales, not hard accuracy thresholds.
+
+### 3.3 Combined localization and perception quality
+
+For $\mathcal{C}_t\neq\varnothing$,
+
+$$
+Q_{\mathrm{loc},t}^{\mathrm{old}}
+=
+\prod_{c\in\mathcal{C}_t}
+U_{t,c}^{\bar{w}_{t,c}}.
+$$
+
+A zero utility in any participating class makes this geometric mean zero.
+
+The original perception-quality score is
+
+$$
+Q_{\mathrm{perc},t}
+=
+Q_{\mathrm{loc},t}^{\mathrm{old}}M_t.
+$$
+
+When segmentation is defined, this becomes
+
+$$
+Q_{\mathrm{perc},t}
+=
+Q_{\mathrm{loc},t}^{\mathrm{old}}
+\left(0.7+0.3Q_{\mathrm{seg},t}\right).
+$$
+
+This is multiplicative modulation, not the additive expression
+$0.7Q_{\mathrm{loc},t}+0.3Q_{\mathrm{seg},t}$.
+
+### 3.4 Old reward
+
+$$
+r_t^{\mathrm{old}}
+=
+\begin{cases}
+Q_{\mathrm{perc},t}
+-
+0.25\dfrac{L_t}{D},
+& L_t\le D \text{ and quality is defined},\\
+-1,
+& \text{timeout or registered delivery/service failure},\\
+\text{excluded},
+& \text{evaluator or infrastructure fault}.
+\end{cases}
+$$
+
+A missing reply becomes a timeout at the deadline.
+
+For example, a timely reply with zero perception quality at 150 ms earns
+
+$$
+r_t^{\mathrm{old}}
+=
+0-0.25\frac{150}{170}
+\approx -0.221,
+$$
+
+whereas a timeout earns $-1$.
+
+Thus, even a zero-quality timely reply is substantially less penalized
+than a timeout.
+
+## 4. Updated Localization-Focused Reward
+
+The updated objective replaces the soft localization utility with
+recall within explicit accuracy tolerances.
+
+### 4.1 Within-tolerance recall
+
+The tolerances are
+
+$$
+d_v = 1.0\,\mathrm{m},
+\qquad
+d_p = 1.2\,\mathrm{m}.
+$$
+
+For each class with eligible GT, count individually accurate matches:
+
+$$
+K_{t,c}
+=
+\sum_{j\in\mathcal{M}_{t,c}}
+\mathbf{1}\left[e_{t,c,j}\le d_c\right].
+$$
+
+Then
+
+$$
+R^{\mathrm{tol}}_{t,c}
+=
+\frac{K_{t,c}}{N_{t,c}}.
+$$
+
+Unmatched eligible objects and matches outside tolerance earn no
+numerator credit, while remaining represented in the denominator.
+
+The original 3 m matching gate remains unchanged. The stricter
+1.0 m / 1.2 m thresholds determine reward credit.
+
+### 4.2 Combined within-tolerance quality
+
+For $\mathcal{C}_t\neq\varnothing$,
+
+$$
+Y_t
+=
+\sum_{c\in\mathcal{C}_t}
+\bar{w}_{t,c}R^{\mathrm{tol}}_{t,c}.
+$$
+
+When both classes have eligible GT,
+
+$$
+Y_t
+=
+0.4R^{\mathrm{tol}}_{t,v}
++
+0.6R^{\mathrm{tol}}_{t,p}.
+$$
+
+Unlike the old localization combiner, this is an arithmetic weighted
+mean. A zero score for one class does not erase the other class's
+contribution.
+
+### 4.3 Updated reward
+
+$$
+r_t^{\mathrm{new}}
+=
+\begin{cases}
+Y_tM_t,
+& L_t\le D \text{ and quality is defined},\\
+0,
+& \text{late or missing feedback},\\
+\text{excluded},
+& \text{timely feedback with undefined quality}.
+\end{cases}
+$$
+
+When segmentation is defined,
+
+$$
+\boxed{
+r_t^{\mathrm{new}}
+=
+\begin{cases}
+\left(
+\displaystyle\sum_{c\in\mathcal{C}_t}
+\bar{w}_{t,c}R^{\mathrm{tol}}_{t,c}
+\right)
+\left(0.7+0.3Q_{\mathrm{seg},t}\right),
+& L_t\le170\,\mathrm{ms},\\
+0,
+& \text{late or missing}.
+\end{cases}
+}
+$$
+
+The boxed expression applies to decisions with defined quality.
+
+In particular,
+
+$$
+Y_t=0
+\quad\Longrightarrow\quad
+r_t^{\mathrm{new}}=0,
+$$
+
+even if feedback is timely and segmentation quality is high.
+
+## 5. Interpretation and Important Limits
+
+- The old objective rewarded soft perception quality while penalizing
+  latency continuously and assigning a strong timeout penalty.
+- The updated objective rewards within-tolerance localization delivered
+  on time, with segmentation retained as a modifier.
+- The updated reward has no additional latency penalty within 170 ms:
+  equally accurate replies at 120 ms and 165 ms receive equal rewards.
+- Timely undefined-quality outcomes are excluded and trigger the
+  registered session-reset handling. Late undefined-quality replies
+  are timeouts, not timely exclusions.
+- Neither formulation contains a direct object-detection false-positive
+  penalty. False-positive segmentation pixels can still reduce IoU.
+- SNR remains part of the Run-5 state; it is not an extra reward term.
+- The original Q_perc state feature and the updated scalar reward are
+  distinct quantities.
+- Reward redesign does not itself prove improved model accuracy or
+  policy performance; those require validation.

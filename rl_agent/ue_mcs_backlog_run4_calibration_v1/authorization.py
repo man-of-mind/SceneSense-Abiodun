@@ -21,15 +21,16 @@ from typing import Any, Mapping
 from . import contract as C
 
 
-AUTH_SCHEMA = "scenesense.ue_mcs_backlog_run4_calibration_authorization.v1"
-STAGE = "run4_physical_queue_calibration"
-TOKEN = "AUTHORIZE_RUN4_PHYSICAL_QUEUE_CALIBRATION"
+AUTH_SCHEMA = "scenesense.ue_mcs_backlog_run4_calibration_authorization.v2"
+STAGE = "run4_physical_queue_calibration_v2"
+TOKEN = "AUTHORIZE_RUN4_PHYSICAL_QUEUE_CALIBRATION_V2"
 MAX_LIFETIME_SECONDS = 21_600
 CONSUMPTION_DIRNAME = ".authorization_consumed"
 REQUIRED_FIELDS = {
     "schema", "stage", "token", "grant_id", "granted_by", "granted_utc",
     "expires_utc", "execution_head", "execution_parent_head",
     "source_inventory_sha256", "config_sha256", "amendment_sha256",
+    "tier_design_sha256", "profile_binding_sha256", "profile_trace_sha256",
     "output_path",
 }
 
@@ -91,6 +92,9 @@ def authorization_template(
         "source_inventory_sha256": inventory["inventory_sha256"],
         "config_sha256": C.sha256_file(repo_root / C.CONFIG_RELPATH),
         "amendment_sha256": C.AMENDMENT_SHA256,
+        "tier_design_sha256": C.TIER_DESIGN_SHA256,
+        "profile_binding_sha256": C.PROFILE_BINDING_SHA256,
+        "profile_trace_sha256": C.PROFILE_TRACE_SHA256,
         "output_path": str(output_path.resolve()),
     }
 
@@ -148,6 +152,11 @@ def validate_authorization(
             "authorization config binding drifted")
     require(value["amendment_sha256"] == C.AMENDMENT_SHA256,
             "authorization amendment binding drifted")
+    require(value["tier_design_sha256"] == C.TIER_DESIGN_SHA256,
+            "authorization tier-design binding drifted")
+    require(value["profile_binding_sha256"] == C.PROFILE_BINDING_SHA256
+            and value["profile_trace_sha256"] == C.PROFILE_TRACE_SHA256,
+            "authorization network-profile binding drifted")
     require(bool(re.fullmatch(r"[0-9a-f]{64}", digest)),
             "authorization digest is invalid")
     return {**value, "authorization_sha256": digest,
@@ -179,12 +188,13 @@ def consume_authorization(
         _fsync_directory(directory)
     marker = consumed_dir / f"{validated['grant_id']}.json"
     record = {
-        "schema": "scenesense.ue_mcs_backlog_run4_calibration_consumption.v1",
+        "schema": "scenesense.ue_mcs_backlog_run4_calibration_consumption.v2",
         "grant_id": validated["grant_id"],
         "authorization_sha256": validated["authorization_sha256"],
         "output_path": str(output_path),
         "execution_head": validated["execution_head"],
         "source_inventory_sha256": validated["source_inventory_sha256"],
+        "tier_design_sha256": validated["tier_design_sha256"],
         "consumed_utc": (now or datetime.now(timezone.utc)).astimezone(
             timezone.utc).isoformat().replace("+00:00", "Z"),
         "semantics": "DURABLE_ONE_USE_PRE_LIVE_MUTATION_NO_AUTOMATIC_REFUND",
@@ -212,7 +222,7 @@ def consume_authorization(
 
 def lineage_record(consumed: Mapping[str, Any]) -> dict[str, Any]:
     return {
-        "schema": "scenesense.ue_mcs_backlog_run4_calibration_lineage.v1",
+        "schema": "scenesense.ue_mcs_backlog_run4_calibration_lineage.v2",
         "stage": STAGE,
         "grant_id": consumed["grant_id"],
         "authorization_sha256": consumed["authorization_sha256"],
@@ -221,6 +231,7 @@ def lineage_record(consumed: Mapping[str, Any]) -> dict[str, Any]:
         "execution_head": consumed["execution_head"],
         "execution_parent_head": consumed["execution_parent_head"],
         "source_inventory_sha256": consumed["source_inventory_sha256"],
+        "tier_design_sha256": consumed["tier_design_sha256"],
         "output_path": consumed["output_path"],
         "one_use_rule": (
             "The expiring operator grant is bound to one exact output path and "

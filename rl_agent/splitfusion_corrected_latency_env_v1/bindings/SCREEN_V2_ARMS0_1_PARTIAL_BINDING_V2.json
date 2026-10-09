@@ -1,0 +1,367 @@
+{
+ "binding_id": "fixed_action_screen_v2_arms0_1_partial",
+ "binding_version": 2,
+ "candidate_version": "splitfusion_corrected_latency_env_v1",
+ "composition_model": "SERVICE_QUEUE_V2",
+ "deadline_ms": 170,
+ "pipeline_identity": {
+  "cpu_partition": {
+   "arm": "treatment",
+   "edge_cpus": [
+    4,
+    5,
+    6,
+    7,
+    20,
+    21,
+    22,
+    23
+   ],
+   "original_cpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+   ],
+   "radio_cpus": [
+    0,
+    1,
+    2,
+    3,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ]
+  },
+  "deadline_ms_inclusive": 170,
+  "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+  "exact_gt_limits": {
+   "drain_s": 120,
+   "freeze_queue": 1,
+   "horizon_ms": 2000,
+   "max_frames": 100,
+   "max_waiting": 2,
+   "prep_cpu": 4,
+   "prep_jobs": 4,
+   "score_cpu": 5,
+   "scorer_jobs": 4,
+   "service_cpu": 6,
+   "ue_freeze_queue": 2
+  },
+  "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+  "pipeline_identity_file": {
+   "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_partial_02/PIPELINE_IDENTITY.json",
+   "sha256": "755974a01ce4c7965560004b2f1a67040cc8e9432b81ce07595dd2b4e5a6245e"
+  }
+ },
+ "policy": {
+  "action_match": {
+   "q_tolerance_e4": 0,
+   "rule": "EXACT_MODE_Q"
+  },
+  "exclude_cold": true,
+  "fallback": {
+   "status": "UNCALIBRATED"
+  },
+  "min_chains_per_stratum": 30,
+  "scene_conditioning": {
+   "descriptors": [
+    "camera_si",
+    "radar_p40"
+   ],
+   "k": 5,
+   "support_margin_fraction": 0.0
+  },
+  "uplink": {
+   "mode": "TRANSPORT_MODEL_DELTA",
+   "transport_artifact_sha256": "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c",
+   "validation": {
+    "file": {
+     "path": "abiodun/experiments/splitfusion_training_live_mismatch_v1/20261005_v1/CALCULATIONS.json",
+     "sha256": "5e1c68fb48fddcf0c6f3b69ee74cc7375bfee894fa3c4a959728389657c01041"
+    },
+    "scope": {
+     "evidence_keys": [
+      "live100.transport_model_on_live",
+      "run5_capture.transport_model_on_live"
+     ],
+     "max_median_abs_error_ms": 5.0,
+     "mcs_range": [
+      24,
+      28
+     ],
+     "profiles": [
+      "FAVORABLE_STABLE"
+     ],
+     "wire_range": [
+      96627,
+      403480
+     ]
+    }
+   }
+  }
+ },
+ "purpose": "PARTIAL_TWO_ACTION_MEASUREMENT: arms 0-1 only (action 33 mode5 AE128/UINT4 q7000; action 65 mode10 AE32/UINT6 q9800), continuation stopped by its registered rule before arms 2-6; not a screen result and not a calibration",
+ "schema": "splitfusion.corrected_latency_env.calibration_binding.v2",
+ "sources": [
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_partial_02/OUTPUT_SHA256.json",
+    "sha256": "32fe47a159468d71169d6fffbc60a5494d836ba58a273fd3b5785bf515354906"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_partial_02/DECISIONS.jsonl",
+     "sha256": "361d4ed0b080f0084e17ab98939eadef2974faf7ce7ef874de7edbea425df1f8"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm0_a33/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "070737d1939472eb54eb1ea6c09c9cfd8b8de62028121629d9dfdd8e19922624"
+    }
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_partial_02/PIPELINE_IDENTITY.json",
+     "sha256": "755974a01ce4c7965560004b2f1a67040cc8e9432b81ce07595dd2b4e5a6245e"
+    }
+   },
+   "row_filter": {
+    "arm": "arm0_a33"
+   },
+   "source_id": "screen_v2_arm0_a33"
+  },
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_partial_02/OUTPUT_SHA256.json",
+    "sha256": "32fe47a159468d71169d6fffbc60a5494d836ba58a273fd3b5785bf515354906"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_partial_02/DECISIONS.jsonl",
+     "sha256": "361d4ed0b080f0084e17ab98939eadef2974faf7ce7ef874de7edbea425df1f8"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm1_a65/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "d7feac166825ffd65ec70753abb42e770f05e587ddfda9b5a89b0d44c0335303"
+    }
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_partial_02/PIPELINE_IDENTITY.json",
+     "sha256": "755974a01ce4c7965560004b2f1a67040cc8e9432b81ce07595dd2b4e5a6245e"
+    }
+   },
+   "row_filter": {
+    "arm": "arm1_a65"
+   },
+   "source_id": "screen_v2_arm1_a65"
+  }
+ ]
+}

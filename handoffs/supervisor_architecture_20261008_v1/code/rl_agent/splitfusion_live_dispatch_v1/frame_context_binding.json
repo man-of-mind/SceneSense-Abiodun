@@ -1,0 +1,102 @@
+{
+  "schema": "scenesense.splitfusion_frame_context_binding.v1",
+  "starting_head": "cc6bc92f6f8224fb7ab5a37c31b01a0383f7cae0",
+  "audit": {
+    "sample_id_sha256": "68a4cb3cffe47fa1f42f65ada94c8ef1e19504e8f25a949fc1acf5a20298720e",
+    "static_camera_model_sha256": "c4a1349b416448169a8ced2808389797dae3822a75d62c0c2f066b6b13657009",
+    "static_camera_mount_sha256": "d54a19cabb31623d0fdc41956c529a6af12694dd0c174ebe3084481f8f8080d8",
+    "static_intrinsic_tensor_sha256": "5de4959514a8c858facd02eedacc8226ed27583284465badd0636ca21b23e031",
+    "ordered_ego_pose_sha256": "0c207b05cb9c6ecaf1534aa508db91b08cd3496f63df04111f97a0b5c0c09190",
+    "ordered_camera_pose_sha256": "866fb74579c1e47f538185a9015d9626875f71d84eac8baff50877238ab8e006",
+    "legacy_full_calibration_identity_count": 250,
+    "static_intrinsic_identity_count": 1,
+    "static_mount_identity_count": 1
+  },
+  "wire": {
+    "magic": "SFD1",
+    "historical_version": 1,
+    "context_envelope_version": 2,
+    "frame_context_version": 1,
+    "base_header_format": "<4sHHIQQQ",
+    "base_header_bytes": 36,
+    "context_fixed_format": "<HHIQQQ6d32s32s",
+    "context_fixed_bytes": 144,
+    "pose_dtype": "float64",
+    "maximum_stream_id_bytes": 255
+  },
+  "source_sha256": {
+    "phase2_map_sharing/transport.py": "c8d8d0b253356c11776e9c35b7d6b1bef009bfc980e4cecfcbba84ae95734a6e",
+    "rl_agent/splitfusion_live_dispatch_v1/__init__.py": "b94ce4fc2c1f9f4e3625213f72c3ae858ad678edeb15fe06f6f98db13972b347",
+    "rl_agent/splitfusion_live_dispatch_v1/context_tail.py": "1781f3013967c464aa8f8de0eb6b46bccb5f3ff00a305c6f6d56012383859fe1",
+    "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125",
+    "rl_agent/splitfusion_live_dispatch_v1/envelope.py": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418",
+    "rl_agent/splitfusion_live_dispatch_v1/frame_context.py": "845c3886f8862ce3f1cd618323b5b7c8baba05b043e5709ff0cd83d36fc33676",
+    "rl_agent/splitfusion_live_dispatch_v1/frame_context_qualification.py": "468b32ba8c391a0f07785c8ead54794662916f55723e4389213068f884be0868",
+    "rl_agent/splitfusion_live_dispatch_v1/phase13b_qualification.py": "e90881e23061d14c8f0cc96a0d2ebd37cbcb063d7b3785a358b27691f4d4a310",
+    "rl_agent/splitfusion_live_dispatch_v1/phase13c_measurement.py": "fa04e483dcc38801b34f989f5cf58eac1a7d91b9641c1a98052c50640484ad29",
+    "rl_agent/splitfusion_live_dispatch_v1/registry.py": "d199d33a8f4f283f89c4b101b3b2100e87ec9392366b38ca0165e70ba7c8c8fc",
+    "rl_agent/splitfusion_live_dispatch_v1/runtime_support.py": "173787565cf83134e01a969f0f1d1e0162ea5129598da9bb7f00b042636d78c7",
+    "rl_agent/splitfusion_live_dispatch_v1/tests/test_dispatch.py": "eac1f4f3e21528ec5a66c8a975bdb173d1f9fcdf5b5ea304c5bc968b6681cb71",
+    "rl_agent/splitfusion_live_dispatch_v1/timing.py": "f928e20a2148cc2cf9738285da31e43f025332133feb61026c93d2b97aaae1dd",
+    "rl_agent/splitfusion_live_dispatch_v1/transport.py": "5c8bd3d1bb18818334a28266822b30d475bc67dc016dcf04df7db595e159222f",
+    "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029"
+  },
+  "historical_artifact_sha256": {
+    "experiments/splitfusion_fcos_ae_v1/20260903_phase11b_lowbit_gpu_qualification/SPLITFUSION_LOWBIT_PHASE11B_GPU_QUALIFIED": "83f41560a3327c4207834f5725e5e313ceb6b3e0f9e22ea1f8c37b6dcf0b56e2",
+    "experiments/splitfusion_fcos_ae_v1/20260903_phase11b_lowbit_gpu_qualification/phase11b_lowbit_gpu_qualification.json": "379aa07148e3e47384cfbebbe0ede5990c07f11b8a4bdef056d6a533cee5fc01",
+    "experiments/splitfusion_live_dispatch_v1/20260904_phase13b_four_action_gpu_loopback_qualification/REPORT.md": "1c6109c8df897b0388ae1cd45bd092a77581362b1e2df4499398b876554afe86",
+    "experiments/splitfusion_live_dispatch_v1/20260904_phase13b_four_action_gpu_loopback_qualification/SPLITFUSION_LIVE_DISPATCH_FOUR_ACTION_GPU_LOOPBACK_QUALIFIED": "dcc37db9e923837d8bfe433df040b83365adb74a79b16e352b71bf6713ab35bc",
+    "experiments/splitfusion_live_dispatch_v1/20260904_phase13b_four_action_gpu_loopback_qualification/qualification.json": "780d5bd162d2474282074b680cf0fccaf39f1376511c70fb4ec25015e317e03a",
+    "rl_agent/splitfusion_live_dispatch_v1/SPLITFUSION_LIVE_DISPATCH_IMPLEMENTATION_READY_FOR_REVIEW": "1af2f4a87e09856338b712ea53bdf8f30a118e3c35efad7387bd1e01be5d28a9",
+    "rl_agent/splitfusion_live_dispatch_v1/runtime_binding.json": "d521b21bc630c2ffd9f7c03c21f27f096f011e8315b41b4d38f7fbebbab3ce51"
+  },
+  "focused_verification": {
+    "python": "/usr/bin/python3",
+    "test": "python -m unittest rl_agent.splitfusion_live_dispatch_v1.tests.test_dispatch",
+    "tests_run": 5,
+    "result": "OK",
+    "required_negative_cases": [
+      "altered sequence ID",
+      "altered timestamp",
+      "wrong camera hash",
+      "wrong mount hash",
+      "non-finite pose",
+      "duplicate context"
+    ]
+  },
+  "frame_id_repair": {
+    "starting_head": "ba0c03d0711a68b5851ff5cecae551c2f8e47d3f",
+    "failed_output_preserved": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_frame_context_qualification",
+    "retry_output": "experiments/splitfusion_live_dispatch_v1/20260904_phase13c_frame_context_qualification_retry1",
+    "diagnosis": {
+      "source_frame_id": "3194",
+      "source_frame_id_type": "str",
+      "context_frame_id": 3194,
+      "context_frame_id_type": "int",
+      "transport_sequence_id": 1,
+      "emitted_frame_id": 3194,
+      "emitted_frame_id_type": "int",
+      "direct_reference_frame_id": "3194",
+      "direct_reference_frame_id_type": "str"
+    },
+    "repair": "normalize the fit-manifest frame scalar to an exact uint64-compatible integer at the direct-reference service-schema boundary",
+    "focused_test": "rl_agent.splitfusion_live_dispatch_v1.tests.test_dispatch.PreloadedDispatchTest.test_sfd1_v2_frame_context_validates_before_decode_and_tracks_session",
+    "focused_test_result": "1 test OK"
+  },
+  "phase13c_measurement_integration": {
+    "starting_head": "3e9649e0b51e8baeb0994632db58a74d75e1f6b3",
+    "qualified_implementation_commit": "ba0c03d0711a68b5851ff5cecae551c2f8e47d3f",
+    "qualified_frame_id_repair_commit": "56275cd3a0fd553268f98a873eb3e3bc9a58d34c",
+    "qualified_evidence_commit": "3e9649e0b51e8baeb0994632db58a74d75e1f6b3",
+    "qualified_json_sha256": "fd76558c7400b76e95139b447e67e26289eb8e3d50b6b42035ac633eb2827391",
+    "qualified_report_sha256": "041b5cc12f5ab28c79d9f73bdab95787a1dc57389054483ec0c4d735d9d49f3e",
+    "qualified_terminal_sha256": "852f38ae3638626f9761bccf7c5f3b1683e7f40400b5851d28d7ecbc8a0bb5d4",
+    "semantic_change": false,
+    "measurement_only_changes": [
+      "actual SFD1 v2 frame-context encode timing",
+      "actual edge camera-pose reconstruction timing",
+      "complete SFD1 v2 and UDP byte accounting",
+      "run/profile/episode stream identity"
+    ]
+  }
+}

@@ -1,0 +1,970 @@
+{
+ "binding_id": "fixed_action_screen_v2_seven_arms",
+ "binding_version": 1,
+ "candidate_version": "splitfusion_corrected_latency_env_v1",
+ "composition_model": "SERVICE_QUEUE_V2",
+ "deadline_ms": 170,
+ "pipeline_identity": {
+  "cpu_partition": {
+   "arm": "treatment",
+   "edge_cpus": [
+    4,
+    5,
+    6,
+    7,
+    20,
+    21,
+    22,
+    23
+   ],
+   "original_cpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+   ],
+   "radio_cpus": [
+    0,
+    1,
+    2,
+    3,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ]
+  },
+  "deadline_ms_inclusive": 170,
+  "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+  "exact_gt_limits": {
+   "drain_s": 120,
+   "freeze_queue": 1,
+   "horizon_ms": 2000,
+   "max_frames": 100,
+   "max_waiting": 2,
+   "prep_cpu": 4,
+   "prep_jobs": 4,
+   "score_cpu": 5,
+   "scorer_jobs": 4,
+   "service_cpu": 6,
+   "ue_freeze_queue": 2
+  },
+  "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+  "pipeline_identity_file": {
+   "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+   "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+  }
+ },
+ "policy": {
+  "action_match": {
+   "q_tolerance_e4": 0,
+   "rule": "EXACT_MODE_Q"
+  },
+  "exclude_cold": true,
+  "fallback": {
+   "status": "UNCALIBRATED"
+  },
+  "min_chains_per_stratum": 30,
+  "scene_conditioning": {
+   "descriptors": [
+    "camera_si",
+    "radar_p40"
+   ],
+   "k": 5,
+   "support_margin_fraction": 0.0
+  },
+  "uplink": {
+   "mode": "TRANSPORT_MODEL_DELTA",
+   "transport_artifact_sha256": "9919e5285d454ec742d877ca33af0df30277df82fe3cf665288c1102b6be286c",
+   "validation": {
+    "file": {
+     "path": "abiodun/experiments/splitfusion_training_live_mismatch_v1/20261005_v1/CALCULATIONS.json",
+     "sha256": "5e1c68fb48fddcf0c6f3b69ee74cc7375bfee894fa3c4a959728389657c01041"
+    },
+    "scope": {
+     "evidence_keys": [
+      "live100.transport_model_on_live",
+      "run5_capture.transport_model_on_live"
+     ],
+     "max_median_abs_error_ms": 5.0,
+     "mcs_range": [
+      24,
+      28
+     ],
+     "profiles": [
+      "FAVORABLE_STABLE"
+     ],
+     "wire_range": [
+      96627,
+      403480
+     ]
+    }
+   }
+  }
+ },
+ "purpose": "SCREEN_DIAGNOSTIC_SEVEN_FIXED_ACTIONS: complete fixed-action screen v2 (actions 33,65,17,50,67,53,35; one cell, FAVORABLE_STABLE); each action a separate stratum; diagnostic screen, not a training calibration",
+ "schema": "splitfusion.corrected_latency_env.calibration_binding.v2",
+ "sources": [
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/OUTPUT_SHA256.json",
+    "sha256": "63b4b5c011c60b2c58ba98d602ef17f64efe801e83cbce10df25fdb24dcba5cc"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/DECISIONS.jsonl",
+     "sha256": "15cef2c7d5a621143636dd4b876bb799de43a78b8a4fb4caea7f732e1066eb30"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm0_a33/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "070737d1939472eb54eb1ea6c09c9cfd8b8de62028121629d9dfdd8e19922624"
+    }
+   },
+   "final_seal": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/final_01/SEAL.json",
+    "sha256": "c35b6ba73abadfdcf27d1fea734a33e0b34d28c2e644a1a717274a5ac53f8908"
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+     "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+    }
+   },
+   "row_filter": {
+    "arm": "arm0_a33"
+   },
+   "source_id": "screen_v2_arm0_a33"
+  },
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/OUTPUT_SHA256.json",
+    "sha256": "63b4b5c011c60b2c58ba98d602ef17f64efe801e83cbce10df25fdb24dcba5cc"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/DECISIONS.jsonl",
+     "sha256": "15cef2c7d5a621143636dd4b876bb799de43a78b8a4fb4caea7f732e1066eb30"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm1_a65/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "d7feac166825ffd65ec70753abb42e770f05e587ddfda9b5a89b0d44c0335303"
+    }
+   },
+   "final_seal": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/final_01/SEAL.json",
+    "sha256": "c35b6ba73abadfdcf27d1fea734a33e0b34d28c2e644a1a717274a5ac53f8908"
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+     "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+    }
+   },
+   "row_filter": {
+    "arm": "arm1_a65"
+   },
+   "source_id": "screen_v2_arm1_a65"
+  },
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/OUTPUT_SHA256.json",
+    "sha256": "63b4b5c011c60b2c58ba98d602ef17f64efe801e83cbce10df25fdb24dcba5cc"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/DECISIONS.jsonl",
+     "sha256": "15cef2c7d5a621143636dd4b876bb799de43a78b8a4fb4caea7f732e1066eb30"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm2_a17/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "881302bb6528266a21fe4c5f05c25da71bcb7c970179e9af2a06a1fce3d75b7a"
+    }
+   },
+   "final_seal": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/final_01/SEAL.json",
+    "sha256": "c35b6ba73abadfdcf27d1fea734a33e0b34d28c2e644a1a717274a5ac53f8908"
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+     "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+    }
+   },
+   "row_filter": {
+    "arm": "arm2_a17"
+   },
+   "source_id": "screen_v2_arm2_a17"
+  },
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/OUTPUT_SHA256.json",
+    "sha256": "63b4b5c011c60b2c58ba98d602ef17f64efe801e83cbce10df25fdb24dcba5cc"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/DECISIONS.jsonl",
+     "sha256": "15cef2c7d5a621143636dd4b876bb799de43a78b8a4fb4caea7f732e1066eb30"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm3_a50/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "0d59faf2bb66359c22faf3a843e0cecda86009ef699914994e83d9ba245ad831"
+    }
+   },
+   "final_seal": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/final_01/SEAL.json",
+    "sha256": "c35b6ba73abadfdcf27d1fea734a33e0b34d28c2e644a1a717274a5ac53f8908"
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+     "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+    }
+   },
+   "row_filter": {
+    "arm": "arm3_a50"
+   },
+   "source_id": "screen_v2_arm3_a50"
+  },
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/OUTPUT_SHA256.json",
+    "sha256": "63b4b5c011c60b2c58ba98d602ef17f64efe801e83cbce10df25fdb24dcba5cc"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/DECISIONS.jsonl",
+     "sha256": "15cef2c7d5a621143636dd4b876bb799de43a78b8a4fb4caea7f732e1066eb30"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm4_a67/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "1ee0d3c880df5500224435d0403e2c5cd1aa7e798ca817392e4c5123e9143b48"
+    }
+   },
+   "final_seal": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/final_01/SEAL.json",
+    "sha256": "c35b6ba73abadfdcf27d1fea734a33e0b34d28c2e644a1a717274a5ac53f8908"
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+     "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+    }
+   },
+   "row_filter": {
+    "arm": "arm4_a67"
+   },
+   "source_id": "screen_v2_arm4_a67"
+  },
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/OUTPUT_SHA256.json",
+    "sha256": "63b4b5c011c60b2c58ba98d602ef17f64efe801e83cbce10df25fdb24dcba5cc"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/DECISIONS.jsonl",
+     "sha256": "15cef2c7d5a621143636dd4b876bb799de43a78b8a4fb4caea7f732e1066eb30"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm5_a53/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "85658f3dbcd9c3d65773d69b8adbdbc92d55ba1d4e184589498a4e6fc49d89a2"
+    }
+   },
+   "final_seal": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/final_01/SEAL.json",
+    "sha256": "c35b6ba73abadfdcf27d1fea734a33e0b34d28c2e644a1a717274a5ac53f8908"
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+     "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+    }
+   },
+   "row_filter": {
+    "arm": "arm5_a53"
+   },
+   "source_id": "screen_v2_arm5_a53"
+  },
+  {
+   "action_selection": "FIXED_ACTION_ACTOR_IN_SHADOW",
+   "delivery_output_sha256_file": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/OUTPUT_SHA256.json",
+    "sha256": "63b4b5c011c60b2c58ba98d602ef17f64efe801e83cbce10df25fdb24dcba5cc"
+   },
+   "field_map": {
+    "backlog_bytes": "pre_action_rlc_backlog_bytes",
+    "camera_si": "camera_si",
+    "cold": "cold",
+    "family": "forced_action.family",
+    "mode_id": "executed_action.mode_id",
+    "network_profile": "network_profile_id",
+    "payload_bytes": "payload_bytes",
+    "prior_ul_mcs": "prior_ul_mcs",
+    "q_e4": "executed_action.q_e4",
+    "quantizer": "forced_action.quantizer",
+    "radar_p40": "radar_p40"
+   },
+   "files": {
+    "boundaries": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/DECISIONS.jsonl",
+     "sha256": "15cef2c7d5a621143636dd4b876bb799de43a78b8a4fb4caea7f732e1066eb30"
+    },
+    "service_frames": {
+     "path": "abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261005_fixed_action_screen_v2/arm6_a35/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+     "sha256": "a6ca36bb64276b31713ae6fb91a3dd4c8a56cb06fb2ef9b88ae797b01d957262"
+    }
+   },
+   "final_seal": {
+    "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/final_01/SEAL.json",
+    "sha256": "c35b6ba73abadfdcf27d1fea734a33e0b34d28c2e644a1a717274a5ac53f8908"
+   },
+   "kind": "BOUNDARIES_WITH_INLINE_CONTEXT_V1",
+   "network_profile": "FAVORABLE_STABLE",
+   "pipeline_identity": {
+    "cpu_partition": {
+     "arm": "treatment",
+     "edge_cpus": [
+      4,
+      5,
+      6,
+      7,
+      20,
+      21,
+      22,
+      23
+     ],
+     "original_cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+     ],
+     "radio_cpus": [
+      0,
+      1,
+      2,
+      3,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    "deadline_ms_inclusive": 170,
+    "edge_image": "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+    "exact_gt_limits": {
+     "drain_s": 120,
+     "freeze_queue": 1,
+     "horizon_ms": 2000,
+     "max_frames": 100,
+     "max_waiting": 2,
+     "prep_cpu": 4,
+     "prep_jobs": 4,
+     "score_cpu": 5,
+     "scorer_jobs": 4,
+     "service_cpu": 6,
+     "ue_freeze_queue": 2
+    },
+    "exact_sources_digest": "8cb89964e40a7b80f813107cf23a403854ea40d95ba32073d1e2083acb63f889",
+    "pipeline_identity_file": {
+     "path": "abiodun/experiments/splitfusion_fixed_action_screen_v2/results_combined_01/PIPELINE_IDENTITY.json",
+     "sha256": "4e94649cfc8ca57f6f6b29226e6cd00c5f6b619f3a8920e4d1bec01cbaca9a6c"
+    }
+   },
+   "row_filter": {
+    "arm": "arm6_a35"
+   },
+   "source_id": "screen_v2_arm6_a35"
+  }
+ ]
+}

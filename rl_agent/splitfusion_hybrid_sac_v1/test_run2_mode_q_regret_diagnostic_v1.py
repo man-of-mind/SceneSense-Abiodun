@@ -256,6 +256,22 @@ class FrozenEvidenceReproductionTests(unittest.TestCase):
             with self.assertRaisesRegex(Run2ModeQDiagnosticError, "row count drift"):
                 diagnostic.load_frozen_per_context(Path(raw))
 
+    def test_report_does_not_mislabel_q_perc_as_compression_q(self) -> None:
+        summary_path = PROJECT_ROOT / (
+            "experiments/splitfusion_hybrid_sac_run2_diagnostic_v1/"
+            "20260922_mode_q_regret_decomposition_v1/diagnostic_summary.json"
+        )
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        report = diagnostic.render_report(summary)
+        self.assertIn(
+            "| profile | learned $Q_{perc}$ | learned q_e4 |",
+            report,
+        )
+        self.assertNotIn(
+            "| profile | learned q | learned q_e4 |",
+            report,
+        )
+
 
 class TieRuleTests(unittest.TestCase):
     def test_outcome_better_implements_the_registered_tie_rule(self) -> None:

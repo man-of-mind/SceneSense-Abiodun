@@ -1,0 +1,537 @@
+diff --git a/common/utils/T/T_messages.txt b/common/utils/T/T_messages.txt
+index 348c74836d..584f095bc1 100644
+--- a/common/utils/T/T_messages.txt
++++ b/common/utils/T/T_messages.txt
+@@ -245,6 +245,34 @@ ID = NRUE_MAC_DCI_GRANT
+     DESC = NR UE MAC decoded DCI grant for local network-state estimation
+     GROUP = ALL:MAC:UE
+     FORMAT = int,direction : int,dci_format : int,rnti_type : int,rnti : int,dci_frame : int,dci_slot : int,sched_frame : int,sched_slot : int,mcs : int,mcs_table : int,rb_start : int,rb_size : int,start_symbol : int,nr_symbols : int,tbs : int,harq_pid : int,ndi : int,rv : int,round : int,qam_mod_order : int,target_code_rate : int,tpc : int,n_cce : int,N_cce
++ID = NRUE_MAC_RLC_BUFFER_STATUS
++    DESC = NR UE MAC view of RLC buffer occupancy before BSR update
++    GROUP = ALL:MAC:UE
++    FORMAT = int,rnti : int,ue_id : int,frame : int,slot : int,lcid : int,lcgid : int,bytes_in_buffer : int,bj : int,pbr : int,priority
++ID = NRUE_MAC_BSR_STATUS
++    DESC = NR UE MAC BSR/LCG state after uplink logical-channel multiplexing
++    GROUP = ALL:MAC:UE
++    FORMAT = int,rnti : int,ue_id : int,frame : int,slot : int,bsr_type : int,trigger_mask : int,bsr_sent : int,padding_len : int,num_sdus : int,sdu_bytes : int,lcg0_bytes : int,lcg1_bytes : int,lcg2_bytes : int,lcg3_bytes : int,lcg4_bytes : int,lcg5_bytes : int,lcg6_bytes : int,lcg7_bytes : int,bsr_lcg_id : int,bsr_index : int,bsr_long0_index : int,bsr_long1_index : int,bsr_long2_index : int,bsr_long3_index : int,bsr_long4_index : int,bsr_long5_index : int,bsr_long6_index : int,bsr_long7_index
++ID = NR_PDCP_TX_SDU
++    DESC = NR PDCP TX SDU ingress from app/SDAP with monotonic timestamp (layer-latency t0 on UE UL)
++    GROUP = ALL:PDCP:UE
++    FORMAT = int,mono_sec : int,mono_nsec : int,ue_id : int,rb_id : int,sdu_bytes
++ID = NR_RLC_TX_SDU
++    DESC = NR RLC TX SDU ingress from PDCP with monotonic timestamp (UE UL PDCP->RLC handoff)
++    GROUP = ALL:RLC:UE
++    FORMAT = int,mono_sec : int,mono_nsec : int,ue_id : int,rb_id : int,sdu_bytes
++ID = NR_RLC_TX_DEQUEUE
++    DESC = NR RLC TX PDU dequeued to MAC for a grant with monotonic timestamp (UE UL RLC->MAC; ends RLC queue-wait)
++    GROUP = ALL:RLC:UE
++    FORMAT = int,mono_sec : int,mono_nsec : int,ue_id : int,lcid : int,pdu_bytes
++ID = GNB_MAC_RX_SDU
++    DESC = NR gNB MAC UL SDU received from PHY with monotonic timestamp (gNB reassembly ingress)
++    GROUP = ALL:MAC:GNB
++    FORMAT = int,mono_sec : int,mono_nsec : int,rnti : int,frame : int,slot : int,sdu_bytes
++ID = GNB_PDCP_RX_DELIVER
++    DESC = NR gNB PDCP UL SDU delivered to SDAP/GTP-U with monotonic timestamp (layer-latency t_final on gNB UL)
++    GROUP = ALL:PDCP:GNB
++    FORMAT = int,mono_sec : int,mono_nsec : int,ue_id : int,rb_id : int,sdu_bytes
+ ID = GNB_MAC_DL
+     DESC = NR MAC downlink scheduler decision for an UE
+     GROUP = ALL:MAC:GNB
+@@ -257,6 +285,14 @@ ID = GNB_MAC_UL
+     DESC = NR MAC uplink scheduler decision for an UE
+     GROUP = ALL:MAC:GNB
+     FORMAT = int,rnti : int,frame : int,slot : int,mcs : int,tbs
++ID = GNB_MAC_UL_MCS_DECISION
++    DESC = NR gNB MAC UL MCS decision before and after PHR-normalized reduction
++    GROUP = ALL:MAC:GNB
++    FORMAT = int,rnti : int,frame : int,slot : int,sched_frame : int,sched_slot : int,avg_snr_x10 : int,mcs_table : int,ul_bler_mcs_before : int,selected_mcs : int,pre_phr_mcs : int,post_phr_mcs : int,final_mcs : int,estimated_ul_buffer : int,sched_ul_bytes : int,B : int,min_rb : int,available_rb_before : int,available_rb_after : int,ph : int,pcmax : int,rb_size_final : int,tbs_final : int,force_ul_mcs
++ID = GNB_MAC_BLER_MCS_DECISION
++    DESC = NR gNB MAC BLER/OLLA MCS selector decision
++    GROUP = ALL:MAC:GNB
++    FORMAT = int,direction : int,rnti : int,frame : int,diff : int,old_mcs : int,new_mcs : int,max_mcs_input : int,max_mcs_applied : int,min_mcs : int,opt_max_mcs : int,num_sched : int,num_retx : int,bler_window_ppm : int,bler_before_ppm : int,bler_after_ppm : int,lower_ppm : int,upper_ppm : int,branch : int,updated
+ ID = GNB_MAC_LCID_UL
+     DESC = NR MAC uplink traffic received for an UE for a specific LCID
+     GROUP = ALL:MAC:GNB
+diff --git a/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c b/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c
+index cb7efeae5f..023a0bb767 100644
+--- a/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c
++++ b/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c
+@@ -1454,9 +1454,22 @@ static void nr_update_rlc_buffers_status(NR_UE_MAC_INST_t *mac, frame_t frameP,
+     const logical_chan_id_t lcid = ch[i];
+     const rlc_buffer_occupancy_t b = ret[i].bytes_in_buffer;
+     NR_LC_SCHEDULING_INFO *lc_sched_info = get_scheduling_info_from_lcid(mac, lcid);
++    nr_lcordered_info_t *lc_info = get_lc_info_from_lcid(mac, lcid);
++    AssertFatal(lc_info, "Couldn't find logical channel with LCID %d\n", lcid);
+     if (b > 0)
+       LOG_D(NR_MAC, "[UE %d] LCID %d has %d bytes to transmit at sfn %d.%d\n", mac->ue_id, lcid, b, frameP, slotP);
+     lc_sched_info->LCID_buffer_remain = b;
++    T(T_NRUE_MAC_RLC_BUFFER_STATUS,
++      T_INT(mac->crnti),
++      T_INT(mac->ue_id),
++      T_INT(frameP),
++      T_INT(slotP),
++      T_INT(lcid),
++      T_INT(lc_sched_info->LCGID),
++      T_INT(b),
++      T_INT(lc_sched_info->Bj),
++      T_INT(lc_info->pbr == UINT_MAX ? -1 : (int)lc_info->pbr),
++      T_INT(lc_info->priority));
+   }
+ }
+ 
+@@ -2155,6 +2168,47 @@ static void nr_ue_get_sdu_mac_ce_post(NR_UE_MAC_INST_t *mac,
+     }
+   }
+ 
++  int bsr_lcg_id = -1;
++  int bsr_index = 0;
++  int bsr_long_index[NR_MAX_NUM_LCGID] = {0};
++  if (mac_ce_p->bsr.type_bsr == b_short || mac_ce_p->bsr.type_bsr == b_short_trunc) {
++    bsr_lcg_id = mac_ce_p->bsr.bsr.s.LcgID;
++    bsr_index = mac_ce_p->bsr.bsr.s.Buffer_size;
++  } else if (mac_ce_p->bsr.type_bsr == b_long || mac_ce_p->bsr.type_bsr == b_long_trunc) {
++    for (int lcg_id = 0; lcg_id < NR_MAX_NUM_LCGID; lcg_id++)
++      bsr_long_index[lcg_id] = mac_ce_p->bsr.bsr.lcg_bsr[lcg_id];
++  }
++
++  T(T_NRUE_MAC_BSR_STATUS,
++    T_INT(mac->crnti),
++    T_INT(mac->ue_id),
++    T_INT(frame),
++    T_INT(slot),
++    T_INT(mac_ce_p->bsr.type_bsr),
++    T_INT(sched_info->BSR_reporting_active),
++    T_INT(mac_ce_p->bsr.type_bsr != b_none),
++    T_INT(padding_len),
++    T_INT(mac_ce_p->num_sdus),
++    T_INT(mac_ce_p->sdu_length_total),
++    T_INT(LCG_bytes[0]),
++    T_INT(LCG_bytes[1]),
++    T_INT(LCG_bytes[2]),
++    T_INT(LCG_bytes[3]),
++    T_INT(LCG_bytes[4]),
++    T_INT(LCG_bytes[5]),
++    T_INT(LCG_bytes[6]),
++    T_INT(LCG_bytes[7]),
++    T_INT(bsr_lcg_id),
++    T_INT(bsr_index),
++    T_INT(bsr_long_index[0]),
++    T_INT(bsr_long_index[1]),
++    T_INT(bsr_long_index[2]),
++    T_INT(bsr_long_index[3]),
++    T_INT(bsr_long_index[4]),
++    T_INT(bsr_long_index[5]),
++    T_INT(bsr_long_index[6]),
++    T_INT(bsr_long_index[7]));
++
+   int size = nr_write_ce_ulsch_pdu(mac_ce_p->cur_ptr, mac_ce_p->phr_len ? &mac_ce_p->phr : NULL, &mac_ce_p->bsr, mac_ce_p->pdu_end);
+   LOG_D(NR_MAC, "Added %d bytes of BSR\n", size);
+   mac_ce_p->cur_ptr += size;
+@@ -2327,6 +2381,7 @@ static bool fill_mac_sdu(NR_UE_MAC_INST_t *mac,
+   int lc_idx = lcid_buffer_index(lcid);
+   if (sdu_length > 0) {
+     mac_ce_p->num_sdus++;
++    mac_ce_p->sdu_length_total += sdu_length;
+     LOG_D(NR_MAC,
+           "[UE %d] [%d.%d] UL-DXCH -> ULSCH, Generating UL MAC sub-PDU for SDU %d, length %d bytes, RB with LCID "
+           "0x%02x (buflen (TBS) %ld bytes)\n",
+diff --git a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_dlsch.c b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_dlsch.c
+index d2f3b764d7..f4f455afc4 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_dlsch.c
++++ b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_dlsch.c
+@@ -699,7 +699,7 @@ static void pf_dl(gNB_MAC_INST *mac,
+         selected_mcs = max(bo->min_mcs, new_mcs);
+         sched_ctrl->dl_bler_stats.mcs = selected_mcs;
+       } else
+-        selected_mcs = get_mcs_from_bler(bo, stats, &sched_ctrl->dl_bler_stats, max_mcs, frame);
++        selected_mcs = get_mcs_from_bler(bo, stats, &sched_ctrl->dl_bler_stats, max_mcs, frame, 0, UE->rnti);
+       int l = get_dl_nrOfLayers(sched_ctrl, current_BWP->dci_format);
+       const uint8_t Qm = nr_get_Qm_dl(selected_mcs, current_BWP->mcsTableIdx);
+       const uint16_t R = nr_get_code_rate_dl(selected_mcs, current_BWP->mcsTableIdx);
+diff --git a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c
+index 3dc39f9612..babd392579 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c
++++ b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c
+@@ -7,6 +7,8 @@
+  */
+ 
+ #include <softmodem-common.h>
++#include <stdlib.h>
++#include <string.h>
+ #include "assertions.h"
+ 
+ #include "NR_MAC_gNB/nr_mac_gNB.h"
+@@ -811,20 +813,52 @@ NR_pusch_dmrs_t get_ul_dmrs_params(const NR_ServingCellConfigCommon_t *scc,
+ 
+ #define BLER_UPDATE_FRAME 10
+ #define BLER_FILTER 0.9f
++
++enum {
++  SCENESENSE_MCS_POLICY_LEGACY = 0,
++  SCENESENSE_MCS_POLICY_HOLD_FEW = 1,
++  SCENESENSE_MCS_POLICY_AIMD = 2,
++};
++
+ int get_mcs_from_bler(const NR_bler_options_t *bler_options,
+                       const NR_mac_dir_stats_t *stats,
+                       NR_bler_stats_t *bler_stats,
+                       int max_mcs,
+-                      frame_t frame)
++                      frame_t frame,
++                      int direction,
++                      rnti_t rnti)
+ {
+   int diff = frame - bler_stats->last_frame;
+   if (diff < 0) // wrap around
+     diff += 1024;
+ 
++  const int max_mcs_input = max_mcs;
+   max_mcs = min(max_mcs, bler_options->max_mcs);
+   const uint8_t old_mcs = min(bler_stats->mcs, max_mcs);
+-  if (diff < BLER_UPDATE_FRAME)
++  const float bler_before = bler_stats->bler;
++  if (diff < BLER_UPDATE_FRAME) {
++    T(T_GNB_MAC_BLER_MCS_DECISION,
++      T_INT(direction),
++      T_INT(rnti),
++      T_INT(frame),
++      T_INT(diff),
++      T_INT(old_mcs),
++      T_INT(old_mcs),
++      T_INT(max_mcs_input),
++      T_INT(max_mcs),
++      T_INT(bler_options->min_mcs),
++      T_INT(bler_options->max_mcs),
++      T_INT(-1),
++      T_INT(-1),
++      T_INT(-1),
++      T_INT((int)(bler_before * 1000000.0f)),
++      T_INT((int)(bler_before * 1000000.0f)),
++      T_INT((int)(bler_options->lower * 1000000.0)),
++      T_INT((int)(bler_options->upper * 1000000.0)),
++      T_INT(0), /* no update: diff < BLER_UPDATE_FRAME */
++      T_INT(0));
+     return old_mcs; // no update
++  }
+ 
+   // last update is longer than x frames ago
+   const int num_dl_sched = (int)(stats->rounds[0] - bler_stats->rounds[0]);
+@@ -832,17 +866,100 @@ int get_mcs_from_bler(const NR_bler_options_t *bler_options,
+   const float bler_window = num_dl_sched > 0 ? (float) num_dl_retx / num_dl_sched : bler_stats->bler;
+   bler_stats->bler = BLER_FILTER * bler_stats->bler + (1 - BLER_FILTER) * bler_window;
+ 
++  static int scenesense_mcs_policy = -1;
++  static int scenesense_aimd_max_drop = -2;
++  if (scenesense_mcs_policy < 0) {
++    const char *policy_env = getenv("SCENESENSE_MCS_POLICY");
++    if (policy_env && strcmp(policy_env, "aimd") == 0) {
++      scenesense_mcs_policy = SCENESENSE_MCS_POLICY_AIMD;
++    } else if (policy_env && strcmp(policy_env, "hold_few") == 0) {
++      scenesense_mcs_policy = SCENESENSE_MCS_POLICY_HOLD_FEW;
++    } else if (policy_env && strcmp(policy_env, "vanilla") == 0) {
++      scenesense_mcs_policy = SCENESENSE_MCS_POLICY_LEGACY;
++    } else {
++      const char *hold_env = getenv("SCENESENSE_HOLD_MCS_FEW_SAMPLES");
++      scenesense_mcs_policy = hold_env && atoi(hold_env) > 0
++                                  ? SCENESENSE_MCS_POLICY_HOLD_FEW
++                                  : SCENESENSE_MCS_POLICY_LEGACY;
++    }
++  }
++  if (scenesense_aimd_max_drop < -1) {
++    const char *drop_env = getenv("SCENESENSE_AIMD_MAX_DROP");
++    scenesense_aimd_max_drop = drop_env && atoi(drop_env) > 0 ? atoi(drop_env) : 0;
++  }
++
+   int new_mcs = old_mcs;
+-  if (bler_stats->bler < bler_options->lower && old_mcs < max_mcs && num_dl_sched > 3)
+-    new_mcs += 1;
+-  else if (bler_stats->bler > bler_options->upper || num_dl_sched <= 3) // above threshold or no activity
+-    new_mcs -= 1;
++  int branch = 4; /* hold: within target window */
++
++  if (scenesense_mcs_policy == SCENESENSE_MCS_POLICY_AIMD) {
++    /*
++     * SceneSense diagnostic policy:
++     * - do not punish sparse clean CARLA bursts (num_sched <= 3 and no retx)
++     * - additively increase by one MCS only when enough clean evidence exists
++     * - multiplicatively back off only when real BLER/retransmission appears
++     *
++     * This preserves the good-channel P2 behavior but gives bad-channel runs a
++     * real recovery path instead of holding an overly aggressive MCS forever.
++     */
++    const bool saw_retx = num_dl_retx > 0;
++    const float bler_for_backoff = bler_window > bler_stats->bler ? bler_window : bler_stats->bler;
++    if (saw_retx && bler_for_backoff > bler_options->upper) {
++      branch = 2; /* decrease: real high BLER */
++      const int half_distance = max(1, (old_mcs - bler_options->min_mcs + 1) / 2);
++      const int capped_drop = scenesense_aimd_max_drop > 0 ? min(half_distance, scenesense_aimd_max_drop) : half_distance;
++      new_mcs -= capped_drop; /* Reno-style multiplicative decrease, optionally capped for diagnostics */
++    } else if (num_dl_sched <= 3) {
++      branch = 3; /* too few clean samples: hold MCS */
++    } else if (bler_stats->bler < bler_options->lower && old_mcs < max_mcs) {
++      new_mcs += 1;
++      branch = 1; /* additive increase: low BLER and enough scheduled samples */
++    } else if (bler_stats->bler > bler_options->upper) {
++      branch = 2; /* decrease: smoothed high BLER */
++      const int half_distance = max(1, (old_mcs - bler_options->min_mcs + 1) / 2);
++      const int capped_drop = scenesense_aimd_max_drop > 0 ? min(half_distance, scenesense_aimd_max_drop) : half_distance;
++      new_mcs -= capped_drop;
++    }
++  } else {
++    const bool hold_mcs_few_samples = scenesense_mcs_policy == SCENESENSE_MCS_POLICY_HOLD_FEW;
++    if (num_dl_sched <= 3) {
++      branch = 3; /* too few scheduled samples for reliable BLER update */
++      if (!hold_mcs_few_samples)
++        new_mcs -= 1; /* default OAI behavior: treat too few samples as conservative decrement */
++    } else if (bler_stats->bler < bler_options->lower && old_mcs < max_mcs) {
++      new_mcs += 1;
++      branch = 1; /* increase: low BLER and enough scheduled samples */
++    } else if (bler_stats->bler > bler_options->upper) { // above threshold
++      new_mcs -= 1;
++      branch = 2; /* decrease: high BLER */
++    }
++  }
+   // else we are within threshold boundaries
+ 
+   new_mcs = max(new_mcs, bler_options->min_mcs);
++  const int final_mcs = new_mcs;
+   bler_stats->last_frame = frame;
+   bler_stats->mcs = new_mcs;
+   memcpy(bler_stats->rounds, stats->rounds, sizeof(stats->rounds));
++  T(T_GNB_MAC_BLER_MCS_DECISION,
++    T_INT(direction),
++    T_INT(rnti),
++    T_INT(frame),
++    T_INT(diff),
++    T_INT(old_mcs),
++    T_INT(final_mcs),
++    T_INT(max_mcs_input),
++    T_INT(max_mcs),
++    T_INT(bler_options->min_mcs),
++    T_INT(bler_options->max_mcs),
++    T_INT(num_dl_sched),
++    T_INT(num_dl_retx),
++    T_INT((int)(bler_window * 1000000.0f)),
++    T_INT((int)(bler_before * 1000000.0f)),
++    T_INT((int)(bler_stats->bler * 1000000.0f)),
++    T_INT((int)(bler_options->lower * 1000000.0)),
++    T_INT((int)(bler_options->upper * 1000000.0)),
++    T_INT(branch),
++    T_INT(1));
+   LOG_D(MAC, "frame %4d MCS %d -> %d (num_dl_sched %d, num_dl_retx %d, BLER wnd %.3f avg %.6f)\n",
+         frame, old_mcs, new_mcs, num_dl_sched, num_dl_retx, bler_window, bler_stats->bler);
+   return new_mcs;
+diff --git a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c
+index f1fbbe2dfc..38f2f312c1 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c
++++ b/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c
+@@ -13,10 +13,23 @@
+ #include "utils.h"
+ #include <openair2/UTIL/OPT/opt.h>
+ #include "LAYER2/nr_rlc/nr_rlc_oai_api.h"
++#include <stdlib.h>
++#include <string.h>
++#include <time.h> /* scenesense layer-latency: CLOCK_MONOTONIC timestamps */
+ 
+ //#define SRS_IND_DEBUG
+ #define MAX_NUM_DATA_IND 1024
+ 
++static bool scenesense_use_sinr_mcs_policy(void)
++{
++  static int use_sinr_policy = -1;
++  if (use_sinr_policy < 0) {
++    const char *policy_env = getenv("SCENESENSE_MCS_POLICY");
++    use_sinr_policy = policy_env && strcmp(policy_env, "sinr") == 0;
++  }
++  return use_sinr_policy > 0;
++}
++
+ /* \brief Get the number of UL TDAs that could be used in slot, reachable
+  * via specific k2. The output parameter first_idx is a pointer to the first
+  * suitable TDA, and the function returns the number of suitable TDAs, or 0. */
+@@ -915,6 +928,13 @@ static void _nr_rx_sdu(const module_id_t gnb_mod_idP,
+         T_INT(rntiP), T_INT(frameP), T_INT(slotP), T_INT(harq_pid),
+         T_BUFFER(sduP, sdu_lenP));
+ 
++    if (sduP) {
++      /* scenesense layer-latency: MAC UL SDU received from PHY at gNB (reassembly ingress) */
++      struct timespec _tsll; clock_gettime(CLOCK_MONOTONIC, &_tsll);
++      T(T_GNB_MAC_RX_SDU, T_INT((int)_tsll.tv_sec), T_INT((int)_tsll.tv_nsec),
++        T_INT((int)rntiP), T_INT((int)frameP), T_INT((int)slotP), T_INT((int)sdu_lenP));
++    }
++
+     UE->mac_stats.ul.total_bytes += sdu_lenP;
+     LOG_D(NR_MAC, "[gNB %d][PUSCH %d] CC_id %d %d.%d Received ULSCH sdu from PHY (rnti %04x) ul_cqi %d TA %d sduP %p, rssi %d\n",
+           gnb_mod_idP,
+@@ -2004,13 +2024,13 @@ static int  pf_ul(gNB_MAC_INST *nrmac,
+     const int max_mcs = min(bo->max_mcs, max_mcs_table); /* no per-user maximum MCS yet */
+     int selected_mcs;
+     int nrOfLayers = get_ul_nrOfLayers(sched_ctrl, current_BWP->dci_format);
+-    if (bo->harq_round_max == 1) {
++    if (bo->harq_round_max == 1 || scenesense_use_sinr_mcs_policy()) {
+       selected_mcs = get_mcs_from_SINRx10(current_BWP->mcs_table, sched_ctrl->pusch_pc.avg_snr * 10, nrOfLayers);
+       selected_mcs = min(max_mcs, selected_mcs);
+       selected_mcs = max(bo->min_mcs, selected_mcs);
+       sched_ctrl->ul_bler_stats.mcs = selected_mcs;
+     } else {
+-      selected_mcs = get_mcs_from_bler(bo, stats, &sched_ctrl->ul_bler_stats, max_mcs, frame);
++      selected_mcs = get_mcs_from_bler(bo, stats, &sched_ctrl->ul_bler_stats, max_mcs, frame, 1, UE->rnti);
+       LOG_D(NR_MAC, "%d.%d starting mcs %d bler %f\n", frame, slot, selected_mcs, sched_ctrl->ul_bler_stats.bler);
+     }
+ 
+@@ -2146,13 +2166,34 @@ static int  pf_ul(gNB_MAC_INST *nrmac,
+ 
+     /* Calculate the current scheduling bytes */
+     const int B = cmax(sched_ctrl->estimated_ul_buffer - sched_ctrl->sched_ul_bytes, 0);
++    const int ul_bler_mcs_before = sched_ctrl->ul_bler_stats.mcs;
++    const int pre_phr_mcs = sched.mcs;
++    const int available_rb_before_phr = available_rb;
+     /* adjust rbSize and MCS according to PHR and BPRE, only if there is data */
+     if((sched_ctrl->pcmax != 0 || sched_ctrl->ph != 0) && B > 0)
+       nr_ue_max_mcs_min_rb(current_BWP->scs, sched_ctrl->ph, &sched, current_BWP, min_rb, B, &available_rb, &sched.mcs);
++    const int post_phr_mcs = sched.mcs;
++    const int available_rb_after_phr = available_rb;
+ 
+     if (sched.mcs < sched_ctrl->ul_bler_stats.mcs)
+       sched_ctrl->ul_bler_stats.mcs = sched.mcs; /* force estimated MCS down */
+ 
++    /* scenesense experiment: override UL MCS to a fixed value to probe the
++     * link-adaptation ceiling (default behavior unchanged when env unset). */
++    int force_ul_mcs_trace = -1;
++    {
++      static int _force_ul_mcs = -2; /* -2 = not yet read */
++      if (_force_ul_mcs == -2) {
++        const char *_fm = getenv("SCENESENSE_FORCE_UL_MCS");
++        _force_ul_mcs = (_fm && *_fm) ? atoi(_fm) : -1;
++      }
++      force_ul_mcs_trace = _force_ul_mcs;
++      if (_force_ul_mcs >= 0 && _force_ul_mcs <= 28) {
++        sched.mcs = _force_ul_mcs;
++        sched_ctrl->ul_bler_stats.mcs = _force_ul_mcs; /* keep OLLA state consistent */
++      }
++    }
++
+     update_ul_ue_R_Qm(sched.mcs, current_BWP->mcs_table, current_BWP->pusch_Config, &sched.R, &sched.Qm);
+     if (!iterator->sched_inactive) {
+       // this UE has data, find optimal number of RB for data and in range
+@@ -2194,6 +2235,31 @@ static int  pf_ul(gNB_MAC_INST *nrmac,
+           sched.dmrs_info.num_dmrs_symb,
+           sched.dmrs_info.N_PRB_DMRS);
+ 
++    T(T_GNB_MAC_UL_MCS_DECISION,
++      T_INT(iterator->UE->rnti),
++      T_INT(frame),
++      T_INT(slot),
++      T_INT(sched.frame),
++      T_INT(sched.slot),
++      T_INT((int)(sched_ctrl->pusch_pc.avg_snr * 10)),
++      T_INT(current_BWP->mcs_table),
++      T_INT(ul_bler_mcs_before),
++      T_INT(iterator->selected_mcs),
++      T_INT(pre_phr_mcs),
++      T_INT(post_phr_mcs),
++      T_INT(sched.mcs),
++      T_INT(sched_ctrl->estimated_ul_buffer),
++      T_INT(sched_ctrl->sched_ul_bytes),
++      T_INT(B),
++      T_INT(min_rb),
++      T_INT(available_rb_before_phr),
++      T_INT(available_rb_after_phr),
++      T_INT(sched_ctrl->ph),
++      T_INT(sched_ctrl->pcmax),
++      T_INT(sched.rbSize),
++      T_INT(sched.tb_size),
++      T_INT(force_ul_mcs_trace));
++
+     /* Mark the corresponding RBs as used */
+ 
+     sched_ctrl->cce_index = CCEIndex;
+diff --git a/openair2/LAYER2/NR_MAC_gNB/mac_proto.h b/openair2/LAYER2/NR_MAC_gNB/mac_proto.h
+index 5aeace199c..cbbdbdc4ec 100644
+--- a/openair2/LAYER2/NR_MAC_gNB/mac_proto.h
++++ b/openair2/LAYER2/NR_MAC_gNB/mac_proto.h
+@@ -438,7 +438,9 @@ int get_mcs_from_bler(const NR_bler_options_t *bler_options,
+                       const NR_mac_dir_stats_t *stats,
+                       NR_bler_stats_t *bler_stats,
+                       int max_mcs,
+-                      frame_t frame);
++                      frame_t frame,
++                      int direction,
++                      rnti_t rnti);
+ 
+ int ul_buffer_index(int frame, int slot, int slots_per_frame, int size);
+ void UL_tti_req_ahead_initialization(gNB_MAC_INST *gNB, int n, int CCid, frame_t frameP, int slotP);
+diff --git a/openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c b/openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c
+index 5e1ca2e635..dec9cd5c97 100644
+--- a/openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c
++++ b/openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c
+@@ -24,6 +24,7 @@
+ #include "common/platform_constants.h"
+ #include "common/ran_context.h"
+ #include "common/utils/T/T.h"
++#include <time.h> /* scenesense layer-latency: CLOCK_MONOTONIC timestamps */
+ #include "common/utils/tuntap_if.h"
+ #include "cuup_cucp_if.h"
+ #include "executables/lte-softmodem.h"
+@@ -396,6 +397,11 @@ static void deliver_sdu_drb(void *_ue, nr_pdcp_entity_t *entity,
+   int rb_id;
+   int i;
+ 
++  /* scenesense layer-latency t_final: reassembled SDU leaving PDCP RX toward SDAP/GTP-U (gNB UL) */
++  { struct timespec _tsll; clock_gettime(CLOCK_MONOTONIC, &_tsll);
++    T(T_GNB_PDCP_RX_DELIVER, T_INT((int)_tsll.tv_sec), T_INT((int)_tsll.tv_nsec),
++      T_INT((int)ue->ue_id), T_INT((int)entity->rb_id), T_INT((int)size)); }
++
+   if (IS_SOFTMODEM_NOS1 || UE_NAS_USE_TUN) {
+     LOG_D(PDCP, "IP packet received with size %d, to be sent to SDAP interface, UE ID/RNTI: %ld\n", size, ue->ue_id);
+     // in NoS1 mode: the SDAP should write() packets to an FD (TUN interface),
+@@ -932,6 +938,11 @@ bool nr_pdcp_data_req_drb(protocol_ctxt_t *ctxt_pP,
+     return 0;
+   }
+ 
++  /* scenesense layer-latency t0: SDU entering PDCP TX (UE UL app->stack ingress) */
++  { struct timespec _tsll; clock_gettime(CLOCK_MONOTONIC, &_tsll);
++    T(T_NR_PDCP_TX_SDU, T_INT((int)_tsll.tv_sec), T_INT((int)_tsll.tv_nsec),
++      T_INT((int)ue_id), T_INT((int)rb_id), T_INT((int)sdu_buffer_size)); }
++
+   int max_size = nr_max_pdcp_pdu_size(sdu_buffer_size);
+   char pdu_buf[max_size];
+   int pdu_size = rb->process_sdu(rb, (char *)sdu_buffer, sdu_buffer_size, muiP, pdu_buf, max_size);
+diff --git a/openair2/LAYER2/nr_rlc/nr_rlc_oai_api.c b/openair2/LAYER2/nr_rlc/nr_rlc_oai_api.c
+index d0c2afa3cb..757820afd3 100644
+--- a/openair2/LAYER2/nr_rlc/nr_rlc_oai_api.c
++++ b/openair2/LAYER2/nr_rlc/nr_rlc_oai_api.c
+@@ -11,6 +11,7 @@
+ #include "nr_rlc_ue_manager.h"
+ #include "nr_rlc_entity.h"
+ #include "nr_rlc_oai_api.h"
++#include <time.h> /* scenesense layer-latency: CLOCK_MONOTONIC timestamps */
+ #include "NR_RLC-BearerConfig.h"
+ #include "NR_DRB-ToAddMod.h"
+ #include "NR_DRB-ToAddModList.h"
+@@ -246,6 +247,12 @@ tbs_size_t nr_mac_rlc_data_req(const module_id_t  module_idP,
+ 
+   if (gnb_flagP)
+     T(T_ENB_RLC_MAC_DL, T_INT(module_idP), T_INT(ue_id), T_INT(channel_idP), T_INT(ret));
++  else if (ret > 0) {
++    /* scenesense layer-latency: RLC PDU dequeued to MAC on UE UL (ends RLC queue-wait) */
++    struct timespec _tsll; clock_gettime(CLOCK_MONOTONIC, &_tsll);
++    T(T_NR_RLC_TX_DEQUEUE, T_INT((int)_tsll.tv_sec), T_INT((int)_tsll.tv_nsec),
++      T_INT((int)ue_id), T_INT((int)channel_idP), T_INT((int)ret));
++  }
+ 
+   return ret;
+ }
+@@ -305,6 +312,12 @@ rlc_op_status_t nr_rlc_data_req(const protocol_ctxt_t *const ctxt_pP,
+ 
+   if (ctxt_pP->enb_flag)
+     T(T_ENB_RLC_DL, T_INT(ctxt_pP->module_id), T_INT(ctxt_pP->rntiMaybeUEid), T_INT(rb_idP), T_INT(sdu_sizeP));
++  else {
++    /* scenesense layer-latency: SDU crossing PDCP->RLC on UE UL */
++    struct timespec _tsll; clock_gettime(CLOCK_MONOTONIC, &_tsll);
++    T(T_NR_RLC_TX_SDU, T_INT((int)_tsll.tv_sec), T_INT((int)_tsll.tv_nsec),
++      T_INT((int)ue_id), T_INT((int)rb_idP), T_INT((int)sdu_sizeP));
++  }
+ 
+   nr_rlc_manager_lock(nr_rlc_ue_manager);
+   ue = nr_rlc_manager_get_ue(nr_rlc_ue_manager, ue_id);

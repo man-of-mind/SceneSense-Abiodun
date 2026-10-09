@@ -2259,7 +2259,10 @@ def render_report(summary: Mapping[str, Any]) -> str:
 
     add("## 5. The continuous branch")
     add("")
-    add("| profile | learned q | learned q_e4 | best q_e4 in learned mode | oracle q_e4 |")
+    add(
+        "| profile | learned $Q_{perc}$ | learned q_e4 | "
+        "best q_e4 in learned mode | oracle q_e4 |"
+    )
     add("| --- | --- | --- | --- | --- |")
     for profile, block in sorted(adaptation["by_profile"].items()):
         add(

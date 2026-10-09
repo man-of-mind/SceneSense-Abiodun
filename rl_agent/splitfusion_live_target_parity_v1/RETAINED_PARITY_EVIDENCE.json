@@ -1,0 +1,231 @@
+{
+  "collection_interface": {
+    "arrays": {
+      "depth_bgra": "native HxWx4 uint8, original CARLA 24-bit encoded depth",
+      "original_v3_mask": "native HxW uint8 {0,1,2}, original depth-gated person paint",
+      "predicted_labels": "preserve actual 2-D uint8 {0,1,2} output before scoring",
+      "raw_semantic": "native HxW uint8 raw tags, before palette conversion"
+    },
+    "contract": "ORIGINAL_ROUTE_B_V3_1_V010_COMPLETE",
+    "established_functions": [
+      "data_collection/route_b_perception_v3/visibility_v1.py::visibility_from_corners/reconstruct_consistent_mask",
+      "data_collection/run_route_b_perception_collection_v3.py::_persist person paint",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_clean_base_v1/build_contract_v1.py::source_state/build_contract/registered_quarantines",
+      "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_clean_base_v1/score_contract_v1.py::score_segmentation"
+    ],
+    "geometry": {
+      "dynamic_actors": "all actor IDs/classes, actor+bbox transforms and exact eight world corners, not filtered localization records",
+      "static_candidates": "original static projection/visibility rows including semantic support and full original static-positive fields",
+      "static_catalogue": "complete Town10HD environment-object catalogue with IDs, transforms, sizes and source hash",
+      "visibility": "original visibility_from_corners rows for every original actor box; preserve depth interval, native support, v010 flags and projection"
+    },
+    "identity_and_provenance": [
+      "same frame/time and owned-world snapshot for RGB/semantic/depth/actor geometry",
+      "camera intrinsics, complete transforms and native dimensions",
+      "all arrays and tables SHA-256 bound",
+      "complete-input content digest",
+      "original source pins",
+      "explicit completeness declarations"
+    ],
+    "ignore_label": 255,
+    "live_qualified": false,
+    "prediction_evidence": [
+      "frame/session/ticket-bound dense predicted labels",
+      "full class/confidence/world-XY prediction records",
+      "their hashes and scorer-input identity"
+    ],
+    "quarantine": {
+      "missing_or_unadjudicated": "refuse exact-v010 scoring; never default to empty",
+      "required_keys": [
+        "confirmed_secondary",
+        "manual_static_ids",
+        "dynamic_static_keys",
+        "dynamic_actor_keys",
+        "panel_static_keys",
+        "confirmed_pairs"
+      ],
+      "scope": "explicit new-run identity/frame conflict adjudication; historical sample keys MUST NOT be reused for new frames"
+    },
+    "resize": "nearest-neighbor prediction TO fixed target grid, not GT to prediction",
+    "schema": "splitfusion.complete_v010_inputs.v1",
+    "scope_limit": "This package proves offline mask/scorer parity only; no live producer or real-time cost qualification.",
+    "target_grid": [
+      432,
+      768
+    ]
+  },
+  "fixtures": [
+    {
+      "checks": {
+        "object_boxes.csv_rows_identical": true,
+        "object_ignore_png_byte_identical": true,
+        "object_ignore_regions.csv_rows_identical": true,
+        "segmentation_png_byte_identical": true
+      },
+      "ignore_reasons": [
+        "registered_identity_or_frame_conflict",
+        "unresolved_semantic_vehicle_component",
+        "v010_unobservable_or_outside_geometry_gate",
+        "zero_semantic_depth_only_quarantine"
+      ],
+      "input_provenance": {
+        "complete": {
+          "all_dynamic_actor_boxes": true,
+          "all_dynamic_actor_visibility": true,
+          "all_static_candidate_rows": true,
+          "identity_and_frame_conflicts": true,
+          "native_depth_and_semantic": true,
+          "original_v3_person_mask": true,
+          "registered_quarantine_scope": true,
+          "static_catalogue_provenance": true
+        },
+        "evidence_paths": {
+          "boxes": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/object_boxes_all.csv",
+          "depth": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/canonical_v3_06_val_50_50_s602_tm1602/depth/canonical_v3_06_val_50_50_s602_tm1602_001177_frame4935.png",
+          "manifest": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/manifest.csv",
+          "original_v3_mask": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/canonical_v3_06_val_50_50_s602_tm1602/masks/canonical_v3_06_val_50_50_s602_tm1602_001177_frame4935.png",
+          "quarantine/manual_review_selection.csv": "experiments/route_b_v3_vehicle_gt_reconciliation_audit_v1/20260828_000427/manual_review_selection.csv",
+          "quarantine/static_dynamic_conflicts.csv": "experiments/route_b_v3_vehicle_gt_reconciliation_audit_v1/20260828_000427/static_dynamic_conflicts.csv",
+          "quarantine/static_static_conflicts.csv": "experiments/route_b_v3_vehicle_gt_reconciliation_audit_v1/20260828_000427/static_static_conflicts.csv",
+          "semantic": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/canonical_v3_06_val_50_50_s602_tm1602/semantic_tags/canonical_v3_06_val_50_50_s602_tm1602_001177_frame4935.png",
+          "static_candidates": "experiments/route_b_v3_static_vehicle_gt_audit_v1/20260827_225706/static_vehicle_visibility.csv",
+          "static_catalogue": "experiments/route_b_v3_static_vehicle_gt_audit_v1/20260827_225706/static_environment_truth/catalog/static_environment_objects.csv",
+          "visibility": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/object_visibility_all.csv"
+        },
+        "evidence_sha256": {
+          "boxes": "cdaae52c400894c9790485ef7196d82cd879a74612f0d970d97575c9ec5da010",
+          "depth": "3b6c7793748f2956ef9b63349b0edaa7038b1a36b453cc8e9245d120826abd44",
+          "manifest": "c23220cca825f44416d52ea29771a3b00c2989391cb5013fa0af99e7d09ced27",
+          "original_v3_mask": "c200fc9a67d01f82959135c2b554a71a68542335f128a1c897d997f201dcf5b5",
+          "quarantine/manual_review_selection.csv": "2426ba8a595a5a57c8f9a7b3566df000a924f7c95d69bde51be8aa3d1bfd4322",
+          "quarantine/static_dynamic_conflicts.csv": "70d8aaaaffb55403f08448baec141e9b7e7c0723111885d441dbc4ef86514b9e",
+          "quarantine/static_static_conflicts.csv": "8a50b29416903079d0788642f423dde13e3f01689928806b480e54ba880d6612",
+          "semantic": "40096667e2b125b27b487bc8bb9e6dac3ed7193288df266067b9e31373c8b1af",
+          "static_candidates": "286735f21cccbd93afd49bf6b8e19597728e4c6dd7564978d52f46af47a3bfbc",
+          "static_catalogue": "26ee85ea878204bc93e25e9e3439af47bfc863458d4956e626b3918f859f3c8f",
+          "visibility": "ce8b2c6cbed29ba3827def876c98d0c60b401993d247e1bff38834754d98dca4"
+        },
+        "input_content_sha256": "ff726e4f6f4f1ac8cbeb9633e40c0bf8b3c74745c07bf4529f2dd6a753c034eb",
+        "sample_id": "canonical_v3_06_val_50_50_s602_tm1602_001177_frame4935",
+        "schema": "splitfusion.complete_v010_inputs.v1",
+        "scope": "HISTORICAL_REGISTERED_V010"
+      },
+      "label_pixels": {
+        "0": 308894,
+        "1": 3373,
+        "2": 45,
+        "255": 19464
+      },
+      "positive_rows": 8,
+      "references": {
+        "object_ignore": "e1f2291c0eab6daad23b7dc8886b4bbbc70fe1ed556afc8a5c871a717ad590e2",
+        "segmentation": "cdc07d4e727e65157683e92ca1d97a5b7a971ae6de165cedd5f9b95eb766344e"
+      },
+      "sample_id": "canonical_v3_06_val_50_50_s602_tm1602_001177_frame4935"
+    },
+    {
+      "checks": {
+        "object_boxes.csv_rows_identical": true,
+        "object_ignore_png_byte_identical": true,
+        "object_ignore_regions.csv_rows_identical": true,
+        "segmentation_png_byte_identical": true
+      },
+      "ignore_reasons": [
+        "registered_manual_panel_quarantine",
+        "v010_unobservable_or_outside_geometry_gate"
+      ],
+      "input_provenance": {
+        "complete": {
+          "all_dynamic_actor_boxes": true,
+          "all_dynamic_actor_visibility": true,
+          "all_static_candidate_rows": true,
+          "identity_and_frame_conflicts": true,
+          "native_depth_and_semantic": true,
+          "original_v3_person_mask": true,
+          "registered_quarantine_scope": true,
+          "static_catalogue_provenance": true
+        },
+        "evidence_paths": {
+          "boxes": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/object_boxes_all.csv",
+          "depth": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/canonical_v3_05_val_30_30_s601_tm1601/depth/canonical_v3_05_val_30_30_s601_tm1601_000027_frame357.png",
+          "manifest": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/manifest.csv",
+          "original_v3_mask": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/canonical_v3_05_val_30_30_s601_tm1601/masks/canonical_v3_05_val_30_30_s601_tm1601_000027_frame357.png",
+          "quarantine/manual_review_selection.csv": "experiments/route_b_v3_vehicle_gt_reconciliation_audit_v1/20260828_000427/manual_review_selection.csv",
+          "quarantine/static_dynamic_conflicts.csv": "experiments/route_b_v3_vehicle_gt_reconciliation_audit_v1/20260828_000427/static_dynamic_conflicts.csv",
+          "quarantine/static_static_conflicts.csv": "experiments/route_b_v3_vehicle_gt_reconciliation_audit_v1/20260828_000427/static_static_conflicts.csv",
+          "semantic": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/canonical_v3_05_val_30_30_s601_tm1601/semantic_tags/canonical_v3_05_val_30_30_s601_tm1601_000027_frame357.png",
+          "static_candidates": "experiments/route_b_v3_static_vehicle_gt_audit_v1/20260827_225706/static_vehicle_visibility.csv",
+          "static_catalogue": "experiments/route_b_v3_static_vehicle_gt_audit_v1/20260827_225706/static_environment_truth/catalog/static_environment_objects.csv",
+          "visibility": "experiments/route_b_v3_frozen_model_comparison_v1/20260827_184455/views/val/object_visibility_all.csv"
+        },
+        "evidence_sha256": {
+          "boxes": "cdaae52c400894c9790485ef7196d82cd879a74612f0d970d97575c9ec5da010",
+          "depth": "71c205a4d37e173f1ce1e8c4ab118b345e807694db6e507106787e4afc7a60ad",
+          "manifest": "c23220cca825f44416d52ea29771a3b00c2989391cb5013fa0af99e7d09ced27",
+          "original_v3_mask": "7d4be24be5b4af239f8b73bafc0767921fea79b39f2ecc69d553e152674be52b",
+          "quarantine/manual_review_selection.csv": "2426ba8a595a5a57c8f9a7b3566df000a924f7c95d69bde51be8aa3d1bfd4322",
+          "quarantine/static_dynamic_conflicts.csv": "70d8aaaaffb55403f08448baec141e9b7e7c0723111885d441dbc4ef86514b9e",
+          "quarantine/static_static_conflicts.csv": "8a50b29416903079d0788642f423dde13e3f01689928806b480e54ba880d6612",
+          "semantic": "8b61cb928b49c7f8a3c531a03beff828f4b9923a330fdcd474f238d6171dd117",
+          "static_candidates": "286735f21cccbd93afd49bf6b8e19597728e4c6dd7564978d52f46af47a3bfbc",
+          "static_catalogue": "26ee85ea878204bc93e25e9e3439af47bfc863458d4956e626b3918f859f3c8f",
+          "visibility": "ce8b2c6cbed29ba3827def876c98d0c60b401993d247e1bff38834754d98dca4"
+        },
+        "input_content_sha256": "e958511fd7d1add0f62ec65e70b0f216c13fb1f5b41390e3e7f84c5a77a5d4ba",
+        "sample_id": "canonical_v3_05_val_30_30_s601_tm1601_000027_frame357",
+        "schema": "splitfusion.complete_v010_inputs.v1",
+        "scope": "HISTORICAL_REGISTERED_V010"
+      },
+      "label_pixels": {
+        "0": 327908,
+        "1": 3346,
+        "255": 522
+      },
+      "positive_rows": 1,
+      "references": {
+        "object_ignore": "d7fddd8bf3de5732969cdbb5ef3d25a06c434fde9329d979dca45d3ccd6cee2d",
+        "segmentation": "9dfb833f343adb9ca7810509e78384770f56e1f8162bdbc337e6c6c465ee2480"
+      },
+      "sample_id": "canonical_v3_05_val_30_30_s601_tm1601_000027_frame357"
+    }
+  ],
+  "limits": [
+    "Two prediction-blind retained validation fixtures, not all corpus frames.",
+    "Fixtures cover all five recorded IGNORE reasons and all three positive source/class combinations.",
+    "No live collector or real-time cost was tested.",
+    "Existing Run5 AVO-only evidence is incomplete for v010, and dense predictions were not retained.",
+    "Historical sample-keyed quarantines do not apply to unseen live frames."
+  ],
+  "live_qualified": false,
+  "package_sources": {
+    "__init__.py": "55d1619e0c62a28d04eebadcef7d07a02685b12ebc07e3a064b9786c8d92fa79",
+    "adapter.py": "6671ca9c00da7a02cc9f930abc6afa6f642a34d47f9947fa167a310015ffe107",
+    "fixtures.py": "9c35afabf7905f0bd43763a2e50e96627c10cfa70d8ff719528f621ff4370a85",
+    "test_adapter.py": "609fe2854623d74a86feee58ed424a6e76a903d46166f287e092c9de64e48fa4",
+    "verify_retained.py": "cc85eed7825bc6623aceab29ece65e6945029d70212d434e996969e06ef640dc"
+  },
+  "policy_performance_claim": false,
+  "sources": {
+    "builder": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_clean_base_v1/build_contract_v1.py",
+      "sha256": "69eb5a8df84bd625af99a74d6ef7e8b50ac23ec73a7ee142c151725d2d55a264"
+    },
+    "collector": {
+      "path": "data_collection/run_route_b_perception_collection_v3.py",
+      "sha256": "09a373481d60e1630e69c1ea45403b3bc26104a58050e4159cac3c598304a7df"
+    },
+    "reconciliation": {
+      "path": "experiments/route_b_v3_vehicle_gt_reconciliation_audit_v1/20260828_000427/scripts/run_vehicle_gt_reconciliation_audit_v1.py",
+      "sha256": "3172369c468a0a7940bad185589262969a2ec197fbd2336f123ad4b285a56022"
+    },
+    "scorer": {
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_clean_base_v1/score_contract_v1.py",
+      "sha256": "14629e69a1617d05ca6dec2bad6901b69f83df96f2cf5543509dbe970d18069d"
+    },
+    "visibility": {
+      "path": "data_collection/route_b_perception_v3/visibility_v1.py",
+      "sha256": "4a7aa974ea6374eceff35c0fbd8261fba299b2c5de68297591f5ce9756cf980c"
+    }
+  },
+  "status": "OFFLINE_RETAINED_V010_TARGET_PARITY_PASS"
+}

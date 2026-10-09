@@ -1,0 +1,56 @@
+{
+  "schema": "splitfusion.gt_freeze_lifetime.review.v1",
+  "status": "OFFLINE_REPAIR_QUALIFIED_ORIGINAL_LIVE_TRIGGER_UNRESOLVED",
+  "scope": "M3.1 GOOD_ALL V6 FREEZE failure; no live retry or radio change",
+  "confirmed_defect": "PrepCore.handle keeps kwargs, including borrowed mapped images, alive on a preparation exception. Its del kwargs runs only on success. mmap close can replace the original exception with BufferError. The old and repaired behaviors were reproduced using real sealed fixture buffers.",
+  "repair": "A process-local opt-in PrepCore subclass releases kwargs in finally, before leaving FreezeGate. Successful preparation, checks and transaction semantics are unchanged; no success-path image copy is added. Genuine escaped views still fail closed.",
+  "diagnostics": "On fatal FREEZE only, print the chained exception and retain one sealed source (at most 32 MiB) plus bounded request/error records. READY.json is the final hash manifest. A diagnostic write error does not replace the original error.",
+  "original_live_evidence": {
+    "attempt": "splitfusion_m3_route_b_v6/good_all_prospective_02",
+    "failed_freeze_frame": 3557,
+    "later_ue_connection_error_frame": 3573,
+    "last_event": "freeze_dispatched",
+    "sealed_source_bytes": 11494144,
+    "prep_log_bytes": 0,
+    "preserved_failed_frame_artifacts": "Privileged semantic NPY and its metadata exist in gt_scratch_preserved. They do not contain the sealed FREEZE descriptor, depth/RGB/radar/actor snapshot or the original traceback.",
+    "limitation": "The reproduced masking defect is not proof of the underlying trigger in this live frame. Another source-validation exception or a genuinely escaped view has not been excluded. Missing final worker trace alone does not establish why the worker failed to finish its finally block. Do not silently skip the frame or relax GT checks."
+  },
+  "verification": {
+    "focused_tests": {"passed": 11, "failed": 0},
+    "real_worker": "qualification_02/RESULT.json",
+    "real_retained_frames_per_arm": 49,
+    "exact_control_candidate_parity": true,
+    "real_worker_synthetic_prepare_cancel_requests": 600,
+    "soak_distinct_source_scenes": 1,
+    "soak_committed_or_scored": 0,
+    "soak_observed_file_descriptors": 4,
+    "soak_observed_live_source_mappings_after_requests": 0,
+    "soak_rss_kib_request_10": 706592,
+    "soak_rss_kib_request_600": 709196,
+    "injected_final_failure": "ProducerError: seven actual recorded AVO clocks required",
+    "original_injected_error_preserved": true,
+    "injected_failure_source_saved": true,
+    "worker_trace_written_and_gc_restored": true,
+    "expected_injected_failure_exit": 1,
+    "qualification_limit": "This is not a full-route replay or 600 distinct scored/committed frames. It does not certify the whole route will complete.",
+    "earlier_attempts": "qualification_01 was refused before worker startup by sandbox Unix-socket restrictions. qualification_02 ran CPU-only with local-socket permission. A later test invocation omitted CUDA_VISIBLE_DEVICES and was rejected before tests; the corrected CPU-only invocation passes all 11."
+  },
+  "implementation": "rl_agent/splitfusion_gt_freeze_lifetime_v1/",
+  "reproduction": {
+    "tests": "env -u PYTHONPATH CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /usr/bin/python3 -B -m unittest rl_agent.splitfusion_gt_freeze_lifetime_v1.test_repair -v",
+    "qualification": "env -u PYTHONPATH CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /usr/bin/python3 -B -m rl_agent.splitfusion_gt_freeze_lifetime_v1.qualify --out experiments/splitfusion_gt_freeze_lifetime_v1/qualification_NEW --soak 600",
+    "qualification_note": "Output must be new; local Unix sockets are required. No CARLA, OAI, GPU, live capture or network-condition change is involved."
+  },
+  "before_any_new_live_attempt": [
+    "Bind the prep worker wrapper explicitly through a new prospective launcher identity; do not edit sealed V6 or repeat old-module/global rebinding mistakes.",
+    "Re-run the actual process-role startup gate for that prepared directory, including the real worker entry point and its failure-record path.",
+    "Free space through separately authorized verified archival; latest checked free space was 15529435136 bytes, below the 16000000000 launch gate. No deletion was performed.",
+    "Treat any radio adjustment as a separate, prospective qualification. Freeze one radio configuration across comparable conditions and keep commanded and reported SNR distinct.",
+    "Obtain authorization for a new capture. If FREEZE fails again, diagnose the retained original failure rather than changing tolerances or relaunching blindly."
+  ],
+  "untouched": ["V1-V6 code and evidence", "deployed actor", "reward", "GT definitions and tolerances", "radio configuration", "existing launch registrations"],
+  "live_run": false,
+  "deployed": false,
+  "deleted": false,
+  "committed_or_pushed": false
+}

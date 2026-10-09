@@ -1,0 +1,35 @@
+{
+  "schema": "scenesense.splitfusion_dynamic_execution_behavioral_source_binding.v1",
+  "status": "CONTRACT_ONLY_NOT_LIVE_RUNTIME_INTEGRATED",
+  "trust_bootstrap": {
+    "authority": "REVIEWED_VERSION_CONTROLLED_TRUST_ANCHOR",
+    "rule": "The manifest is the acyclic review root: it hashes the dynamic contract and every listed behavioral source, while issued execution bundles hash the manifest. Manifest and source changes require joint code review."
+  },
+  "sources": [
+    {
+      "role": "dynamic_execution_contract_source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/dynamic_execution_contract.py",
+      "sha256": "9e1714ef42e1af816bb2f7d8183c53dea5d5ac2feeed4e69a1bcf7f79ec18461"
+    },
+    {
+      "role": "hybrid_q_contract_source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/contract.py",
+      "sha256": "748eb39c0913c9d4c449784d23b7ec752307ed47eafb1b0ef0ae25df4b4f3d4c"
+    },
+    {
+      "role": "hybrid_q_selection_source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/selection.py",
+      "sha256": "ccc2b12919b078eac7af6131418989567d618d42f7b908b2db74df42e0342a71"
+    },
+    {
+      "role": "hybrid_q_sparse_codec_source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/codec.py",
+      "sha256": "7b3833398a84fea31f65b86ec294c6675727390035b5761d372fd5a3cbba7b79"
+    },
+    {
+      "role": "ae_composition_source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_composition.py",
+      "sha256": "3e54ea2dc8599c0579349e4ce430a34a2d2343764402aee5113e1c2d54dfa608"
+    }
+  ]
+}

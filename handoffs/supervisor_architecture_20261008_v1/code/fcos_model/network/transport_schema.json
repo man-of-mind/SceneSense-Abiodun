@@ -1,0 +1,18 @@
+{
+  "schema_version": "splitfusion-fcos-noae-c2-fp32-v1",
+  "payload_name": "c2_fp32",
+  "shape_per_frame": [256, 112, 192],
+  "dtype": "IEEE-754 float32",
+  "layout": "NCHW contiguous",
+  "byte_order": "little-endian host order",
+  "bytes_per_frame": 22020096,
+  "mib_per_frame": 21.0,
+  "codec": "identity",
+  "original_image_size_wh": [768, 432],
+  "network_input_size_wh": [768, 448],
+  "padding_ltrb": [0, 0, 0, 16],
+  "metadata": ["sample_id", "frame_id", "original_image_size_wh", "padding_ltrb", "camera_intrinsics", "camera_extrinsics"],
+  "forbidden_side_channels": ["rgb", "radar", "depth", "semantic_target", "p2", "p3", "p4", "p5"],
+  "future_codec_note": "A future separately authorized codec may change payload shape and reconstruct C2; no placeholder codec or autoencoder exists in this version."
+}
+

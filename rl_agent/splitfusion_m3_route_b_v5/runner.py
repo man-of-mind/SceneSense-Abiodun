@@ -1,0 +1,129 @@
+"""M3.1 runner with an explicit, version-coherent verifier binding.
+
+This is intentionally not a facade over v3 ``main``.  ``install_parent``
+imports both verifiers from this prospective package, records their identities,
+and calls both before installing any retained runner seams.
+"""
+import json
+from pathlib import Path
+import sys
+
+from . import contract as C
+from rl_agent.splitfusion_m3_route_b_v3 import route_completion as RC
+
+RUNNER_MODULE = "rl_agent.splitfusion_m3_route_b_v5.runner"
+
+
+def binding_identities():
+    from .host import check_prerequisites, verify_prerequisite, verify_prospective
+    return dict(
+        launcher_revision=C.LAUNCHER_REVISION,
+        runtime_revision=C.RUNTIME_REVISION,
+        runner_module=RUNNER_MODULE,
+        contract_module=C.__name__,
+        verify_prospective_module=verify_prospective.__module__,
+        verify_prerequisite_module=verify_prerequisite.__module__,
+        prerequisite_checker_module=check_prerequisites.__module__,
+        child_module=C.CHILD,
+        edge_module=C.EDGE,
+    )
+
+
+def select_channel(R, sealed, root):
+    if sealed.get("network_profile") != C.NETWORK_PROFILE or sealed.get("channel") != C.channel_registration(root):
+        raise ValueError("sealed registration does not bind the registered GOOD_ALL schedule / carrier cell")
+    if R.PROFILE != C.ORIGINAL_PROFILE:
+        raise ValueError("phase6 runner PROFILE seam drift: " + repr(R.PROFILE))
+    carrier = C.CARRIER_TRACE
+
+    def check(cells):
+        selected = [(int(c.action_id), str(c.network_profile_id), str(c.trace_id), int(c.seed)) for c in cells]
+        expected = [(C.CARRIER_ACTION, carrier["profile_id"], carrier["trace_id"], carrier["seed"])]
+        if selected != expected:
+            raise ValueError("resolved carrier cell differs from the registered carrier: " + repr(selected))
+        return dict(cell_id=cells[0].cell_id, action_id=C.CARRIER_ACTION,
+                    network_profile_id=carrier["profile_id"], carrier_trace_id=carrier["trace_id"],
+                    seed=carrier["seed"], commanded_schedule=C.SCHEDULE["schedule_id"],
+                    schedule_trace_id=C.SCHEDULE["trace_id"])
+    return check
+
+
+def install_gates():
+    from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_live_runner_v2 as R
+    from rl_agent.splitfusion_single_gpu_profiler_v1 import runner_v1 as RV
+    if (getattr(RV.g1_frame_accounting, "__m3_route_branch__", False)
+            or getattr(R.evaluate_phase6, "__m3_final_cycle__", False)):
+        raise RuntimeError("M3 runner gates already installed")
+    RV.g1_frame_accounting = RC.g1_route_branch(RV.g1_frame_accounting)
+    R.evaluate_phase6 = RC.p3_final_cycle(R.evaluate_phase6)
+
+
+def install_parent(registration, output_root=None):
+    from rl_agent.splitfusion_hybrid_sac_live_route_b_v2 import phase6_live_runner_v2 as R
+    from rl_agent.splitfusion_run5_full_live_v1.actor import load_registered_actor
+    from .host import verify_prerequisite, verify_prospective
+
+    identities = binding_identities()
+    expected = "rl_agent.splitfusion_m3_route_b_v5.host"
+    if (identities["verify_prospective_module"] != expected
+            or identities["verify_prerequisite_module"] != expected
+            or identities["prerequisite_checker_module"] != expected):
+        raise RuntimeError("incoherent M3 v5 verifier binding: " + json.dumps(identities, sort_keys=True))
+    output = Path(registration).parent
+    record = verify_prospective(output)
+    verify_prerequisite(output, record)
+    root = Path(__file__).resolve().parents[2]
+    if root != Path(record["worktree"]):
+        raise ValueError("runner imported from foreign repository")
+    actor = load_registered_actor()
+    sealed = json.loads(Path(registration).read_bytes())
+    digest = C.lineage(root, actor.boundary_sha256, sealed["support_sha256"], sealed["transmitted_budget"],
+                       sealed["gt_gc"]["arm"], sealed["gt_gc"]["producer"],
+                       sealed["paired_retention"]["plan_sha256"])
+    if (sealed.get("controller_lineage_sha256") != digest or sealed.get("id") != C.ID
+            or sealed.get("launcher_binding") != identities):
+        raise ValueError("foreign M3 v5 launcher/runtime lineage")
+    print("M3_VERSION_BINDING=" + json.dumps(identities, sort_keys=True), flush=True)
+    check_cells = select_channel(R, sealed, root)
+    install_gates()
+    if output_root is not None:
+        from rl_agent.splitfusion_m3_route_b_v3 import radio_observer
+        radio_observer.install(output_root)
+    original = R.offline_preflight
+    R.controller_lineage_sha256 = lambda: digest
+
+    def preflight(*args, **kwargs):
+        config, cells, legacy = original(*args, **kwargs)
+        legacy = dict(legacy, channel_cell=check_cells(cells))
+        return config, cells, dict(
+            schema="splitfusion.m3_route_b_v5.live_preflight.v1",
+            legacy_infrastructure_preflight=legacy, state_dim=22,
+            actor_boundary_sha256=actor.boundary_sha256,
+            controller_lineage_sha256=digest, live_metric_contract=C.metrics(), forced_action=None,
+            frame_ceiling=sealed["transmitted_budget"], route=C.route_registration(root),
+            schedule=C.channel_registration(root)["schedule"], gt_gc_arm=sealed["gt_gc"]["arm"],
+            numeric_producer=sealed["gt_gc"]["producer"],
+            retention_plan_sha256=sealed["paired_retention"]["plan_sha256"],
+            launcher_binding=identities, live_command_executed=False, cuda_initialized=False)
+    R.offline_preflight = preflight
+    return identities
+
+
+def main(argv=None):
+    args = list(sys.argv[1:] if argv is None else argv)
+    if args.count("--registration") != 1 or args.index("--registration") + 1 >= len(args):
+        raise ValueError("explicit sealed registration required")
+    output_root = (Path(args[args.index("--output-root") + 1]) if args.count("--output-root") == 1
+                   and "--preflight" not in args and "--execute" in args else None)
+    install_parent(Path(args[args.index("--registration") + 1]), output_root)
+    from rl_agent.splitfusion_single_gpu_profiler_v1 import runner_cpu_partition_v1 as retained
+    before = sys.argv
+    sys.argv = [before[0], *args]
+    try:
+        return retained.main()
+    finally:
+        sys.argv = before
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

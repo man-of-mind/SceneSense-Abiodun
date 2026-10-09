@@ -1,0 +1,330 @@
+{
+  "schema": "scenesense.splitfusion_live_dispatch_runtime_binding.v1",
+  "status": "IMPLEMENTATION_READY_NOT_GPU_OR_LIVE_QUALIFIED",
+  "source_base_commit": "11a834c4ef79e64143196b4b9f5c2bedb3d466f4",
+  "inputs": {
+    "action_catalog": {
+      "path": "rl_agent/splitfusion_action_catalog_v1/splitfusion_72_action_catalog.json",
+      "commit": "4e237d719df91e83cfdc568e5f20b542d9482ad7",
+      "sha256": "07e0690f8a55bdd6068b8b283d14b7e165ccbf44742dd0a9568cfdd5dcac54c3",
+      "schema": "splitfusion_72_action_catalog_v1"
+    },
+    "action_catalog_terminal": {
+      "path": "rl_agent/splitfusion_action_catalog_v1/SPLITFUSION_72_PROFILE_ACTION_CATALOG_LOCKED",
+      "sha256": "b370a246944cea64a13aa88e3e30e98732bc824a8321d917c051c4644b47241b"
+    },
+    "campaign_binding": {
+      "path": "rl_agent/configs/splitfusion_72x4_campaign_binding_v1.json",
+      "commit": "11a834c4ef79e64143196b4b9f5c2bedb3d466f4",
+      "sha256": "85418003558823f8dc4a35e110112a20fb5e19fb2962f3dfa9362c1b0cb1ec32",
+      "schema": "scenesense.splitfusion_72x4_campaign_binding.v1"
+    },
+    "campaign_binding_terminal": {
+      "path": "rl_agent/configs/SPLITFUSION_72X4_UE_CAMPAIGN_CONTRACT_BOUND",
+      "sha256": "2072d37637ce1409242d52e10c0ff7de83d8d5f6de9f16b0cae8fa24393c4451"
+    }
+  },
+  "selected_checkpoints": {
+    "perception": {
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    "ranker": {
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    },
+    "AE128": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+      "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+    },
+    "AE64": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+      "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+    },
+    "AE32": {
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+      "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+    }
+  },
+  "family_routes": {
+    "noAE": {
+      "family_id": 0,
+      "transported_channels": 256,
+      "latent_width": null,
+      "routing_tag": 0,
+      "decoder_identity": "NO_AE_ZERO_SCATTER_TO_C2"
+    },
+    "AE128": {
+      "family_id": 1,
+      "transported_channels": 128,
+      "latent_width": 128,
+      "routing_tag": 204186532,
+      "decoder_identity": "AE128_DECODER_0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+    },
+    "AE64": {
+      "family_id": 2,
+      "transported_channels": 64,
+      "latent_width": 64,
+      "routing_tag": 3715911972,
+      "decoder_identity": "AE64_DECODER_dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+    },
+    "AE32": {
+      "family_id": 3,
+      "transported_channels": 32,
+      "latent_width": 32,
+      "routing_tag": 3807930229,
+      "decoder_identity": "AE32_DECODER_e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+    }
+  },
+  "startup_artifacts": [
+    {
+      "role": "frozen perception checkpoint",
+      "path": "experiments/route_b_v3_1_splitfusion_fcos_r50_fpn_p2_p7_v1_numerical_recovery_v1/20260830_recovered_epoch10_gate_v1/checkpoints/epoch_026.pt",
+      "sha256": "da14d21edbd374c1c3abce02ca4674b9f4097becfba9759aba945cea160a297f"
+    },
+    {
+      "role": "stable epoch-4 ranker checkpoint",
+      "path": "experiments/splitfusion_fcos_hybrid_q_v1/20260901_185725_phase5_ranker_training/checkpoints/ranker_epoch_04.pt",
+      "sha256": "07781c56a4c0f306f16d332f64627ce6b9458e154f40ab9fef89f89909b79cb5"
+    },
+    {
+      "role": "selected AE128 checkpoint",
+      "path": "experiments/splitfusion_fcos_ae_v1/20260902_220623_phase9c_ae128_training/checkpoints/ae128_epoch_08.pt",
+      "sha256": "0c2ba3a495684c0f8222492f554eb3de7c7a76181e0bd4b4a83529897db30f72"
+    },
+    {
+      "role": "selected AE64 checkpoint",
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae64_training/checkpoints/ae64_epoch_12.pt",
+      "sha256": "dd7c5124e27114584ab2083e59160a3ff2a2d040d0a37d22564ac98c838aa8e0"
+    },
+    {
+      "role": "selected AE32 checkpoint",
+      "path": "experiments/splitfusion_fcos_ae_v1/20260903_phase10_ae32_training/checkpoints/ae32_epoch_08.pt",
+      "sha256": "e2f867757e8db0620316c092264ac7eb53d12bb5ef66ed14475eb40693d1f271"
+    },
+    {
+      "role": "frozen SplitFusion front/tail source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/model.py",
+      "sha256": "457992bf675fd9ff209f382fc21b537957b54989a9f61ae507e8a0677ac9958c"
+    },
+    {
+      "role": "stable ranker source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/ranker.py",
+      "sha256": "462536991f195651a1ee641f8e83444882ec370a8dffab72f13f0d770422b353"
+    },
+    {
+      "role": "AE model source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_model.py",
+      "sha256": "4f2ec0a69cf127ebac44f6147124705d54785ab400ed033a83ad1e339735b542"
+    },
+    {
+      "role": "AE wire contract source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_contract.py",
+      "sha256": "ccd8dbf5a86a4b2e9373f15edbd975754c954123d1893c37a336cf206b9d1f2f"
+    },
+    {
+      "role": "UINT8 noAE codec source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/uint8_codec.py",
+      "sha256": "b6f07723860821e93c0dc2aeec456073617942b5ed8446f4555fe87b2c7ca803"
+    },
+    {
+      "role": "UINT8 AE codec source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/ae_uint8_transport.py",
+      "sha256": "4162b162d554f764332d469b6ca7b5038298e77a563a9de73c1622cd99531423"
+    },
+    {
+      "role": "UINT6/UINT4 shared codec source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_ae_v1/lowbit_transport.py",
+      "sha256": "c708389982b10968978002d2d8423984d857229021149d51ec0d135619d69f12"
+    },
+    {
+      "role": "continuous-q source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/continuous_q.py",
+      "sha256": "8ea72faed324c29b7106bd5f6277699bd7e7ba16a66073905f9ff28c69bab23c"
+    },
+    {
+      "role": "frozen C2 guards source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/guards.py",
+      "sha256": "77d8d8bfd168e74a7f0b6a7e3c8e7abc4c3549a86cda392feb394d7580a33031"
+    },
+    {
+      "role": "mandatory zstd source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_hybrid_q_v1/zstd_transport.py",
+      "sha256": "57d1846b3fdc4084266e5a8adcc7abf99556ed2b187befec729003fcdb77edec"
+    },
+    {
+      "role": "p025 runtime source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/runtime.py",
+      "sha256": "5e20f6541029dd517f723fa7ba932a21df3c03f3135ac46c5ff0de4c17b6008b"
+    },
+    {
+      "role": "p025 policy source",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/policy.py",
+      "sha256": "e65639b5078c7a583a401b261bc1301ca4bdd66b5aff74f08f560da877048bee"
+    },
+    {
+      "role": "p025 locked configuration",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/locked_config.json",
+      "sha256": "bde44b8774c3ba4dcdf84b16473463ca9991deab474fea19a036315c2bfcd082"
+    },
+    {
+      "role": "p025 perception forward lock",
+      "path": "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_person_p025_calibration_v1/PERCEPTION_FORWARD_LOCK_P025_V1.json",
+      "sha256": "86d6f13ae9168b33b697df5b785c5f7c320afc52cfdcded5b632d94a6d943fe1"
+    },
+    {
+      "role": "runtime registry source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/registry.py",
+      "sha256": "d199d33a8f4f283f89c4b101b3b2100e87ec9392366b38ca0165e70ba7c8c8fc"
+    },
+    {
+      "role": "runtime transport adapter source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/transport.py",
+      "sha256": "5c8bd3d1bb18818334a28266822b30d475bc67dc016dcf04df7db595e159222f"
+    },
+    {
+      "role": "runtime UE source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py",
+      "sha256": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029"
+    },
+    {
+      "role": "runtime edge source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py",
+      "sha256": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125"
+    },
+    {
+      "role": "runtime outer-envelope source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/envelope.py",
+      "sha256": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418"
+    },
+    {
+      "role": "runtime timing source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/timing.py",
+      "sha256": "f928e20a2148cc2cf9738285da31e43f025332133feb61026c93d2b97aaae1dd"
+    },
+    {
+      "role": "runtime startup support source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/runtime_support.py",
+      "sha256": "173787565cf83134e01a969f0f1d1e0162ea5129598da9bb7f00b042636d78c7"
+    },
+    {
+      "role": "runtime package export source",
+      "path": "rl_agent/splitfusion_live_dispatch_v1/__init__.py",
+      "sha256": "b94ce4fc2c1f9f4e3625213f72c3ae858ad678edeb15fe06f6f98db13972b347"
+    }
+  ],
+  "phase13c_source_hash_transition": {
+    "authority": {
+      "path": "rl_agent/splitfusion_live_dispatch_v1/frame_context_binding.json",
+      "sha256": "e3ae7d23d26cc9e43938004823252f70b4ab56b3c03d28d51048e66061364a56"
+    },
+    "transitions": {
+      "rl_agent/splitfusion_live_dispatch_v1/ue_runtime.py": {
+        "old_sha256": "3c51a1055c7eab81a93d766b02d4e0e8f4a411978fbc9fc49d69c9e014f2eaba",
+        "new_sha256": "a72f6ab4b122adb232e4b5927fadd6e0e5381c1fe0201bbf502b28cf2ade1029"
+      },
+      "rl_agent/splitfusion_live_dispatch_v1/edge_runtime.py": {
+        "old_sha256": "6afb62c7da0b99afe98f749e8201b187399ba8aef02743a51c5c89c32ad62fff",
+        "new_sha256": "4b5f89eb49b11300cd6762e356a599affa32158479a76f1ad91a8c404d2d6125"
+      },
+      "rl_agent/splitfusion_live_dispatch_v1/envelope.py": {
+        "old_sha256": "387e307a0bd3db5905c16f6d80a1033d8ca6a054c4df059a1660c438daaa47a1",
+        "new_sha256": "e49a70e1f92097cd42735f2aea2cd1171a6e4be2a361ab6834e518bfb213b418"
+      },
+      "rl_agent/splitfusion_live_dispatch_v1/__init__.py": {
+        "old_sha256": "77c61fd5978f3c157ca6fe68a2df89976cd9b9f7f6d1e2f7cf36254125511e9c",
+        "new_sha256": "b94ce4fc2c1f9f4e3625213f72c3ae858ad678edeb15fe06f6f98db13972b347"
+      }
+    }
+  },
+  "dispatch_contract": {
+    "actions": 72,
+    "action_id_range": [0, 71],
+    "families": ["noAE", "AE128", "AE64", "AE32"],
+    "quantizers": ["UINT8", "UINT6", "UINT4"],
+    "q_e4": [0, 3000, 5000, 7000, 9000, 9800],
+    "layout": "CURRENT_CELL_MAJOR",
+    "zstd_level": 1,
+    "one_zstd_frame_per_camera_frame": true,
+    "q0_ranker_bypass": true,
+    "perception_degradation_disables_action": false
+  },
+  "outer_envelope": {
+    "protocol": "SFD1",
+    "version": 1,
+    "header_bytes": 36,
+    "byte_order": "little-endian",
+    "fields": [
+      "magic",
+      "protocol_version",
+      "header_bytes",
+      "action_id",
+      "sequence_id",
+      "capture_timestamp_ns",
+      "inner_payload_length"
+    ],
+    "inner_codec_bytes_changed": false,
+    "existing_udp_chunk_envelope_reviewed": {
+      "format": "!IHH",
+      "purpose": "message chunking and reassembly only",
+      "adequate_for_action_contract": false,
+      "representative_sources": [
+        "phase2_map_sharing/transport.py",
+        "rl_agent/multiue_oai/endpoint.py"
+      ]
+    }
+  },
+  "edge_catalog_inner_cross_checks": [
+    "family",
+    "family_id",
+    "routing_tag",
+    "transported_channels",
+    "latent_width",
+    "quantizer",
+    "bit_width",
+    "q_e4",
+    "keep_count",
+    "wire_magic_ascii",
+    "wire_codec_id",
+    "wire_version"
+  ],
+  "timing_boundaries": {
+    "clock": "time.monotonic_ns",
+    "latency_published": false,
+    "cuda_events_future_compatible": true,
+    "ue": [
+      "front_backbone",
+      "ranker_selection",
+      "ae_encode",
+      "quantize_pack",
+      "zstd_compression",
+      "total_ue_preparation"
+    ],
+    "edge": [
+      "zstd_decompression",
+      "unpack_dequantize",
+      "ae_decode",
+      "frozen_tail",
+      "output_serialization",
+      "total_edge_processing"
+    ]
+  },
+  "mode_boundary": {
+    "implemented": ["SPLIT"],
+    "future_top_level_modes_not_implemented": ["LOCAL_CPU", "LOCAL_GPU", "SKIP"]
+  },
+  "qualification": {
+    "cpu_stub_review_only": true,
+    "cuda_initialized": false,
+    "real_checkpoints_loaded": false,
+    "datasets_accessed": false,
+    "inference_run": false,
+    "networking_run": false,
+    "gpu_qualified": false,
+    "live_qualified": false
+  },
+  "campaign_supervisor": {
+    "pending_runtime_blocker_removed": false,
+    "real_launch_status": "BLOCKED_PENDING_100MHZ_4D5U_RADIO_REQUALIFICATION_AND_RUNTIME_BINDING"
+  }
+}

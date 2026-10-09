@@ -1,0 +1,61 @@
+{
+  "schema": "splitfusion.run5_live_avo.implementation_status.v1",
+  "status": "OFFLINE_COMPONENTS_TESTED__LIVE_GT_CONTRACT_CHOICE_PENDING",
+  "live_runner_ready": false,
+  "live_run_launched": false,
+  "training_launched": false,
+  "new_run5_plots_generated": false,
+  "selected_actor": {
+    "variant": "ORIGINAL_QUALITY_AWARE_RUN5_NOT_RUN5B",
+    "seed": 43,
+    "update": 10000,
+    "feature_count": 22,
+    "previous_quality_in_state": true,
+    "weights_sha256": "f17e812defd7d14204ed9c2a140d776727ecc5cf55e0b2f5a3db466e24d2defe",
+    "selection_scope": "NEW_LIVE_EVALUATION_CHOICE_NOT_RETROACTIVE_TRAINING_PREREGISTRATION"
+  },
+  "implemented_offline": [
+    "Exact original Run5 actor provenance, CPU-only cold load and batch-one inference",
+    "22-D state with unchanged quality-aware Run4 prefix and Run5 lease guard",
+    "Controller-process RAW-clock ACK/heartbeat publication and causal local IPC receiver",
+    "Correct CARLA raw label grouping: FCOS vehicle tags 14/15/16, person tag 12",
+    "Reuse of original unnormalized actor-volume visibility scorer at threshold 0.65",
+    "AVO matching and ignored-GT cascade, with IGNORE=255 segmentation measurement helper"
+  ],
+  "verification": {
+    "actor_state_tests_passed": 14,
+    "snr_provider_tests_passed": 21,
+    "quality_helper_tests_passed": 12,
+    "combined_tests_passed": 47,
+    "includes_local_unix_socket_roundtrip": true,
+    "includes_live_sensor_capture": false,
+    "initial_test_invocation_issues": [
+      "Bare discovery did not give the relative quality-test import a package context; combined run used fully qualified test modules",
+      "Sandbox denied the local Unix socket; combined CPU-only test run was explicitly escalated and passed"
+    ]
+  },
+  "required_before_capture": [
+    "Choose and bind live quality semantics; do not claim corrected raw semantic masks equal offline v010 targets",
+    "Add and qualify same-frame synchronized depth capture and frozen raw actor geometry for AVO",
+    "Wire actor, state and SNR provider into the retained single-GPU lifecycle",
+    "Create policy-specific manifest, controller lineage, actor replay audit and teardown integration",
+    "Qualify GT identities, exclusions, quality arithmetic, SNR causality and added depth/AVO timing before 1000 frames"
+  ],
+  "pending_user_choice": {
+    "recommended": "LIVE_CORRECTED_SEMANTIC_METRICS_WITH_EXACT_AVO_PERSON_ELIGIBILITY",
+    "alternative": "FULL_OFFLINE_FCOS_V010_EVALUATOR_PORT",
+    "difference": "The offline v010 builder also reconciles static vehicles, constructs depth-supported masks and applies dataset-specific ignores/quarantines. These cannot be assigned to a new live drive by reusing old frame IDs."
+  },
+  "intended_unchanged_runtime": {
+    "host": "SINGLE_LOCAL_GPU",
+    "cpu_partition": "RETAINED_DISJOINT_RADIO_EDGE",
+    "ue_omp_mkl_threads": 1,
+    "radar": "CPU_PRODUCTION_PATH",
+    "network_profile": "FAVORABLE_STABLE",
+    "reward_feedback_deadline_ms": 170,
+    "quality_evaluation_inside_deadline": true,
+    "minimum_action_hold_tensors": 2,
+    "planned_main_capture_frames": 1000
+  },
+  "preservation": "No frozen pipeline file, actor, training result or previous capture modified; no services started."
+}

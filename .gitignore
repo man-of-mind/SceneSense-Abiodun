@@ -72,3 +72,12 @@ dist/
 /V2Xverse/
 /OAI/openairinterface5g/
 /bursty_traffic/TRACTOR/
+
+# Local capture/training bulk (intentionally tracked historical evidence remains tracked)
+/rl_agent/experiments/
+/rl_agent/**/campaign_runs/
+/rl_agent/**/evaluation_runs/
+/handoffs/*.tar.gz
+/.b_runtime_wt_link
+*.orig
+*.rej
