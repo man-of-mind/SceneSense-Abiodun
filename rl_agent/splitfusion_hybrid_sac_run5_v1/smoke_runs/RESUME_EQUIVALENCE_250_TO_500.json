@@ -1,0 +1,147 @@
+{
+ "all_equal": true,
+ "boundary_field_equal": {
+  "actor_optimizer_sha256": true,
+  "actor_sha256": true,
+  "collector_checkpoint_sha256": true,
+  "critic_optimizer_sha256": true,
+  "critics_sha256": true,
+  "decision_count": true,
+  "decision_mode_rng_sha256": true,
+  "decision_q_rng_sha256": true,
+  "joint_channel_sha256": true,
+  "ledger_sha256": true,
+  "replay_accepted_count": true,
+  "replay_evicted_count": true,
+  "replay_resident_sha256": true,
+  "replay_rng_sha256": true,
+  "trainer_actor_rng_sha256": true,
+  "trainer_target_rng_sha256": true,
+  "update_count": true
+ },
+ "bundles": {
+  "0": {
+   "event_equal": true,
+   "files_equal": {
+    "actor_state_dict.pt": true,
+    "channel_state.json": true,
+    "event.json": true,
+    "training_state.pt": true
+   }
+  },
+  "100": {
+   "event_equal": true,
+   "files_equal": {
+    "actor_state_dict.pt": true,
+    "channel_state.json": true,
+    "event.json": true,
+    "training_state.pt": true
+   }
+  },
+  "250": {
+   "event_equal": true,
+   "files_equal": {
+    "actor_state_dict.pt": true,
+    "channel_state.json": true,
+    "event.json": true,
+    "training_state.pt": true
+   }
+  },
+  "500": {
+   "event_equal": true,
+   "files_equal": {
+    "actor_state_dict.pt": true,
+    "channel_state.json": true,
+    "event.json": true,
+    "training_state.pt": true
+   }
+  }
+ },
+ "component_equal": {
+  "actor": true,
+  "actor_optimizer": true,
+  "actor_tree": true,
+  "boundary": true,
+  "channel": true,
+  "critic_optimizer": true,
+  "decisions": true,
+  "final_actor": true,
+  "generators": true,
+  "metrics": true,
+  "online_critics": true,
+  "target_critics": true
+ },
+ "independent_fresh_process_actor_load": {
+  "file_sha256": "506b22667fca3ac9a00d52db861c1bc4408409ae81917de118ce3ac5bf054d0a",
+  "loader": "torch.load(weights_only=True)",
+  "manifest_sha256": "fdda8f13510cec8219672f31f4e8f8e37431eaf1a79cf14acae5596de0cec6b8",
+  "model_binding_sha256": "a402a64d4305e99d5dca51fa2832657af9438d34dc9523c2decf2cdb01a9bf9a",
+  "pid": 2891793,
+  "seed": 17,
+  "tree_sha256": "574b6df4cd8738706506b556ad5905dd59b4bd7f40edc99d66bdfede91825a71",
+  "update": 500,
+  "verified": true
+ },
+ "interrupted_resumed": "rl_agent/splitfusion_hybrid_sac_run5_v1/smoke_runs/20260929_seed17_interrupted_resumed/seed_17",
+ "resume_event": {
+  "disk_preflight": {
+   "deep_three_seed_estimate_bytes": 4057399296,
+   "deep_three_seed_passed_now": true,
+   "deep_three_seed_required_bytes": 8114798592,
+   "estimate_bytes": 82612224,
+   "free_bytes": 10406514688,
+   "model": {
+    "fixed_bundle_bytes": 8388608,
+    "per_decision_event_bytes": 2048,
+    "per_decision_log_bytes": 2048,
+    "per_update_log_bytes": 1024,
+    "reserve": "max(estimate, 2 GiB)"
+   },
+   "passed": true,
+   "required_bytes": 2230095872,
+   "reserve_bytes": 2147483648,
+   "seeds": [
+    17
+   ],
+   "target_update": 500
+  },
+  "event": "RESUME",
+  "host": {
+   "allowlisted_gpu_system_daemons": [
+    "3031, /usr/libexec/gnome-remote-desktop-daemon",
+    "2016454, nvidia-cuda-mps-server"
+   ],
+   "cold": true,
+   "cpu_count": 24,
+   "docker_ok": true,
+   "gpu_compute_apps": [],
+   "gpu_utilization_percent": [
+    1
+   ],
+   "hot_containers": [],
+   "hot_processes": [],
+   "loadavg": [
+    1.17,
+    2.16,
+    3.53
+   ],
+   "nvidia_smi_ok": true
+  },
+  "ignored_staging": [],
+  "index": 2,
+  "latest_status": "LATEST_CURRENT",
+  "mode": "smoke",
+  "pid": 2890684,
+  "resumed_from": "checkpoint_000250",
+  "update_count": 250,
+  "utc_s": 1790732294.4540057
+ },
+ "run_events": [
+  "START",
+  "STOPPED",
+  "RESUME",
+  "COMPLETE"
+ ],
+ "schema": "splitfusion.run5.resume_equivalence.v1",
+ "uninterrupted": "rl_agent/splitfusion_hybrid_sac_run5_v1/smoke_runs/20260929_seed17_uninterrupted/seed_17"
+}

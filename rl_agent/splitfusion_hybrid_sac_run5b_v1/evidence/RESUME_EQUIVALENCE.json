@@ -1,0 +1,24 @@
+{
+  "candidate_fingerprint": "3b705bccb6e8977ebcee9fab40d6b9fc0f91058b1b31f13378bdbd70555d7c9e",
+  "checks": {
+    "bundle_COMMITTED": true,
+    "bundle_environment_state.json": true,
+    "bundle_manifest.json": true,
+    "bundle_training_state.pt": true,
+    "log_DECISIONS.jsonl": true,
+    "log_UPDATE_METRICS.jsonl": true,
+    "state_fingerprint": true
+  },
+  "code_commit": "d5d501bd54167bd1ceaf1bd95249fcd4a4c06ce4",
+  "first_pid": 3848671,
+  "passed": true,
+  "procedure": "process 1: genesis -> update 250 and exit; process 2: restore update-250 bundle -> 500; compare with the uninterrupted smoke process",
+  "process_exit_codes": [
+    0,
+    0
+  ],
+  "reference_fingerprint": "3b705bccb6e8977ebcee9fab40d6b9fc0f91058b1b31f13378bdbd70555d7c9e",
+  "schema": "splitfusion.run5b.resume_equivalence.v1",
+  "second_pid": 3848889,
+  "update": 500
+}

@@ -1,0 +1,156 @@
+{
+ "binding_sha256": "bdf59c66b6f7c90e2ace4936e1fcfeca3f8ce94737233273d928fe786c27ab25",
+ "campaign_directory_created": false,
+ "checkpoint_updates": [
+  0,
+  100,
+  250,
+  500,
+  1000,
+  1500,
+  2000,
+  2500,
+  3000,
+  3500,
+  4000,
+  4500,
+  5000,
+  5500,
+  6000,
+  6500,
+  7000,
+  7500,
+  8000,
+  8500,
+  9000,
+  9500,
+  10000
+ ],
+ "disk_preflight": {
+  "deep_three_seed_estimate_bytes": 4057399296,
+  "deep_three_seed_passed_now": true,
+  "deep_three_seed_required_bytes": 8114798592,
+  "estimate_bytes": 4057399296,
+  "free_bytes": 19303362560,
+  "model": {
+   "fixed_bundle_bytes": 8388608,
+   "per_decision_event_bytes": 2048,
+   "per_decision_log_bytes": 2048,
+   "per_update_log_bytes": 1024,
+   "reserve": "max(estimate, 2 GiB)"
+  },
+  "passed": true,
+  "required_bytes": 8114798592,
+  "reserve_bytes": 4057399296,
+  "seeds": [
+   17,
+   29,
+   43
+  ],
+  "target_update": 10000
+ },
+ "durable_path": {
+  "fstype": "ext4",
+  "mount": "/",
+  "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run5_wt/rl_agent/splitfusion_hybrid_sac_run5_v1/campaign_runs/run5_three_seed_10000_v1"
+ },
+ "evaluation_checkpoints": [
+  500,
+  1500,
+  2500,
+  5000,
+  7500,
+  10000
+ ],
+ "host": {
+  "allowlisted_gpu_system_daemons": [
+   "3031, /usr/libexec/gnome-remote-desktop-daemon",
+   "2016454, nvidia-cuda-mps-server"
+  ],
+  "cold": true,
+  "cpu_count": 24,
+  "docker_ok": true,
+  "gpu_compute_apps": [],
+  "gpu_utilization_percent": [
+   1
+  ],
+  "hot_containers": [],
+  "hot_processes": [],
+  "loadavg": [
+   0.75,
+   0.49,
+   0.73
+  ],
+  "nvidia_smi_ok": true
+ },
+ "optimizer_states_empty": true,
+ "optimizer_steps": 0,
+ "passed": true,
+ "pid": 2949283,
+ "preflight": {
+  "decisions": 288,
+  "failures": [],
+  "future_tick_violations": 0,
+  "passed": true,
+  "previous_outcome_mismatches": 0,
+  "reward_formula_mismatches": 0,
+  "strata": 72,
+  "terminals": [
+   "SUCCESS",
+   "TIMEOUT"
+  ],
+  "variation": {
+   "backlog": {
+    "distinct": 9,
+    "span": 0.6651843989010822
+   },
+   "camera_si": {
+    "distinct": 215,
+    "span": 4.232361719795295
+   },
+   "mcs": {
+    "distinct": 20,
+    "span": 0.6785714285714286
+   },
+   "prev_latency": {
+    "distinct": 241,
+    "span": 0.9766424588235293
+   },
+   "prev_mode": {
+    "distinct": 12,
+    "span": 11
+   },
+   "prev_present": {
+    "distinct": 2,
+    "span": 1.0
+   },
+   "prev_q": {
+    "distinct": 270,
+    "span": 1.0
+   },
+   "prev_quality": {
+    "distinct": 209,
+    "span": 0.9468680029101478
+   },
+   "prev_success": {
+    "distinct": 2,
+    "span": 1.0
+   },
+   "radar_p40": {
+    "distinct": 215,
+    "span": 0.4177285956284178
+   },
+   "snr": {
+    "distinct": 288,
+    "span": 0.972139847826092
+   }
+  }
+ },
+ "preflight_passed": true,
+ "preregistration_sha256": "2270baa0cf025b5e64a85644a28b8fd98e1f9004b11dcd6cb39fb5f61c5d18cf",
+ "schema": "splitfusion.run5.launch_rehearsal.v1",
+ "seed": 29,
+ "target_update": 10000,
+ "update_count": 0,
+ "warmup_seconds": 3.9003164768218994
+}

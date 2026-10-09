@@ -1,0 +1,315 @@
+{
+ "checkpoint_recovery": {
+  "interrupted_resumed/checkpoint_000000_complete": {
+   "passed": true
+  },
+  "interrupted_resumed/checkpoint_000100_complete": {
+   "passed": true
+  },
+  "interrupted_resumed/checkpoint_000250_complete": {
+   "passed": true
+  },
+  "interrupted_resumed/checkpoint_000500_complete": {
+   "passed": true
+  },
+  "interrupted_resumed/final_actor_manifested": {
+   "passed": true
+  },
+  "uninterrupted/checkpoint_000000_complete": {
+   "passed": true
+  },
+  "uninterrupted/checkpoint_000100_complete": {
+   "passed": true
+  },
+  "uninterrupted/checkpoint_000250_complete": {
+   "passed": true
+  },
+  "uninterrupted/checkpoint_000500_complete": {
+   "passed": true
+  },
+  "uninterrupted/final_actor_manifested": {
+   "passed": true
+  },
+  "update500_stop_resume_equivalence_still_valid": {
+   "detail": {
+    "0": true,
+    "100": true,
+    "250": true,
+    "500": true
+   },
+   "passed": true
+  }
+ },
+ "contract_dataflow": {
+  "critic_input_width_35": {
+   "passed": true
+  },
+  "feature21_has_no_profile_or_hidden_input": {
+   "passed": true
+  },
+  "feature21_is_the_acked_active_leased_proxy_only": {
+   "detail": {
+    "equal_to_a_later_generated_sample": 0,
+    "violations": 0
+   },
+   "passed": true
+  },
+  "feature_order_is_run4_prefix_plus_snr": {
+   "passed": true
+  },
+  "features_0_3_equal_run4_definitions_of_the_measured_values": {
+   "detail": {
+    "mismatches": 0
+   },
+   "passed": true
+  },
+  "features_connected_and_varying": {
+   "detail": {
+    "backlog": {
+     "distinct": 138,
+     "span": 0.7107927024545445
+    },
+    "camera_si": {
+     "distinct": 473,
+     "span": 4.4187986015810115
+    },
+    "mcs": {
+     "distinct": 20,
+     "span": 0.6785714285714286
+    },
+    "prev_latency": {
+     "distinct": 1868,
+     "span": 0.9930052647058822
+    },
+    "prev_mode": {
+     "distinct": 12,
+     "span": 11
+    },
+    "prev_present": {
+     "distinct": 2,
+     "span": 1.0
+    },
+    "prev_q": {
+     "distinct": 1962,
+     "span": 1.0
+    },
+    "prev_quality": {
+     "distinct": 1571,
+     "span": 0.988901456184404
+    },
+    "prev_success": {
+     "distinct": 2,
+     "span": 1.0
+    },
+    "radar_p40": {
+     "distinct": 473,
+     "span": 0.4507770205833912
+    },
+    "snr": {
+     "distinct": 2288,
+     "span": 0.9911585735619398
+    }
+   },
+   "passed": true
+  },
+  "no_zero_filled_snr_path": {
+   "detail": "modeled SNR guard failures raise; no fallback value is ever written",
+   "passed": true
+  },
+  "not_transferred_or_padded_from_run4": {
+   "passed": true
+  },
+  "previous_action_and_resolved_outcome_populate_next_state": {
+   "detail": {
+    "mismatches": 0,
+    "outcomes_seen": [
+     "SUCCESS",
+     "TIMEOUT"
+    ]
+   },
+   "passed": true
+  },
+  "registered_reward_profiles_seeds_hyperparameters_unchanged": {
+   "passed": true
+  },
+  "restored_500_without_gradient_or_optimizer_step": {
+   "passed": true
+  },
+  "reward_equals_registered_formula_and_excludes_snr": {
+   "passed": true
+  },
+  "update0_actor_is_fresh_run5_init": {
+   "passed": true
+  },
+  "update0_critics_and_targets_are_fresh_run5_init": {
+   "passed": true
+  },
+  "update0_optimizers_have_no_step": {
+   "passed": true
+  }
+ },
+ "disk_projection": {
+  "bundle_bytes_per_decision": 649.651,
+  "bundle_fixed_bytes": 426284.512,
+  "calibrated_passes": true,
+  "calibrated_three_seed_bytes": 1079887165.5776222,
+  "calibrated_three_seed_with_2x_margin_bytes": 2159774331.1552444,
+  "free_bytes": 19302928384,
+  "free_inodes": 120965191,
+  "inodes_three_seed": 561,
+  "ledger_bytes_per_decision": 317.94405594405595,
+  "measured_from": "four seed-17 smoke bundles + ledgers",
+  "metrics_bytes_per_update": 597.934
+ },
+ "optimizer_steps": 0,
+ "passed": true,
+ "pid": 2950116,
+ "profile_schedule": {
+  "action_independent": "profile blocks are drawn from a dedicated RNG stream and segments advance exactly 2 ticks per decision, so the schedule does not depend on the policy",
+  "all_streams_distinct": true,
+  "audit_only": "hidden profile schedule; never an actor input",
+  "schedule_set_sha256": "68ad0277bfa645f59b05209710f6cd8561a286751b1016b6dbbed80bc27108e9",
+  "schedules": {
+   "training_seed_17": {
+    "balance": {
+     "ADVERSE_STABLE": 67,
+     "FADE_RECOVERY": 67,
+     "FAVORABLE_STABLE": 67,
+     "MID_VARIABLE": 68
+    },
+    "decisions": 40288,
+    "every_complete_block_has_each_profile_once": true,
+    "first_8_segments": [
+     "FAVORABLE_STABLE",
+     "MID_VARIABLE",
+     "ADVERSE_STABLE",
+     "FADE_RECOVERY",
+     "FADE_RECOVERY",
+     "ADVERSE_STABLE",
+     "MID_VARIABLE",
+     "FAVORABLE_STABLE"
+    ],
+    "segment_sequence_sha256": "55bb3e86b6901ef56095a8018e1c9b4b69d587ba8287886cb922cf495be8d053",
+    "segments": 269,
+    "ticks_after_burn_in": 80596
+   },
+   "training_seed_29": {
+    "balance": {
+     "ADVERSE_STABLE": 67,
+     "FADE_RECOVERY": 67,
+     "FAVORABLE_STABLE": 68,
+     "MID_VARIABLE": 67
+    },
+    "decisions": 40288,
+    "every_complete_block_has_each_profile_once": true,
+    "first_8_segments": [
+     "FAVORABLE_STABLE",
+     "MID_VARIABLE",
+     "FADE_RECOVERY",
+     "ADVERSE_STABLE",
+     "MID_VARIABLE",
+     "FAVORABLE_STABLE",
+     "ADVERSE_STABLE",
+     "FADE_RECOVERY"
+    ],
+    "segment_sequence_sha256": "79038e79c2ffbe9347dfd17d42167ed292c7fcd41e2240eb2f3004a466354d56",
+    "segments": 269,
+    "ticks_after_burn_in": 80596
+   },
+   "training_seed_43": {
+    "balance": {
+     "ADVERSE_STABLE": 67,
+     "FADE_RECOVERY": 68,
+     "FAVORABLE_STABLE": 67,
+     "MID_VARIABLE": 67
+    },
+    "decisions": 40288,
+    "every_complete_block_has_each_profile_once": true,
+    "first_8_segments": [
+     "MID_VARIABLE",
+     "FADE_RECOVERY",
+     "ADVERSE_STABLE",
+     "FAVORABLE_STABLE",
+     "FADE_RECOVERY",
+     "ADVERSE_STABLE",
+     "FAVORABLE_STABLE",
+     "MID_VARIABLE"
+    ],
+    "segment_sequence_sha256": "4977ea274c3a54216b575cc8b9e5854cf492b468fa571cf779b618a22b014fe9",
+    "segments": 269,
+    "ticks_after_burn_in": 80596
+   },
+   "validation_seed_9017": {
+    "balance": {
+     "ADVERSE_STABLE": 67,
+     "FADE_RECOVERY": 68,
+     "FAVORABLE_STABLE": 67,
+     "MID_VARIABLE": 67
+    },
+    "decisions": 40288,
+    "every_complete_block_has_each_profile_once": true,
+    "first_8_segments": [
+     "MID_VARIABLE",
+     "ADVERSE_STABLE",
+     "FADE_RECOVERY",
+     "FAVORABLE_STABLE",
+     "FADE_RECOVERY",
+     "FAVORABLE_STABLE",
+     "ADVERSE_STABLE",
+     "MID_VARIABLE"
+    ],
+    "segment_sequence_sha256": "cc0f8f5a8804157dbe69561c03d0d42fab92ded9fd9d0b9a0de67944d95afbd9",
+    "segments": 269,
+    "ticks_after_burn_in": 80596
+   },
+   "validation_seed_9029": {
+    "balance": {
+     "ADVERSE_STABLE": 68,
+     "FADE_RECOVERY": 67,
+     "FAVORABLE_STABLE": 67,
+     "MID_VARIABLE": 67
+    },
+    "decisions": 40288,
+    "every_complete_block_has_each_profile_once": true,
+    "first_8_segments": [
+     "ADVERSE_STABLE",
+     "FADE_RECOVERY",
+     "FAVORABLE_STABLE",
+     "MID_VARIABLE",
+     "MID_VARIABLE",
+     "ADVERSE_STABLE",
+     "FAVORABLE_STABLE",
+     "FADE_RECOVERY"
+    ],
+    "segment_sequence_sha256": "2d74a5f1096d20b2e8391b8d91cdc1f5fcd14733892cbf72782bdaf90a3c60eb",
+    "segments": 269,
+    "ticks_after_burn_in": 80596
+   },
+   "validation_seed_9043": {
+    "balance": {
+     "ADVERSE_STABLE": 67,
+     "FADE_RECOVERY": 67,
+     "FAVORABLE_STABLE": 68,
+     "MID_VARIABLE": 67
+    },
+    "decisions": 40288,
+    "every_complete_block_has_each_profile_once": true,
+    "first_8_segments": [
+     "ADVERSE_STABLE",
+     "FADE_RECOVERY",
+     "MID_VARIABLE",
+     "FAVORABLE_STABLE",
+     "FAVORABLE_STABLE",
+     "FADE_RECOVERY",
+     "ADVERSE_STABLE",
+     "MID_VARIABLE"
+    ],
+    "segment_sequence_sha256": "c9c6ae32c84e6dde1c4d0bb605d2cfd3b4251eec89efc29c1ca8b735e8b9d655",
+    "segments": 269,
+    "ticks_after_burn_in": 80596
+   }
+  }
+ },
+ "schema": "splitfusion.run5.deep_readiness_audit.v1",
+ "training_checkpoints_created": 0
+}

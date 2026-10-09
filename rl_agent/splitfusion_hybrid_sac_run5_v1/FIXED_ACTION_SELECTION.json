@@ -1,0 +1,499 @@
+{
+ "candidates": 47,
+ "eligible_candidates": 44,
+ "evidence": "FIT scenes only; seed 7017; 1000 decisions per candidate",
+ "mode_id": 11,
+ "q_e4": 3000,
+ "results": [
+  {
+   "action_id": 4,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.05625122481350583,
+   "mode_id": 0,
+   "profile_id": "split_noae_uint8_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 5,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.002917196803866579,
+   "mode_id": 0,
+   "profile_id": "split_noae_uint8_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 10,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.13484201060980094,
+   "mode_id": 1,
+   "profile_id": "split_noae_uint6_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 11,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.0010634525619100427,
+   "mode_id": 1,
+   "profile_id": "split_noae_uint6_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 15,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.5321569955937542,
+   "mode_id": 2,
+   "profile_id": "split_noae_uint4_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 16,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.1542554359016182,
+   "mode_id": 2,
+   "profile_id": "split_noae_uint4_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 17,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.0003438318147601135,
+   "mode_id": 2,
+   "profile_id": "split_noae_uint4_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 22,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.10753866594398356,
+   "mode_id": 3,
+   "profile_id": "split_ae128_uint8_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 23,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.04149105957884259,
+   "mode_id": 3,
+   "profile_id": "split_ae128_uint8_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 27,
+   "decisions": 454,
+   "eligible": false,
+   "left_transport_support": {
+    "decision": 454,
+    "reason": "raw backlog 36283399.0 outside fitted support [0.0, 36002536.0]; invoke the registered external fallback"
+   },
+   "mean_reward": -0.5871589056780966,
+   "mode_id": 4,
+   "profile_id": "split_ae128_uint6_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 28,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.11187850851147442,
+   "mode_id": 4,
+   "profile_id": "split_ae128_uint6_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 29,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.04074414567341417,
+   "mode_id": 4,
+   "profile_id": "split_ae128_uint6_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 32,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.5365429248281147,
+   "mode_id": 5,
+   "profile_id": "split_ae128_uint4_q5000",
+   "q_e4": 5000
+  },
+  {
+   "action_id": 33,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.21179841007339073,
+   "mode_id": 5,
+   "profile_id": "split_ae128_uint4_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 34,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.12992931709560154,
+   "mode_id": 5,
+   "profile_id": "split_ae128_uint4_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 35,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.04127801359706639,
+   "mode_id": 5,
+   "profile_id": "split_ae128_uint4_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 38,
+   "decisions": 365,
+   "eligible": false,
+   "left_transport_support": {
+    "decision": 365,
+    "reason": "raw backlog 36299385.0 outside fitted support [0.0, 36002536.0]; invoke the registered external fallback"
+   },
+   "mean_reward": -0.4945146336837948,
+   "mode_id": 6,
+   "profile_id": "split_ae64_uint8_q5000",
+   "q_e4": 5000
+  },
+  {
+   "action_id": 39,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.21030567916100207,
+   "mode_id": 6,
+   "profile_id": "split_ae64_uint8_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 40,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.12369500985885475,
+   "mode_id": 6,
+   "profile_id": "split_ae64_uint8_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 41,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.043242633571712055,
+   "mode_id": 6,
+   "profile_id": "split_ae64_uint8_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 44,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.5214415082748451,
+   "mode_id": 7,
+   "profile_id": "split_ae64_uint6_q5000",
+   "q_e4": 5000
+  },
+  {
+   "action_id": 45,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.20676138922370585,
+   "mode_id": 7,
+   "profile_id": "split_ae64_uint6_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 46,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.1304420683792671,
+   "mode_id": 7,
+   "profile_id": "split_ae64_uint6_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 47,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.040984679465394865,
+   "mode_id": 7,
+   "profile_id": "split_ae64_uint6_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 48,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.4138854890720216,
+   "mode_id": 8,
+   "profile_id": "split_ae64_uint4_q0000",
+   "q_e4": 0
+  },
+  {
+   "action_id": 49,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.04550606367285196,
+   "mode_id": 8,
+   "profile_id": "split_ae64_uint4_q3000",
+   "q_e4": 3000
+  },
+  {
+   "action_id": 50,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.23876139456898626,
+   "mode_id": 8,
+   "profile_id": "split_ae64_uint4_q5000",
+   "q_e4": 5000
+  },
+  {
+   "action_id": 51,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.23276970709395242,
+   "mode_id": 8,
+   "profile_id": "split_ae64_uint4_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 52,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.13620148382290342,
+   "mode_id": 8,
+   "profile_id": "split_ae64_uint4_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 53,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.04147759531602889,
+   "mode_id": 8,
+   "profile_id": "split_ae64_uint4_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 54,
+   "decisions": 398,
+   "eligible": false,
+   "left_transport_support": {
+    "decision": 398,
+    "reason": "raw backlog 36105652.0 outside fitted support [0.0, 36002536.0]; invoke the registered external fallback"
+   },
+   "mean_reward": -0.5293623617024824,
+   "mode_id": 9,
+   "profile_id": "split_ae32_uint8_q0000",
+   "q_e4": 0
+  },
+  {
+   "action_id": 55,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.3396821608744223,
+   "mode_id": 9,
+   "profile_id": "split_ae32_uint8_q3000",
+   "q_e4": 3000
+  },
+  {
+   "action_id": 56,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.21182919150094287,
+   "mode_id": 9,
+   "profile_id": "split_ae32_uint8_q5000",
+   "q_e4": 5000
+  },
+  {
+   "action_id": 57,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.21908638763964997,
+   "mode_id": 9,
+   "profile_id": "split_ae32_uint8_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 58,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.12491345829987432,
+   "mode_id": 9,
+   "profile_id": "split_ae32_uint8_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 59,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.05091687836657437,
+   "mode_id": 9,
+   "profile_id": "split_ae32_uint8_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 60,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.43497584845475734,
+   "mode_id": 10,
+   "profile_id": "split_ae32_uint6_q0000",
+   "q_e4": 0
+  },
+  {
+   "action_id": 61,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.21672796264853467,
+   "mode_id": 10,
+   "profile_id": "split_ae32_uint6_q3000",
+   "q_e4": 3000
+  },
+  {
+   "action_id": 62,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.22944130134942312,
+   "mode_id": 10,
+   "profile_id": "split_ae32_uint6_q5000",
+   "q_e4": 5000
+  },
+  {
+   "action_id": 63,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.22104936054463725,
+   "mode_id": 10,
+   "profile_id": "split_ae32_uint6_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 64,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.12945949420239802,
+   "mode_id": 10,
+   "profile_id": "split_ae32_uint6_q9000",
+   "q_e4": 9000
+  },
+  {
+   "action_id": 65,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": -0.05085992650768526,
+   "mode_id": 10,
+   "profile_id": "split_ae32_uint6_q9800",
+   "q_e4": 9800
+  },
+  {
+   "action_id": 66,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.24259932039996804,
+   "mode_id": 11,
+   "profile_id": "split_ae32_uint4_q0000",
+   "q_e4": 0
+  },
+  {
+   "action_id": 67,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.2491912856788495,
+   "mode_id": 11,
+   "profile_id": "split_ae32_uint4_q3000",
+   "q_e4": 3000
+  },
+  {
+   "action_id": 68,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.24533348787319048,
+   "mode_id": 11,
+   "profile_id": "split_ae32_uint4_q5000",
+   "q_e4": 5000
+  },
+  {
+   "action_id": 69,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.23011476068952183,
+   "mode_id": 11,
+   "profile_id": "split_ae32_uint4_q7000",
+   "q_e4": 7000
+  },
+  {
+   "action_id": 70,
+   "decisions": 1000,
+   "eligible": true,
+   "left_transport_support": null,
+   "mean_reward": 0.12748103189712093,
+   "mode_id": 11,
+   "profile_id": "split_ae32_uint4_q9000",
+   "q_e4": 9000
+  }
+ ],
+ "schema": "splitfusion.run5.fixed_action_selection.v1",
+ "selected": {
+  "action_id": 67,
+  "decisions": 1000,
+  "eligible": true,
+  "left_transport_support": null,
+  "mean_reward": 0.2491912856788495,
+  "mode_id": 11,
+  "profile_id": "split_ae32_uint4_q3000",
+  "q_e4": 3000
+ }
+}

@@ -1,0 +1,119 @@
+{
+ "artifacts": {
+  "RETAINED_SNR_RESIDUAL_AUDIT.json": "00471e73f34fb4ee4b21e5582cfbf6c47cc2ce6b3622c181433bf1176d2b42dd",
+  "RUN5_SNR_PRETRAINING_REPORT.md": "0b6926f0a3a5088976b2282031db1f5906183ab354910a837f0711bfec93dc7f",
+  "retained_snr_audit.py": "c906b8c9821635af40bda57f3cc9ba83e9b1388d06e174a1e34601b13dd98b26",
+  "retained_snr_join.csv": "2ddac0016d1dd424ccdfeffc69dd1a3dca5d2a0f91f536c3955b4119139aa2ab",
+  "run5_models.py": "c4b2f12a26c5304eb888995a1678eec012f35a6a583a546930d9cf6135d6428e",
+  "run5_state_contract.py": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae",
+  "test_retained_snr_audit.py": "9b070a91736377b0c6f4d237f116fa6670c3e2162d2bf2444660279b3c40d73d",
+  "test_run5_models.py": "57cc6c7e03737b51759a4edc1566816023eb3f1033711543205cbbff746b230a",
+  "test_run5_state_contract.py": "a3f7fd939d1891206f6d7c7482005c813e059c99d79a9ae38d38872961e78406"
+ },
+ "baseline_commit": "42bca44",
+ "blocking_items": [
+  {
+   "detail": "remaining Run-5 context not yet supplied",
+   "id": "REMAINING_USER_CONTEXT",
+   "owner": "Abiodun"
+  },
+  {
+   "detail": "explicitly not chosen",
+   "id": "EMPTY_SCENE_OUTCOME_DESIGN",
+   "owner": "Abiodun"
+  },
+  {
+   "detail": "hold-until-replaced actuator: retained age p50 99.8 ms, p95 199.8 ms, max 6.33 s; 354/2700 > 150 ms; needs keep-alive/re-ACK rule or equivalent before a bound",
+   "id": "SNR_FRESHNESS_BOUND",
+   "owner": "Abiodun"
+  },
+  {
+   "detail": "retained support 5.54-24.49 dB over two traces; Run-5 four-trace support not yet characterised",
+   "id": "SNR_SCALING_AND_SUPPORT",
+   "owner": "Abiodun"
+  },
+  {
+   "detail": "retained ACKs are CLOCK_MONOTONIC; Run-4 live clock is CLOCK_MONOTONIC_RAW; live RFsim adapter not implemented",
+   "id": "LIVE_CLOCK_DOMAIN",
+   "owner": "implementation"
+  },
+  {
+   "detail": "2335/2700 decisions have the next command ACK <1 ms after action-open; proxy is effectively one 100-ms step stale",
+   "id": "ACTUATOR_PHASE_LAG",
+   "owner": "Abiodun"
+  },
+  {
+   "detail": "Run-5 SNR failures route to the Run-4 external fallback, whose action binding remains Run-4's",
+   "id": "RUN4_EXTERNAL_FALLBACK_BINDING",
+   "owner": "inherited"
+  }
+ ],
+ "branch": "run5-snr-scaffold-v1",
+ "completed": {
+  "adversarial_causality_leakage_missing_tests": true,
+  "baseline_reproduction_exact": true,
+  "checkpoint_21d_refusal_tested": true,
+  "comparator_verdict": "SNR_DIRECT_EFFECT_NOT_IDENTIFIED_BY_RETAINED_EVIDENCE",
+  "cpu_only_tests": {
+   "failed": 0,
+   "passed": 40
+  },
+  "identified_questions": [],
+  "positions_0_20_bit_identity_tested": true,
+  "retained_join_gates": {
+   "DETERMINISTIC_OUTPUT": true,
+   "FULL_COVERAGE": true,
+   "INDEPENDENT_REFERENCE_AGREES": true,
+   "NO_PROFILE_TRACE_NOISE_FIELDS_EXPOSED": true,
+   "ZERO_CLAMPED_VALUES": true,
+   "ZERO_CROSS_CELL_OR_SESSION_JOINS": true,
+   "ZERO_FUTURE_JOINS": true,
+   "ZERO_NON_ACKED_VALUES": true,
+   "ZERO_TARGET_LESS_VALUES": true
+  },
+  "schema_and_provider": true
+ },
+ "diagnostics": {
+  "fit_corr_snr_prior_mcs": 0.9785087277621585,
+  "fit_vif": 23.69726607993558,
+  "newer_command_in_flight_at_action_open": 87,
+  "next_ack_within_1ms_after_open": 2335
+ },
+ "frozen_design": {
+  "feature_22": "effective_external_ul_snr_proxy_scaled",
+  "feature_count": 22,
+  "gnb_pusch_snr": "VERIFIER_ONLY",
+  "missing_stale_out_of_support": "ExternalFallbackRequired; never zero-filled",
+  "positions_0_20": "bit-identical to Run 4 (copied from run4_contract.build_policy_features)",
+  "rfsim_selection_rule": "LATEST_ACKED_UNCLAMPED_TARGET_SNR_EFFECTIVE_AT_OR_BEFORE_STATE_COMMIT",
+  "run4_21d_checkpoints": "REFUSED",
+  "run4_feature_schema_sha256": "1f22b4f58a59a9ef96236564d4f2f8fe7e91fe1a99170e7f990b40bc1632ac23",
+  "run5_feature_schema_sha256": "e3219409eb3be82b22890691cbbe6321aeaec284635eb6a91d2b6e2ceb2153e1",
+  "run5_model_binding_sha256": "7978699c9204af0ca0ace9a11d1341bd815e59156faf9dc748a8e01feec71f43",
+  "snr_label": "SIMULATOR_EFFECTIVE_UL_SNR_PROXY_DB",
+  "snr_role": "STATE_ONLY",
+  "unchanged_from_run4": [
+   "reward",
+   "action_space",
+   "170_ms_deadline",
+   "transition_semantics",
+   "previous_outcome_fields",
+   "hybrid_sac_configuration_except_state_dim"
+  ]
+ },
+ "live_execution_authorized": false,
+ "not_run": [
+  "training",
+  "CARLA",
+  "OAI",
+  "RFsim",
+  "Docker",
+  "CUDA"
+ ],
+ "outcome_model_decision": "SNR NOT inserted into any outcome head (no retained support)",
+ "preregistration_commit": "43ecdad",
+ "pushed": false,
+ "schema": "splitfusion.run5.pretraining_readiness.v1",
+ "status": "TRAINING_BLOCKED_PENDING_REMAINING_USER_CONTEXT",
+ "training_authorized": false
+}
