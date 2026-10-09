@@ -1,0 +1,19 @@
+{
+  "bindings": [
+    {
+      "cell_id": "coop_fixture_cell_a20_favorable_stable",
+      "run_id": "coop_fixture_run_v1",
+      "session_id": "two-ue-live-action50-v1",
+      "stream_id": "two-ue/ue-a",
+      "ue_id": "ue-a"
+    },
+    {
+      "cell_id": "coop_fixture_cell_a20_favorable_stable",
+      "run_id": "coop_fixture_run_v1",
+      "session_id": "two-ue-live-action50-v1",
+      "stream_id": "two-ue/ue-b",
+      "ue_id": "ue-b"
+    }
+  ],
+  "schema": "scenesense.coop_identity_binding.v1"
+}

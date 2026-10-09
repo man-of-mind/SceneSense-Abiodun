@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cooperative Spatial Map — two-UE association (live)</title>
+<style>
+  :root {
+    --bg: #05070A;
+    --stage: #0A0D12;
+    --edge: #1B222C;
+    --panel: rgba(12, 16, 22, 0.90);
+    --panel-edge: #232B36;
+    --text: #D7DEE7;
+    --dim: #7C8794;
+    --warn: #E69F00;
+    --ue-a: #56B4E9;
+    --ue-b: #E69F00;
+    --both: #009E73;
+    --route: #F0E442;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* 16:9 recording stage. The map never fills an off-aspect window, so a
+     screen recording is framed identically regardless of monitor size. */
+  #frame {
+    position: fixed; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+  }
+  #stage {
+    position: relative; background: var(--stage);
+    aspect-ratio: 16 / 9;
+    width: min(100vw, calc(100vh * 16 / 9));
+    height: min(100vh, calc(100vw * 9 / 16));
+    box-shadow: 0 0 0 1px var(--edge), 0 24px 64px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  #map { display: block; width: 100%; height: 100%; }
+
+  /* Fixed-geometry overlays. Every value column has a reserved width and
+     tabular figures, so text does not reflow as numbers change. */
+  #topleft {
+    position: absolute; top: 14px; left: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none;
+  }
+  .badge {
+    display: inline-block; padding: 6px 12px; border-radius: 4px;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.09em;
+    width: max-content; min-width: 168px; text-align: center;
+    border: 1px solid transparent;
+  }
+  .badge.assoc { background: rgba(0,158,115,0.16); color: #52E0B8; border-color: #0E6B53; }
+  .badge.raw { background: rgba(86,180,233,0.16); color: #8FD2F5; border-color: #245C7A; }
+  .badge.waiting { background: rgba(230,159,0,0.16); color: #F0C066; border-color: #7A5A12; }
+  #egoline {
+    display: flex; gap: 6px; align-items: baseline;
+    font-size: 12px; font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px #000;
+  }
+  #egoline .k { color: var(--dim); }
+  #egoline .v {
+    color: var(--text); font-weight: 600;
+    min-width: 62px; display: inline-block;
+  }
+  #notice {
+    font-size: 11.5px; color: var(--warn); min-height: 14px;
+    text-shadow: 0 1px 3px #000;
+  }
+
+  .panel {
+    position: absolute; background: var(--panel); border: 1px solid var(--panel-edge);
+    border-radius: 8px; padding: 10px 12px; font-size: 11.5px;
+    backdrop-filter: blur(6px);
+  }
+  .panel.hidden { display: none; }
+  #legend { top: 14px; right: 16px; width: 268px; pointer-events: none; }
+  #metrics {
+    bottom: 14px; right: 16px; width: 300px;
+    max-height: calc(100% - 200px); overflow: hidden auto;
+  }
+  .row {
+    display: flex; justify-content: space-between; gap: 10px;
+    line-height: 1.75; white-space: nowrap;
+  }
+  .row .k { color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+  .row .v {
+    color: var(--text); font-variant-numeric: tabular-nums;
+    min-width: 92px; text-align: right; flex: none;
+  }
+  .row .v.dim { color: var(--dim); }
+  .row .v.warn { color: var(--warn); }
+  .sec {
+    margin: 9px 0 3px; font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #5D6774;
+    border-top: 1px solid var(--panel-edge); padding-top: 7px;
+  }
+  .sec:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+  .sep { height: 1px; background: var(--panel-edge); margin: 8px 0; }
+  .note { color: var(--dim); line-height: 1.7; display: flex; align-items: center; gap: 7px; }
+  .note.dim { color: #5D6774; }
+  .sw {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    border: 1px solid; vertical-align: -1px;
+  }
+  .sw.dbl { box-shadow: 0 0 0 2px var(--stage), 0 0 0 3px currentColor; }
+  .wedge {
+    width: 14px; height: 9px; flex: none;
+    background: linear-gradient(90deg, rgba(86,180,233,0.45), rgba(86,180,233,0.04));
+    border-left: 1px solid var(--ue-a);
+  }
+  .lead { width: 16px; height: 0; flex: none; border-top: 1px solid var(--both); opacity: 0.7; }
+  .dash { width: 16px; height: 0; flex: none; border-top: 1px dashed var(--text); opacity: 0.7; }
+  .route { width: 16px; height: 0; flex: none; border-top: 3px dashed var(--route); opacity: 0.55; }
+
+  .lat { margin: 6px 0 8px; }
+  .lat.dim { opacity: 0.5; }
+  .latlabel { color: var(--dim); font-size: 10.5px; line-height: 1.45; }
+  .latvalue { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .latmeta { color: #5D6774; font-size: 10px; }
+  .spark { width: 100%; height: 34px; display: block; }
+  .spark polyline { fill: none; stroke: var(--ue-a); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+
+  #controls {
+    position: absolute; bottom: 14px; left: 16px;
+    display: flex; gap: 6px; flex-wrap: wrap; max-width: 420px;
+  }
+  #controls.hidden { display: none; }
+  #controls button {
+    color: var(--text); background: rgba(20,26,34,0.92); border: 1px solid #39424E;
+    border-radius: 5px; padding: 7px 11px; font-size: 11.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  #controls button:hover { border-color: #55606D; }
+  #controls button.active { color: #05070A; background: #52E0B8; border-color: #7EEBCC; }
+  #keys {
+    position: absolute; bottom: 14px; left: 16px; color: #4A535F;
+    font-size: 10.5px; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="frame"><div id="stage">
+  <canvas id="map"></canvas>
+  <div id="topleft">
+    <div id="badge" class="badge waiting">CONNECTING</div>
+    <div id="egoline"></div>
+    <div id="notice"></div>
+  </div>
+  <div id="legend" class="panel"></div>
+  <div id="metrics" class="panel"></div>
+  <div id="controls">
+    <button id="rawBtn">R / 1 &mdash; raw reports</button>
+    <button id="assocBtn">F / 2 &mdash; associated map</button>
+    <button id="metricsBtn">M &mdash; metrics</button>
+    <button id="presentBtn">P &mdash; presentation mode</button>
+  </div>
+  <div id="keys">space toggle &middot; L legend &middot; C controls &middot; B route overlay</div>
+</div></div>
+<script>/*INLINE:presentation_predictor_v1.js*/</script>
+<script>/*INLINE:presentation_inventory_v1.js*/</script>
+<script>/*INLINE:viewer_app_v2.js*/</script>
+</body>
+</html>

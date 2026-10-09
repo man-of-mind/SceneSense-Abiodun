@@ -1,0 +1,19 @@
+{
+  "capture_timestamp_ns": 1789000000123456789,
+  "cell_id": "coop_fixture_cell_a20_favorable_stable",
+  "ego_world": {
+    "pitch": 0.0,
+    "roll": 0.0,
+    "x": -4.0,
+    "y": 28.1,
+    "yaw": 0.16,
+    "z": 0.6
+  },
+  "frame_id": 4096,
+  "horizontal_fov_deg": 120.0,
+  "pose_provenance": "SFD1_FRAME_CONTEXT_V1_EGO_WORLD",
+  "run_id": "coop_fixture_run_v1",
+  "schema": "scenesense.coop_pose_sidecar.v1",
+  "sidecar_version": 1,
+  "stream_id": "two-ue/ue-a"
+}

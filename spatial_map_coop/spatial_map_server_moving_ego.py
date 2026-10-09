@@ -34,6 +34,21 @@ import numpy as np
 from flask import Flask, Response, jsonify, request
 from matplotlib.patches import Ellipse, Polygon
 
+try:
+    from spatial_map_coop.multi_ue_v1 import (
+        AssociationPolicy,
+        MultiUEContractError,
+        MultiUESpatialMapService,
+    )
+    from spatial_map_coop.coop_input_v1 import live_metrics_v1, route_contract_v1
+    from spatial_map_coop.coop_input_v1.normalized import CoopInputError
+except ModuleNotFoundError:
+    # Direct-script invocation from neu_collab/ places this file's directory,
+    # rather than abiodun/, on sys.path.
+    from multi_ue_v1 import AssociationPolicy, MultiUEContractError, MultiUESpatialMapService
+    from coop_input_v1 import live_metrics_v1, route_contract_v1
+    from coop_input_v1.normalized import CoopInputError
+
 # This server lives in abiodun/spatial_map_coop/ but reuses extract_traffic_lights.py
 # from the neu_collab root; make that importable regardless of CWD.
 _NEU_COLLAB_ROOT = os.path.abspath(
@@ -51,6 +66,8 @@ DEFAULT_UDP_PORT = 39201
 DEFAULT_API_PORT = 35011
 SPATIAL_STREAM_SCHEMA = "fusion_object_spatial_map.v1"
 FUSED_SPATIAL_MAP_SCHEMA = "fusion_object_spatial_map.fused.v2"
+SPLITFUSION_EDGE_RESULT_SCHEMA = "splitfusion_edge_result.v2"
+MULTI_UE_LIVE_VIEW_UPDATE_SCHEMA = "scenesense.multi_ue_live_view_update.v1"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 OBJECT_COLOR_MAP = {
@@ -74,6 +91,8 @@ fusion_lock = threading.Lock()
 latest_streams: Dict[str, Dict[str, object]] = {}
 fusion_tracks: Dict[str, Dict[str, object]] = {}
 next_track_id = 1
+multi_ue_service: Optional[MultiUESpatialMapService] = None
+multi_ue_source_map: Dict[str, str] = {}
 static_map_cache: Dict[str, object] = {
     "loaded_at": 0.0,
     "map_name": None,
@@ -87,6 +106,51 @@ latest_render_png: Optional[bytes] = None
 latest_render_error: Optional[str] = None
 latest_render_at = 0.0
 latest_written_at = 0.0
+
+# Presentation/metrics state. None of it participates in association.
+VIEWER_ASSET_DIR = os.path.join(SCRIPT_DIR, "viewer_assets")
+metrics_registry = live_metrics_v1.MetricsRegistry()
+route_contract: Optional["route_contract_v1.RouteContract"] = None
+route_contract_error: Optional[str] = None
+ingest_counters: Counter = Counter()
+ingest_counters_lock = threading.Lock()
+# Last multi-UE service diagnostic, captured at the one already-authorized
+# stateful read (_build_multi_ue_v1_objects). Health and metrics endpoints read
+# this cache instead of calling snapshot_latest() themselves: snapshot_latest()
+# advances the conservative track store, so calling it from a status endpoint
+# would let a monitoring poll mutate scientific association state.
+service_diagnostic_lock = threading.Lock()
+latest_service_diagnostic: Dict[str, object] = {
+    "status": "WAITING_FOR_REGISTERED_UE_UPDATES"
+}
+
+
+def _read_viewer_asset(name: str) -> str:
+    """Read one viewer asset from disk. Cached per process, never per request."""
+
+    path = os.path.join(VIEWER_ASSET_DIR, name)
+    with open(path, "r", encoding="utf-8") as handle:
+        return handle.read()
+
+
+def _viewer_html() -> str:
+    """Inline the presentation assets into the viewer shell.
+
+    The served bytes are the asset files verbatim, so the JavaScript exercised by
+    the offline node tests is exactly the JavaScript the browser receives.
+    """
+
+    html = _read_viewer_asset("viewer_v2.html")
+    for asset in (
+        "presentation_predictor_v1.js",
+        "presentation_inventory_v1.js",
+        "viewer_app_v2.js",
+    ):
+        marker = f"/*INLINE:{asset}*/"
+        if marker not in html:
+            raise RuntimeError(f"viewer shell lacks the {asset} inline marker")
+        html = html.replace(marker, _read_viewer_asset(asset))
+    return html
 
 
 def parse_args() -> argparse.Namespace:
@@ -251,7 +315,177 @@ def parse_args() -> argparse.Namespace:
             "(0 = centered on ego; 0.5 = biased ahead, showing more road in front than behind)."
         ),
     )
+    parser.add_argument(
+        "--multi-ue-v1",
+        action="store_true",
+        help=(
+            "Use the conservative multi-UE v1 filtering/Hungarian/selected-source "
+            "track path instead of the historical greedy confidence-weighted fusion."
+        ),
+    )
+    parser.add_argument(
+        "--multi-ue-source",
+        action="append",
+        default=[],
+        metavar="STREAM_ID=UE_ID",
+        help="Explicit stable stream-to-UE identity; repeat once per live UE.",
+    )
+    parser.add_argument(
+        "--multi-ue-session-id",
+        default="",
+        help="Required stable drive/session identity when --multi-ue-v1 is enabled.",
+    )
+    parser.add_argument(
+        "--multi-ue-maximum-age-ms",
+        type=float,
+        default=500.0,
+        help="Initial engineering freshness limit; report separately from service readiness.",
+    )
+    parser.add_argument(
+        "--multi-ue-alignment-ms",
+        type=float,
+        default=100.0,
+        help="Maximum source-frame capture spread admitted to association.",
+    )
+    parser.add_argument(
+        "--route-mode",
+        choices=route_contract_v1.ROUTE_MODES,
+        default=route_contract_v1.ROUTE_MODE_STAGE2,
+        help=(
+            "Route contract for the presentation overlay. 'stage2' is the "
+            "historical configurable spawn-index loop and is NOT Route B. "
+            "'route-b-passive' binds and hash-verifies the canonical "
+            "Town10HD_Opt Route-B loop; it does not authorize a Route-B run."
+        ),
+    )
+    parser.add_argument(
+        "--route-overlay",
+        action="store_true",
+        help=(
+            "Draw the canonical Route-B reference path as a background overlay. "
+            "Requires --route-mode route-b-passive and a hash-verified route."
+        ),
+    )
+    parser.add_argument(
+        "--route-overlay-stride",
+        type=int,
+        default=4,
+        help="Subsample every Nth canonical route waypoint for the display overlay.",
+    )
+    parser.add_argument(
+        "--metrics-window",
+        type=int,
+        default=live_metrics_v1.DEFAULT_WINDOW,
+        help="Bounded rolling window length for the live latency panel.",
+    )
     return parser.parse_args()
+
+
+def _parse_multi_ue_sources(values: Sequence[str]) -> Dict[str, str]:
+    result: Dict[str, str] = {}
+    used_ue_ids: Set[str] = set()
+    for raw_value in values:
+        stream_id, separator, ue_id = str(raw_value).partition("=")
+        stream_id = stream_id.strip()
+        ue_id = ue_id.strip()
+        if not separator or not stream_id or not ue_id:
+            raise ValueError("--multi-ue-source must use nonempty STREAM_ID=UE_ID")
+        if stream_id in result:
+            raise ValueError(f"duplicate multi-UE stream identity: {stream_id}")
+        if ue_id in used_ue_ids:
+            raise ValueError(f"duplicate stable UE identity: {ue_id}")
+        result[stream_id] = ue_id
+        used_ue_ids.add(ue_id)
+    return result
+
+
+def _initialize_multi_ue_service() -> None:
+    global multi_ue_service, multi_ue_source_map
+    cfg = _config()
+    if not bool(cfg.multi_ue_v1):
+        multi_ue_service = None
+        multi_ue_source_map = {}
+        return
+    session_id = str(cfg.multi_ue_session_id or "").strip()
+    if not session_id:
+        raise ValueError("--multi-ue-session-id is required with --multi-ue-v1")
+    multi_ue_source_map = _parse_multi_ue_sources(cfg.multi_ue_source)
+    if len(multi_ue_source_map) < 2:
+        raise ValueError("--multi-ue-v1 requires at least two explicit UE sources")
+    maximum_age_ns = round(float(cfg.multi_ue_maximum_age_ms) * 1_000_000)
+    alignment_ns = round(float(cfg.multi_ue_alignment_ms) * 1_000_000)
+    policy = AssociationPolicy(
+        maximum_observation_age_ns=maximum_age_ns,
+        alignment_tolerance_ns=alignment_ns,
+        maximum_pair_time_delta_ns=alignment_ns,
+        maximum_xy_distance_m=float(cfg.association_radius_m),
+        maximum_relative_size_difference=float(cfg.association_dimension_ratio),
+        track_match_distance_m=float(cfg.track_match_radius_m),
+        track_stale_after_ns=round(float(cfg.track_stale_s) * 1_000_000_000),
+        minimum_confidence=float(cfg.min_object_score),
+        confidence_provenance=(
+            "UPSTREAM_SOURCE_FILTERED_OUTPUT_NO_ADDITIONAL_SCORE_GATE"
+            if float(cfg.min_object_score) == 0.0
+            else "OPERATOR_CONFIGURED_DEMO_SCORE_GATE_NOT_CALIBRATED_UNCERTAINTY"
+        ),
+    )
+    multi_ue_service = MultiUESpatialMapService(policy)
+
+
+def _initialize_presentation_contracts() -> None:
+    """Bind the route contract and size the metrics window.
+
+    A route-contract failure is reported and disables the overlay; it never
+    silently degrades into an unverified overlay, and it never blocks map
+    ingestion.
+    """
+
+    global route_contract, route_contract_error, metrics_registry
+    cfg = _config()
+    metrics_registry = live_metrics_v1.MetricsRegistry(
+        capacity=max(1, int(cfg.metrics_window))
+    )
+    stream_ids = tuple(sorted(multi_ue_source_map))
+    ue_ids = tuple(multi_ue_source_map[stream_id] for stream_id in stream_ids)
+    try:
+        route_contract = route_contract_v1.build_route_contract(
+            mode=str(cfg.route_mode),
+            stream_ids=stream_ids or ("unbound",),
+            ue_ids=ue_ids or ("unbound",),
+        )
+        route_contract_error = None
+    except CoopInputError as exc:
+        route_contract = None
+        route_contract_error = str(exc)
+        print(f"[Route] contract not bound: {exc}")
+    if bool(cfg.route_overlay):
+        if route_contract is None or not route_contract.is_route_b:
+            route_contract_error = (
+                route_contract_error
+                or "--route-overlay requires --route-mode route-b-passive"
+            )
+            print(f"[Route] overlay disabled: {route_contract_error}")
+
+
+def _route_overlay_payload() -> Optional[Dict[str, object]]:
+    """Verified canonical route points for the display overlay, or None."""
+
+    cfg = _config()
+    if not bool(cfg.route_overlay) or route_contract is None:
+        return None
+    if not route_contract.is_route_b or route_contract.route is None:
+        return None
+    points = route_contract.overlay_polyline(stride=max(1, int(cfg.route_overlay_stride)))
+    if len(points) < 2:
+        return None
+    return {
+        "points": [[float(x), float(y)] for x, y in points],
+        "route_name": route_contract.route.name,
+        "route_sha256": route_contract.route.sha256,
+        "presentation_label": route_contract.presentation_label,
+        "qualification_status": route_contract.qualification_status,
+        "note": "display overlay only; it never affects measured XY or association",
+    }
 
 
 def _config() -> argparse.Namespace:
@@ -275,6 +509,16 @@ def _safe_int(value: object, default: int = 0) -> int:
         return int(value)
     except (TypeError, ValueError):
         return int(default)
+
+
+def _required_finite(value: object, label: str) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError) as exc:
+        raise MultiUEContractError(f"{label} must be finite") from exc
+    if not math.isfinite(result):
+        raise MultiUEContractError(f"{label} must be finite")
+    return result
 
 
 def _wrap_degrees(value: float) -> float:
@@ -531,17 +775,22 @@ def _normalize_object(
         return None
 
     object_type = str(obj.get("type") or "Unknown")
+    normalized_type = object_type.strip().lower().replace("_", "")
     motion_state = str(obj.get("motion_state") or "")
-    if object_type == "ParkedVehicle":
+    if normalized_type == "parkedvehicle":
         object_type = "Vehicle"
         motion_state = motion_state or "parked"
-    elif object_type == "MovingVehicle":
+    elif normalized_type == "movingvehicle":
         object_type = "Vehicle"
         motion_state = motion_state or "moving"
-    elif object_type in ("Person", "Walker"):
+    elif normalized_type in ("vehicle", "car", "truck", "bus"):
+        object_type = "Vehicle"
+    elif normalized_type in ("person", "pedestrian", "walker"):
         # model class name is "person"; map to the canonical map label so it gets the
         # Pedestrian color/legend instead of falling through to white "Unknown".
         object_type = "Pedestrian"
+    elif normalized_type in ("cyclist", "bicycle", "bike"):
+        object_type = "Cyclist"
 
     model_yaw_deg = _safe_float(obj.get("model_yaw_deg", obj.get("yaw_deg")), 0.0)
 
@@ -607,6 +856,144 @@ def _normalize_packet(payload: Dict[str, object], received_at: float) -> Dict[st
         "object_count": len(objects),
         "source_script": str(payload.get("source_script") or ""),
     }
+
+
+def _ingest_splitfusion_live_view_update(
+    envelope: Dict[str, object], received_at: float
+) -> Dict[str, object]:
+    """Ingest one compact action-profile result and expose its raw reports to the viewer."""
+
+    if multi_ue_service is None:
+        raise MultiUEContractError("multi-UE v1 is not enabled")
+    if envelope.get("schema") != MULTI_UE_LIVE_VIEW_UPDATE_SCHEMA:
+        raise MultiUEContractError("unexpected live-view update schema")
+    ue_id = str(envelope.get("ue_id") or "").strip()
+    session_id = str(envelope.get("session_id") or "").strip()
+    if not ue_id or session_id != str(_config().multi_ue_session_id):
+        raise MultiUEContractError("live-view UE/session identity mismatch")
+    if envelope.get("clock_domain") != "carla_simulation_ns":
+        raise MultiUEContractError("live-view update must use carla_simulation_ns")
+    payload = envelope.get("payload")
+    if not isinstance(payload, dict) or payload.get("schema") != SPLITFUSION_EDGE_RESULT_SCHEMA:
+        raise MultiUEContractError("live-view update lacks a SplitFusion edge result")
+    stream_id = str(payload.get("stream_id") or "")
+    if multi_ue_source_map.get(stream_id) != ue_id:
+        raise MultiUEContractError("live-view stream is not registered to this UE")
+    ego_pose = envelope.get("ego_pose")
+    if not isinstance(ego_pose, dict):
+        raise MultiUEContractError("live-view update lacks an ego pose")
+    location = ego_pose.get("location")
+    rotation = ego_pose.get("rotation")
+    if not isinstance(location, dict) or not isinstance(rotation, dict):
+        raise MultiUEContractError("live-view ego pose is malformed")
+    normalized_location = {
+        axis: _required_finite(location.get(axis), f"ego_pose.location.{axis}")
+        for axis in ("x", "y", "z")
+    }
+    normalized_rotation = {
+        axis: _required_finite(rotation.get(axis), f"ego_pose.rotation.{axis}")
+        for axis in ("pitch", "yaw", "roll")
+    }
+    capture_timestamp_ns = _safe_int(payload.get("capture_timestamp_ns"), -1)
+    if capture_timestamp_ns < 0:
+        raise MultiUEContractError("capture_timestamp_ns must be nonnegative")
+    result = multi_ue_service.ingest_splitfusion(
+        payload,
+        ue_id=ue_id,
+        session_id=session_id,
+        received_timestamp_ns=capture_timestamp_ns,
+        clock_domain="carla_simulation_ns",
+    )
+    update = payload.get("object_map_update")
+    records = update.get("records") if isinstance(update, dict) else None
+    if not isinstance(records, list):
+        raise MultiUEContractError("SplitFusion object records must be a list")
+    frame_id = _safe_int(payload.get("frame_id"), -1)
+    objects = []
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise MultiUEContractError("SplitFusion object record must be an object")
+        viewer_record = dict(record)
+        viewer_record["id"] = str(
+            record.get("candidate_identity", record.get("id", f"observation_{index}"))
+        )
+        viewer_record["type"] = str(record.get("class_name", record.get("type", "Unknown")))
+        normalized = _normalize_object(
+            viewer_record, stream_id=stream_id, frame_id=frame_id, index=index
+        )
+        if normalized is not None:
+            objects.append(normalized)
+    stream = {
+        "schema": SPLITFUSION_EDGE_RESULT_SCHEMA,
+        "stream_id": stream_id,
+        "node_id": ue_id,
+        "traffic_light_id": "",
+        "traffic_light_actor_id": -1,
+        "traffic_light_opendrive_id": "",
+        "frame_id": frame_id,
+        "timestamp": received_at,
+        "carla_timestamp": capture_timestamp_ns / 1_000_000_000.0,
+        # The measured capture stamp and the NAME of its clock travel together.
+        # This is the CARLA simulation clock; it must never be subtracted from
+        # received_at, which is a unix wall clock.
+        "capture_timestamp_ns": int(capture_timestamp_ns),
+        "capture_clock_domain": "carla_simulation_ns",
+        "received_at": received_at,
+        "anchor": {
+            "actor_id": _safe_int(ego_pose.get("actor_id"), -1),
+            "transform": {
+                "location": normalized_location,
+                "rotation": normalized_rotation,
+            },
+        },
+        "camera": {
+            "location": normalized_location,
+            "rotation": normalized_rotation,
+            "fov": _required_finite(envelope.get("horizontal_fov_deg", 120.0), "horizontal_fov_deg"),
+        },
+        "segmentation": {},
+        "latency": {},
+        "objects": objects,
+        "object_count": len(objects),
+        "source_script": "live_two_ue_action50_v1",
+        "action_id": _safe_int(payload.get("action_id"), -1),
+        "profile_id": str(payload.get("profile_id") or ""),
+    }
+    with state_lock:
+        latest_streams[stream_id] = stream
+    # Presentation metrics only: a bounded counter bump and one rate sample.
+    # Neither touches association state, and neither can block ingestion.
+    _bump_ingest_counter(result.disposition)
+    metrics_registry.observe_receipt(
+        stream_id, frame_id=frame_id, received_wall_s=received_at
+    )
+    return {
+        "status": "ACCEPTED",
+        "disposition": result.disposition,
+        "ue_id": ue_id,
+        "stream_id": stream_id,
+        "frame_id": frame_id,
+        "object_count": len(objects),
+    }
+
+
+def _bump_ingest_counter(disposition: str) -> None:
+    key = {
+        "ACCEPTED": "accepted",
+        "DUPLICATE_IDENTICAL": "duplicate_identical",
+    }.get(str(disposition), str(disposition).lower())
+    with ingest_counters_lock:
+        ingest_counters[key] += 1
+
+
+def _ingest_counter_snapshot() -> Dict[str, int]:
+    with ingest_counters_lock:
+        counters = dict(ingest_counters)
+    # Declare the registered keys explicitly so the panel can show 0 for a
+    # counter that genuinely is zero and N/A for one that does not exist.
+    for key in ("accepted", "duplicate_identical", "conflict", "rejected"):
+        counters.setdefault(key, 0)
+    return counters
 
 
 def _object_xy(obj: Dict[str, object]) -> np.ndarray:
@@ -1007,6 +1394,126 @@ def _active_anchor_keys(streams: Sequence[Dict[str, object]], now: float) -> set
     return active
 
 
+def _build_multi_ue_v1_objects() -> Tuple[List[Dict[str, object]], List[Dict[str, object]], Dict[str, object]]:
+    """Expose conservative tracks using the historical viewer's object shape."""
+    if multi_ue_service is None:
+        return [], [], {}
+    service_snapshot = multi_ue_service.snapshot_latest(clock_domain="carla_simulation_ns")
+    if service_snapshot is None:
+        return [], [], {"status": "WAITING_FOR_REGISTERED_UE_UPDATES"}
+    document = service_snapshot.as_dict()
+    current_association_ids = {
+        str(association["association_id"])
+        for association in document["associations"]
+    }
+    retained_track_count = len(document["tracks"])
+    tracks = []
+    for track in document["tracks"]:
+        # The service deliberately retains tracks across missed observations. The
+        # raw/associated presentation comparison must instead use the same current
+        # observation snapshot on both sides; otherwise retained history can make
+        # "association on" appear to create objects. Persistence stays in service state.
+        if str(track["association_id"]) not in current_association_ids:
+            continue
+        source_keys = track["contributing_sources"]
+        tracks.append(
+            {
+                "track_id": track["track_id"],
+                "type": track["class_name"],
+                "score": track["score"],
+                "support_stream_count": len(source_keys),
+                "source_stream_ids": sorted({source[2] for source in source_keys}),
+                "is_common_object": len(source_keys) >= max(1, int(_config().common_min_streams)),
+                "location": {
+                    "x": track["world_xyz"][0],
+                    "y": track["world_xyz"][1],
+                    "z": track["world_xyz"][2],
+                },
+                "dimensions": {
+                    "length": track["size_lwh"][0],
+                    "width": track["size_lwh"][1],
+                    "height": track["size_lwh"][2],
+                },
+                "yaw_deg": _object_map_yaw_deg(track["yaw_deg"]),
+                "model_yaw_deg": track["yaw_deg"],
+                "selected_ue_id": track["selected_ue_id"],
+                "selected_session_id": track["selected_session_id"],
+                "selected_stream_id": track["selected_stream_id"],
+                "source_stream_id": track["selected_stream_id"],
+                "selected_frame_id": track["selected_frame_id"],
+                "selected_observation_id": track["selected_observation_id"],
+                "selected_raw_record_sha256": track["selected_raw_record_sha256"],
+                "capture_timestamp_ns": track["capture_timestamp_ns"],
+                "age_ns": track["age_ns"],
+                "contributing_observation_hashes": track[
+                    "contributing_observation_hashes"
+                ],
+                "association_id": track["association_id"],
+                "update_count": track["update_count"],
+                "fusion_method": "SELECTED_FRESHEST_SOURCE_NO_POSITION_AVERAGING",
+                "distribution": {
+                    "source_stream_count": len(source_keys),
+                    "source_stream_ids": sorted({source[2] for source in source_keys}),
+                    "position_covariance_available": False,
+                    "confidence_used_as_position_covariance": False,
+                },
+            }
+        )
+    document["viewer_projection"] = {
+        "policy": "CURRENT_ASSOCIATION_TRACKS_ONLY",
+        "rendered_track_count": len(tracks),
+        "retained_service_track_count": retained_track_count,
+        "historical_tracks_not_rendered": retained_track_count - len(tracks),
+    }
+    _record_service_diagnostic(document, rendered_track_count=len(tracks))
+    return tracks, document["associations"], document
+
+
+def _record_service_diagnostic(document: Dict[str, object], *, rendered_track_count: int) -> None:
+    """Cache a read-only projection of the service snapshot for status endpoints."""
+
+    rejected = Counter(
+        str(item.get("reason")) for item in (document.get("rejected_observations") or [])
+    )
+    associations = document.get("associations") or []
+    tracks = document.get("tracks") or []
+    diagnostic: Dict[str, object] = {
+        "status": "ok",
+        "schema": document.get("schema"),
+        "clock_domain": document.get("clock_domain"),
+        "snapshot_timestamp_ns": document.get("snapshot_timestamp_ns"),
+        "agent_binding_status": document.get("agent_binding_status"),
+        "input_source_count": document.get("input_source_count"),
+        "aligned_source_count": document.get("aligned_source_count"),
+        "accepted_observation_count": document.get("accepted_observation_count"),
+        "rejected_observation_count": len(document.get("rejected_observations") or []),
+        "rejection_reasons": dict(sorted(rejected.items())),
+        "association_count": len(associations),
+        "multi_source_association_count": sum(
+            1 for item in associations if int(item.get("source_count", 0)) >= 2
+        ),
+        "retained_service_track_count": len(tracks),
+        "current_association_track_count": int(rendered_track_count),
+        "historical_tracks_not_rendered": len(tracks) - int(rendered_track_count),
+        "viewer_projection": document.get("viewer_projection"),
+    }
+    with service_diagnostic_lock:
+        latest_service_diagnostic.clear()
+        latest_service_diagnostic.update(diagnostic)
+
+
+def _stream_capture_timestamp_ns(stream: Dict[str, object]) -> Optional[int]:
+    """The stream's measured capture stamp in ns, or None when it has none."""
+
+    explicit = stream.get("capture_timestamp_ns")
+    if isinstance(explicit, int) and not isinstance(explicit, bool) and explicit > 0:
+        return int(explicit)
+    carla_timestamp = _safe_float(stream.get("carla_timestamp"), 0.0)
+    if carla_timestamp > 0.0 and math.isfinite(carla_timestamp):
+        return round(carla_timestamp * 1_000_000_000)
+    return None
+
+
 def _build_spatial_map_snapshot() -> Dict[str, object]:
     cfg = _config()
     now = time.time()
@@ -1037,6 +1544,14 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
             "fov_deg": _safe_float(cam.get("fov"), 90.0),
             "frame_id": stream["frame_id"],
             "age_s": age_s,
+            # Measured capture stamp for this stream, in its own declared clock
+            # domain. The viewer's causal display predictor derives velocity from
+            # this (a real measured clock) while bounding its extrapolation
+            # horizon in local browser time. Absent -> None, never zero, so a
+            # legacy packet without a capture clock is position-stepped instead
+            # of being given a fabricated velocity.
+            "capture_timestamp_ns": _stream_capture_timestamp_ns(stream),
+            "capture_clock_domain": str(stream.get("capture_clock_domain") or ""),
             "object_count": stream["object_count"],
             "segmentation": stream["segmentation"],
             "latency": stream["latency"],
@@ -1052,7 +1567,17 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
             stale_streams.append(stream_info)
 
     raw_objects = raw_objects[: max(0, int(cfg.max_rendered_objects))]
-    fused_objects, object_associations = _fuse_and_smooth_objects(raw_objects)
+    multi_ue_diagnostic: Dict[str, object] = {}
+    if multi_ue_service is None:
+        fused_objects, object_associations = _fuse_and_smooth_objects(raw_objects)
+    elif not active_streams:
+        fused_objects, object_associations = [], []
+        multi_ue_diagnostic = {"status": "NO_WALL_CLOCK_FRESH_REGISTERED_STREAM"}
+    else:
+        fused_objects, object_associations, multi_ue_diagnostic = _build_multi_ue_v1_objects()
+        if bool(cfg.hide_single_stream_objects):
+            fused_objects = [obj for obj in fused_objects if bool(obj["is_common_object"])]
+        fused_objects = fused_objects[: max(0, int(cfg.max_rendered_objects))]
     active_keys = _active_anchor_keys(streams, now)
     focus_ids = _focus_traffic_light_ids()
     anchors = []
@@ -1085,6 +1610,11 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
             "udp_port": int(cfg.udp_port),
             "object_source": "learned_rgb_radar_fusion_head",
             "fusion_policy": {
+                "implementation": (
+                    "CONSERVATIVE_MULTI_UE_V1"
+                    if multi_ue_service is not None
+                    else "HISTORICAL_GREEDY_CONFIDENCE_WEIGHTED"
+                ),
                 "association_radius_m": float(cfg.association_radius_m),
                 "association_dimension_ratio": float(cfg.association_dimension_ratio),
                 "common_min_streams": int(cfg.common_min_streams),
@@ -1093,6 +1623,7 @@ def _build_spatial_map_snapshot() -> Dict[str, object]:
                 "hide_single_stream_objects": bool(cfg.hide_single_stream_objects),
                 "object_yaw_map_offset_deg": float(cfg.object_yaw_map_offset_deg),
             },
+            "multi_ue_v1": multi_ue_diagnostic,
             "focus_view": focus_view,
             "visualization": {
                 "latest_png": "/api/spatial_map/live.png",
@@ -1489,6 +2020,19 @@ def udp_listener_thread() -> None:
             normalized = _normalize_packet(payload, received_at)
             if normalized["schema"] and normalized["schema"] != SPATIAL_STREAM_SCHEMA:
                 print(f"[UDP] Warning: unexpected schema {normalized['schema']!r}")
+            if multi_ue_service is not None:
+                stream_id = str(normalized["stream_id"])
+                ue_id = multi_ue_source_map.get(stream_id)
+                if ue_id is None:
+                    raise MultiUEContractError(
+                        f"unregistered multi-UE stream identity: {stream_id}"
+                    )
+                multi_ue_service.ingest_legacy(
+                    payload,
+                    ue_id=ue_id,
+                    session_id=str(cfg.multi_ue_session_id),
+                    received_timestamp_ns=round(received_at * 1_000_000_000),
+                )
             with state_lock:
                 latest_streams[str(normalized["stream_id"])] = normalized
         except Exception as exc:
@@ -1521,28 +2065,102 @@ def render_thread() -> None:
         time.sleep(max(0.02, interval - elapsed))
 
 
+def _multi_ue_service_state() -> Dict[str, object]:
+    """Report the actual MultiUESpatialMapService state.
+
+    This replaces the previous reliance on ``fusion_tracks``, which belongs to
+    the historical greedy confidence-weighted path. When ``--multi-ue-v1`` is
+    enabled that dictionary is never populated, so a health check reading it
+    reported zero tracks for a perfectly healthy conservative service.
+    """
+
+    if multi_ue_service is None:
+        with fusion_lock:
+            historical_tracks = len(fusion_tracks)
+        return {
+            "implementation": "HISTORICAL_GREEDY_CONFIDENCE_WEIGHTED",
+            "multi_ue_v1_enabled": False,
+            "historical_fusion_tracks": historical_tracks,
+        }
+
+    state: Dict[str, object] = {
+        "implementation": "CONSERVATIVE_MULTI_UE_V1",
+        "multi_ue_v1_enabled": True,
+        "registered_sources": dict(sorted(multi_ue_source_map.items())),
+        "buffered_source_count": int(multi_ue_service.buffer.source_count()),
+        "policy": multi_ue_service.policy.as_dict(),
+    }
+    with service_diagnostic_lock:
+        state.update(dict(latest_service_diagnostic))
+    return state
+
+
 @app.route("/healthz", methods=["GET"])
 def healthz():
     with render_lock:
         render_age = None if latest_render_at == 0.0 else time.time() - latest_render_at
     with state_lock:
         stream_count = len(latest_streams)
-    with fusion_lock:
-        track_count = len(fusion_tracks)
+    service_state = _multi_ue_service_state()
     return jsonify(
         {
             "ok": True,
             "streams_seen": stream_count,
-            "fused_tracks": track_count,
+            # Track counts now come from the service that is actually running.
+            "map_tracks": service_state.get(
+                "current_association_track_count",
+                service_state.get("historical_fusion_tracks", 0),
+            ),
+            "multi_ue_service": service_state,
+            "ingest_counters": _ingest_counter_snapshot(),
+            "route_contract": (
+                None if route_contract is None else route_contract.as_dict()
+            ),
+            "route_contract_error": route_contract_error,
             "latest_render_age_s": render_age,
             "latest_render_error": latest_render_error,
         }
     )
 
 
+@app.route("/api/multi_ue/v1/live_updates/healthz", methods=["GET"])
+def multi_ue_live_updates_healthz():
+    return jsonify(
+        {
+            "status": "ok" if multi_ue_service is not None else "disabled",
+            "schema": MULTI_UE_LIVE_VIEW_UPDATE_SCHEMA,
+            "session_id": str(getattr(_config(), "multi_ue_session_id", "")),
+            "registered_sources": dict(sorted(multi_ue_source_map.items())),
+            # Real service state, not the historical fusion_tracks structure.
+            "multi_ue_service": _multi_ue_service_state(),
+            "ingest_counters": _ingest_counter_snapshot(),
+        }
+    ), (200 if multi_ue_service is not None else 503)
+
+
+@app.route("/api/multi_ue/v1/live_updates", methods=["POST"])
+def post_multi_ue_live_update():
+    try:
+        envelope = request.get_json(force=True)
+        if not isinstance(envelope, dict):
+            raise MultiUEContractError("live-view update must be an object")
+        started = time.perf_counter()
+        result = _ingest_splitfusion_live_view_update(envelope, time.time())
+        metrics_registry.observe_demo_post_ms((time.perf_counter() - started) * 1000.0)
+        return jsonify(result), 202
+    except (MultiUEContractError, TypeError, ValueError) as exc:
+        message = str(exc)
+        _bump_ingest_counter(
+            "conflict" if "conflict" in message or "identity" in message else "rejected"
+        )
+        return jsonify({"error": message}), 422
+
+
 @app.route("/api/spatial_map/latest", methods=["GET"])
 def get_spatial_map_latest():
+    started = time.perf_counter()
     snapshot = _build_spatial_map_snapshot()
+    metrics_registry.observe_snapshot_build_ms((time.perf_counter() - started) * 1000.0)
     if request.args.get("visualize", "").lower() == "true":
         snapshot["visualization_url"] = "/api/spatial_map/live.png"
         snapshot["visualization_file"] = os.path.join(
@@ -1639,7 +2257,86 @@ def get_static_geometry():
         if len(pts) >= 3:
             buildings.append(pts)
     return jsonify(
-        {"map_name": ctx.get("map_name"), "error": ctx.get("error"), "roads": roads, "buildings": buildings}
+        {
+            "map_name": ctx.get("map_name"),
+            "error": ctx.get("error"),
+            "roads": roads,
+            "buildings": buildings,
+            # Present only when a hash-verified canonical Route-B contract is
+            # bound and the operator asked for the overlay.
+            "route_overlay": _route_overlay_payload(),
+            "route_overlay_error": route_contract_error,
+        }
+    )
+
+
+@app.route("/api/spatial_map/metrics", methods=["GET"])
+def get_live_metrics():
+    """Rolling live metrics for the viewer panel.
+
+    Read-only. It reports bounded rolling windows, the cached service
+    diagnostic, ingest counters and the transport's honest labels. It never
+    computes a cross-clock age as a number and never substitutes zero for an
+    absent field.
+    """
+
+    now = time.time()
+    report = metrics_registry.report(now_wall_s=now)
+    with state_lock:
+        stale_streams = sum(
+            1
+            for stream in latest_streams.values()
+            if now - float(stream["received_at"]) > float(_config().stream_stale_s)
+        )
+    counters = _ingest_counter_snapshot()
+    counters["stale_streams"] = stale_streams
+    service_state = _multi_ue_service_state()
+
+    # Transport honesty block. The demonstration path is HTTP on localhost with a
+    # CARLA-simulation capture clock, so its wall AoI is not computable and its
+    # POST duration is not a radio measurement.
+    if multi_ue_service is not None:
+        demo = live_metrics_v1.demo_transport_labels()
+        transport = {
+            "label": live_metrics_v1_transport_label(),
+            "capture_clock_domain": "carla_simulation_ns",
+            "receipt_clock_domain": "unix_wall_ns",
+            "cross_clock_wall_aoi": demo["cross_clock_wall_aoi"],
+            "http_post_duration": demo["http_post_duration"],
+            "model_execution": demo["model_execution"],
+            "radio_claim": demo["radio_claim"],
+        }
+    else:
+        transport = {
+            "label": "LEGACY_UDP_POLE_CLIENT_DEMO",
+            "capture_clock_domain": "carla_simulation_ns",
+            "receipt_clock_domain": "unix_wall_ns",
+            "cross_clock_wall_aoi": live_metrics_v1.INCOMPATIBLE_CLOCKS,
+            "radio_claim": "none - this transport carries no radio",
+        }
+
+    report.update(
+        {
+            "ingest_counters": counters,
+            "multi_ue_service": service_state,
+            "transport": transport,
+            "route_contract": (
+                None if route_contract is None else route_contract.as_dict()
+            ),
+            "route_contract_error": route_contract_error,
+            "direct_edge_timing_available": False,
+            "direct_edge_timing_note": (
+                "this transport carries no edge stage stamps or map terminal; "
+                "direct edge-to-map latency charts stay empty by contract"
+            ),
+        }
+    )
+    return jsonify(report)
+
+
+def live_metrics_v1_transport_label() -> str:
+    return live_metrics_v1.NOT_AVAILABLE if multi_ue_service is None else (
+        "HTTP_JSON_POST_LOCALHOST_DEMO"
     )
 
 
@@ -1672,110 +2369,28 @@ def get_live_viewer_png():
     return Response(html, mimetype="text/html")
 
 
-# Fast client-side canvas viewer: static backdrop fetched once, objects+ego polled from JSON at ~10Hz
-# and drawn ego-centered (car fixed at center, world scrolls under it -> smooth "moving map").
+# Presentation-quality client-side canvas viewer. The static backdrop is fetched
+# once, snapshots are polled at 20 Hz and the metrics panel refreshes at 2 Hz
+# while the canvas redraws at the display refresh rate.
+#
+# The presentation assets live in spatial_map_coop/viewer_assets/ and are inlined
+# verbatim, so the JavaScript exercised by the offline node tests is byte-for-byte
+# the JavaScript the browser receives. Display interpolation/prediction is
+# presentation-only and is namespaced under display.* everywhere it appears.
 @app.route("/api/spatial_map/viewer", methods=["GET"])
 def get_live_viewer():
-    html = """
-<!doctype html><html><head><meta charset="utf-8">
-<title>Cooperative Spatial Map (live)</title>
-<style>
- html,body{margin:0;height:100%;background:#080b10;overflow:hidden;font-family:system-ui,Arial,sans-serif}
- #c{display:block;width:100vw;height:100vh}
- #hud{position:fixed;top:8px;left:10px;color:#cbd3dc;font-size:13px;line-height:1.6;text-shadow:0 1px 2px #000;pointer-events:none}
- #hud b{color:#fff}.v{color:#00d1ff}.p{color:#ff5fd1}.w{color:#ffcf66}
-</style></head><body>
-<canvas id="c"></canvas><div id="hud">connecting…</div>
-<script>
-const cv=document.getElementById('c'),ctx=cv.getContext('2d'),hud=document.getElementById('hud');
-let DPR=Math.max(1,window.devicePixelRatio||1);
-let statics={roads:[],buildings:[]},snap=null;
-function resize(){cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;}
-addEventListener('resize',resize);resize();
-async function loadStatic(){try{statics=await(await fetch('/api/spatial_map/static_geometry')).json();}catch(e){setTimeout(loadStatic,2000);}}
-async function poll(){try{snap=await(await fetch('/api/spatial_map/latest')).json();}catch(e){}setTimeout(poll,100);}
-function ego(){const fv=snap&&snap.metadata&&snap.metadata.focus_view;if(fv&&fv.ego_pose)return{x:fv.ego_pose.x,y:fv.ego_pose.y,yaw:fv.ego_pose.yaw_deg,r:(fv.radius_m||40)+(fv.padding_m||10)};return null;}
-let disp=null;            // smoothed display pose (interpolated toward target each frame)
-function draw(){
- requestAnimationFrame(draw);
- const W=cv.width,H=cv.height;ctx.fillStyle='#080b10';ctx.fillRect(0,0,W,H);
- const tgt=ego();          // latest published pose (may be null during a gap)
- if(!tgt&&!disp){hud.innerHTML='<b class=w>waiting for ego stream…</b>';return;}
- if(tgt){                  // ease toward the target; the ~1Hz data glides instead of jumping
-  if(!disp)disp=Object.assign({},tgt);
-  const k=0.18;disp.x+=(tgt.x-disp.x)*k;disp.y+=(tgt.y-disp.y)*k;
-  let dyaw=((tgt.yaw-disp.yaw+540)%360)-180;disp.yaw+=dyaw*k;disp.r=tgt.r;
- }
- const e=disp,stale=!tgt;  // hold last pose during a gap instead of blanking
- const R=e.r,scale=Math.min(W,H)/2/R;
- const T=(wx,wy)=>[W/2+(wx-e.x)*scale,H/2+(wy-e.y)*scale]; // ego-centered, world y down
- // buildings
- ctx.fillStyle='#20242b';ctx.strokeStyle='#333a44';ctx.lineWidth=1*DPR;
- for(const b of statics.buildings){ctx.beginPath();b.forEach((p,i)=>{const s=T(p[0],p[1]);i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]);});ctx.closePath();ctx.fill();ctx.stroke();}
- // roads
- ctx.strokeStyle='#4a525c';ctx.lineWidth=2*DPR;ctx.lineCap='round';ctx.lineJoin='round';
- for(const pl of statics.roads){ctx.beginPath();pl.forEach((p,i)=>{const s=T(p[0],p[1]);i?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]);});ctx.stroke();}
- // traffic-light anchors
- ctx.fillStyle='#8a8f98';for(const a of (snap.traffic_light_anchors||[])){const l=a.location||{};const s=T(l.x,l.y);ctx.beginPath();ctx.moveTo(s[0],s[1]-5*DPR);ctx.lineTo(s[0]-5*DPR,s[1]+4*DPR);ctx.lineTo(s[0]+5*DPR,s[1]+4*DPR);ctx.closePath();ctx.fill();}
- // ROI box
- const bb=snap.metadata.focus_view.bounds;
- if(bb){const a=T(bb.x_min,bb.y_min),c=T(bb.x_max,bb.y_max);ctx.strokeStyle='rgba(120,180,255,.35)';ctx.lineWidth=1.5*DPR;ctx.strokeRect(Math.min(a[0],c[0]),Math.min(a[1],c[1]),Math.abs(c[0]-a[0]),Math.abs(c[1]-a[1]));}
- // objects — Stage 2: color by SOURCE stream when >1 car is streaming; else by type (Stage 1)
- const objs=snap.raw_spatial_map_objects||[];
- const actStreams=snap.active_streams||[];
- const srcs=[...new Set([...actStreams.map(s=>s.stream_id),...objs.map(o=>o.source_stream_id)].filter(Boolean))].sort();
- const bySource=srcs.length>1;
- const PAL=['#00d1ff','#ff9f43','#8aff80','#c780ff','#ffd166','#ff5fd1'];
- const srcColor={};srcs.forEach((s,i)=>srcColor[s]=PAL[i%PAL.length]);
- // canonical class footprints (model dims are unreliable) + nearest-road orientation (fixes model-yaw slant)
- const CANON={Vehicle:[4.6,2.0],Pedestrian:[0.8,0.8],Cyclist:[1.8,0.7]};
- const roadHdg=(x,y)=>{let bd=1e18,bh=null;for(const pl of (statics.roads||[])){for(let i=0;i<pl.length-1;i++){const ax=pl[i][0],ay=pl[i][1],dx=pl[i+1][0]-ax,dy=pl[i+1][1]-ay,s2=dx*dx+dy*dy;if(s2<1e-9)continue;let t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/s2));const px=ax+t*dx,py=ay+t*dy,d2=(x-px)*(x-px)+(y-py)*(y-py);if(d2<bd){bd=d2;bh=Math.atan2(dy,dx);}}}return (bh!==null&&bd<=225)?bh:null;};
- let nv=0,np=0;const perSrc={};
- for(const o of objs){
-  const l=o.location||{},d=o.dimensions||{},ped=(o.type==='Pedestrian');ped?np++:nv++;
-  const sid=o.source_stream_id;perSrc[sid]=(perSrc[sid]||0)+1;
-  const col=bySource?(srcColor[sid]||'#ffffff'):(ped?'#ff5fd1':'#00d1ff');
-  const s=T(l.x,l.y),cs=CANON[o.type]||[(d.length||1),(d.width||1)];
-  const L=Math.max(3,cs[0]*scale),Wd=Math.max(3,cs[1]*scale);
-  let yaw=((o.map_yaw_deg!=null?o.map_yaw_deg:o.yaw_deg)||0)*Math.PI/180;
-  if(!ped){const rh=roadHdg(l.x,l.y);if(rh!==null)yaw=rh;} // vehicles: snap to road orientation
-  ctx.save();ctx.translate(s[0],s[1]);ctx.rotate(yaw);ctx.strokeStyle=col;ctx.lineWidth=2*DPR;ctx.strokeRect(-L/2,-Wd/2,L,Wd);
-  if(ped){ctx.fillStyle=col;ctx.globalAlpha=0.35;ctx.fillRect(-L/2,-Wd/2,L,Wd);ctx.globalAlpha=1;} // fill peds so they read at small size
-  ctx.restore();
-  ctx.fillStyle=col;ctx.beginPath();ctx.arc(s[0],s[1],3*DPR,0,7);ctx.fill();
- }
- // legend (top-right) when coloring by source
- if(bySource){let ly=12*DPR;ctx.font=(13*DPR)+'px system-ui,Arial';ctx.textAlign='left';
-  for(const sid of srcs){ctx.fillStyle=srcColor[sid];ctx.fillRect(W-190*DPR,ly,12*DPR,12*DPR);
-   ctx.fillStyle='#cbd3dc';ctx.fillText(sid+' ('+(perSrc[sid]||0)+')',W-172*DPR,ly+11*DPR);ly+=20*DPR;}}
- // ego markers — draw EVERY streaming car at its own sensor pose, colored by source, so both egos
- // show relative to the objects they detect (the followed car sits near center).
- let egoDrawn=0;
- for(const s of actStreams){
-  const sp=s.sensor_pose; if(!sp||sp.x==null) continue;
-  const p=T(sp.x,sp.y),col=srcColor[s.stream_id]||'#ffcf66';
-  ctx.save();ctx.translate(p[0],p[1]);ctx.rotate((sp.yaw_deg||0)*Math.PI/180);
-  ctx.fillStyle=col;ctx.strokeStyle='#fff';ctx.lineWidth=1.5*DPR;
-  ctx.beginPath();ctx.moveTo(13*DPR,0);ctx.lineTo(-8*DPR,-8*DPR);ctx.lineTo(-8*DPR,8*DPR);ctx.closePath();ctx.fill();ctx.stroke();
-  ctx.restore();
-  ctx.fillStyle=col;ctx.font='bold '+(12*DPR)+'px system-ui,Arial';ctx.textAlign='left';
-  ctx.fillText('▲ '+s.stream_id,p[0]+12*DPR,p[1]-10*DPR);
-  egoDrawn++;
- }
- if(!egoDrawn){ // fallback (old data w/o per-stream pose): followed ego at center
-  ctx.save();ctx.translate(W/2,H/2);ctx.rotate(e.yaw*Math.PI/180);ctx.fillStyle='#ffcf66';ctx.beginPath();ctx.moveTo(10*DPR,0);ctx.lineTo(-7*DPR,-7*DPR);ctx.lineTo(-7*DPR,7*DPR);ctx.closePath();ctx.fill();ctx.restore();
- }
- hud.innerHTML='<b>ego</b> ('+e.x.toFixed(1)+', '+e.y.toFixed(1)+') yaw '+e.yaw.toFixed(0)+'&deg; &middot; <span class=v>'+nv+' veh</span> <span class=p>'+np+' ped</span> &middot; ROI '+R.toFixed(0)+' m &middot; frame '+(snap.frame_id==null?'—':snap.frame_id)+(stale?' &middot; <span class=w>holding…</span>':'');
-}
-loadStatic();poll();draw();
-</script></body></html>
-"""
+    try:
+        html = _viewer_html()
+    except (OSError, RuntimeError) as exc:
+        return jsonify({"error": f"viewer assets unavailable: {exc}"}), 503
     return Response(html, mimetype="text/html")
 
 
 def main() -> None:
     global CONFIG
     CONFIG = parse_args()
+    _initialize_multi_ue_service()
+    _initialize_presentation_contracts()
     os.makedirs(str(CONFIG.output_dir), exist_ok=True)
 
     udp_thread = threading.Thread(target=udp_listener_thread, daemon=True)
