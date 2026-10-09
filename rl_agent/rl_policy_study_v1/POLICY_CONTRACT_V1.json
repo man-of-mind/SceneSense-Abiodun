@@ -1,0 +1,236 @@
+{
+  "schema": "scenesense.splitfusion.split_only_policy_contract.v1",
+  "status": "ARCHITECTURE_AND_FORMULATION_READY_TRAINING_DATASET_NOT_YET_MATERIALIZED",
+  "evidence": {
+    "campaign_terminal": "SPLITFUSION_288_CELL_LIVE_CARLA_OAI_CAMPAIGN_COMPLETE",
+    "campaign_evidence_commit": "19c867623f26caca90d0ffcad319f7e68c625e74",
+    "consolidation_commit": "7b332e40eb7bf24b8023b0653621069aa5208504",
+    "action_summary": "experiments/splitfusion_288_offline_rl_dataset_v1/20260909_offline_consolidation_v1/action_72_summary.csv",
+    "action_summary_sha256": "250eb6d9391c0de5a343d692484647bbdb181153ba64f7f4a447b0076f580a88",
+    "cells": 288,
+    "actions": 72,
+    "network_profiles": 4
+  },
+  "scope": {
+    "current_policy_action_kind": "SPLIT_ONLY",
+    "decision_period_s": 0.1,
+    "service_reference_s": 0.1,
+    "ack_accounting_timeout_s": 0.5,
+    "local_action": "DEFERRED_UNTIL_MEASURED",
+    "skip_action": "DEFERRED_UNTIL_TRANSITION_AND_GUARD_ARE_FROZEN",
+    "continuous_q": "DEFERRED_UNTIL_DENSE_Q_INTERPOLATION_IS_VALIDATED",
+    "network_profile_identity_is_policy_input": false,
+    "future_or_target_snr_is_policy_input": false,
+    "ground_truth_is_policy_input": false
+  },
+  "algorithm": {
+    "base": "PPO",
+    "memory": "GRU",
+    "action_distribution": "AUTOREGRESSIVE_FACTORIZED_CATEGORICAL_4x3x6",
+    "masking": "TECHNICAL_EXECUTABILITY_ONLY",
+    "constraint_method": "LAGRANGIAN_COST_CRITICS",
+    "project_shorthand": "recurrent factorized masked PPO",
+    "not_a_claimed_new_algorithm": true,
+    "initial_network": {
+      "observation_dim": 7,
+      "encoder_hidden": [
+        64,
+        64
+      ],
+      "activation": "tanh",
+      "gru_hidden": 128,
+      "family_embedding": 8,
+      "quantizer_embedding": 4,
+      "reward_value_heads": 1,
+      "cost_value_heads": [
+        "coverage_cost",
+        "localization_freshness_cost"
+      ]
+    },
+    "discount_initialization": {
+      "meaning": "two-second continuous-time reward half-life at a 100-ms decision interval",
+      "gamma": 0.9659363289248456,
+      "formula": "gamma = 2^(-decision_period_s / half_life_s)",
+      "half_life_s": 2.0,
+      "gae_lambda_initial": 0.95,
+      "not_yet_hyperparameter_frozen": true
+    }
+  },
+  "observation": {
+    "decision_cutoff": "AFTER_ALIGNED_CAPTURE_BEFORE_COMMON_MODEL_FRONT",
+    "missing_required_field_behavior": "DO_NOT_INVOKE_POLICY_USE_REGISTERED_DETERMINISTIC_FALLBACK",
+    "features": [
+      {
+        "index": 0,
+        "name": "freshness_slack_s",
+        "source": "newest causally received authoritative map-install ACKs and current tracked-motion estimate",
+        "aggregation": "minimum risk-weighted per-object slack over eligible current-map tracks",
+        "sign": "negative means service debt",
+        "status": "REDUCER_AND_CLIPPING_REQUIRE_FREEZE"
+      },
+      {
+        "index": 1,
+        "name": "radar_risk",
+        "source": "current aligned raw radar before model execution",
+        "aggregation": "minimum valid positive TTC among validated approaching clusters mapped monotonically to risk",
+        "status": "CLUSTERING_SIGN_AND_NOISE_CONTRACT_REQUIRE_FREEZE"
+      },
+      {
+        "index": 2,
+        "name": "ego_speed_mps",
+        "source": "causal ego motion estimate",
+        "status": "AVAILABLE"
+      },
+      {
+        "index": 3,
+        "name": "ul_capacity_lcb_bps",
+        "source": "lagged UE-visible pessimistic uplink-capacity estimate",
+        "status": "UE_VISIBLE_AVAILABILITY_PATH_REQUIRES_AUDIT"
+      },
+      {
+        "index": 4,
+        "name": "in_flight_age_s",
+        "source": "oldest locally known nonterminal transmission",
+        "status": "AVAILABLE_FROM_PROTOCOL_STATE"
+      },
+      {
+        "index": 5,
+        "name": "local_compute_slack_ms",
+        "source": "causal CPU/GPU headroom reduced by registered split preparation budget",
+        "status": "REDUCER_REQUIRES_FREEZE"
+      },
+      {
+        "index": 6,
+        "name": "time_since_last_processed_s",
+        "source": "local monotonic decision and processing records",
+        "status": "AVAILABLE"
+      }
+    ],
+    "internal_but_not_direct_policy_inputs": [
+      "per_object_map_aoi",
+      "per_object_velocity_and_uncertainty",
+      "raw_radar_returns",
+      "action_catalog",
+      "runtime_validity_flags"
+    ],
+    "forbidden": [
+      "network_profile_name",
+      "desired_or_future_snr",
+      "commanded_rfsim_noise",
+      "ground_truth",
+      "route_or_scenario_id",
+      "absolute_frame_id_or_elapsed_route_time",
+      "current_frame_front_or_tail_output",
+      "unchosen_action_outcomes"
+    ]
+  },
+  "action": {
+    "family_order": [
+      "noAE",
+      "AE128",
+      "AE64",
+      "AE32"
+    ],
+    "quantizer_order": [
+      "UINT8",
+      "UINT6",
+      "UINT4"
+    ],
+    "q_order": [
+      0.0,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      0.98
+    ],
+    "factorization": "P(family|h) P(quantizer|h,family) P(q|h,family,quantizer)",
+    "action_id_formula": "family_index*18 + quantizer_index*6 + q_index",
+    "emergency_q_values": [
+      0.9,
+      0.98
+    ],
+    "all_72_initially_technically_allowed": true
+  },
+  "mask": {
+    "allowed_reasons": [
+      "missing_or_mismatched_runtime_bundle",
+      "missing_decoder_or_codec",
+      "known_nonfinite_or_integrity_failure",
+      "required_device_or_memory_path_unavailable",
+      "protocol_state_makes_execution_impossible"
+    ],
+    "forbidden_reasons": [
+      "descriptive_pareto_dominance",
+      "zero_delivery_in_one_historical_cell",
+      "low_quality_or_emergency_tier",
+      "predicted_deadline_miss",
+      "large_payload",
+      "poor_average_reward"
+    ],
+    "current_mask": "ALL_TRUE_72",
+    "graceful_fallback": "If all preferred actions are unattractive, retain at least one technically executable minimum-predicted-debt action; do not pretend the state is feasible."
+  },
+  "reward": {
+    "principle": "score the resulting map state, never the selected profile label when delivery fails",
+    "objective": "E[U_map_next - lambda_air*C_airtime - lambda_compute*C_compute - lambda_switch*C_switch]",
+    "map_object_age": "A_j(t) = t - capture_time(newest valid installed contribution for object j)",
+    "conservative_localization_bound": "E_j_bound = E_j_model + abs(v_j_relative)*A_j",
+    "freshness_reference": "100 ms remains a reporting and normalization reference, not a binary success reward",
+    "map_utility": "risk-weighted coverage and localization utility of the post-outcome map, plus a smaller segmentation term only when installable evidence is present",
+    "coverage_cost": "risk-weighted eligible GT objects lacking a usable current-map match; GT is reward/evaluation only",
+    "localization_freshness_cost": "risk-weighted positive excess max(0, E_j_bound/epsilon_j - 1)",
+    "resource_cost_preference": "measured PRB-seconds or airtime; bytes are a fallback proxy only",
+    "delivery_accounting": "delivery changes map age/quality and is not awarded a second full-strength bonus",
+    "drop_behavior": "retain and age the previous valid map; never credit the selected action's validation quality",
+    "weights": "NOT_FROZEN_PENDING_TRAINING_SPLIT_NORMALIZATION_AND_ONE_AT_A_TIME_SENSITIVITY",
+    "constraint_budgets": "NOT_FROZEN; the measured campaign makes a hard zero-miss 100-ms budget infeasible"
+  },
+  "training_data": {
+    "status": "SCHEMA_DEFINED_NOT_MATERIALIZED",
+    "aggregate_288_table_is_direct_ppo_trajectory": false,
+    "reason": "each route held one action fixed, behavior probabilities are unavailable, and switching/queue counterfactual transitions were not observed",
+    "required_row_key": [
+      "episode_id",
+      "decision_index",
+      "capture_id"
+    ],
+    "policy_inputs": "the seven causal observation scalars sampled at or before the decision cutoff",
+    "chosen_action": [
+      "action_id",
+      "family_index",
+      "quantizer_index",
+      "q_index",
+      "technical_mask"
+    ],
+    "post_action_targets": [
+      "complete_reassembly",
+      "tail_completion",
+      "map_installation",
+      "ack_within_500ms",
+      "payload_and_datagrams",
+      "same-clock_latency_and_residual_fields",
+      "map_aoi_transition",
+      "coverage_and_localization_reward_terms",
+      "airtime_or_prb_cost",
+      "compute_cost"
+    ],
+    "evaluation_only_not_input": [
+      "network_profile",
+      "target_snr_trace",
+      "ground_truth",
+      "unchosen_action_outcomes"
+    ],
+    "first_environment": "trace-driven action-conditional stochastic emulator with explicit map-age, in-flight and bounded-queue state",
+    "surrogate_outputs": [
+      "P(reassembly|causal_state,action)",
+      "P(install|reassembled,causal_state,action)",
+      "conditional compatible-clock latency distribution",
+      "resource-cost distribution"
+    ],
+    "split_rule": "whole temporally correlated blocks and independent trace seeds; never random per-frame splitting",
+    "final_generalization_requirement": "independent trace seeds or separately authorized live episodes",
+    "one_way_uplink_target": "UNAVAILABLE_DO_NOT_SYNTHESIZE",
+    "training_authorized": false
+  }
+}
