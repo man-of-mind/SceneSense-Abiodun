@@ -1,0 +1,85 @@
+{
+ "base_commit": "6199d49a4a6091b5f6fa0be9f94d1c4afd0dff0b",
+ "binds": {
+  "addendum": "qualification_addendum_2.json",
+  "addendum_file_sha256": "6c281f156dc86708b7b65e38a014a3857eb447cac63023ce4cadc43c0aa55457",
+  "qualification_result": "QUALIFICATION_ATTEMPT_3_RESULT.json",
+  "qualification_result_sha256": "98fbe6c964be248dcddd5f700af1ec0cd5ee68071828320faf274fafe91052a7",
+  "qualified_commit": "59f40d13e080bef934da3a96c5dae9565d03ba1b"
+ },
+ "claim_scope": "PROFILING_BASELINE_CAPTURE_FOR_INDEPENDENT_BOTTLENECK_ANALYSES; no policy change, no optimization, no diagnosis inside this capture",
+ "execute_token": "SINGLE_GPU_PROFILER_V1_RUN4_PROFILING_CAPTURE_1000_EXECUTE",
+ "export": "after the gates, export_v1 writes <output_root>/export_v1 (create-only CSV tables + MANIFEST.json with source and export SHA-256); each analysis starts with `export_v1 --verify-only`",
+ "g1_boundary_budget": 1000,
+ "gates": {
+  "G1_FRAME_ACCOUNTING": "exactly 1,000 frames at TRANSMITTED_BUDGET_REACHED, or exactly 999 at a verified DECISION_CYCLE_BOUNDARY (budget 1,000, no decision cap, boundary reached); matching transmission counts, one terminal per sent frame, zero unresolved tickets (the addendum-2 rule at budget 1,000)",
+  "G2_ACTOR_HASH_UNCHANGED": "weights SHA-256 equals the registered value before and after; the live actor's boundary equals the binding; the read-only actor audit passes before and after and is identical",
+  "G3_ZERO_IDENTITY_CONFLICTS": "no profiler record (UE, edge, map) disagrees with the transmitted identity of its frame; no edge/map record names an untransmitted frame; the Phase-6 integration identity checks pass",
+  "G4_COVERAGE_REPORTED": "per-stage coverage, denominators and missing counts are reported for every registered stage",
+  "G5_SAMPLER_REPORTED": "sampler header and footer present; interval P50/P95/max, dropped samples and sampler CPU reported",
+  "G6_NO_PROFILER_INDUCED_FAULT": "child exit 0; Phase-6 P8 (no infrastructure fault); zero edge processing failures; zero profiler write failures, dropped records and internal errors in every process",
+  "G7_INSTRUMENTATION_EVIDENCE_VALID": "every profiler stream has one header and one footer; no duplicate sequence, negative interval, crossed sibling, nesting-registry violation, out-of-parent span or non-monotonic per-thread timestamp; every CUDA span resolved or explicitly marked unresolved",
+  "G8_REWARD_TIMEOUT_SEMANTICS": "every live actor decision replays offline to the identical mode, q_e4, state and head digests; every resolution obeys the inclusive 170-ms deadline and the registered reward formula exactly; every feedback-receipt mark equals the authoritative receipt stamp; Phase-6 P3/P4/P5 pass",
+  "G9_HOST_RESTORED_CLEAN": "Phase-6 cleanup gates pass (tracer, application, CARLA, radio, cold-after); sampler exited with a footer; no profiler, edge, map or child process remains"
+ },
+ "id": "RUN4_SINGLE_GPU_PROFILER_V1_PROFILING_CAPTURE_1000",
+ "instrumentation_files": [
+  "__init__.py",
+  "analyze_v1.py",
+  "child_v1.py",
+  "edge_profiled_v1.py",
+  "identity_v1.py",
+  "map_profiled_v1.py",
+  "nvml_v1.py",
+  "recorder_v1.py",
+  "sampler_v1.py",
+  "seams_ue_v1.py",
+  "stages_v1.py"
+ ],
+ "kind": "PROFILING_CAPTURE",
+ "lifecycle": {
+  "child_timeout_s": 1800.0,
+  "rationale": "the collector safety timeout is a wall-clock bound on the route loop (live_cell_child, time.monotonic) and also the route's maximum loop sim-seconds; the qualified 300-frame route took ~67 s wall, so 1,000 frames need ~220 s and would stop near frame 540 at the qualification's 120 s. 600 s / 1800 s are bounds only; the 170-ms reward clock, the 2-s edge GT wait and every other timeout are unchanged.",
+  "safety_timeout_s": 600.0
+ },
+ "policy": {
+  "audit_module": "rl_agent.splitfusion_hybrid_sac_checkpoint_sidecar_v1.audit_run4_selected_actor_v1",
+  "binding_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/ACTOR_EXPORT_MANIFEST.json",
+  "expected_weights_sha256": "d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29",
+  "weights_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/actor_state_dict.pt"
+ },
+ "profiler": {
+  "flush_interval_s": 0.2,
+  "gauge_interval_s": 0.1,
+  "minimum_free_disk_bytes": 1000000000,
+  "sampler_interval_ms": 100.0
+ },
+ "report_only": [
+  "Phase-6 P0 policy coverage and the P0-P8 aggregate verdict (as in addendum 11)",
+  "stage durations, CUDA execution durations and resource series (descriptive only)",
+  "instrumentation overhead"
+ ],
+ "retry": "none; any gate failure stops for a report",
+ "runs": 1,
+ "schema": "scenesense.single_gpu_profiler.capture.v1",
+ "semantics": {
+  "act_on_vector": "act_on_vector",
+  "actor_loader": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.frozen_actor_v2:load_registered_actor",
+  "contract_module": "rl_agent.splitfusion_hybrid_sac_run4_v1.run4_contract",
+  "controller_module": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.reward_hold_controller_v2"
+ },
+ "status": "PREPARED_NOT_EXECUTED",
+ "transmitted_budget": 1000,
+ "unchanged": [
+  "original Run-4 seed-43/update-10,000 frozen actor (actor_state_dict.pt SHA-256 d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29)",
+  "21-feature state including previous Q_perc",
+  "CARLA-GT quality evaluator active",
+  "reward formula and exact inclusive 170-ms action-open deadline",
+  "k_min = 2 action hold",
+  "FAVORABLE_STABLE network profile",
+  "Route B, traffic seed, sensor configuration, Epic rendering",
+  "codec, edge model, map path, OAI configuration",
+  "all components on the local RTX 5090; no split-host/L10319 path",
+  "no retraining, no precision change, no rendering reduction, no MPS, no CUDA scheduling change, no timeout change"
+ ]
+}

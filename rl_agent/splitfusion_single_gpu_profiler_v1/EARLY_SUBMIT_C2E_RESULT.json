@@ -1,0 +1,457 @@
+{
+ "analyses": {
+  "comparison": {
+   "COMPARISON.json_sha256": "a54fc539a434b1e07b05a6f5d3c59d04638bb7dc78942712c4b26e40516ef735",
+   "dir": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T043858Z_early_submit_c2e_comparison",
+   "note": "generic A/B comparator labels arms A=C2, B=E"
+  },
+  "evaluator_internal_decomposition": "== C2: evaluations 460, with full GT handoff timing 460; kinds {'EVALUATOR_FAULT': 47, 'DELIVERED_SUCCESS': 413}\n  GT ready before submission (gt_ready_wall <= enqueued): 459 / 460\n  GT ready - enqueued (ms, negative = GT was waiting for the ticket): n=460 p50=-100.08 p95=-74.56 p99=-65.21\n  submit -> GT first observed by evaluator : n=460 p50=2.07 p95=3.28 p99=17.34\n  first observed -> GT read complete       : n=460 p50=1.59 p95=3.90 p99=9.40\n  read complete -> evaluator start         : n=460 p50=0.31 p95=0.91 p99=4.58\n  evaluator start -> end (Q_perc)          : n=460 p50=3.16 p95=5.30 p99=9.69\n  end -> emit                              : n=460 p50=0.12 p95=0.47 p99=1.15\n  submit -> emit (whole evaluator branch)  : n=460 p50=7.65 p95=13.99 p99=32.65\n  Q_perc over DELIVERED_SUCCESS: n=413 mean=0.2824 median=0.3465 zero_frac=0.266\n  tickets.csv SUCCESS q_perc: n=274 mean=0.3080; reward over all tickets mean=-0.3103\n== E: evaluations 466, with full GT handoff timing 466; kinds {'EVALUATOR_FAULT': 51, 'DELIVERED_SUCCESS': 415}\n  GT ready before submission (gt_ready_wall <= enqueued): 466 / 466\n  GT ready - enqueued (ms, negative = GT was waiting for the ticket): n=466 p50=-97.32 p95=-73.88 p99=-58.85\n  submit -> GT first observed by evaluator : n=466 p50=3.43 p95=5.18 p99=6.77\n  first observed -> GT read complete       : n=466 p50=1.75 p95=4.11 p99=9.41\n  read complete -> evaluator start         : n=466 p50=0.33 p95=0.97 p99=3.49\n  evaluator start -> end (Q_perc)          : n=466 p50=3.35 p95=5.63 p99=14.94\n  end -> emit                              : n=466 p50=0.12 p95=0.50 p99=1.46\n  submit -> emit (whole evaluator branch)  : n=466 p50=9.45 p95=14.98 p99=26.59\n  Q_perc over DELIVERED_SUCCESS: n=415 mean=0.3063 median=0.3506 zero_frac=0.202\n  tickets.csv SUCCESS q_perc: n=293 mean=0.3072; reward over all tickets mean=-0.2525\n",
+  "freshness_fallback": {
+   "dir": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T043859Z_freshness_fallback_analysis_c2e"
+  },
+  "mechanism_v2": {
+   "MECHANISM.json_sha256": "c471b0b474ed1184a8988b23af6f271d7b7c36e8596bf2d558ad186e8e35b668",
+   "dir": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T043859Z_early_submit_mechanism_v2",
+   "note": "compare_ordering_mechanism_v2 (post-seal analysis-only correction of the bound v1: map branch to map.install, nested emit span measured from Q_perc start); v1 left untouched"
+  }
+ },
+ "arms": {
+  "C2": {
+   "code_commit": "524be1a63e10b03d0e144b785b9b06fdcbb60bcf",
+   "edge_ordering": {
+    "counters": {},
+    "evaluator_submitted": 460,
+    "expected": "serial",
+    "loop_submitted": 460,
+    "passed": true,
+    "recorded": "serial"
+   },
+   "experiment_checks": {
+    "E1_UE_SETTINGS_RECORDED": true,
+    "E2_UE_CAP_STATE_AS_REGISTERED": true,
+    "E3_SCOPE_OTHER_PROCESSES_BASELINE": true,
+    "E4_RADAR_BUNDLE_AS_REGISTERED": true,
+    "E5_EDGE_ORDERING_AS_REGISTERED": true
+   },
+   "export_manifest_sha256": "faa86fa14baa2bfc9bb2894b9e6782072c54ef21426efb705cb0fc5d53f69f0a",
+   "g1_mode": "VERIFIED_DECISION_CYCLE_BOUNDARY_999",
+   "g1_sent": 999,
+   "gates": {
+    "G1_FRAME_ACCOUNTING": true,
+    "G2_ACTOR_HASH_UNCHANGED": true,
+    "G3_ZERO_IDENTITY_CONFLICTS": true,
+    "G4_COVERAGE_REPORTED": true,
+    "G5_SAMPLER_REPORTED": true,
+    "G6_NO_PROFILER_INDUCED_FAULT": true,
+    "G7_INSTRUMENTATION_EVIDENCE_VALID": true,
+    "G8_REWARD_TIMEOUT_SEMANTICS": true,
+    "G9_HOST_RESTORED_CLEAN": true
+   },
+   "launch_exit": "exit=0",
+   "profiler_analysis_sha256": "23af26c6f152228e574c16ebda4cbdfe960e31109c9f66ed0128a31348adeb92",
+   "qualification_result_sha256": "124eab243c99ee0b08f3f14824f86ff9ef3911c11b6c0ebc82c50c33654491ec",
+   "root": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T042846Z_early_submit_arm_C2_control_1000",
+   "verdict": "CAPTURE_VALID"
+  },
+  "E": {
+   "code_commit": "524be1a63e10b03d0e144b785b9b06fdcbb60bcf",
+   "edge_ordering": {
+    "counters": {
+     "early_submissions": 466,
+     "loop_submission_suppressed": 466,
+     "non_reward_frames": 599,
+     "reward_frames_seen": 466
+    },
+    "evaluator_submitted": 466,
+    "expected": "early",
+    "loop_submitted": 0,
+    "passed": true,
+    "recorded": "early"
+   },
+   "experiment_checks": {
+    "E1_UE_SETTINGS_RECORDED": true,
+    "E2_UE_CAP_STATE_AS_REGISTERED": true,
+    "E3_SCOPE_OTHER_PROCESSES_BASELINE": true,
+    "E4_RADAR_BUNDLE_AS_REGISTERED": true,
+    "E5_EDGE_ORDERING_AS_REGISTERED": true
+   },
+   "export_manifest_sha256": "b5f7f603d00b89ee3ea3ce945068db1e253069ef158b61bffbd64e631e41a29e",
+   "g1_mode": "TRANSMITTED_BUDGET_REACHED",
+   "g1_sent": 1000,
+   "gates": {
+    "G1_FRAME_ACCOUNTING": true,
+    "G2_ACTOR_HASH_UNCHANGED": true,
+    "G3_ZERO_IDENTITY_CONFLICTS": true,
+    "G4_COVERAGE_REPORTED": true,
+    "G5_SAMPLER_REPORTED": true,
+    "G6_NO_PROFILER_INDUCED_FAULT": true,
+    "G7_INSTRUMENTATION_EVIDENCE_VALID": true,
+    "G8_REWARD_TIMEOUT_SEMANTICS": true,
+    "G9_HOST_RESTORED_CLEAN": true
+   },
+   "launch_exit": "exit=0",
+   "profiler_analysis_sha256": "832e9424e95853ce258fc0dcf3619dae7940f6e858b0ea8d0dcc874acba68918",
+   "qualification_result_sha256": "743d47af77358d644aa045ecdc974de20e7e593ff65a4b62b97171851524decb",
+   "root": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T043420Z_early_submit_arm_E_treatment_1000",
+   "verdict": "CAPTURE_VALID"
+  }
+ },
+ "experiment": {
+  "approved_task": "Submit each reward-requested frame to the existing asynchronous evaluator as soon as its prediction records, CPU-accessible labels and verified identities are ready, before map-update construction/publication. Then build and publish the map update normally. Neither branch waits for the other. One ordering change, not a new evaluator, queue or GPU optimization.",
+  "code_commit_at_launch": "524be1a",
+  "registration": "experiment_early_submit_v1.json",
+  "registration_file_sha256": "41518c4fe7f29c96fb506385486cc1d30f4a7beea88bcbbe935d6d87d65eb6af",
+  "registration_sha256": "796f2179c5286651ccc769e2da2ee612899a511584542b422c9a956e9354372d"
+ },
+ "host_settle_before_E": "settled loadavg: 0.85 3.19 2.09 2/2382 709939 after 7x10s; containers=0",
+ "hypothesis_23_recovered_tickets": {
+  "evidence": "late tickets with excess <= 5 ms: C2 37, E 32; C2 late-excess P25 is 4.97 ms, above the realized median saving (0.4 ms) and even above the gross 3.7 ms shift once the evaluator-thread slowdown is included",
+  "status": "NOT_SUPPORTED"
+ },
+ "mechanism": {
+  "evaluator_branch_ms": {
+   "compute_end_to_receipt": {
+    "C2": {
+     "n": 460,
+     "p50": 15.239099,
+     "p95": 24.442235,
+     "p99": 57.856662
+    },
+    "E": {
+     "n": 466,
+     "p50": 14.790663,
+     "p95": 22.697313,
+     "p99": 31.109646
+    }
+   },
+   "compute_end_to_submit": {
+    "C2": {
+     "n": 460,
+     "p50": 3.798027,
+     "p95": 5.313309,
+     "p99": 25.748054
+    },
+    "E": {
+     "n": 466,
+     "p50": 0.069217,
+     "p95": 0.14932,
+     "p99": 0.645985
+    }
+   },
+   "emit_end_to_receipt": {
+    "C2": {
+     "n": 460,
+     "p50": 5.213946,
+     "p95": 10.034951,
+     "p99": 15.544116
+    },
+    "E": {
+     "n": 466,
+     "p50": 5.089937,
+     "p95": 8.875464,
+     "p99": 13.456529
+    }
+   },
+   "qperc": {
+    "C2": {
+     "n": 460,
+     "p50": 3.357762,
+     "p95": 5.590605,
+     "p99": 10.340992
+    },
+    "E": {
+     "n": 466,
+     "p50": 3.56334,
+     "p95": 6.026835,
+     "p99": 15.154939
+    }
+   },
+   "submit_to_qperc_start": {
+    "C2": {
+     "n": 460,
+     "p50": 2.252557,
+     "p95": 5.372243,
+     "p99": 12.490098
+    },
+    "E": {
+     "n": 466,
+     "p50": 5.743872,
+     "p95": 8.974153,
+     "p99": 18.276577
+    }
+   }
+  },
+  "exactly_once": {
+   "C2": "early 0, loop 460 = evaluator 460",
+   "E": "early 466 = evaluator 466, loop 0, suppressed 466, errors 0, live-gate rejections 0, non-reward frames 599"
+  },
+  "gt_readiness": "GT bundle was ready ~100 ms before the ticket in 459/460 (C2) and 466/466 (E) evaluations: the evaluator is submission-bound, never GT-bound, in both arms",
+  "late_excess_ms": {
+   "C2": {
+    "le_10": 56,
+    "le_5": 37,
+    "p25": 4.971380000000011,
+    "p50": 17.844456000000008,
+    "p75": 39.762643
+   },
+   "E": {
+    "le_10": 54,
+    "le_5": 32,
+    "p25": 5.174461000000008,
+    "p50": 14.873880000000014,
+    "p75": 29.331893000000008
+   }
+  },
+  "late_only": {
+   "ao_to_compute_end": {
+    "C2": {
+     "n": 148,
+     "p50": 168.434817,
+     "p95": 283.390614,
+     "p99": 426.876202
+    },
+    "E": {
+     "n": 129,
+     "p50": 165.069939,
+     "p95": 214.776693,
+     "p99": 265.633283
+    }
+   },
+   "ao_to_receipt": {
+    "C2": {
+     "n": 148,
+     "p50": 187.844456,
+     "p95": 321.005157,
+     "p99": 487.523561
+    },
+    "E": {
+     "n": 129,
+     "p50": 184.87388,
+     "p95": 244.361675,
+     "p99": 290.361507
+    }
+   },
+   "compute_end_to_receipt": {
+    "C2": {
+     "n": 148,
+     "p50": 16.865976,
+     "p95": 45.711142,
+     "p99": 64.393431
+    },
+    "E": {
+     "n": 129,
+     "p50": 16.812005,
+     "p95": 26.344784,
+     "p99": 87.992222
+    }
+   }
+  },
+  "map_branch_ms": {
+   "ao_to_map_installed": {
+    "C2": {
+     "n": 459,
+     "p50": 149.326625,
+     "p95": 217.132641,
+     "p99": 314.9967
+    },
+    "E": {
+     "n": 466,
+     "p50": 148.421622,
+     "p95": 192.861463,
+     "p99": 240.12774
+    }
+   },
+   "compute_end_to_map_built": {
+    "C2": {
+     "n": 460,
+     "p50": 1.939127,
+     "p95": 2.816224,
+     "p99": 8.25728
+    },
+    "E": {
+     "n": 466,
+     "p50": 1.941948,
+     "p95": 2.795744,
+     "p99": 6.918719
+    }
+   },
+   "compute_end_to_map_installed": {
+    "C2": {
+     "n": 459,
+     "p50": 6.293091,
+     "p95": 11.635884,
+     "p99": 27.514113
+    },
+    "E": {
+     "n": 466,
+     "p50": 6.247532,
+     "p95": 10.683444,
+     "p99": 17.902178
+    }
+   },
+   "compute_end_to_map_published": {
+    "C2": {
+     "n": 460,
+     "p50": 3.779994,
+     "p95": 5.252027,
+     "p99": 25.72003
+    },
+    "E": {
+     "n": 466,
+     "p50": 3.977362,
+     "p95": 6.219944,
+     "p99": 12.7215
+    }
+   }
+  },
+  "profiler_coverage_edge.evaluator_submit": {
+   "C2": "460/460",
+   "E": "466/466"
+  },
+  "reading": "the submission moved 3.7 ms earlier at the median (compute_end_to_submit 3.8 -> 0.1 ms) for every reward ticket, but the evaluator thread's probe/read/evaluate phase slowed by ~1.8 ms (submit->emit 7.65 -> 9.45 ms wall P50) while overlapping the compute thread's map build/publish in the same CPython process; realized compute_end->receipt gain is 0.4 ms P50 / 1.7 ms P95. The primary-metric improvement is dominated by ao->compute_end (P95 210.7 -> 184.6; edge compute P99 241.6 -> 109.7; edge queue P99 76.1 -> 46.6), which the ordering change cannot produce.",
+  "submitted_before_map_built": {
+   "C2": 0,
+   "E": 466
+  },
+  "upstream_ms": {
+   "ao_to_compute_end": {
+    "C2": {
+     "n": 460,
+     "p50": 143.365118,
+     "p95": 210.693544,
+     "p99": 340.220826
+    },
+    "E": {
+     "n": 466,
+     "p50": 142.371481,
+     "p95": 184.574932,
+     "p99": 232.328079
+    }
+   }
+  }
+ },
+ "no_further_work": "after the two captures: report and stop; no further optimization, retraining, Run-5 integration or additional captures; no push",
+ "noise_context": "same-configuration cap-only captures now span 66.2% (C2), 71.4% (C), 75.2% (B): the C2->E +5.5 pt lies inside that spread; two captures do not define a noise band",
+ "primary": {
+  "action_open_to_feedback_ms_received": {
+   "C2": {
+    "max": 676.9,
+    "p50": 158.5,
+    "p95": 228.4,
+    "p99": 390.8
+   },
+   "E": {
+    "max": 293.5,
+    "p50": 156.5,
+    "p95": 204.0,
+    "p99": 248.1
+   }
+  },
+  "missing_replies": {
+   "C2": 11,
+   "E": 4
+  },
+  "terminals": {
+   "C2": {
+    "EVALUATOR_FAULT": 38,
+    "REGISTERED_SERVICE_FAILURE": 10,
+    "SUCCESS": 274,
+    "TIMEOUT": 149
+   },
+   "E": {
+    "EVALUATOR_FAULT": 44,
+    "REGISTERED_SERVICE_FAILURE": 4,
+    "SUCCESS": 293,
+    "TIMEOUT": 129
+   }
+  },
+  "timely_feedback_over_all_decisions": {
+   "C2": "312/471 (66.2%)",
+   "E": "337/470 (71.7%)",
+   "delta_pt": 5.5
+  }
+ },
+ "recommendation": "INCONCLUSIVE on the primary metric; the mechanism is verified (exactly-once early submission, map content/bytes/freshness unchanged, no regression) but its realized per-ticket gain is 0.4 ms P50 / 1.7 ms P95, far below the 3.7 ms shift and below the late-excess floor, so the ordering change is NOT retained as a timeliness improvement; the production (serial) ordering remains the live path. The next single-process bottleneck it exposes is CPython GIL sharing between the edge compute thread and the evaluator thread (post-hoc observation, not a registered result).",
+ "regressions": {
+  "cpu_gpu": {
+   "GPU power W": [
+    195.3,
+    191.7
+   ],
+   "GPU util % mean": [
+    57.5,
+    58.7
+   ],
+   "UE CPU % mean": [
+    106.6,
+    107.5
+   ],
+   "host busy % mean": [
+    31.4,
+    31.6
+   ]
+  },
+  "edge_processing_failed": {
+   "C2": 0,
+   "E": 0
+  },
+  "edge_queue_p95_p99": {
+   "C2": [
+    35.4,
+    76.1
+   ],
+   "E": [
+    28.7,
+    46.6
+   ]
+  },
+  "fallbacks": {
+   "C2": 16,
+   "E": 10
+  },
+  "map_install_after_compute_end_ms_p50_p95": {
+   "C2": [
+    6.3,
+    11.6
+   ],
+   "E": [
+    6.2,
+    10.7
+   ]
+  },
+  "map_outcomes": {
+   "C2": {
+    "RESULT_INSTALLED": 459,
+    "STALE_BEFORE_MAP": 1,
+    "SUPERSEDED_PENDING": 11
+   },
+   "E": {
+    "RESULT_INSTALLED": 466,
+    "SUPERSEDED_PENDING": 4
+   }
+  },
+  "profiler_hot_path_ms_per_frame_UE": {
+   "C2": 1.098,
+   "E": 1.053
+  },
+  "quality_parity": {
+   "excluded_undefined_quality": {
+    "C2": 38,
+    "E": 44
+   },
+   "q_perc_mean_over_SUCCESS_tickets": {
+    "C2": 0.308,
+    "E": 0.3072
+   }
+  },
+  "registered_service_failures": {
+   "C2": 10,
+   "E": 4
+  },
+  "supersessions_reward": {
+   "C2": 11,
+   "E": 4
+  }
+ },
+ "schema": "scenesense.single_gpu_profiler.early_submit_result.v1"
+}

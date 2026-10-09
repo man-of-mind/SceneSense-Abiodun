@@ -1,0 +1,57 @@
+{
+ "schema": "scenesense.single_gpu_profiler.qualification.v1",
+ "id": "RUN4_SINGLE_GPU_PROFILER_V1_INSTRUMENTATION_QUALIFICATION_300",
+ "registered_before_any_profiled_evidence": true,
+ "base_commit": "6199d49a4a6091b5f6fa0be9f94d1c4afd0dff0b",
+ "claim_scope": "INSTRUMENTATION_QUALIFICATION_ONLY",
+ "not_a_profiling_baseline": "The 300-frame result qualifies the instrumentation only. It is not the profiling baseline and must not be used for diagnosis or optimization claims.",
+ "transmitted_budget": 300,
+ "runs": 1,
+ "retry": "none",
+ "unchanged": [
+  "original Run-4 seed-43/update-10,000 frozen actor (actor_state_dict.pt SHA-256 d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29)",
+  "21-feature state including previous Q_perc",
+  "CARLA-GT quality evaluator active",
+  "reward formula and exact inclusive 170-ms action-open deadline",
+  "k_min = 2 action hold",
+  "FAVORABLE_STABLE network profile",
+  "Route B, traffic seed, sensor configuration, Epic rendering",
+  "codec, edge model, map path, OAI configuration",
+  "all components on the local RTX 5090; no split-host/L10319 path",
+  "no retraining, no precision change, no rendering reduction, no MPS, no CUDA scheduling change, no timeout change"
+ ],
+ "policy": {
+  "binding_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/ACTOR_EXPORT_MANIFEST.json",
+  "weights_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/actor_state_dict.pt",
+  "expected_weights_sha256": "d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29",
+  "audit_module": "rl_agent.splitfusion_hybrid_sac_checkpoint_sidecar_v1.audit_run4_selected_actor_v1"
+ },
+ "semantics": {
+  "actor_loader": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.frozen_actor_v2:load_registered_actor",
+  "act_on_vector": "act_on_vector",
+  "contract_module": "rl_agent.splitfusion_hybrid_sac_run4_v1.run4_contract",
+  "controller_module": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.reward_hold_controller_v2"
+ },
+ "profiler": {
+  "sampler_interval_ms": 100.0,
+  "gauge_interval_s": 0.1,
+  "flush_interval_s": 0.2,
+  "minimum_free_disk_bytes": 1000000000
+ },
+ "gates": {
+  "G1_FRAME_ACCOUNTING": "child stop reason TRANSMITTED_BUDGET_REACHED; 300 transmitted identities; exactly one terminal per transmitted frame; no terminal for an untransmitted frame",
+  "G2_ACTOR_HASH_UNCHANGED": "weights SHA-256 equals the registered value before and after; the live actor's boundary equals the binding; the read-only actor audit passes before and after and is identical",
+  "G3_ZERO_IDENTITY_CONFLICTS": "no profiler record (UE, edge, map) disagrees with the transmitted identity of its frame; no edge/map record names an untransmitted frame; the Phase-6 integration identity checks pass",
+  "G4_COVERAGE_REPORTED": "per-stage coverage, denominators and missing counts are reported for every registered stage",
+  "G5_SAMPLER_REPORTED": "sampler header and footer present; interval P50/P95/max, dropped samples and sampler CPU reported",
+  "G6_NO_PROFILER_INDUCED_FAULT": "child exit 0; Phase-6 P8 (no infrastructure fault); zero edge processing failures; zero profiler write failures, dropped records and internal errors in every process",
+  "G7_INSTRUMENTATION_EVIDENCE_VALID": "every profiler stream has one header and one footer; no duplicate sequence, negative interval, crossed sibling, nesting-registry violation, out-of-parent span or non-monotonic per-thread timestamp; every CUDA span resolved or explicitly marked unresolved",
+  "G8_REWARD_TIMEOUT_SEMANTICS": "every live actor decision replays offline to the identical mode, q_e4, state and head digests; every resolution obeys the inclusive 170-ms deadline and the registered reward formula exactly; every feedback-receipt mark equals the authoritative receipt stamp; Phase-6 P3/P4/P5 pass",
+  "G9_HOST_RESTORED_CLEAN": "Phase-6 cleanup gates pass (tracer, application, CARLA, radio, cold-after); sampler exited with a footer; no profiler, edge, map or child process remains"
+ },
+ "report_only": [
+  "Phase-6 P0 policy coverage and the P0-P8 aggregate verdict (as in addendum 11)",
+  "stage durations, CUDA execution durations and resource series (descriptive only)",
+  "instrumentation overhead"
+ ]
+}

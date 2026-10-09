@@ -1,0 +1,212 @@
+{
+ "arms": {
+  "C": {
+   "bundle": "production",
+   "env": {
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+   },
+   "execute_token": "SINGLE_GPU_PROFILER_V1_RADAR_BUNDLE_CT_ARM_C_EXECUTE",
+   "label": "control: UE cap on, production CPU radar preparation"
+  },
+  "T": {
+   "bundle": "optimized",
+   "env": {
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+   },
+   "execute_token": "SINGLE_GPU_PROFILER_V1_RADAR_BUNDLE_CT_ARM_T_EXECUTE",
+   "label": "treatment: UE cap on, optimized radar-preparation bundle"
+  }
+ },
+ "base_commit": "6199d49a4a6091b5f6fa0be9f94d1c4afd0dff0b",
+ "binds": {
+  "addendum": "qualification_addendum_2.json",
+  "addendum_file_sha256": "6c281f156dc86708b7b65e38a014a3857eb447cac63023ce4cadc43c0aa55457",
+  "qualification_result": "QUALIFICATION_ATTEMPT_3_RESULT.json",
+  "qualification_result_sha256": "98fbe6c964be248dcddd5f700af1ec0cd5ee68071828320faf274fafe91052a7",
+  "qualified_commit": "59f40d13e080bef934da3a96c5dae9565d03ba1b"
+ },
+ "child_module": "rl_agent.splitfusion_single_gpu_profiler_v1.child_v1_threadcap",
+ "experiment_binds": {
+  "child_entry": {
+   "path": "child_v1_threadcap.py",
+   "sha256": "315dda33cadf004a241632ab01fe3ae3653cf7c2dfb59d8baeafd576cd829ef4"
+  },
+  "historical_thread_cap_B_manifest": {
+   "path": "rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T024743Z_threadcap_arm_B_treatment_1000/export_v1/MANIFEST.json",
+   "sha256": "c1350387594c574bdca05e480de6192f88c7d181cdbea6847a9773cd3c8d79f2"
+  },
+  "offline_parity_result": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T032618Z_radar_bundle_offline_parity/OFFLINE_PARITY_RESULT.json",
+   "sha256": "a6584b1956330aec8d541d7375c94e2376c01a2ab66fbdebb582ff7e548be9de"
+  },
+  "optimized_stages": {
+   "path": "../splitfusion_sensor_optimization_v1/optimized_stages.py",
+   "sha256": "d8ab1e2045d35054c459c8c0068764a5c9042579357c40b2a41893780a41d64c"
+  },
+  "parity_tests_log": {
+   "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261002T032618Z_radar_bundle_offline_parity/parity_tests.log",
+   "sha256": "c22f59fd72bc22248d0b3387173eeaf7b7b93e4af54bac9d809195749e8e3212"
+  },
+  "profiled_sensor_stages": {
+   "path": "../splitfusion_supervisor_analysis_v1/profiled_sensor_stages.py",
+   "sha256": "f10196779f5c4eb3efaf7d74d9b7aae51ec3716c59015c46cb11d94a3b423ac2"
+  },
+  "radar_bundle_module": {
+   "path": "radar_bundle_v1.py",
+   "sha256": "57e6cbe8a3cad4d099814fa5dec8dea18bc6724de049b96bc362c0cc8fb2fbcf"
+  },
+  "superseded_threadcap_registration": {
+   "path": "experiment_threadcap_ab_v1a.json",
+   "sha256": "1fb81d9018b93adcbdc10c52dfa12c74b5d6a8c3f259b7349661b68dc45418f3"
+  },
+  "threadcap_ab_result": {
+   "path": "THREADCAP_AB_RESULT.json",
+   "sha256": "c355311fd0d1faa50b6ab8425f02dde4922761f137f1443ab2321b2af2c87b38"
+  },
+  "threadcap_module": {
+   "path": "threadcap_v1.py",
+   "sha256": "df36db071aa65e8312952fc9a771091829398c73c4c85273efae4a9908e2c766"
+  }
+ },
+ "experiment_checks_reported_not_gated": {
+  "E1_UE_SETTINGS_RECORDED": "pre-import and post-run UE settings snapshots exist",
+  "E2_UE_CAP_STATE_AS_REGISTERED": "B: variables present at exec and every observed OpenMP/MKL/PyTorch pool reports one thread; A: variables absent and pools at their defaults",
+  "E3_SCOPE_OTHER_PROCESSES_BASELINE": "no process outside the UE child carries a cap variable away from its baseline (parent-side /proc inventory)",
+  "E4_RADAR_BUNDLE_AS_REGISTERED": "the UE child recorded the registered bundle (T: all three components, single-sort tracker; C: production)"
+ },
+ "export": "after the gates, export_v1 writes <output_root>/export_v1 (create-only CSV tables + MANIFEST.json with source and export SHA-256); each analysis starts with `export_v1 --verify-only`",
+ "g1_boundary_budget": 1000,
+ "gates": {
+  "G1_FRAME_ACCOUNTING": "exactly 1,000 frames at TRANSMITTED_BUDGET_REACHED, or exactly 999 at a verified DECISION_CYCLE_BOUNDARY (budget 1,000, no decision cap, boundary reached); matching transmission counts, one terminal per sent frame, zero unresolved tickets (the addendum-2 rule at budget 1,000)",
+  "G2_ACTOR_HASH_UNCHANGED": "weights SHA-256 equals the registered value before and after; the live actor's boundary equals the binding; the read-only actor audit passes before and after and is identical",
+  "G3_ZERO_IDENTITY_CONFLICTS": "no profiler record (UE, edge, map) disagrees with the transmitted identity of its frame; no edge/map record names an untransmitted frame; the Phase-6 integration identity checks pass",
+  "G4_COVERAGE_REPORTED": "per-stage coverage, denominators and missing counts are reported for every registered stage",
+  "G5_SAMPLER_REPORTED": "sampler header and footer present; interval P50/P95/max, dropped samples and sampler CPU reported",
+  "G6_NO_PROFILER_INDUCED_FAULT": "child exit 0; Phase-6 P8 (no infrastructure fault); zero edge processing failures; zero profiler write failures, dropped records and internal errors in every process",
+  "G7_INSTRUMENTATION_EVIDENCE_VALID": "every profiler stream has one header and one footer; no duplicate sequence, negative interval, crossed sibling, nesting-registry violation, out-of-parent span or non-monotonic per-thread timestamp; every CUDA span resolved or explicitly marked unresolved",
+  "G8_REWARD_TIMEOUT_SEMANTICS": "every live actor decision replays offline to the identical mode, q_e4, state and head digests; every resolution obeys the inclusive 170-ms deadline and the registered reward formula exactly; every feedback-receipt mark equals the authoritative receipt stamp; Phase-6 P3/P4/P5 pass",
+  "G9_HOST_RESTORED_CLEAN": "Phase-6 cleanup gates pass (tracer, application, CARLA, radio, cold-after); sampler exited with a footer; no profiler, edge, map or child process remains"
+ },
+ "id": "RADAR_PREPARATION_BUNDLE_CT_V1",
+ "instrumentation_files": [
+  "__init__.py",
+  "analyze_v1.py",
+  "child_v1.py",
+  "edge_profiled_v1.py",
+  "identity_v1.py",
+  "map_profiled_v1.py",
+  "nvml_v1.py",
+  "recorder_v1.py",
+  "sampler_v1.py",
+  "seams_ue_v1.py",
+  "stages_v1.py"
+ ],
+ "intervention": {
+  "attachment": "UE child only: packing seam installed before the profiler wraps _prepare_live_input; builder/tracker seam as an outer collector subclass after the Phase-6 and profiler collectors; the Phase-6 radar_tensor_start/end stamps and the ue.radar_rasterize / ue.input_7ch spans still bracket the bundle; one synthetic rasterizer warm call at install (recorded)",
+  "bundle_components": [
+   "cuda_scatter_reduce_rasterizer (CudaRadarRasterizer via build_radar_sample_profiled rasterizer_override; profile_* keys stripped)",
+   "single_sort_stationary_tracker (SingleSortStationaryTrackAccumulator, same parameters, replaced before any state)",
+   "identity_radar_resize_short_circuit (prepare_live_input_identity_resize: production packing body with the 768x448->768x448 cv2.resize skipped; prepare_live_input_profiled NOT used live because its CUDA events are a synchronization barrier)"
+  ],
+  "not_changed": [
+   "state commit / action-open timing",
+   "camera source timestamp",
+   "radar windows, membership, sweep count, window digest binding",
+   "SI/P40 inputs",
+   "actor, state, reward, inclusive 170-ms deadline, k_min, hold/fallback",
+   "100-ms freshness limits",
+   "route, seeds, channel, rendering, OAI, codec, precision",
+   "MPS, affinity, sensor rates, radio scheduling",
+   "qualified profiler and sampling"
+  ],
+  "reported_as": "one radar-preparation bundle; not evidence for any component individually"
+ },
+ "kind": "PROFILING_CAPTURE",
+ "known_limitations": [
+  "the sampler classifies each PID once at first sight, so the edge container process (first seen as its entrypoint shell) is usually never matched: no edge container rows in procs/threads (matched by chance in attempt 3, not in the 1,000-frame capture); retained unchanged in both arms",
+  "one A/B pair: engineering evidence, not causal proof or frame-level replication; trajectories, action mixes and feedback histories differ between arms",
+  "offline composition used the same build_radar_sample function object as the historical module (stand-in namespace; CARLA egg not importable in the offline shell); the live child imports the historical module"
+ ],
+ "lifecycle": {
+  "child_timeout_s": 1800.0,
+  "rationale": "the collector safety timeout is a wall-clock bound on the route loop (live_cell_child, time.monotonic) and also the route's maximum loop sim-seconds; the qualified 300-frame route took ~67 s wall, so 1,000 frames need ~220 s and would stop near frame 540 at the qualification's 120 s. 600 s / 1800 s are bounds only; the 170-ms reward clock, the 2-s edge GT wait and every other timeout are unchanged.",
+  "safety_timeout_s": 600.0
+ },
+ "objective": "Connect the validated bit-exact radar-preparation optimization to the Phase-6 live path, retaining the UE-only numerical-thread cap, and measure whole-pipeline feedback timeliness in one fresh control/treatment pair.",
+ "offline_parity_summary": {
+  "codec_identity": "checked",
+  "composed_steps": 28,
+  "mismatches": [],
+  "note": "offline cost is an idle-host synthetic measurement, not a prediction of the live result",
+  "offline_cost_ms_p50_build_plus_packing": {
+   "19404": {
+    "bundle": 4.784685,
+    "production": 8.259932
+   },
+   "40000": {
+    "bundle": 6.927812,
+    "production": 12.610947
+   }
+  },
+  "packing_equal": 28,
+  "tests": "Ran 32 tests in 17.310s OK (skipped=1)"
+ },
+ "order": "C first; if C fails G1-G9 do not run T; if T fails, preserve it and stop",
+ "policy": {
+  "audit_module": "rl_agent.splitfusion_hybrid_sac_checkpoint_sidecar_v1.audit_run4_selected_actor_v1",
+  "binding_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/ACTOR_EXPORT_MANIFEST.json",
+  "expected_weights_sha256": "d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29",
+  "weights_path": "rl_agent/experiments/splitfusion_hybrid_sac_live_route_b_v2/20260929_seed43_update10000_actor_export/actor_state_dict.pt"
+ },
+ "primary_metrics": [
+  "timely feedback / all policy decisions",
+  "action-open -> feedback P50/P95/P99 over received feedback; missing replies separately"
+ ],
+ "profiler": {
+  "flush_interval_s": 0.2,
+  "gauge_interval_s": 0.1,
+  "minimum_free_disk_bytes": 1000000000,
+  "sampler_interval_ms": 100.0
+ },
+ "registration_sha256": "b44af685629f819d8020bae64f028935d058f4f9d8a125318f826bedfebf2d8b",
+ "retry": "none. Once frames have been sent a failed capture remains a failed capture; a sampler/reporting problem discovered afterwards does not authorize a replacement run. Setup-only corrections before any frame is sent remain permitted with the failed attempt retained.",
+ "runs_per_arm": 1,
+ "schema": "scenesense.single_gpu_profiler.experiment.v1",
+ "secondary_metrics": [
+  "capture -> action-open, capture -> feedback",
+  "worker delay, radar preparation, combined SI/P40",
+  "scene-stale / MCS-stale / startup fallbacks",
+  "decisions, holds, dropped preparation opportunities",
+  "UE codec, edge queue/tail, evaluator",
+  "CPU pressure, GPU utilization/memory/power",
+  "quality, identity reconciliation, map freshness",
+  "explicit check: added GPU work vs UE codec and edge tail CUDA times"
+ ],
+ "semantics": {
+  "act_on_vector": "act_on_vector",
+  "actor_loader": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.frozen_actor_v2:load_registered_actor",
+  "contract_module": "rl_agent.splitfusion_hybrid_sac_run4_v1.run4_contract",
+  "controller_module": "rl_agent.splitfusion_hybrid_sac_live_route_b_v2.reward_hold_controller_v2"
+ },
+ "status": "REGISTERED_BEFORE_ANY_LIVE_ARM",
+ "transmitted_budget": 1000,
+ "unchanged": [
+  "original Run-4 seed-43/update-10,000 frozen actor (actor_state_dict.pt SHA-256 d064013d011b67dcd2c7c23acc3c396afe6750be0d43ef0204f2fbecbb9b8e29)",
+  "21-feature state including previous Q_perc",
+  "CARLA-GT quality evaluator active",
+  "reward formula and exact inclusive 170-ms action-open deadline",
+  "k_min = 2 action hold",
+  "FAVORABLE_STABLE network profile",
+  "Route B, traffic seed, sensor configuration, Epic rendering",
+  "codec, edge model, map path, OAI configuration",
+  "all components on the local RTX 5090; no split-host/L10319 path",
+  "no retraining, no precision change, no rendering reduction, no MPS, no CUDA scheduling change, no timeout change",
+  "existing prewarm procedure",
+  "profiler sampling interval (100 ms)",
+  "the qualified timing instrumentation (files pinned to 59f40d1)",
+  "UE-child OMP_NUM_THREADS=1 and MKL_NUM_THREADS=1 (both arms)",
+  "restored baseline environment for all other processes"
+ ]
+}
