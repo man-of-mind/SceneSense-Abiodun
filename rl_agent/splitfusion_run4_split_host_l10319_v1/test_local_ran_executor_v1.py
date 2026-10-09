@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import os
 import tempfile
 import unittest
 from unittest import mock
@@ -356,6 +357,7 @@ class _RootOps(E.LocalRanOps):
 
     def _launch(self, argv, *, cwd, log_handle, new_session):
         self.launched = tuple(argv)
+        self.cwd = Path(cwd)
         return _Proc(500)
 
     def _group_pids(self, pgid, *, root_owned):
@@ -501,6 +503,41 @@ class RootOwnedProcessTests(unittest.TestCase):
         ops.stop_process(spawned)
         self.assertEqual(ops.signals[0][0], (500, 501, 502, 503))
         self.assertTrue(spawned.log_handle.closed)
+
+    def test_softmodem_runs_from_attempt_owned_writable_workdir(self) -> None:
+        # OAI softmodems write nr*_stats.log into their cwd (the UE asserts
+        # on failure); the OAI build directory may be a read-only bind mount.
+        root, executable, plan = self.make_plan()
+        ops = _RootOps(self.valid_identities(executable, plan.argv))
+        ops.root_discovery_timeout_s = 1.0
+        log_path = root / "attempt" / "logs" / "gnb.log"
+        with mock.patch.object(E.os, "getpgid", return_value=700):
+            spawned = ops.spawn(plan, log_path=log_path)
+        self.assertEqual(ops.cwd, log_path.parent / "gnb_workdir")
+        self.assertNotEqual(ops.cwd, executable.parent)
+        self.assertTrue(ops.cwd.is_dir())
+        self.assertTrue(os.access(ops.cwd, os.W_OK))
+        ops.stop_process(spawned)
+        again = _RootOps(self.valid_identities(executable, plan.argv))
+        with self.assertRaises(FileExistsError):
+            again.spawn(plan, log_path=log_path.parent / "gnb_second.log")
+
+    def test_non_softmodem_roles_keep_their_binary_directory(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        executable = root / "multi"
+        executable.write_bytes(b"binary")
+        executable.chmod(0o755)
+        plan = L.ProcessPlan(role="tracer_multi", host="W10275",
+                             argv=(str(executable), "-d", "x"),
+                             stdout_name="multi.log").validate()
+        ops = _RootOps({500: (str(executable.resolve()), plan.argv, 500)})
+        with mock.patch.object(E.os, "getpgid", return_value=500):
+            spawned = ops.spawn(plan, log_path=root / "logs" / "multi.log")
+        spawned.log_handle.close()
+        self.assertEqual(ops.cwd, executable.parent)
+        self.assertFalse((root / "logs" / "tracer_multi_workdir").exists())
 
     def test_partial_topology_waits_for_both_workers(self) -> None:
         root, executable, plan = self.make_plan()
