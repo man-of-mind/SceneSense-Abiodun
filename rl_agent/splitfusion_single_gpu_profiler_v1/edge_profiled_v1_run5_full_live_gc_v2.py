@@ -1,0 +1,5 @@
+"""Sampler-visible edge for the GC qualification (unchanged integrated early-GT edge)."""
+from rl_agent.splitfusion_run5_full_live_gc_v2.entries import edge
+
+if __name__ == "__main__":
+    raise SystemExit(edge())
