@@ -1,0 +1,102 @@
+{
+  "as_of": "2026-10-09",
+  "default_branch_confirmed_on_origin": "master",
+  "frozen_actor_sha256": "bb9b0d256de79b4498cd622e1daa59edcf43ff3072dc9f675b265aac579ed3ce",
+  "git_policy": {
+    "OAI": "Existing checkout unchanged and dirty; exact diff preserved in OAI/local_changes/telemetry_20261009.patch. The base gitlink is unchanged.",
+    "history": "All original branch tips are ancestors of the consolidated tree. No rebase, squash, backdating or force-push.",
+    "incomplete_old_split_host_patch": "Preserved in recovery archive and /tmp/abiodun_run4_split_host; not promoted into current runtime.",
+    "push": "Not performed. User may push origin master after final verification.",
+    "raw_captures_checkpoints_and_training_rows": "Kept locally; ignored for new staging, not deleted. Existing tracked evidence remains tracked."
+  },
+  "milestones": {
+    "M1": "Baselines and 12 fixed-mode q=0 plus agent campaign complete; separate-session descriptive comparisons.",
+    "M2": "Closed; deployed actor retained. No universal adaptive-superiority claim.",
+    "M3_BAD_ALL": "Full Town10 map V12: registered integration PASS at constant commanded 8.5 dB.",
+    "M3_GOOD_ALL": "Full Town10 map V11: registered integration PASS at constant commanded 23.5 dB.",
+    "M3_remaining": "Good-to-bad and bad-to-good full-map conditions remain pending.",
+    "spatial_map_cooperation": "Recovered branch merged, offline tests pass; not newly live-qualified by this consolidation."
+  },
+  "pre_consolidation_local_branch_tips": {
+    "refs/heads/centernet-clean-v2": "ead397520136f93257b4d54711e232b21de74b27",
+    "refs/heads/master": "f090504bdae669100933fd0baee3ae48a503b234",
+    "refs/heads/rl-agent-study-v1": "a008b4454275ddef9b7a7127d7bdd26be5f546aa",
+    "refs/heads/run4-single-gpu-profiler-v1": "40f21ec4ca413c9d8f2fba224ddf5ef219d04db5",
+    "refs/heads/run4-split-host-l10319-v1": "9646c2db216affe1e5e2eaccea8bdc8f601f54d8",
+    "refs/heads/run4b-joint-channel-comparator-v1": "0d73deaa18d593e4f51d92f873c389057597313e",
+    "refs/heads/run4b-no-qperc-v1": "5c1b8c9a73c70c85c0d28c88e9514af473b5ac25",
+    "refs/heads/run4b-single-host-300-v1": "0a9ae1b6d4544bddf33f85df5e642932f1f43b40",
+    "refs/heads/run4b5b-live-isolation-v1": "e999db0cbd5c068de4fd28cb377b307ec3488503",
+    "refs/heads/run4b5b-live-runtime-v1": "f960e484e72dbbce6f3dcd75be9f303047abbc85",
+    "refs/heads/run5-snr-scaffold-v1": "55b5e56fa367ee82e0bac0f78eb4df65e714a74c",
+    "refs/heads/run5b-no-qperc-v1": "123c54bb179b77b33998afcbf41fddf837662136",
+    "refs/heads/spatial-map-coop-v1": "6f2423450ae1ebba842bbea8708d1e7dd2ed4486"
+  },
+  "primary_development_branch": "master",
+  "recovery": {
+    "git_bundle": "PRE_CONSOLIDATION.bundle",
+    "local_directory": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/git_consolidation_20261009",
+    "old_worktree_paths_retained": true,
+    "uncommitted_sources": "UNCOMMITTED_SOURCES.tar.gz"
+  },
+  "reports_local_not_bulk_tracked": {
+    "experiments/splitfusion_m1_baselines_v1/final_03/REPORT.md": "2520462c6e74200b098843bbd7cb67c7a0174defc34b4de58c5817c5b1ef5be2",
+    "experiments/splitfusion_m3_route_b_v11/LIVE_CAPTURE_REPORT.md": "57b8967ad38b297853a8e1fd23636906c2247f4ae24a2d6793d95cb413b7108e",
+    "experiments/splitfusion_m3_route_b_v12/LIVE_CAPTURE_REPORT.md": "9801e1ff0dd0a35557bf70a8deaff2d2e0b0de62315fa604f7cb74f575603f90",
+    "experiments/splitfusion_run5_mode_value_audit_v1/CLOSEOUT.md": "9837b96ba86aa473cd9fdbafe8cb30a4cba6dfc267454013fdd05934704cfa66",
+    "experiments/splitfusion_static_modes_v13/campaign_report_05/REPORT.md": "fb53e318cabf9d1fe06624a8e42b124427a01dec745b3ed094b64571d961116d"
+  },
+  "scope": "Repository/history consolidation, not a new runtime qualification or experiment authorization.",
+  "validation": {
+    "integration_tests": {
+      "dependency_setup": "Existing OAI checkout and two actor weights linked into temporary checkout; no runtime source modified.",
+      "errors": 0,
+      "failures": 0,
+      "modules": [
+        "rl_agent.splitfusion_gt_storage_accounting_v3.test_accounting",
+        "rl_agent.splitfusion_m3_route_b_v11.test_m3_v11",
+        "rl_agent.splitfusion_m3_route_b_v12.test_m3_v12",
+        "rl_agent.splitfusion_static_modes_v13.test_static_modes_v13",
+        "rl_agent.splitfusion_run4_split_host_l10319_v1.test_local_ran_executor_v1"
+      ],
+      "skipped": 0,
+      "successful": true,
+      "tests_run": 209
+    },
+    "runtime_source_parity": {
+      "M1_STATIC_MODES_V13": {
+        "matched": 631,
+        "prospective": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/PROSPECTIVE.json",
+        "prospective_sha256": "9e7e9468de133659fc5352776124caef3e6938eff6a5e68bef7eb3b97a0c0d67",
+        "registered_files": 631,
+        "weights_are_external": true
+      },
+      "M3_BAD_ALL_V12": {
+        "matched": 604,
+        "prospective": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v12/bad_all_prospective_02/PROSPECTIVE.json",
+        "prospective_sha256": "050df846ff7dced8ca0dfd00c07b3e7ae8b6083f72001739fa69de5538845f22",
+        "registered_files": 604,
+        "weights_are_external": true
+      },
+      "M3_GOOD_ALL_V11": {
+        "matched": 584,
+        "prospective": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v11/good_all_prospective_01/PROSPECTIVE.json",
+        "prospective_sha256": "e2cb8d9e226a514346f0a029fb8f99be50cb8217a57c89e6b322150e73a5aca0",
+        "registered_files": 584,
+        "weights_are_external": true
+      }
+    },
+    "spatial_tests": {
+      "errors": 0,
+      "failures": 0,
+      "modules": [
+        "spatial_map_coop.tests.test_coop_input_v1",
+        "spatial_map_coop.tests.test_multi_ue_v1",
+        "spatial_map_coop.tests.test_viewer_presentation_v1"
+      ],
+      "skipped": 0,
+      "successful": true,
+      "tests_run": 110
+    }
+  }
+}
