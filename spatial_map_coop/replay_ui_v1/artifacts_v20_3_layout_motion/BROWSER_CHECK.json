@@ -1,0 +1,139 @@
+{
+  "status": "PASS",
+  "browser": "133.0.6943.16",
+  "conditions": "1x real rAF, 45 m heading-up; compare pages 2560x1000 recorded; checks 1440x1000. Offline replay of sealed V20 taps; live renderer fed recorded frames locally. No capture or live pipeline.",
+  "segments": [
+    {
+      "page": "/compare-layout",
+      "clip": "turn",
+      "clip_start_ms": 3000,
+      "video_s": 1.6,
+      "duration_ms": 9000,
+      "clock_diff_ms": 9.094947017729282e-12,
+      "after_labels": 0
+    },
+    {
+      "page": "/compare-motion",
+      "clip": "turn",
+      "clip_start_ms": 3000,
+      "video_s": 12.4,
+      "duration_ms": 11000,
+      "clock_diff_ms": 0.09999999999672582,
+      "after_labels": 0
+    },
+    {
+      "page": "/compare-motion",
+      "clip": "pedestrians",
+      "clip_start_ms": 0,
+      "video_s": 24.7,
+      "duration_ms": 11000,
+      "clock_diff_ms": 0.09999999999854481,
+      "after_labels": 0
+    }
+  ],
+  "layout": {
+    "stage_before": {
+      "x": 20,
+      "y": 66,
+      "w": 1084,
+      "h": 844,
+      "bottom": 910
+    },
+    "stage_after": {
+      "x": 20,
+      "y": 66,
+      "w": 1084,
+      "h": 844,
+      "bottom": 910
+    },
+    "canvas_px": {
+      "w": 1084,
+      "h": 844
+    },
+    "legend_top_px": 968,
+    "stage_bottom_px": 910,
+    "qos_box": {
+      "x": 1135,
+      "y": 225,
+      "w": 270,
+      "h": 157,
+      "bottom": 382
+    },
+    "counts_card_bottom_px": 397,
+    "legend_in_aside_before": true,
+    "legend_below_map_after": true
+  },
+  "qos": {
+    "before_any_update": {
+      "qInstall": "not available",
+      "qAge": "not available",
+      "qRate": "not available",
+      "qSince": "not available",
+      "qObj": "not available (no objects shown)",
+      "qFeedback": "not available · not in this feed"
+    },
+    "playing": {
+      "qInstall": "187 ms",
+      "qAge": "298 ms",
+      "qRate": "7.5 /s",
+      "qSince": "111 ms",
+      "qObj": "median 298 ms · oldest 298 ms",
+      "qFeedback": "not available · not in this feed"
+    },
+    "values": {
+      "captureToInstallMs": 187.41068800000357,
+      "displayedDataAgeMs": 298.49008000001777,
+      "updateRateHz": 7.454123546936257,
+      "sinceLastUpdateMs": 111.0793920000142,
+      "objectAgeP50Ms": 298.49008000001777,
+      "objectAgeMaxMs": 298.49008000001777,
+      "objectCount": 7,
+      "predictionFeedbackMs": null,
+      "predictionFeedbackReason": "not in this feed (no prediction or UE-feedback timing with a frame join)"
+    }
+  },
+  "equivalence": {
+    "paused_times_compared": 147,
+    "rows": 1047,
+    "pedestrian_rows": 468,
+    "identical": true
+  },
+  "live": {
+    "injected_recorded_frames": 40,
+    "with_install_stamp": {
+      "qInstall": "212 ms",
+      "qAge": "525 ms",
+      "qRate": "6.6 /s",
+      "qSince": "313 ms",
+      "qObj": "median 525 ms · oldest 657 ms",
+      "qFeedback": "not available · not in this feed"
+    },
+    "without_install_stamp": {
+      "qInstall": "not available",
+      "qAge": "515 ms",
+      "qRate": "6.6 /s",
+      "qSince": "303 ms",
+      "qObj": "median 515 ms · oldest 647 ms",
+      "qFeedback": "not available · not in this feed"
+    },
+    "legend_below_map": true,
+    "default_canvas_labels": 0
+  },
+  "clutter": {
+    "default": {
+      "labels": 0,
+      "unresolvedTile": false,
+      "rawLine": false,
+      "hypLegend": false,
+      "drawer": false
+    },
+    "inspect": {
+      "labels": 24,
+      "unresolvedTile": true,
+      "rawLine": true,
+      "hypLegend": true,
+      "drawer": true
+    }
+  },
+  "page_errors": []
+}

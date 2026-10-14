@@ -1,0 +1,116 @@
+{
+  "before": {
+    "angular_update_steps": {
+      "all": {
+        "n": 11589,
+        "mean": 2.1304525876136697,
+        "p95": 13.630187519999993,
+        "steps_over_20": 112,
+        "total_variation": 24689.815037854816
+      },
+      "stationary": {
+        "n": 6377,
+        "mean": 0.8338924891503999,
+        "p95": 10.016317439998375,
+        "steps_over_20": 21,
+        "total_variation": 5317.7324033121
+      },
+      "moving": {
+        "n": 3982,
+        "mean": 4.653545623307713,
+        "p95": 15.569510400001889,
+        "steps_over_20": 85,
+        "total_variation": 18530.418672011314
+      }
+    },
+    "parked_3490_3620": {
+      "id": "T246",
+      "key": "tentative_690",
+      "updates": 57,
+      "axis_total_variation": 139.0235673600023
+    },
+    "dispositions": {
+      "NEW_TENTATIVE": 1961,
+      "LOW_CONFIDENCE_HYPOTHESIS": 63189,
+      "WEAK_INSIDE_TRACK_FOOTPRINT": 19426,
+      "OUTSIDE_CAPTURE_REGION:OUTSIDE_HORIZONTAL_FOV": 34621,
+      "OVERLAPS_TRACK_FOOTPRINT": 794,
+      "TENTATIVE_UPDATE": 749,
+      "ESTABLISHED_UPDATE": 13256,
+      "ESTABLISHED_WEAK_UPDATE": 1216,
+      "TRACK_ENDED_WEAK_ONLY": 69,
+      "OUTSIDE_CAPTURE_REGION:OUTSIDE_CAMERA_FOV": 469,
+      "OUTSIDE_CAPTURE_REGION:OUTSIDE_VERTICAL_FOV": 161
+    },
+    "counts": {
+      "Vehicle/init": 2402,
+      "shown/Vehicle": 13657,
+      "NO_MODELED_OBSTRUCTION/2D_BUILDINGS_ONLY": 19268,
+      "Vehicle/stationary": 8124,
+      "Pedestrian/unresolved": 4864,
+      "shown/Pedestrian": 6023,
+      "Vehicle/moving": 4972,
+      "VISIBILITY_UNCERTAIN/SENSOR_OR_FOOTPRINT_INTERSECTS_BUILDING": 133,
+      "Pedestrian/moving": 2401,
+      "VISIBILITY_UNCERTAIN/PARTIAL_OR_CORNER_EXPOSURE": 270,
+      "STATIC_MAP_OCCLUDED/ENTIRE_EXPANDED_FOOTPRINT_BEHIND_ONE_BOUNDARY": 9
+    }
+  },
+  "after": {
+    "angular_update_steps": {
+      "all": {
+        "n": 11569,
+        "mean": 1.7469536203210063,
+        "p95": 11.893017600001201,
+        "steps_over_20": 54,
+        "total_variation": 20210.506433493723
+      },
+      "stationary": {
+        "n": 6350,
+        "mean": 0.602351775080045,
+        "p95": 1.9340612592019966,
+        "steps_over_20": 11,
+        "total_variation": 3824.9337717582857
+      },
+      "moving": {
+        "n": 3995,
+        "mean": 4.017603742661539,
+        "p95": 14.363435520000621,
+        "steps_over_20": 43,
+        "total_variation": 16050.326951932848
+      }
+    },
+    "parked_3490_3620": {
+      "id": "T246",
+      "key": "tentative_691",
+      "updates": 57,
+      "axis_total_variation": 107.71636915488784
+    },
+    "dispositions": {
+      "NEW_TENTATIVE": 1953,
+      "LOW_CONFIDENCE_HYPOTHESIS": 63157,
+      "WEAK_INSIDE_TRACK_FOOTPRINT": 19460,
+      "OUTSIDE_CAPTURE_REGION:OUTSIDE_HORIZONTAL_FOV": 34621,
+      "OVERLAPS_TRACK_FOOTPRINT": 823,
+      "TENTATIVE_UPDATE": 718,
+      "ESTABLISHED_UPDATE": 13266,
+      "ESTABLISHED_WEAK_UPDATE": 1215,
+      "TRACK_ENDED_WEAK_ONLY": 68,
+      "OUTSIDE_CAPTURE_REGION:OUTSIDE_CAMERA_FOV": 469,
+      "OUTSIDE_CAPTURE_REGION:OUTSIDE_VERTICAL_FOV": 161
+    },
+    "counts": {
+      "Vehicle/init": 2379,
+      "shown/Vehicle": 13636,
+      "NO_MODELED_OBSTRUCTION/2D_BUILDINGS_ONLY": 19250,
+      "Vehicle/stationary": 8107,
+      "Pedestrian/unresolved": 4864,
+      "shown/Pedestrian": 6023,
+      "Vehicle/moving": 4979,
+      "VISIBILITY_UNCERTAIN/SENSOR_OR_FOOTPRINT_INTERSECTS_BUILDING": 139,
+      "Pedestrian/moving": 2401,
+      "VISIBILITY_UNCERTAIN/PARTIAL_OR_CORNER_EXPOSURE": 261,
+      "STATIC_MAP_OCCLUDED/ENTIRE_EXPANDED_FOOTPRINT_BEHIND_ONE_BOUNDARY": 9
+    }
+  }
+}

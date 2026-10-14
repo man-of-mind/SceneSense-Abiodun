@@ -1,0 +1,14 @@
+{
+  "user_request": "M4: instrument startup/teardown and run ONE bounded two-UE smoke; no full route",
+  "scope": "Exactly one 20-simulated-second smoke, two egos/two OAI UEs, GOOD_ALL 23.5 dB (-12), 100 MHz/273 PRB, frozen actor/GT/deadlines unchanged",
+  "instrumentation": "PHASES.jsonl (unbuffered ENTER/DONE/ERROR), FIRST_FAILURE.json (non-teardown only), FAULTHANDLER.log (all threads), CLI stderr faulthandler; host.py/bootstrap.py/cli.py + new phases.py",
+  "preparation_sha256": "66b0afe9d2289cfd9d7116de32bc4031bab37c710634dd4bb8074703a3051c3d",
+  "no_retry": true,
+  "no_tuning": true,
+  "no_deletion_archive_commit_push": true,
+  "approved_baseline_preserved": true,
+  "ui_servers_preserved": [
+    988344,
+    1152770
+  ]
+}

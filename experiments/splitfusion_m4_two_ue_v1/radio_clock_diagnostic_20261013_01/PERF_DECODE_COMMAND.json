@@ -1,0 +1,30 @@
+{
+  "command": [
+    "sudo",
+    "-n",
+    "env",
+    "PERF_BUILDID_DIR=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/perf_cache",
+    "taskset",
+    "-c",
+    "22",
+    "nice",
+    "-n",
+    "19",
+    "perf",
+    "report",
+    "-i",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/observer/perf.data",
+    "--stdio",
+    "--no-children",
+    "--call-graph",
+    "none",
+    "--sort",
+    "comm,dso,symbol",
+    "--percent-limit",
+    "1.0",
+    "--time",
+    "8583362.194066415,8583403.926582875"
+  ],
+  "returncode": 0,
+  "scope": "gNB and tracer fork only; no UE instruction profile"
+}

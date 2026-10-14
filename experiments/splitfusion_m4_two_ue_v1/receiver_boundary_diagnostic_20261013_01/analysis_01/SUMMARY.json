@@ -1,0 +1,1629 @@
+{
+  "analysis_seconds_before_plots": 0.5072186011821032,
+  "classification_scope": "Received, fully reconstructed frames including expired; missing arrivals remain censored. No claim isolating radio from sender/core/virtual network.",
+  "cleanup": {
+    "approved_baseline": {
+      "allowed_gpu_pids": [
+        3031,
+        794777
+      ],
+      "allowed_process_pids": [
+        3031,
+        794777,
+        2880716
+      ],
+      "exclusive_gpu_claim": false,
+      "identities": {
+        "2880716": {
+          "cmdline": "nvidia-cuda-mps-control -d",
+          "exe": "/usr/bin/nvidia-cuda-mps-control",
+          "start_ticks": 167960061,
+          "uid": 200171
+        },
+        "3031": {
+          "cmdline": "/usr/libexec/gnome-remote-desktop-daemon",
+          "exe": "/usr/libexec/gnome-remote-desktop-daemon",
+          "start_ticks": 856,
+          "uid": 200171
+        },
+        "794777": {
+          "cmdline": "nvidia-cuda-mps-server",
+          "exe": "/usr/bin/nvidia-cuda-mps-server",
+          "start_ticks": 755744669,
+          "uid": 200171
+        }
+      },
+      "mps_client_count": 0,
+      "mps_queries": {
+        "get_client_list 794777": {
+          "stderr": "",
+          "stdout": ""
+        },
+        "get_server_list": {
+          "stderr": "",
+          "stdout": "794777\n"
+        }
+      },
+      "policy": "EXPLICIT_PREEXISTING_BASELINE_20261013"
+    },
+    "clean": true,
+    "disk_free_bytes": 26106396672,
+    "gpu_clients": "3031, /usr/libexec/gnome-remote-desktop-daemon\n794777, nvidia-cuda-mps-server\n",
+    "live": [],
+    "owned": [
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/csv",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2123",
+          "-f",
+          "-s",
+          ",",
+          "-t",
+          "time",
+          "NRUE_MAC_RLC_BUFFER_STATUS",
+          "time",
+          "rnti",
+          "ue_id",
+          "frame",
+          "slot",
+          "lcid",
+          "lcgid",
+          "bytes_in_buffer",
+          "bj",
+          "pbr",
+          "priority"
+        ],
+        "birth": "857807155",
+        "group": true,
+        "name": "attach_rlc",
+        "pgid": 2350397,
+        "pid": 2350397,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "sudo",
+          "-n",
+          "docker",
+          "run",
+          "--rm",
+          "--name",
+          "m4-edge-03037cf3bbd1",
+          "--label",
+          "splitfusion.m4.owner=a1d119f6a6376e734311c9403ddd5870a50fe25a90ddc0d953a82afdca05946f",
+          "--gpus",
+          "all",
+          "--network",
+          "oai-cn5g-public-net",
+          "--ip",
+          "192.168.70.140",
+          "--cap-add",
+          "NET_ADMIN",
+          "--cpuset-cpus",
+          "20,21",
+          "-e",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "-e",
+          "OMP_NUM_THREADS=1",
+          "-e",
+          "OPENBLAS_NUM_THREADS=1",
+          "-v",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1:ro",
+          "-v",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_08:/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_08:rw",
+          "--mount",
+          "type=bind,src=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_phase15_runtime_cache_v1/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth,dst=/home/shr_aisvcs/.cache/torch/hub/checkpoints/fcos_resnet50_fpn_coco-99b0c9b7.pth,readonly",
+          "-w",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+          "--entrypoint",
+          "sh",
+          "sha256:2be62d533b8077ceecab5455d5377f2f952b6a50d43ff8c04dc89ce18027d6ba",
+          "-ec",
+          "ip route add 10.0.0.0/24 via 192.168.70.134; exec env -u PYTHONPATH python3 -B -m rl_agent.splitfusion_m4_two_ue_v1.edge_entry --preparation \"$1\" --runtime \"$2\"",
+          "m4-edge",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/preparation_smoke_20261013_11/PREPARATION.json",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_08/RUNTIME.json"
+        ],
+        "birth": "857810544",
+        "group": true,
+        "name": "edge",
+        "pgid": 2353630,
+        "pid": 2353630,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "sudo",
+          "-n",
+          "env",
+          "-u",
+          "LD_PRELOAD",
+          "-u",
+          "SCENESENSE_FORCE_UL_MCS",
+          "-u",
+          "SCENESENSE_HOLD_MCS_FEW_SAMPLES",
+          "-u",
+          "SCENESENSE_AIMD_MAX_DROP",
+          "LD_LIBRARY_PATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build",
+          "SCENESENSE_MCS_POLICY=sinr",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem",
+          "-O",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/preparation_smoke_20261013_11/gnb.conf",
+          "--gNBs.[0].min_rxtxtime",
+          "6",
+          "--rfsim",
+          "--rfsimulator.[0].options",
+          "chanmod",
+          "--T_stdout",
+          "2",
+          "--T_nowait",
+          "--loader.shlibpath",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build",
+          "--telnetsrv",
+          "--telnetsrv.listenaddr",
+          "127.0.0.1",
+          "--telnetsrv.listenport",
+          "9090",
+          "--T_port",
+          "2021"
+        ],
+        "birth": "857806538",
+        "group": true,
+        "name": "gnb",
+        "pgid": 2349941,
+        "pid": 2349941,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "-u",
+          "-m",
+          "rl_agent.splitfusion_m4_two_ue_v1.service_entry",
+          "--fd",
+          "106",
+          "--parent",
+          "2349665",
+          "--trace-dir",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_08/m4-ue0/numeric_gt/m4_worker_trace"
+        ],
+        "birth": "857809720",
+        "group": false,
+        "name": "gt_m4-ue0",
+        "pgid": 2349663,
+        "pid": 2352983,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "/usr/bin/python3",
+          "-B",
+          "-u",
+          "-m",
+          "rl_agent.splitfusion_m4_two_ue_v1.service_entry",
+          "--fd",
+          "114",
+          "--parent",
+          "2349665",
+          "--trace-dir",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_08/m4-ue1/numeric_gt/m4_worker_trace"
+        ],
+        "birth": "857810140",
+        "group": false,
+        "name": "gt_m4-ue1",
+        "pgid": 2349663,
+        "pid": 2353545,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/csv",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2123",
+          "-f",
+          "-s",
+          ",",
+          "-t",
+          "time",
+          "NRUE_MAC_DCI_GRANT",
+          "time",
+          "direction",
+          "dci_format",
+          "rnti_type",
+          "rnti",
+          "dci_frame",
+          "dci_slot",
+          "sched_frame",
+          "sched_slot",
+          "mcs",
+          "mcs_table",
+          "rb_start",
+          "rb_size",
+          "start_symbol",
+          "nr_symbols",
+          "tbs",
+          "harq_pid",
+          "ndi",
+          "rv",
+          "round",
+          "qam_mod_order",
+          "target_code_rate",
+          "tpc",
+          "n_cce",
+          "N_cce"
+        ],
+        "birth": "857808132",
+        "group": true,
+        "name": "native_NRUE_MAC_DCI_GRANT",
+        "pgid": 2351173,
+        "pid": 2351173,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/csv",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2123",
+          "-f",
+          "-s",
+          ",",
+          "-t",
+          "time",
+          "NRUE_MAC_RLC_BUFFER_STATUS",
+          "time",
+          "rnti",
+          "ue_id",
+          "frame",
+          "slot",
+          "lcid",
+          "lcgid",
+          "bytes_in_buffer",
+          "bj",
+          "pbr",
+          "priority"
+        ],
+        "birth": "857808132",
+        "group": true,
+        "name": "native_NRUE_MAC_RLC_BUFFER_STATUS",
+        "pgid": 2351175,
+        "pid": 2351175,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/csv",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2123",
+          "-f",
+          "-s",
+          ",",
+          "-t",
+          "time",
+          "NR_PDCP_TX_SDU",
+          "time",
+          "mono_sec",
+          "mono_nsec",
+          "ue_id",
+          "rb_id",
+          "sdu_bytes"
+        ],
+        "birth": "857808132",
+        "group": true,
+        "name": "native_NR_PDCP_TX_SDU",
+        "pgid": 2351177,
+        "pid": 2351177,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/multi",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2021",
+          "-lp",
+          "2031"
+        ],
+        "birth": "857808102",
+        "group": true,
+        "name": "pusch_relay",
+        "pgid": 2351159,
+        "pid": 2351159,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/csv",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2031",
+          "-f",
+          "-s",
+          ",",
+          "-t",
+          "time",
+          "GNB_MAC_UL_MCS_DECISION",
+          "time",
+          "rnti",
+          "frame",
+          "slot",
+          "sched_frame",
+          "sched_slot",
+          "avg_snr_x10",
+          "mcs_table",
+          "ul_bler_mcs_before",
+          "selected_mcs",
+          "pre_phr_mcs",
+          "post_phr_mcs",
+          "final_mcs",
+          "estimated_ul_buffer",
+          "sched_ul_bytes",
+          "B",
+          "min_rb",
+          "available_rb_before",
+          "available_rb_after",
+          "ph",
+          "pcmax",
+          "rb_size_final",
+          "tbs_final",
+          "force_ul_mcs"
+        ],
+        "birth": "857808112",
+        "group": true,
+        "name": "radio_mcs",
+        "pgid": 2351167,
+        "pid": 2351167,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/csv",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2031",
+          "-f",
+          "-s",
+          ",",
+          "-t",
+          "time",
+          "GNB_MAC_PUSCH_POWER_CONTROL",
+          "time",
+          "rnti",
+          "frame",
+          "slot",
+          "snrx10",
+          "phr",
+          "tpc",
+          "tb_size",
+          "txpower_calc",
+          "rbSize",
+          "mcs",
+          "rssi"
+        ],
+        "birth": "857808112",
+        "group": true,
+        "name": "radio_pusch",
+        "pgid": 2351165,
+        "pid": 2351165,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "sudo",
+          "-n",
+          "env",
+          "-u",
+          "LD_PRELOAD",
+          "LD_LIBRARY_PATH=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+          "--num-ues",
+          "2",
+          "--rfsim",
+          "--rfsimulator.[0].options",
+          "chanmod",
+          "--T_stdout",
+          "2",
+          "--T_nowait",
+          "--loader.shlibpath",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build",
+          "--rfsimulator.[0].serveraddr",
+          "127.0.0.1",
+          "-r",
+          "273",
+          "--numerology",
+          "1",
+          "--band",
+          "78",
+          "-C",
+          "3649260000",
+          "--ssb",
+          "516",
+          "-O",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/preparation_smoke_20261013_11/ue.conf",
+          "--T_port",
+          "2023"
+        ],
+        "birth": "857807039",
+        "group": true,
+        "name": "ue",
+        "pgid": 2350381,
+        "pid": 2350381,
+        "still_owned": false
+      },
+      {
+        "argv": [
+          "taskset",
+          "-c",
+          "0,1,2,3,8,9,10,11,12,13,14,15,16,17,18,19",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/tracer/multi",
+          "-d",
+          "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/common/utils/T/T_messages.txt",
+          "-ip",
+          "127.0.0.1",
+          "-p",
+          "2023",
+          "-lp",
+          "2123"
+        ],
+        "birth": "857807144",
+        "group": true,
+        "name": "ue_relay",
+        "pgid": 2350394,
+        "pid": 2350394,
+        "still_owned": false
+      }
+    ],
+    "running_containers": "",
+    "ue_tunnels": []
+  },
+  "clock": {
+    "bracket_width_ns": {
+      "max": 10938.0,
+      "min": 182.0,
+      "n": 5586,
+      "p50": 798.5,
+      "p95": 2197.0,
+      "p99": 2937.499999999989
+    },
+    "caveat": "Empirical cross-check plus worst bracket, not a formal bound on unobserved clock steps or kernel timestamp-generation error",
+    "empirical_uncertainty_envelope_ns": 9625.981899261475,
+    "holdout_abs_residual_ns": {
+      "max": 4156.981899261475,
+      "min": 0.0573272705078125,
+      "n": 2792,
+      "p50": 289.21141052246094,
+      "p95": 592.6104265213012,
+      "p99": 735.6295264434826
+    },
+    "holdout_pairs": 2792,
+    "independent_sender_pair_abs_residual_ns": {
+      "max": 824.0,
+      "min": 0.0,
+      "n": 416,
+      "p50": 159.5,
+      "p95": 437.5,
+      "p99": 618.9500000000006
+    },
+    "linear_drift_ppm": 30.28004756238962,
+    "maximum_pair_gap_ms": 1275.84354,
+    "method": "piecewise-linear paired REALTIME/RAW interpolation; no clipping; no extrapolation",
+    "offset_span_ns": 1369602.0,
+    "pairs": 5586
+  },
+  "functional_smoke": {
+    "gates": {
+      "m4-ue0": true,
+      "m4-ue1": true
+    },
+    "pass_": true,
+    "scope": "20-s two-source attach/data-path smoke ONLY; no full-route or calibration qualification"
+  },
+  "instrumentation": {
+    "clock_pair": "RAW before / REALTIME / RAW after on each recvmsg; no substitution for missing kernel stamps",
+    "counters": {
+      "attempted": 12186,
+      "enqueued": 12186,
+      "receiver_instrumentation_ns": 259045287,
+      "timestamp_OK": 5584,
+      "written": 12186
+    },
+    "errors": [],
+    "producer_max_wall_ns": 1884719,
+    "producer_wall_ns": 117346365,
+    "queue_peak": 13,
+    "writer_alive": false
+  },
+  "instrumentation_note": "Producer and receiver wall-time counters overlap: never sum. They include descheduling; writer CPU and causal observer effect unmeasured.",
+  "launch": {
+    "command": [
+      "env",
+      "-u",
+      "PYTHONPATH",
+      "-u",
+      "CUDA_VISIBLE_DEVICES",
+      "-u",
+      "LD_PRELOAD",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "OMP_NUM_THREADS=1",
+      "MKL_NUM_THREADS=1",
+      "OPENBLAS_NUM_THREADS=1",
+      "python3",
+      "-B",
+      "-m",
+      "rl_agent.splitfusion_m4_two_ue_v1.cli",
+      "smoke",
+      "--preparation",
+      "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/preparation_smoke_20261013_11/PREPARATION.json",
+      "--output",
+      "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_08",
+      "--execute-token",
+      "M4_TWO_UE_SMOKE_SEPARATELY_AUTHORIZED"
+    ],
+    "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+    "end_wall_s": 1791940584.1743627,
+    "returncode": 0,
+    "start_wall_s": 1791940479.724573
+  },
+  "legacy_assessment_note": "Existing full-route analyzer preserved as STOP: short-route gates not met, absent per_frame_metrics offered/sent=0; faulted=None is not False; nonempty zero-count faults dict is truthy. Corrected smoke counts reconciled separately; no production checker changed.",
+  "per_ue": {
+    "m4-ue0": {
+      "accepted_map_installs": 5,
+      "actor_replay": {
+        "all_exact": true,
+        "n": 102
+      },
+      "admitted": 6,
+      "after_reassembly_expired": 171,
+      "all_datagram_kernel_to_app_ms": {
+        "max": 81.984252,
+        "min": 0.007374,
+        "n": 2803,
+        "p50": 0.061077,
+        "p95": 0.5540326000000011,
+        "p99": 2.2141309800000006
+      },
+      "all_datagram_send_bracket_lower_ms": {
+        "max": 8193.48998,
+        "min": -6.274992,
+        "n": 2803,
+        "p50": 5151.909968,
+        "p95": 7891.939136,
+        "p99": 8072.1157836
+      },
+      "backlog_delay_pearson": 0.997187614652942,
+      "capture_span_s": 41.65603712,
+      "capture_window_wall_ns": [
+        1791940531818057984,
+        1791940573474095104
+      ],
+      "completed_feature_goodput_Mbps_capture": 5.983963363627808,
+      "completing_chunk_before_kernel_fraction": {
+        "max": 0.9998598245147661,
+        "min": 0.9744337139527124,
+        "n": 177,
+        "p50": 0.9996994012616051,
+        "p95": 0.9998427563608967,
+        "p99": 0.9998559465952396
+      },
+      "controller_faulted_field": null,
+      "decisions": 102,
+      "duplicate_chunks": 0,
+      "duration_ms": {
+        "action_to_feedback_ms": {
+          "max": 272.624902,
+          "min": 272.624902,
+          "n": 1,
+          "p50": 272.624902,
+          "p95": 272.624902,
+          "p99": 272.624902
+        },
+        "action_to_gt_ready_ms": {
+          "max": 328.378206,
+          "min": 98.510934,
+          "n": 61,
+          "p50": 120.920554,
+          "p95": 172.543839,
+          "p99": 238.40366939999979
+        },
+        "action_to_prediction_ms": {
+          "max": 220.304732,
+          "min": 220.304732,
+          "n": 1,
+          "p50": 220.304732,
+          "p95": 220.304732,
+          "p99": 220.304732
+        },
+        "app_to_reassembly_ms": {
+          "max": 0.325248,
+          "min": 0.037991,
+          "n": 177,
+          "p50": 0.063736,
+          "p95": 0.15930259999999993,
+          "p99": 0.19376312000000045
+        },
+        "capture_to_first_send_ms": {
+          "max": 221.531732,
+          "min": 65.525229,
+          "n": 208,
+          "p50": 88.55450450000001,
+          "p95": 130.27580679999997,
+          "p99": 151.52682353000003
+        },
+        "capture_to_install_ms": {
+          "max": 462.301696,
+          "min": 275.136768,
+          "n": 5,
+          "p50": 382.076416,
+          "p95": 449.1815936,
+          "p99": 459.67767552
+        },
+        "capture_to_prediction_ms": {
+          "max": 458.411264,
+          "min": 269.504768,
+          "n": 5,
+          "p50": 374.5472,
+          "p95": 444.6720512,
+          "p99": 455.66342144000004
+        },
+        "clock_complete_frame_span_ms": {
+          "max": 507.031767,
+          "min": 0.0,
+          "n": 180,
+          "p50": 202.567958,
+          "p95": 390.09620659999996,
+          "p99": 430.2224183700001
+        },
+        "edge_compute_ms": {
+          "max": 66.49208068847656,
+          "min": 50.85587501525879,
+          "n": 5,
+          "p50": 56.65016174316406,
+          "p95": 66.41325950622559,
+          "p99": 66.47631645202637
+        },
+        "edge_queue_ms": {
+          "max": 2.056121826171875,
+          "min": 0.19407272338867188,
+          "n": 5,
+          "p50": 0.40721893310546875,
+          "p95": 1.787137985229492,
+          "p99": 2.0023250579833984
+        },
+        "first_send_to_kernel_ms": {
+          "max": 8193.64243,
+          "min": 87.327963,
+          "n": 177,
+          "p50": 5364.927745,
+          "p95": 7960.748525,
+          "p99": 8142.475031880001
+        },
+        "front_ranker_ae_codec_ms": {
+          "max": 52.125303,
+          "min": 4.441062,
+          "n": 208,
+          "p50": 11.0141505,
+          "p95": 35.66834139999998,
+          "p99": 48.68080525000001
+        },
+        "kernel_to_app_ms": {
+          "max": 1.868246,
+          "min": 0.007388,
+          "n": 177,
+          "p50": 0.137044,
+          "p95": 0.7146831999999996,
+          "p99": 1.6054376000000001
+        },
+        "last_send_to_kernel_ms": {
+          "max": 8193.48998,
+          "min": 70.595229,
+          "n": 177,
+          "p50": 5361.456016,
+          "p95": 7960.5626993999995,
+          "p99": 8142.0620121599995
+        },
+        "prediction_to_feedback_ms": {
+          "max": 52.32017,
+          "min": 52.32017,
+          "n": 1,
+          "p50": 52.32017,
+          "p95": 52.32017,
+          "p99": 52.32017
+        },
+        "reassembly_to_admission_ms": {
+          "max": 2.135465,
+          "min": 0.096037,
+          "n": 177,
+          "p50": 0.280101,
+          "p95": 0.5268419999999998,
+          "p99": 1.5581849600000042
+        },
+        "reassembly_to_binding_ms": {
+          "max": 2.096458,
+          "min": 0.085875,
+          "n": 177,
+          "p50": 0.253493,
+          "p95": 0.49699739999999976,
+          "p99": 1.526623400000004
+        },
+        "reassembly_to_full_verifier_ms": {
+          "max": 7.638795,
+          "min": 0.93812,
+          "n": 177,
+          "p50": 1.337487,
+          "p95": 2.5370901999999975,
+          "p99": 4.201279720000006
+        },
+        "reassembly_to_verified_ms": {
+          "max": 6.879904,
+          "min": 0.603154,
+          "n": 177,
+          "p50": 0.887739,
+          "p95": 1.6580571999999998,
+          "p99": 2.9329978800000087
+        },
+        "reassembly_work_ms": {
+          "max": 0.2422,
+          "min": 0.01657,
+          "n": 177,
+          "p50": 0.039221,
+          "p95": 0.06825739999999998,
+          "p99": 0.07763272000000009
+        },
+        "rgb_to_send_ms": {
+          "max": 221.76291,
+          "min": 66.003536,
+          "n": 208,
+          "p50": 90.068022,
+          "p95": 130.75662649999998,
+          "p99": 167.18344183000013
+        },
+        "rlc_prior_send_age_ms": {
+          "max": 87.154228,
+          "min": 0.15992,
+          "n": 208,
+          "p50": 6.007189,
+          "p95": 32.5013252,
+          "p99": 63.94146316000009
+        },
+        "send_to_full_verifier_ms": {
+          "max": 8194.712686,
+          "min": 72.447441,
+          "n": 177,
+          "p50": 5362.854819,
+          "p95": 7963.0204096,
+          "p99": 8143.22962604
+        },
+        "send_to_verified_ms": {
+          "max": 8194.386486,
+          "min": 72.047767,
+          "n": 177,
+          "p50": 5362.47148,
+          "p95": 7961.6667793999995,
+          "p99": 8142.88459436
+        },
+        "sender_calls_ms": {
+          "max": 19.33798,
+          "min": 0.041049,
+          "n": 208,
+          "p50": 0.3250685,
+          "p95": 7.499834799999996,
+          "p99": 15.552791730000003
+        }
+      },
+      "edge_terminal_stages": {
+        "EDGE_AFTER_REASSEMBLY": 171,
+        "EDGE_BEFORE_TAIL": 1
+      },
+      "exact_sent_datagrams": 3232,
+      "fallbacks": 5,
+      "fully_reassembled": 177,
+      "gt_outcomes": {
+        "NO_GT_PRODUCER_CAPACITY": 41,
+        "SCORED": 1,
+        "UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 7,
+        "UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 1,
+        "UNSCORED_NO_RESULT_BY_HORIZON": 52
+      },
+      "holds": 101,
+      "incomplete_with_chunks": 3,
+      "ledger_terminals": {
+        "FEEDBACK_TIMEOUT": 203,
+        "RESULT_INSTALLED": 5
+      },
+      "modes": {
+        "11": 170,
+        "8": 38
+      },
+      "negative_send_to_kernel_frame_intervals": 0,
+      "no_datagram_observed": 28,
+      "out_of_order_chunks": 0,
+      "payload_bytes": {
+        "max": 319029.0,
+        "min": 6588.0,
+        "n": 208,
+        "p50": 174498.5,
+        "p95": 303772.6499999999,
+        "p99": 312344.66
+      },
+      "predictions": 5,
+      "q_e4": {
+        "max": 9800.0,
+        "min": 2575.0,
+        "n": 208,
+        "p50": 3162.0,
+        "p95": 4650.7,
+        "p99": 9800.0
+      },
+      "quality": {
+        "person": {
+          "conservative_fraction": null,
+          "eligible_gt_objects": 0,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.2,
+          "matched_objects": 0,
+          "misses": 0,
+          "scored_frames": 1,
+          "segmentation_intersection_pixels": 0,
+          "segmentation_iou": 0.0,
+          "segmentation_union_pixels": 2,
+          "within_threshold": 0,
+          "zero_eligible_scored_frames": 1
+        },
+        "vehicle": {
+          "conservative_fraction": 0.8,
+          "eligible_gt_objects": 5,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.0,
+          "matched_objects": 5,
+          "misses": 0,
+          "scored_frames": 1,
+          "segmentation_intersection_pixels": 7114,
+          "segmentation_iou": 0.7356012821838486,
+          "segmentation_union_pixels": 9671,
+          "within_threshold": 4,
+          "zero_eligible_scored_frames": 0
+        }
+      },
+      "radio": {
+        "capture_only": {
+          "allocated_prb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 1765,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "event_window_wall_ns": [
+            1791940531818057984,
+            1791940573474095104
+          ],
+          "ingest_lag_ms": {
+            "max": 139.71938,
+            "min": 0.057467,
+            "n": 1765,
+            "p50": 1.035644,
+            "p95": 4.1626974,
+            "p99": 9.388020879999914
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 1765,
+            "p50": 25.0,
+            "p95": 26.0,
+            "p99": 28.0
+          },
+          "scheduled_tb_Mbps": 6.363265118964826,
+          "scheduled_tb_bytes": 33133551,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 1765,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          }
+        },
+        "capture_through_receiver_close": {
+          "allocated_prb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 1894,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "event_window_wall_ns": [
+            1791940531818057984,
+            1791940576320569190
+          ],
+          "ingest_lag_ms": {
+            "max": 139.71938,
+            "min": 0.057467,
+            "n": 1894,
+            "p50": 1.0169644999999998,
+            "p95": 4.2517106999999985,
+            "p99": 10.106324289999971
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 1894,
+            "p50": 25.0,
+            "p95": 26.0,
+            "p99": 28.0
+          },
+          "scheduled_tb_Mbps": 6.398553795804869,
+          "scheduled_tb_bytes": 35593964,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 1894,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          }
+        }
+      },
+      "received_datagrams": 2803,
+      "rescoring": {
+        "all_exact": true,
+        "n": 1
+      },
+      "rlc_capture_bytes": {
+        "max": 7432496.0,
+        "min": 0.0,
+        "n": 4266,
+        "p50": 4291373.0,
+        "p95": 7066871.25,
+        "p99": 7273600.0
+      },
+      "scheduler_buffer_bytes": {
+        "max": 300000.0,
+        "min": 0.0,
+        "n": 1754,
+        "p50": 300000.0,
+        "p95": 300000.0,
+        "p99": 300000.0
+      },
+      "scored_feedback": 1,
+      "scored_undefined_quality": 0,
+      "sender_sfd4_Mbps": 7.50354411053492,
+      "sent": 208,
+      "sent_chunks_not_observed": 429,
+      "source": {
+        "cell_id": "town10",
+        "ego_id": "m4-ego-0",
+        "feedback_port": 52010,
+        "imsi": "001010000000001",
+        "ip": "10.0.0.3",
+        "rnti": 8094,
+        "run_id": "M4_TWO_UE_GOOD_ALL",
+        "session_id": "0f8be03b-5ca2-4027-b2f7-acde20e4a765",
+        "stream_id": "m4-ue0",
+        "tunnel": "oaitun_ue1",
+        "ue_id": 0
+      },
+      "terminal_crosswalk": [
+        {
+          "boundary": "EDGE_AFTER_REASSEMBLY",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 171
+        },
+        {
+          "boundary": "MAP_ACCEPTED",
+          "ledger": "RESULT_INSTALLED",
+          "n": 5
+        },
+        {
+          "boundary": "NOT_COMPLETED",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 31
+        },
+        {
+          "boundary": "EDGE_BEFORE_TAIL",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 1
+        }
+      ],
+      "timely_policy_feedback": 0,
+      "timely_policy_predictions_action_open": 0,
+      "timely_scored_feedback": 0,
+      "unobserved_note": "Right-censored at receiver close; not classified as permanent packet loss.",
+      "unresolved_tickets": 0,
+      "uplink_dci_rounds": {
+        "0": 1753,
+        "1": 14
+      }
+    },
+    "m4-ue1": {
+      "accepted_map_installs": 5,
+      "actor_replay": {
+        "all_exact": true,
+        "n": 102
+      },
+      "admitted": 6,
+      "after_reassembly_expired": 150,
+      "all_datagram_kernel_to_app_ms": {
+        "max": 79.976188,
+        "min": 0.007923,
+        "n": 2781,
+        "p50": 0.058213,
+        "p95": 0.689316,
+        "p99": 2.3066319999999956
+      },
+      "all_datagram_send_bracket_lower_ms": {
+        "max": 12587.151404,
+        "min": 58.805687,
+        "n": 2781,
+        "p50": 7650.162124,
+        "p95": 12079.428912,
+        "p99": 12330.317317399999
+      },
+      "backlog_delay_pearson": 0.998924974607786,
+      "capture_span_s": 41.654395648,
+      "capture_window_wall_ns": [
+        1791940531847994624,
+        1791940573502390272
+      ],
+      "completed_feature_goodput_Mbps_capture": 5.945390688002715,
+      "completing_chunk_before_kernel_fraction": {
+        "max": 0.9999078387397587,
+        "min": 0.9528453501689159,
+        "n": 156,
+        "p50": 0.9997826632046589,
+        "p95": 0.9998902134852794,
+        "p99": 0.9999053953725212
+      },
+      "controller_faulted_field": null,
+      "decisions": 102,
+      "duplicate_chunks": 0,
+      "duration_ms": {
+        "action_to_feedback_ms": {
+          "max": 507.912859,
+          "min": 339.975684,
+          "n": 2,
+          "p50": 423.9442715,
+          "p95": 499.51600025,
+          "p99": 506.23348725
+        },
+        "action_to_gt_ready_ms": {
+          "max": 255.471792,
+          "min": 101.514161,
+          "n": 62,
+          "p50": 123.596882,
+          "p95": 177.57757524999997,
+          "p99": 232.57750441000002
+        },
+        "action_to_prediction_ms": {
+          "max": 459.380364,
+          "min": 314.074905,
+          "n": 2,
+          "p50": 386.7276345,
+          "p95": 452.11509105,
+          "p99": 457.92730940999996
+        },
+        "app_to_reassembly_ms": {
+          "max": 0.690251,
+          "min": 0.042045,
+          "n": 156,
+          "p50": 0.06676299999999999,
+          "p95": 0.17936200000000002,
+          "p99": 0.2810401999999994
+        },
+        "capture_to_first_send_ms": {
+          "max": 248.27472,
+          "min": 73.138434,
+          "n": 208,
+          "p50": 104.83689749999999,
+          "p95": 133.40646929999997,
+          "p99": 199.72637794000016
+        },
+        "capture_to_install_ms": {
+          "max": 480.413184,
+          "min": 354.82368,
+          "n": 5,
+          "p50": 410.596608,
+          "p95": 467.254272,
+          "p99": 477.7814016
+        },
+        "capture_to_prediction_ms": {
+          "max": 548.370176,
+          "min": 347.69408,
+          "n": 6,
+          "p50": 405.35641599999997,
+          "p95": 529.7808640000001,
+          "p99": 544.6523136000001
+        },
+        "clock_complete_frame_span_ms": {
+          "max": 478.101241,
+          "min": 0.0,
+          "n": 157,
+          "p50": 237.328142,
+          "p95": 422.5025285999999,
+          "p99": 454.3784362
+        },
+        "edge_compute_ms": {
+          "max": 66.25699996948242,
+          "min": 49.42631721496582,
+          "n": 6,
+          "p50": 62.88456916809082,
+          "p95": 65.79959392547607,
+          "p99": 66.16551876068115
+        },
+        "edge_queue_ms": {
+          "max": 1.4944076538085938,
+          "min": 0.47588348388671875,
+          "n": 6,
+          "p50": 0.5065202713012695,
+          "p95": 1.2851953506469727,
+          "p99": 1.4525651931762698
+        },
+        "first_send_to_kernel_ms": {
+          "max": 12587.306768,
+          "min": 168.243951,
+          "n": 156,
+          "p50": 7850.570734999999,
+          "p95": 12163.5690025,
+          "p99": 12437.0078122
+        },
+        "front_ranker_ae_codec_ms": {
+          "max": 47.518829,
+          "min": 5.646626,
+          "n": 208,
+          "p50": 13.725533500000001,
+          "p95": 20.876066049999995,
+          "p99": 34.75468776000003
+        },
+        "kernel_to_app_ms": {
+          "max": 2.473857,
+          "min": 0.007923,
+          "n": 156,
+          "p50": 0.133915,
+          "p95": 0.37271075,
+          "p99": 1.4923695499999885
+        },
+        "last_send_to_kernel_ms": {
+          "max": 12587.151404,
+          "min": 168.116376,
+          "n": 156,
+          "p50": 7850.381117,
+          "p95": 12162.695742,
+          "p99": 12436.786828699998
+        },
+        "prediction_to_feedback_ms": {
+          "max": 48.532495,
+          "min": 25.900779,
+          "n": 2,
+          "p50": 37.216637,
+          "p95": 47.400909199999994,
+          "p99": 48.30617784
+        },
+        "reassembly_to_admission_ms": {
+          "max": 1.24079,
+          "min": 0.158158,
+          "n": 156,
+          "p50": 0.310991,
+          "p95": 0.53761375,
+          "p99": 1.0676009999999987
+        },
+        "reassembly_to_binding_ms": {
+          "max": 1.209718,
+          "min": 0.133993,
+          "n": 156,
+          "p50": 0.28164049999999996,
+          "p95": 0.49326025,
+          "p99": 0.8940348499999964
+        },
+        "reassembly_to_full_verifier_ms": {
+          "max": 89.211834,
+          "min": 0.96309,
+          "n": 156,
+          "p50": 1.397503,
+          "p95": 2.35710275,
+          "p99": 3.942323449999991
+        },
+        "reassembly_to_verified_ms": {
+          "max": 88.692011,
+          "min": 0.690567,
+          "n": 156,
+          "p50": 0.9786905,
+          "p95": 1.5784117500000001,
+          "p99": 2.9133333999999933
+        },
+        "reassembly_work_ms": {
+          "max": 0.282636,
+          "min": 0.02066,
+          "n": 156,
+          "p50": 0.0468305,
+          "p95": 0.07177175,
+          "p99": 0.09023624999999992
+        },
+        "rgb_to_send_ms": {
+          "max": 248.481027,
+          "min": 73.360614,
+          "n": 208,
+          "p50": 105.189265,
+          "p95": 133.74182389999999,
+          "p99": 199.95722214000017
+        },
+        "rlc_prior_send_age_ms": {
+          "max": 70.193271,
+          "min": 0.031413,
+          "n": 208,
+          "p50": 6.092225,
+          "p95": 32.83523245,
+          "p99": 38.43312810000001
+        },
+        "send_to_full_verifier_ms": {
+          "max": 12588.428334,
+          "min": 169.65803,
+          "n": 156,
+          "p50": 7852.9405050000005,
+          "p95": 12164.00022875,
+          "p99": 12438.07985185
+        },
+        "send_to_verified_ms": {
+          "max": 12588.093045,
+          "min": 169.271967,
+          "n": 156,
+          "p50": 7851.557946999999,
+          "p95": 12163.66309525,
+          "p99": 12437.740206999999
+        },
+        "sender_calls_ms": {
+          "max": 4.650196,
+          "min": 0.044967,
+          "n": 208,
+          "p50": 0.17719200000000002,
+          "p95": 0.68761505,
+          "p99": 2.6026978500000055
+        }
+      },
+      "edge_terminal_stages": {
+        "EDGE_AFTER_REASSEMBLY": 150
+      },
+      "exact_sent_datagrams": 3587,
+      "fallbacks": 4,
+      "fully_reassembled": 156,
+      "gt_outcomes": {
+        "NO_GT_PRODUCER_CAPACITY": 40,
+        "SCORED": 2,
+        "UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 10,
+        "UNSCORED_NO_RESULT_BY_HORIZON": 50
+      },
+      "holds": 102,
+      "incomplete_with_chunks": 1,
+      "ledger_terminals": {
+        "FEEDBACK_TIMEOUT": 203,
+        "RESULT_INSTALLED": 5
+      },
+      "modes": {
+        "11": 148,
+        "8": 60
+      },
+      "negative_send_to_kernel_frame_intervals": 0,
+      "no_datagram_observed": 51,
+      "out_of_order_chunks": 0,
+      "payload_bytes": {
+        "max": 331002.0,
+        "min": 6586.0,
+        "n": 208,
+        "p50": 191654.0,
+        "p95": 313264.95,
+        "p99": 325833.02
+      },
+      "predictions": 6,
+      "q_e4": {
+        "max": 9800.0,
+        "min": 1974.0,
+        "n": 208,
+        "p50": 3011.5,
+        "p95": 4666.0,
+        "p99": 9800.0
+      },
+      "quality": {
+        "person": {
+          "conservative_fraction": null,
+          "eligible_gt_objects": 0,
+          "false_positives": 3,
+          "localisation_threshold_m": 1.2,
+          "matched_objects": 0,
+          "misses": 0,
+          "scored_frames": 2,
+          "segmentation_intersection_pixels": 267,
+          "segmentation_iou": 0.3423076923076923,
+          "segmentation_union_pixels": 780,
+          "within_threshold": 0,
+          "zero_eligible_scored_frames": 2
+        },
+        "vehicle": {
+          "conservative_fraction": 0.5454545454545454,
+          "eligible_gt_objects": 11,
+          "false_positives": 2,
+          "localisation_threshold_m": 1.0,
+          "matched_objects": 9,
+          "misses": 2,
+          "scored_frames": 2,
+          "segmentation_intersection_pixels": 24039,
+          "segmentation_iou": 0.7698145835334806,
+          "segmentation_union_pixels": 31227,
+          "within_threshold": 6,
+          "zero_eligible_scored_frames": 0
+        }
+      },
+      "radio": {
+        "capture_only": {
+          "allocated_prb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 1754,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "event_window_wall_ns": [
+            1791940531847994624,
+            1791940573502390272
+          ],
+          "ingest_lag_ms": {
+            "max": 123.441112,
+            "min": 0.049957,
+            "n": 1754,
+            "p50": 0.9915435,
+            "p95": 4.3784584,
+            "p99": 11.398893260000031
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 1754,
+            "p50": 25.0,
+            "p95": 26.0,
+            "p99": 28.0
+          },
+          "scheduled_tb_Mbps": 6.318866374253536,
+          "scheduled_tb_bytes": 32901070,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 1754,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          }
+        },
+        "capture_through_receiver_close": {
+          "allocated_prb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 1882,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "event_window_wall_ns": [
+            1791940531847994624,
+            1791940576320569190
+          ],
+          "ingest_lag_ms": {
+            "max": 123.441112,
+            "min": 0.049957,
+            "n": 1882,
+            "p50": 0.9802744999999999,
+            "p95": 4.447473099999995,
+            "p99": 14.343127380000007
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 1882,
+            "p50": 25.0,
+            "p95": 26.0,
+            "p99": 28.0
+          },
+          "scheduled_tb_Mbps": 6.35251389776713,
+          "scheduled_tb_bytes": 35314081,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 1882,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          }
+        }
+      },
+      "received_datagrams": 2781,
+      "rescoring": {
+        "all_exact": true,
+        "n": 2
+      },
+      "rlc_capture_bytes": {
+        "max": 12101378.0,
+        "min": 0.0,
+        "n": 4260,
+        "p50": 6374196.5,
+        "p95": 11573828.0,
+        "p99": 11912855.0
+      },
+      "scheduler_buffer_bytes": {
+        "max": 300000.0,
+        "min": 0.0,
+        "n": 1744,
+        "p50": 300000.0,
+        "p95": 300000.0,
+        "p99": 300000.0
+      },
+      "scored_feedback": 2,
+      "scored_undefined_quality": 0,
+      "sender_sfd4_Mbps": 8.350427622077405,
+      "sent": 208,
+      "sent_chunks_not_observed": 806,
+      "source": {
+        "cell_id": "town10",
+        "ego_id": "m4-ego-1",
+        "feedback_port": 52011,
+        "imsi": "001010000000002",
+        "ip": "10.0.0.2",
+        "rnti": 60647,
+        "run_id": "M4_TWO_UE_GOOD_ALL",
+        "session_id": "764077c8-4fe2-44ec-b247-04c297ff8549",
+        "stream_id": "m4-ue1",
+        "tunnel": "oaitun_ue2",
+        "ue_id": 1
+      },
+      "terminal_crosswalk": [
+        {
+          "boundary": "EDGE_AFTER_REASSEMBLY",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 150
+        },
+        {
+          "boundary": "MAP_ACCEPTED",
+          "ledger": "RESULT_INSTALLED",
+          "n": 5
+        },
+        {
+          "boundary": "MAP_REJECTED",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 1
+        },
+        {
+          "boundary": "NOT_COMPLETED",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 52
+        }
+      ],
+      "timely_policy_feedback": 0,
+      "timely_policy_predictions_action_open": 0,
+      "timely_scored_feedback": 0,
+      "unobserved_note": "Right-censored at receiver close; not classified as permanent packet loss.",
+      "unresolved_tickets": 0,
+      "uplink_dci_rounds": {
+        "0": 1742,
+        "1": 12
+      }
+    }
+  },
+  "preparation_sha256": "07ec210311434678c3172af18a0f2ca7966673ca0a9fb83b71e850ff46e7a04b",
+  "route": {
+    "m4-ue0": {
+      "abort_reason": "loop 1 exceeded the 20 s simulated budget at leg 2/19",
+      "all_ordered_waypoints_reached": false,
+      "collision_count": 0,
+      "collision_events": [],
+      "collision_incident_count": 0,
+      "collision_incidents": [],
+      "completed": false,
+      "driven_distance_m": 73.78,
+      "ego_block_events": 0,
+      "ego_overtakes": 0,
+      "ego_replans": 0,
+      "intervention_count": 0,
+      "intervention_events": [],
+      "loop_index": 1,
+      "npc_roadblocks_cleared": 0,
+      "overtake_attempts": [],
+      "regions_covered": "B1",
+      "return_heading_error_deg": 0.482,
+      "return_position_error_m": 73.772,
+      "roadblock_destructions": 0,
+      "roadblock_observations": [],
+      "roadblock_relocations": 0,
+      "simulation_duration_s": 21.0,
+      "ticks": 420,
+      "walker_brake_ticks": 0,
+      "wall_clock_duration_s": 42.35,
+      "watchdog_aborted": false,
+      "waypoints_expected": 19,
+      "waypoints_reached": 1
+    },
+    "m4-ue1": {
+      "abort_reason": "loop 1 exceeded the 20 s simulated budget at leg 2/19",
+      "all_ordered_waypoints_reached": false,
+      "collision_count": 0,
+      "collision_events": [],
+      "collision_incident_count": 0,
+      "collision_incidents": [],
+      "completed": false,
+      "driven_distance_m": 80.34,
+      "ego_block_events": 0,
+      "ego_overtakes": 0,
+      "ego_replans": 0,
+      "intervention_count": 0,
+      "intervention_events": [],
+      "loop_index": 1,
+      "npc_roadblocks_cleared": 0,
+      "overtake_attempts": [],
+      "regions_covered": "B1",
+      "return_heading_error_deg": 0.027,
+      "return_position_error_m": 65.328,
+      "roadblock_destructions": 0,
+      "roadblock_observations": [],
+      "roadblock_relocations": 0,
+      "simulation_duration_s": 21.0,
+      "ticks": 420,
+      "walker_brake_ticks": 0,
+      "wall_clock_duration_s": 42.35,
+      "watchdog_aborted": false,
+      "waypoints_expected": 19,
+      "waypoints_reached": 1
+    }
+  },
+  "verdict": "A_DELAY_LARGELY_PRECEDES_KERNEL_ARRIVAL"
+}

@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/smoke_diagnosis_20261013_01/analyze.py",
+    "--worker"
+  ],
+  "cpu_affinity": [
+    23
+  ],
+  "cuda_visible_devices": "",
+  "numpy": "1.26.4",
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "script_sha256": "32c0cf796e707581f57fa9d444c3b659bd3ef6efb09ec9fc16c0e75d0e555683",
+  "total_seconds": 1.754231857135892
+}

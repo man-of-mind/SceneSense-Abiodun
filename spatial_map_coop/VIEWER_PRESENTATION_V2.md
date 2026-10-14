@@ -1,5 +1,12 @@
 # Cooperative spatial-map viewer: presentation contract v2
 
+The additive [replay-first UI foundation](replay_ui_v1/README.md) supplies a
+read-only M3 replay launcher, capture-bound pose/clock adapter, explicit forward
+observation policy, browser inspection evidence and demo artifacts. Its optional
+predictor age/consistency guards preserve the defaults described below for the
+existing live viewer; the live viewer is not connected or upgraded by launching
+the replay.
+
 Offline refinement, 2026-09-21, branch `spatial-map-coop-v1`.
 **No live-performance and no UI-qualification claim is made anywhere in this
 document.** Nothing here was validated against a running CARLA, OAI, Docker,

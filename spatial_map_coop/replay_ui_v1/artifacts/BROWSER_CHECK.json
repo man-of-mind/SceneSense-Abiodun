@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "browser": "133.0.6943.16",
+  "viewport": {
+    "width": 1440,
+    "height": 1100,
+    "dpr": 1
+  },
+  "conditions": "Headless Chromium, real-time playback, software rendering; concurrent Playwright video capture. Not a hardware/live-service qualification.",
+  "pageErrors": [],
+  "requests": 26,
+  "externalRequests": 0,
+  "frame_interval_ms": {
+    "n": 600,
+    "mean": 16.666000000000004,
+    "p50": 16.69999999999709,
+    "p95": 16.799999999995634,
+    "max": 16.80000000000291
+  },
+  "render_cpu_ms": {
+    "n": 600,
+    "mean": 0.53149999777476,
+    "p50": 0.40000057220458984,
+    "p95": 1.4000005722045898,
+    "max": 2.299999237060547
+  },
+  "fps": 60.002400096003825,
+  "motion": {
+    "sampled_frames": 751,
+    "between_install_motion_frames": 337,
+    "accumulated_ego_turn_deg": 64.62955605845264,
+    "continuity_samples": 21880,
+    "max_per_frame_object_step_m": 0.7373251460312056
+  },
+  "fading_observed": true,
+  "interruption_expiry": true,
+  "seek_deterministic": true,
+  "pose_frames_inspected": [
+    1480,
+    2020,
+    2748
+  ],
+  "max_events": 152,
+  "final_tracks": 116
+}

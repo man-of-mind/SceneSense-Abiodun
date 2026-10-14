@@ -1,0 +1,30 @@
+{
+  "capture_body_cpu_percent": 4.133511768103907,
+  "capture_body_cpu_s": 1.725018479,
+  "capture_body_max_wall_ms": 95.607115,
+  "capture_body_wall_s": 3.010701984,
+  "capture_sample_bodies": 84,
+  "cgroup_cpu_max": [
+    [
+      "/sys/fs/cgroup/user.slice",
+      "max 100000"
+    ]
+  ],
+  "completed_scope_count": 531153,
+  "cpu": 22,
+  "empty_scope_cost_projection_s": 0.16201122575399998,
+  "empty_scope_ns": 305.018,
+  "interval_ms": 500,
+  "limitations": "Sample-body costs exclude subsequent cgroup sampling, flushing and sleep bookkeeping. Total sampler CPU includes these. Empty-scope projection excludes device lookup, peer metadata and perturbation; not a measured whole-instrumentation overhead bound. Supplemental perf overhead not isolated. CPU22 shares front/map work, not protected radio/inference CPUs.",
+  "maps": 10,
+  "native_record_bytes": 4736,
+  "nice": 19,
+  "observed_throttle_counter_pairs": [
+    [
+      0,
+      0
+    ]
+  ],
+  "sampler_total_cpu_s": 4.33472649,
+  "sampler_total_wall_s": 110.00235147960484
+}

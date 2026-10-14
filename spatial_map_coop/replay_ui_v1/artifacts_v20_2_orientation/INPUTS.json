@@ -1,0 +1,18 @@
+{
+ "recorded_inputs": {
+  "events": 3576,
+  "bindings": {
+   "POSE_OK": 3576,
+   "JOIN_OK": 3576
+  },
+  "base_ns": "1791857679851856128",
+  "files": {
+   "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261012_m3_route_b_v20/good_all_live_view_01/capture/cells/a71__favorable_stable/live_view/map_installs.jsonl": "56f29e58ea054759bccf50d88dc34828eef76e4828b106c64cb7b11b7d521803",
+   "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261012_m3_route_b_v20/good_all_live_view_01/capture/cells/a71__favorable_stable/live_view/ue_pose.jsonl": "115fc39392b3af489e8e6dd9ecf1cd4afc126b4e25d08b7b5a0dcdaae8d079f2"
+  }
+ },
+ "gt_reference_source": "capture/cells/a71__favorable_stable/{numeric_gt/service/archive/*/scorer/target_metadata.json,parity_static_catalogue/static_environment_objects.csv} (read-only, diagnosis only)",
+ "video_sha256": {
+  "v20.1-vs-v20.2-1x.webm": "16d8c5a498ee9587220233f5eed5fc89a03c464415702c985b41d444cff75013"
+ }
+}

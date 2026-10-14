@@ -1,0 +1,24 @@
+{
+  "command": [
+    "sudo",
+    "-n",
+    "docker",
+    "stop",
+    "--time",
+    "20",
+    "98102db2992cd5112ffc8a63feb74a2c74556bc604d515eb98bc3014ed37884e",
+    "abe81a256030b3f8f0b8f09f2d370193fbebb5a4790340ff516109ea67b3d242",
+    "cdd5dd32f46ded28877e91c1a0cd2b8946cb7e9307802b421ec217dc15c9f6f3",
+    "72f1a25f362c20f07c73c57c162949a8e58116392447b41876f088b85cb96577",
+    "332955b2a7970c635f6ea70ec4dc9cc5126688ecaa051b0c179ec255eabd58d1",
+    "c76df9fa911c4a729fca1bfde9403075db909eecef987855af4d9a866f91b80c",
+    "3ac230800491e4b8e9a598245d2a0e3c34162e45bef22cae6a5fe64102be0aa4",
+    "ef2788f85308bb44e00e59ee4ad284b3da429bc614dbd87a68cf1f07b4910e07",
+    "c3ce69d376aa8df37ecaf3b9f22cd4da869990641d6f864eb7cd1d305f8f23dd",
+    "4dde6ddaf90011b3f903b5ed954c5ecc9b1c69dd4c937037195c42f21ddcebc4"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "end_wall_s": 1791945841.0320904,
+  "returncode": 0,
+  "start_wall_s": 1791945835.034266
+}

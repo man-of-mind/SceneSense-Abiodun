@@ -1,0 +1,6 @@
+{
+  "command": "env -u PYTHONPATH CUDA_VISIBLE_DEVICES= OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -B experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/analyze.py /tmp/m4_radio_clock_reproduction_01",
+  "cpu": 22,
+  "elapsed_s": 1.7258538994938135,
+  "nice": 19
+}

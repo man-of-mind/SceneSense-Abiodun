@@ -1,0 +1,32 @@
+{
+  "actual_live_attempts": 1,
+  "binding_sha256": "bbf426fb25f32a3c2b304e425cb32b521ff84baaf695917072f505be3a250022",
+  "directory_sizes": {
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01": {
+      "allocated_bytes": 37117952,
+      "apparent_bytes": 36909385
+    },
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_09": {
+      "allocated_bytes": 600997888,
+      "apparent_bytes": 596120288
+    }
+  },
+  "disk_free_bytes": 25281527808,
+  "no_repair_implemented": true,
+  "original_unchanged": {
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/libSIMU.a": "ef3450737297119488b391012228f6cb1ddb2bc7552d636dcf19af6890557a3b",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/librfsimulator.so": "3475c7f971f959701b7808f3d6c3e0eba10f9a6bf485892b54e3b2f6c660f706",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem": "ebcd85f4c96cf6e3d0a1752d0047e8377811014be75cdeeef6334c982fcfab70",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem": "60ecc9a1d102e8b66871727a6a23da22977ff907fecc3870a8dc46414080c975",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/radio/rfsimulator/CMakeFiles/rfsimulator.dir/__/__/openair1/PHY/TOOLS/signal_energy.c.o": "207c598de6a6e93b32b81b905e4b897412be0a030dfdd0e5f0d9060973fb84d0",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/cmake_targets/ran_build/build/radio/rfsimulator/CMakeFiles/rfsimulator.dir/apply_channelmod.c.o": "281aaab81a127f755747a7e21cc9a22210c859841bc0878de2f6247ab8acca38",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/radio/rfsimulator/simulator.cpp": "8d78932b06903344d4a137bdafb5729173b40a98330116d1609a0abca0315c3a"
+  },
+  "postflight_clean": true,
+  "prelaunch_free_bytes": 26049089536,
+  "preparation_sha256": "07ec210311434678c3172af18a0f2ca7966673ca0a9fb83b71e850ff46e7a04b",
+  "prior_host_free_bytes": 26064084992,
+  "registration_and_diagnostic_binding": "unchanged and valid",
+  "smoke_pass": true,
+  "status": "PASS"
+}

@@ -1,0 +1,151 @@
+{
+  "baseline": {
+    "allowed_gpu_pids": [
+      3031,
+      794777
+    ],
+    "allowed_process_pids": [
+      3031,
+      794777,
+      2880716
+    ],
+    "exclusive_gpu_claim": false,
+    "identities": {
+      "3031": {
+        "cmdline": "/usr/libexec/gnome-remote-desktop-daemon",
+        "exe": "/usr/libexec/gnome-remote-desktop-daemon",
+        "start_ticks": 856,
+        "uid": 200171
+      },
+      "794777": {
+        "cmdline": "nvidia-cuda-mps-server",
+        "exe": "/usr/bin/nvidia-cuda-mps-server",
+        "start_ticks": 755744669,
+        "uid": 200171
+      },
+      "2880716": {
+        "cmdline": "nvidia-cuda-mps-control -d",
+        "exe": "/usr/bin/nvidia-cuda-mps-control",
+        "start_ticks": 167960061,
+        "uid": 200171
+      }
+    },
+    "mps_client_count": 0,
+    "mps_queries": {
+      "get_client_list 794777": {
+        "stderr": "",
+        "stdout": ""
+      },
+      "get_server_list": {
+        "stderr": "",
+        "stdout": "794777\n"
+      }
+    },
+    "policy": "EXPLICIT_PREEXISTING_BASELINE_20261013"
+  },
+  "browser_exception": "User explicitly requested leaving pre-existing Firefox; any timing effect is unmeasured.",
+  "core": [
+    {
+      "id": "98102db2992cd5112ffc8a63feb74a2c74556bc604d515eb98bc3014ed37884e",
+      "name": "/ims",
+      "running": true
+    },
+    {
+      "id": "abe81a256030b3f8f0b8f09f2d370193fbebb5a4790340ff516109ea67b3d242",
+      "name": "/mysql",
+      "running": true
+    },
+    {
+      "id": "cdd5dd32f46ded28877e91c1a0cd2b8946cb7e9307802b421ec217dc15c9f6f3",
+      "name": "/oai-amf",
+      "running": true
+    },
+    {
+      "id": "72f1a25f362c20f07c73c57c162949a8e58116392447b41876f088b85cb96577",
+      "name": "/oai-ausf",
+      "running": true
+    },
+    {
+      "id": "332955b2a7970c635f6ea70ec4dc9cc5126688ecaa051b0c179ec255eabd58d1",
+      "name": "/oai-ext-dn",
+      "running": true
+    },
+    {
+      "id": "c76df9fa911c4a729fca1bfde9403075db909eecef987855af4d9a866f91b80c",
+      "name": "/oai-nrf",
+      "running": true
+    },
+    {
+      "id": "3ac230800491e4b8e9a598245d2a0e3c34162e45bef22cae6a5fe64102be0aa4",
+      "name": "/oai-smf",
+      "running": true
+    },
+    {
+      "id": "ef2788f85308bb44e00e59ee4ad284b3da429bc614dbd87a68cf1f07b4910e07",
+      "name": "/oai-udm",
+      "running": true
+    },
+    {
+      "id": "c3ce69d376aa8df37ecaf3b9f22cd4da869990641d6f864eb7cd1d305f8f23dd",
+      "name": "/oai-udr",
+      "running": true
+    },
+    {
+      "id": "4dde6ddaf90011b3f903b5ed954c5ecc9b1c69dd4c937037195c42f21ddcebc4",
+      "name": "/oai-upf",
+      "running": true
+    }
+  ],
+  "existing_container_ids": [
+    "4dde6ddaf90011b3f903b5ed954c5ecc9b1c69dd4c937037195c42f21ddcebc4",
+    "3ac230800491e4b8e9a598245d2a0e3c34162e45bef22cae6a5fe64102be0aa4",
+    "cdd5dd32f46ded28877e91c1a0cd2b8946cb7e9307802b421ec217dc15c9f6f3",
+    "72f1a25f362c20f07c73c57c162949a8e58116392447b41876f088b85cb96577",
+    "ef2788f85308bb44e00e59ee4ad284b3da429bc614dbd87a68cf1f07b4910e07",
+    "c3ce69d376aa8df37ecaf3b9f22cd4da869990641d6f864eb7cd1d305f8f23dd",
+    "332955b2a7970c635f6ea70ec4dc9cc5126688ecaa051b0c179ec255eabd58d1",
+    "abe81a256030b3f8f0b8f09f2d370193fbebb5a4790340ff516109ea67b3d242",
+    "c76df9fa911c4a729fca1bfde9403075db909eecef987855af4d9a866f91b80c",
+    "98102db2992cd5112ffc8a63feb74a2c74556bc604d515eb98bc3014ed37884e",
+    "226a860c6417b19302a1fddfdafc5a3b51d7ea557187cea57260071ce226717d",
+    "29474ec00eebecd911cf2ca321e0919216edd5fd8411ad4ef5a89e60668ad71e",
+    "7c8f139381678fa3d34eb9e51cab31e84356076f09e582c116478d2f38d4ff4b",
+    "e793e112794f45088cc2d2af6c7d690aa82f976142af9ded5807a609580896c3",
+    "ad934091e79474b0396c0337ffec5d63f8fb986e12980d12c130defcf0c1dbcd",
+    "c7351d03a86ddc2b3de0f2dae40d6aabeab2038bb27cccd0b49617c5178a4069",
+    "4a41579e3c83519915b86d19fb180822068019b0cb4dfb5f8b65d23619bf69ba",
+    "991ebf0410ff97780369d5ebf7e0813a8628bdd83aa192c5f1744e03d421360d",
+    "881c00179b3fe74be5b99acf0e507a86be8e8ead9e5ef1750d4b16d76cc998a4",
+    "4bd6522a74772bee28f437eb7227227db145fcd993144b33b9eef2b9fd86f406",
+    "ee065c988edb70d6ede12625c23976b11250e35a364e2aed11061f386a54721c",
+    "0e5218328f1b981737e663ebbf9c8fa3c3c0e98d47538a924b74ae0558282d37",
+    "a4b0cc904c2dea5a54e2f30e4498fd8501b4f44c0edc2539c38a97c00fbd4b59",
+    "70c6330733d78a5b9224de369e97758d843048c3ab2fc42c8f879cf8b2648813",
+    "170a6539e85dd50277490a8b07b4ec18a1d7c04e831a782d0aeec26f2f64d3c7",
+    "2b34748fa766aa4805e0bb240e210651ce366dd87e71582b7e0bb65532ba3dc7",
+    "4a999360632eb9b692f65cd79ef97cfc6eaae984c431935516babe9e521041e9"
+  ],
+  "free_bytes": 26681425920,
+  "gpu": "3031, /usr/libexec/gnome-remote-desktop-daemon\n794777, nvidia-cuda-mps-server\n",
+  "live": [],
+  "lock_free": true,
+  "minimum_bytes": 17179869184,
+  "preserved_processes": [
+    {
+      "comm": "firefox",
+      "command": "/snap/firefox/9036/usr/lib/firefox/firefox ",
+      "pid": 929095
+    },
+    {
+      "comm": "python3",
+      "command": "python3 -m spatial_map_coop.replay_ui_v1.server ",
+      "pid": 988344
+    },
+    {
+      "comm": "python3",
+      "command": "python3 -m spatial_map_coop.replay_ui_v1.recorded_tap_v20 --port 8791 ",
+      "pid": 2282245
+    }
+  ],
+  "running_containers": "{\"Command\":\"\\\"sh /openair-upf/bin\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"4dde6ddaf900\",\"Image\":\"oaisoftwarealliance/oai-upf:v2.2.1\",\"Labels\":\"com.docker.compose.config-hash=791050a7ff28e95b2db0ec200e1cddeea17890ec6e4bcc9bd1e0638f225262cf,com.docker.compose.container-number=1,com.docker.compose.depends_on=oai-nrf:service_started:false,oai-smf:service_started:false,com.docker.compose.image=sha256:434bfd0cf88021f8a2615e422dc42be90802b88c6dc23c5463cc778cf8a1212a,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-upf,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=OpenAirInterface User Plane Function,org.opencontainers.image.licenses=Collaborative Standards Software License v1.0,org.opencontainers.image.revision=commit:451c27da,org.opencontainers.image.title=OAI UPF,org.opencontainers.image.vendor=OpenAirInterface Software Alliance,org.opencontainers.image.version=22.04,support-multi-sgwu-instances=true,support-nrf-fdqn=true\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026\",\"Names\":\"oai-upf\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"2152/udp, 8805/udp, 5342-5344/tcp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"9B (virtual 273MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"/openair-smf/bin/oa\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"3ac230800491\",\"Image\":\"oaisoftwarealliance/oai-smf:v2.2.1\",\"Labels\":\"com.docker.compose.config-hash=c5d4b00599e6f267beddf3f342bf15ea558eca703bc50e5e9e41680fb62dd18c,com.docker.compose.container-number=1,com.docker.compose.depends_on=oai-amf:service_started:false,oai-nrf:service_started:false,com.docker.compose.image=sha256:47ec8e129699671a0d2b03f593b3781dc54ea329e97a2206974cb218d2d51018,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-smf,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=OpenAirInterface Session Management Function,org.opencontainers.image.licenses=Collaborative Standards Software License v1.0,org.opencontainers.image.revision=commit:53af4404,org.opencontainers.image.title=OAI SMF,org.opencontainers.image.vendor=OpenAirInterface Software Alliance,org.opencontainers.image.version=22.04\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026\",\"Names\":\"oai-smf\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"80/tcp, 5342-5344/tcp, 8080/tcp, 9090/tcp, 8805/udp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"1B (virtual 171MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"/openair-amf/bin/oa\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"cdd5dd32f46d\",\"Image\":\"oaisoftwarealliance/oai-amf:v2.2.1\",\"Labels\":\"com.docker.compose.config-hash=d94cf9d300f5fb3a68fa2026628e28bf01ab2c4caecb83f9d218acd37d0ea2d8,com.docker.compose.container-number=1,com.docker.compose.depends_on=oai-ausf:service_started:false,mysql:service_started:false,oai-nrf:service_started:false,com.docker.compose.image=sha256:e89dffd6e2e6c923295044fe76180af29cbfabdd47e8d958f1d2241d13727633,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-amf,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=OpenAirInterface Access and Mobility Management Function,org.opencontainers.image.licenses=Collaborative Standards Software License v1.0,org.opencontainers.image.revision=commit:513c0f2d,org.opencontainers.image.title=OAI AMF,org.opencontainers.image.vendor=OpenAirInterface Software Alliance,org.opencontainers.image.version=22.04\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026\",\"Names\":\"oai-amf\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"80/tcp, 5342-5344/tcp, 8080/tcp, 9090/tcp, 38412/sctp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"0B (virtual 191MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"/openair-ausf/bin/o\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"72f1a25f362c\",\"Image\":\"oaisoftwarealliance/oai-ausf:v2.2.1\",\"Labels\":\"com.docker.compose.config-hash=8268b86af2ad2d5caea3cc390f132a211f5da803cdb75d4d3c17149253209bb4,com.docker.compose.container-number=1,com.docker.compose.depends_on=oai-udm:service_started:false,com.docker.compose.image=sha256:b45ec13414996cbe7b56674c7419c0678d1c27907295e6351578025fae65508f,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-ausf,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=OpenAirInterface Authentication Server Management Function,org.opencontainers.image.licenses=Collaborative Standards Software License v1.0,org.opencontainers.image.revision=commit:febcb473,org.opencontainers.image.title=OAI AUSF,org.opencontainers.image.vendor=OpenAirInterface Software Alliance,org.opencontainers.image.version=22.04\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026\",\"Names\":\"oai-ausf\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"80/tcp, 5342-5344/tcp, 8080/tcp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"1B (virtual 145MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"/openair-udm/bin/oa\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"ef2788f85308\",\"Image\":\"oaisoftwarealliance/oai-udm:v2.2.1\",\"Labels\":\"com.docker.compose.config-hash=ef384a0cabd7bb537141d7c5fb1e934bd7447234fbef9441544c18576ea01486,com.docker.compose.container-number=1,com.docker.compose.depends_on=oai-udr:service_started:false,com.docker.compose.image=sha256:c9d92f4b9bc9d135b5ac9705a2b363fc760a7ae6d6c8fddf55df3b57435aeea2,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-udm,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=OpenAirInterface Unified Data Management,org.opencontainers.image.licenses=Collaborative Standards Software License v1.0,org.opencontainers.image.revision=commit:3d014acc,org.opencontainers.image.title=OAI UDM,org.opencontainers.image.vendor=OpenAirInterface Software Alliance,org.opencontainers.image.version=22.04\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026\",\"Names\":\"oai-udm\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"80/tcp, 5342-5344/tcp, 8080/tcp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"1B (virtual 171MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"/openair-udr/bin/oa\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"c3ce69d376aa\",\"Image\":\"oaisoftwarealliance/oai-udr:v2.2.1\",\"Labels\":\"com.docker.compose.config-hash=e398321383db7867ba56fd332907eb84ef7825738a4acc5dbd0260a034eb49b3,com.docker.compose.container-number=1,com.docker.compose.depends_on=oai-nrf:service_started:false,mysql:service_started:false,com.docker.compose.image=sha256:eea25ea7cb181f3983ba98d30e9f73f1b2fd0c1a3386abca8a987b46d56a7831,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-udr,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=OpenAirInterface Unified Data Repository,org.opencontainers.image.licenses=Collaborative Standards Software License v1.0,org.opencontainers.image.revision=commit:d6561247,org.opencontainers.image.title=OAI UDR,org.opencontainers.image.vendor=OpenAirInterface Software Alliance,org.opencontainers.image.version=22.04\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026\",\"Names\":\"oai-udr\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"80/tcp, 8080/tcp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"0B (virtual 165MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"/bin/bash -c ' ip r\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"332955b2a797\",\"Image\":\"oaisoftwarealliance/trf-gen-cn5g:latest\",\"Labels\":\"com.docker.compose.config-hash=74d57e826ac6d3bec38fc8d368cecd27ba2628702678f350d0daa820dcda3352,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:de786f8e66280d49b1f8f1da270fb4671f2701198e02487be6a3c155ff464d19,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-ext-dn,com.docker.compose.version=5.5.0,org.opencontainers.image.ref.name=ubuntu,org.opencontainers.image.version=22.04\",\"LocalVolumes\":\"0\",\"Mounts\":\"\",\"Names\":\"oai-ext-dn\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"\",\"RunningFor\":\"About a minute ago\",\"Size\":\"0B (virtual 266MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"docker-entrypoint.s\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"abe81a256030\",\"Image\":\"mysql:9.6\",\"Labels\":\"com.docker.compose.config-hash=26859edac7b0e0fb64a8d8776250a88c3411d202ac85e931b563a8e35049f1a3,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:f4bf110498531f91e80936e0181b8b63bac636481065a63df2e63e1aac2b1548,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=mysql,com.docker.compose.version=5.5.0\",\"LocalVolumes\":\"1\",\"Mounts\":\"e9eb1f2bd50d26\u2026,/home/shr_aisv\u2026,/home/shr_aisv\u2026\",\"Names\":\"mysql\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"3306/tcp, 33060/tcp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"6B (virtual 922MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"/openair-nrf/bin/oa\u2026\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"c76df9fa911c\",\"Image\":\"oaisoftwarealliance/oai-nrf:v2.2.1\",\"Labels\":\"com.docker.compose.config-hash=bca4ab78d0a7ca30d1b0e307de923bdd3a66402f6f24a5a1609581abfdb192dd,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:e72236c07a123ec0577cbfe8a95ed4db7e689910b6321a5c3844808aadb44e1e,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=oai-nrf,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=OpenAirInterface Network Repository Function,org.opencontainers.image.licenses=Collaborative Standards Software License v1.0,org.opencontainers.image.revision=commit:9b81ff10,org.opencontainers.image.title=OAI NRF,org.opencontainers.image.vendor=OpenAirInterface Software Alliance,org.opencontainers.image.version=22.04\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026\",\"Names\":\"oai-nrf\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"80/tcp, 5342-5344/tcp, 8080/tcp\",\"RunningFor\":\"About a minute ago\",\"Size\":\"1B (virtual 151MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n{\"Command\":\"\\\"asterisk -fp\\\"\",\"CreatedAt\":\"2026-10-13 18:13:34 -0700 PDT\",\"HealthStatus\":\"healthy\",\"ID\":\"98102db2992c\",\"Image\":\"oaisoftwarealliance/ims:latest\",\"Labels\":\"com.docker.compose.config-hash=ab205aebd56206c9d227b41574188da3b6cdea20cf1b21be5a272756c4929d06,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:aaad7b915bcbc9e4afbf4fc89cd01516c02becef23a0528d4ab4fa505cf78b15,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g/docker-compose.yaml,com.docker.compose.project.working_dir=/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g,com.docker.compose.project=oai-cn5g,com.docker.compose.service=ims,com.docker.compose.version=5.5.0,org.opencontainers.image.authors=OpenAirInterface \\u003ccontact@openairinterface.org\\u003e,org.opencontainers.image.description=Asterisk image only for supporting UEs that require VoNR/VoLTE, it is not used for real IMS.,org.opencontainers.image.ref.name=ubuntu,org.opencontainers.image.title=Asterisk IMS,org.opencontainers.image.version=20.6.0~dfsg+~cs6.13.40431414-2build5\",\"LocalVolumes\":\"0\",\"Mounts\":\"/home/shr_aisv\u2026,/home/shr_aisv\u2026\",\"Names\":\"ims\",\"Networks\":\"oai-cn5g-public-net\",\"Platform\":null,\"Ports\":\"\",\"RunningFor\":\"About a minute ago\",\"Size\":\"19.9kB (virtual 305MB)\",\"State\":\"running\",\"Status\":\"Up About a minute (healthy)\"}\n"
+}

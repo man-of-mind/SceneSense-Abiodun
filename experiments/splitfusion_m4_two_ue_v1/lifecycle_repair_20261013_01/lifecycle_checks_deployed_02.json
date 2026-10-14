@@ -1,0 +1,20 @@
+{
+  "command": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "python3",
+    "-B",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/checks.py",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/LIFECYCLE_CHECKS_DEPLOYED_02.json",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/before/world.py"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "end_wall_s": 1791882107.5794368,
+  "returncode": 0,
+  "start_wall_s": 1791882074.249675
+}

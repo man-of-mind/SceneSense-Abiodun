@@ -1,0 +1,16 @@
+{
+  "members": [
+    {
+      "birth": "851947006",
+      "cmdline": "bash -c trap \"\" TERM; sleep 300",
+      "pid": 1492470
+    },
+    {
+      "birth": "851947006",
+      "cmdline": "sleep 300",
+      "pid": 1492471
+    }
+  ],
+  "pgid": 1492470,
+  "rpc_port": 2999
+}

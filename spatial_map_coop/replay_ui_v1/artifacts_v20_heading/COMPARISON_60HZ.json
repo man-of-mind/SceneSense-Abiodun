@@ -1,0 +1,93 @@
+{
+  "conditions": "3576 identical V20 events at recorded installation times; 60 Hz 1x clock; 45 m forward view; existing building withholding on. Full-route IDs; no GT. Steps refer to the same display key, not scientific identity.",
+  "frames": 31305,
+  "pedestrian_sample_differences": 0,
+  "matched_raw_track_samples": 197557,
+  "matched_position_sample_differences": 3413,
+  "before": {
+    "angular_step_deg_60hz": {
+      "n": 115407,
+      "mean": 0.22581104836900515,
+      "p95": 1.5000000000017053,
+      "max": 1.500000000001819
+    },
+    "stationary_step_deg_60hz": {
+      "n": 62958,
+      "mean": 0.09768947314359096,
+      "p95": 1.4999999999990905,
+      "max": 1.500000000001819
+    },
+    "position_step_m_60hz": {
+      "n": 115407,
+      "mean": 0.03560514628015563,
+      "p95": 0.1307606304764098,
+      "max": 5.0869138233450695
+    },
+    "stationary_total_variation_deg": 6150.333850174176,
+    "stationary_deg_per_track_second": 5.86136838861893,
+    "axis_steps_over_20_deg": 0,
+    "appearances": 2232,
+    "disappearances": 2232,
+    "visible_track_samples": 161748,
+    "conflict_track_samples": 6699,
+    "hidden_track_samples_by_reason": {
+      "TENTATIVE_NOT_CURRENT": 12618,
+      "EXPIRED": 10925,
+      "OUTSIDE_HORIZONTAL_FOV": 8851,
+      "BEHIND_SENSOR": 879,
+      "OUTSIDE_DISPLAY_RADIUS": 3653,
+      "STATIC_MAP_OCCLUDED": 33
+    },
+    "created": 1961,
+    "established": 678,
+    "absorbed_raw": 20220,
+    "turn_crossing_ms": {
+      "target": 245249.9999999488,
+      "display": 245283.33333328212
+    },
+    "turn_lag_from_causal_fit_ms": 33.33333333331393
+  },
+  "after": {
+    "angular_step_deg_60hz": {
+      "n": 115273,
+      "mean": 0.18232966999493738,
+      "p95": 1.5000000000017053,
+      "max": 1.500000000001819
+    },
+    "stationary_step_deg_60hz": {
+      "n": 62749,
+      "mean": 0.06426688381306345,
+      "p95": 0,
+      "max": 1.500000000001819
+    },
+    "position_step_m_60hz": {
+      "n": 115273,
+      "mean": 0.0357197318714846,
+      "p95": 0.1310476894211432,
+      "max": 5.0869138233450695
+    },
+    "stationary_total_variation_deg": 4032.682692385922,
+    "stationary_deg_per_track_second": 3.8560130287861054,
+    "axis_steps_over_20_deg": 0,
+    "appearances": 2222,
+    "disappearances": 2222,
+    "visible_track_samples": 161604,
+    "conflict_track_samples": 6695,
+    "hidden_track_samples_by_reason": {
+      "TENTATIVE_NOT_CURRENT": 12481,
+      "EXPIRED": 10921,
+      "OUTSIDE_HORIZONTAL_FOV": 8841,
+      "BEHIND_SENSOR": 879,
+      "OUTSIDE_DISPLAY_RADIUS": 3668,
+      "STATIC_MAP_OCCLUDED": 33
+    },
+    "created": 1953,
+    "established": 676,
+    "absorbed_raw": 20283,
+    "turn_crossing_ms": {
+      "target": 245249.9999999488,
+      "display": 245283.33333328212
+    },
+    "turn_lag_from_causal_fit_ms": 33.33333333331393
+  }
+}

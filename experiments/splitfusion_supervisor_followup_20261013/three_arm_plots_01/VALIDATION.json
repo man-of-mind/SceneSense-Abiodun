@@ -1,0 +1,100 @@
+{
+  "counts_match_sealed_campaign": true,
+  "feedback_counts_match_sealed_campaign": true,
+  "figures": {
+    "01_completion_curves.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "02_outcomes_and_latency_quantiles.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "03_payload_statistics_and_time.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "04_snr_mcs_time.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "05_prediction_feedback_time.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "06_deadline_quality.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "07_scene_complexity_and_q_time.png": {
+      "agent_only": true,
+      "decision_samples": 493,
+      "panels": [
+        "SI",
+        "P40",
+        "q",
+        "payload_kB",
+        "PUSCH_SNR_dB"
+      ],
+      "payload_frame_joins_checked": true,
+      "pixels": [
+        3840,
+        2160
+      ],
+      "pusch_samples": 17269,
+      "radio_time_origin": "telemetry ingest wall time relative to first transmitted capture",
+      "snr_aggregation": "1-second median with minimum-maximum band",
+      "text_inside_canvas": true
+    },
+    "08_map_freshness_cdf_and_time.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "09_perception_time.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "10_map_freshness_quantiles.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "13_payload_time_and_relative_variation.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    }
+  },
+  "inputs_unchanged": true,
+  "payload_quantiles_match_sealed_campaign": true,
+  "prediction_quantiles_match_sealed_campaign": true,
+  "source_frame_joins_checked": true
+}

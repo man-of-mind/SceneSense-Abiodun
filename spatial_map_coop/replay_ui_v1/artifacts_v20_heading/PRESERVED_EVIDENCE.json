@@ -1,0 +1,10 @@
+{
+  "experiments/splitfusion_m3_route_b_v20/REPORT.md": {
+    "bytes": 11075,
+    "sha256": "74a7886a97e2bbaae32e93a9789cfbfdb5a7fdc290f95e9d38a864590f4181f5"
+  },
+  "experiments/splitfusion_m3_route_b_v20/live_view_01/recording/95bcbb3eeae6abc6ba6eb66d26d03cc8.webm": {
+    "bytes": 69669960,
+    "sha256": "4e6f04d441ab4787ff58c176b9d2325ea126aa0a5045b92ffee8cf821efa016c"
+  }
+}

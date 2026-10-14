@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "browser": "133.0.6943.16",
+  "conditions": "1x actual rAF; 45 m heading-up; short comparison recording at 2560x1000, standalone timing at 1440x1000. Offline live-renderer injection only; no running capture.",
+  "marks": [],
+  "clock": [],
+  "perf": {
+    "before": {
+      "frame_ms": {
+        "n": 350,
+        "p50": 16.699999999999818,
+        "p95": 33.30000000000018,
+        "max": 33.400000000000546
+      },
+      "draw_ms": {
+        "n": 350,
+        "p50": 15.300000190734863,
+        "p95": 16.300000190734863,
+        "max": 25.59999942779541
+      }
+    },
+    "after": {
+      "frame_ms": {
+        "n": 350,
+        "p50": 16.699999999999818,
+        "p95": 33.30000000000018,
+        "max": 33.400000000000546
+      },
+      "draw_ms": {
+        "n": 350,
+        "p50": 15.300000190734863,
+        "p95": 16.300000190734863,
+        "max": 24.199999809265137
+      }
+    }
+  },
+  "overlay": {
+    "replay_default_hidden": true,
+    "replay_restores_in_inspect": true,
+    "unresolved_pedestrian_visible": true,
+    "overlay_changes_presence": false,
+    "live_default_hidden": true,
+    "live_inspect_toggle": true,
+    "live_unresolved_pedestrian_visible": true
+  },
+  "page_errors": []
+}

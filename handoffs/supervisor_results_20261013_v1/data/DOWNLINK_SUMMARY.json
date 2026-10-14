@@ -1,0 +1,161 @@
+{
+  "agent": {
+    "controller_terminals": {
+      "EVALUATOR_FAULT": 27,
+      "SUCCESS": 363,
+      "TIMEOUT": 103
+    },
+    "exact_pcap_hash_matches": 493,
+    "logged_reward_defined_only": {
+      "n": 466,
+      "p50": 0.2885451400772516,
+      "p95": 0.6064718606470053,
+      "p99": 0.7017543529610454
+    },
+    "missing_feedback": 0,
+    "observed_action_to_feedback_ms": {
+      "n": 493,
+      "p50": 158.307333,
+      "p95": 188.5100084,
+      "p99": 229.01123655999962
+    },
+    "outside_complete_rate_bins": 3,
+    "packet_types": {
+      "R4FB": 493
+    },
+    "policy_decisions": 493,
+    "quality_feedback_udp_payload_bytes": {
+      "n": 493,
+      "p50": 176.0,
+      "p95": 176.0,
+      "p99": 176.0
+    },
+    "rates_1s_Mbps": {
+      "feedback_port_ip_Mbps": {
+        "n": 122,
+        "p50": 0.006528,
+        "p95": 0.00816,
+        "p99": 0.00816
+      },
+      "feedback_port_udp_payload_Mbps": {
+        "n": 122,
+        "p50": 0.005632,
+        "p95": 0.00704,
+        "p99": 0.00704
+      },
+      "r4fb_udp_payload_Mbps": {
+        "n": 122,
+        "p50": 0.005632,
+        "p95": 0.00704,
+        "p99": 0.00704
+      }
+    },
+    "recorded_feedback": 493
+  },
+  "mode03": {
+    "controller_terminals": {
+      "TIMEOUT": 500
+    },
+    "exact_pcap_hash_matches": 4,
+    "logged_reward_defined_only": {
+      "n": 500,
+      "p50": -1.0,
+      "p95": -1.0,
+      "p99": -1.0
+    },
+    "missing_feedback": 496,
+    "observed_action_to_feedback_ms": {
+      "n": 4,
+      "p50": 458.66310999999996,
+      "p95": 494.86075795,
+      "p99": 495.81126439
+    },
+    "outside_complete_rate_bins": 0,
+    "packet_types": {
+      "OTHER_CONTROL": 84,
+      "R4FB": 4
+    },
+    "policy_decisions": 500,
+    "quality_feedback_udp_payload_bytes": {
+      "n": 4,
+      "p50": 176.0,
+      "p95": 176.0,
+      "p99": 176.0
+    },
+    "rates_1s_Mbps": {
+      "feedback_port_ip_Mbps": {
+        "n": 123,
+        "p50": 0.0,
+        "p95": 0.038519199999999996,
+        "p99": 0.04597760000000001
+      },
+      "feedback_port_udp_payload_Mbps": {
+        "n": 123,
+        "p50": 0.0,
+        "p95": 0.037623199999999996,
+        "p99": 0.04490688000000001
+      },
+      "r4fb_udp_payload_Mbps": {
+        "n": 123,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0021964800000000033
+      }
+    },
+    "recorded_feedback": 4
+  },
+  "mode09": {
+    "controller_terminals": {
+      "EVALUATOR_FAULT": 1,
+      "SUCCESS": 7,
+      "TIMEOUT": 492
+    },
+    "exact_pcap_hash_matches": 476,
+    "logged_reward_defined_only": {
+      "n": 499,
+      "p50": -1.0,
+      "p95": -1.0,
+      "p99": 0.274531798016628
+    },
+    "missing_feedback": 24,
+    "observed_action_to_feedback_ms": {
+      "n": 476,
+      "p50": 202.644593,
+      "p95": 275.55996600000003,
+      "p99": 417.63144375
+    },
+    "outside_complete_rate_bins": 4,
+    "packet_types": {
+      "OTHER_CONTROL": 47,
+      "R4FB": 476
+    },
+    "policy_decisions": 500,
+    "quality_feedback_udp_payload_bytes": {
+      "n": 476,
+      "p50": 176.0,
+      "p95": 176.0,
+      "p99": 176.0
+    },
+    "rates_1s_Mbps": {
+      "feedback_port_ip_Mbps": {
+        "n": 129,
+        "p50": 0.006528,
+        "p95": 0.019987199999999962,
+        "p99": 0.08135935999999998
+      },
+      "feedback_port_udp_payload_Mbps": {
+        "n": 129,
+        "p50": 0.005632,
+        "p95": 0.019001599999999962,
+        "p99": 0.07946879999999998
+      },
+      "r4fb_udp_payload_Mbps": {
+        "n": 129,
+        "p50": 0.005632,
+        "p95": 0.005632,
+        "p99": 0.00704
+      }
+    },
+    "recorded_feedback": 476
+  }
+}

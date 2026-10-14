@@ -1,0 +1,34 @@
+{
+  "bracket_width_ns": {
+    "max": 10938.0,
+    "min": 182.0,
+    "n": 5586,
+    "p50": 798.5,
+    "p95": 2197.0,
+    "p99": 2937.499999999989
+  },
+  "caveat": "Empirical cross-check plus worst bracket, not a formal bound on unobserved clock steps or kernel timestamp-generation error",
+  "empirical_uncertainty_envelope_ns": 9625.981899261475,
+  "holdout_abs_residual_ns": {
+    "max": 4156.981899261475,
+    "min": 0.0573272705078125,
+    "n": 2792,
+    "p50": 289.21141052246094,
+    "p95": 592.6104265213012,
+    "p99": 735.6295264434826
+  },
+  "holdout_pairs": 2792,
+  "independent_sender_pair_abs_residual_ns": {
+    "max": 824.0,
+    "min": 0.0,
+    "n": 416,
+    "p50": 159.5,
+    "p95": 437.5,
+    "p99": 618.9500000000006
+  },
+  "linear_drift_ppm": 30.28004756238962,
+  "maximum_pair_gap_ms": 1275.84354,
+  "method": "piecewise-linear paired REALTIME/RAW interpolation; no clipping; no extrapolation",
+  "offset_span_ns": 1369602.0,
+  "pairs": 5586
+}

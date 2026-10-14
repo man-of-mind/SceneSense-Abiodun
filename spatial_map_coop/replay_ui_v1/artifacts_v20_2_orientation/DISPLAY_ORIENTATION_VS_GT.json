@@ -1,0 +1,172 @@
+{
+ "use": "OFFLINE DIAGNOSIS ONLY - GT scores the display; GT never reaches the engine",
+ "definitions": {
+  "diagonal": "drawn axis more than 20 deg from GT axis (mod 180) for a displayed vehicle within 3 m of a GT vehicle",
+  "neutral": "orientation-neutral glyph (no axis drawn)"
+ },
+ "v20_1": {
+  "all": {
+   "n": 13636,
+   "gt": 6114,
+   "oriented_frac": 1.0,
+   "diagonal_gt20": 2097,
+   "diagonal_share_of_matched": 0.343,
+   "err_p50": 9.5,
+   "err_p90": 52.2
+  },
+  "est-stationary": {
+   "n": 8082,
+   "gt": 4266,
+   "oriented_frac": 1.0,
+   "diagonal_gt20": 1663,
+   "diagonal_share_of_matched": 0.39,
+   "err_p50": 10.4,
+   "err_p90": 53.6
+  },
+  "est-moving": {
+   "n": 4533,
+   "gt": 1709,
+   "oriented_frac": 1.0,
+   "diagonal_gt20": 339,
+   "diagonal_share_of_matched": 0.198,
+   "err_p50": 4.0,
+   "err_p90": 41.7
+  },
+  "tentative": {
+   "n": 1021,
+   "gt": 139,
+   "oriented_frac": 1.0,
+   "diagonal_gt20": 95,
+   "diagonal_share_of_matched": 0.683,
+   "err_p50": 32.9,
+   "err_p90": 76.8
+  },
+  "conflict": {
+   "n": 720,
+   "gt": 277,
+   "oriented_frac": 1.0,
+   "diagonal_gt20": 192,
+   "diagonal_share_of_matched": 0.693,
+   "err_p50": 32.1,
+   "err_p90": 62.5
+  },
+  "stationary_axis_change_deg_per_s": 3.252,
+  "stationary_neutral_oriented_switches_per_min": 0.0,
+  "sources": [
+   [
+    null,
+    12615
+   ]
+  ],
+  "stationary_diagonal_causes": {
+   "samples": 4266,
+   "diagonal": 1663,
+   "categories": {
+    "A held stale/initial axis; recent raw mean was right": 515,
+    "B persistent producer bias (consistent wrong raw axis)": 501,
+    "C producer jitter (no consistent raw axis)": 448,
+    "D GT moving/turning, display stationary": 187,
+    "E legitimate angle (GT off lane tangent)": 8,
+    "F no recent qualified yaw; held axis": 4
+   },
+   "multi_gt_identity": 140,
+   "first_axis_still_shown": 815
+  }
+ },
+ "v20_2": {
+  "all": {
+   "n": 13636,
+   "gt": 6114,
+   "oriented_frac": 0.786,
+   "diagonal_gt20": 215,
+   "diagonal_share_of_matched": 0.035,
+   "err_p50": 1.0,
+   "err_p90": 7.7
+  },
+  "est-stationary": {
+   "n": 8082,
+   "gt": 4266,
+   "oriented_frac": 0.751,
+   "diagonal_gt20": 37,
+   "diagonal_share_of_matched": 0.009,
+   "err_p50": 0.8,
+   "err_p90": 2.5
+  },
+  "est-moving": {
+   "n": 4533,
+   "gt": 1709,
+   "oriented_frac": 0.934,
+   "diagonal_gt20": 178,
+   "diagonal_share_of_matched": 0.104,
+   "err_p50": 2.9,
+   "err_p90": 22.1
+  },
+  "tentative": {
+   "n": 1021,
+   "gt": 139,
+   "oriented_frac": 0.007,
+   "diagonal_gt20": 0,
+   "diagonal_share_of_matched": 0.0,
+   "err_p50": 4.4,
+   "err_p90": 4.4
+  },
+  "conflict": {
+   "n": 720,
+   "gt": 277,
+   "oriented_frac": 0.477,
+   "diagonal_gt20": 24,
+   "diagonal_share_of_matched": 0.087,
+   "err_p50": 4.2,
+   "err_p90": 29.4
+  },
+  "stationary_axis_change_deg_per_s": 0.305,
+  "stationary_neutral_oriented_switches_per_min": 8.79,
+  "sources": [
+   [
+    "lane-tangent display prior (observed axis within 35\u00b0)",
+    4789
+   ],
+   [
+    "motion axis (qualified trajectory)",
+    3857
+   ],
+   [
+    "insufficient qualified heading evidence",
+    714
+   ],
+   [
+    "producer axis not consistent enough (junction, no lane prior)",
+    401
+   ],
+   [
+    "consistent producer axis (no lane prior: junction)",
+    260
+   ],
+   [
+    "producer axis not consistent enough",
+    172
+   ],
+   [
+    "lane-tangent display prior (observed axis within 25\u00b0)",
+    171
+   ],
+   [
+    "observed axis disagrees with lane tangent by 40\u00b0 \u2014 orientation uncertain",
+    94
+   ]
+  ],
+  "stationary_diagonal_causes": {
+   "samples": 4266,
+   "diagonal": 37,
+   "categories": {
+    "A held stale/initial axis; recent raw mean was right": 1,
+    "B persistent producer bias (consistent wrong raw axis)": 12,
+    "C producer jitter (no consistent raw axis)": 1,
+    "D GT moving/turning, display stationary": 17,
+    "E legitimate angle (GT off lane tangent)": 6
+   },
+   "multi_gt_identity": 2,
+   "first_axis_still_shown": 36
+  }
+ }
+}

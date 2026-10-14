@@ -1,0 +1,104 @@
+{
+  "status": "SMOKE_PASS_DATA_PATH_BOTH_SOURCES__FEEDBACK_NEVER_TIMELY",
+  "attempts": 1,
+  "retry": false,
+  "capture": "../abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_07",
+  "preparation_sha256": "f89ef97828799c2e48e8766a199714f7e8162d1b2e91cbd0676ed0c4f5bf7952",
+  "exit_status": {
+    "child": 0,
+    "parent": 0,
+    "native_fault": false,
+    "supervisor_verdict": "PASS",
+    "smoke_gates": {
+      "m4-ue0": true,
+      "m4-ue1": true
+    }
+  },
+  "first_failure": null,
+  "marker": {
+    "paths": [
+      "m4-ue0/first_send_target_start",
+      "m4-ue1/first_send_target_start"
+    ],
+    "created_after_first_registered_capture_s": [
+      0.046,
+      0.054
+    ],
+    "host_channel_record": "TARGET_STARTED.json written 32.4 s earlier, unchanged; GOOD_ALL active from startup (COMMANDS.jsonl)"
+  },
+  "per_ue": {
+    "m4-ue0": {
+      "sent_registered": 208,
+      "completed_ack_installed": 29,
+      "map_installed_accepted": 29,
+      "map_observations": 33,
+      "feedback_timeout": 178,
+      "other_terminals": {
+        "SUPERSEDED_PENDING": 1
+      },
+      "one_terminal_per_sent_capture": true,
+      "capture_to_ack_ms": {
+        "p50": 366.5,
+        "p95": 469.6,
+        "max": 491.3
+      },
+      "ack_within_170ms": 0,
+      "policy_decisions": 103,
+      "r4_feedback_delivered_success": 14,
+      "action_open_to_r4fb_p50_ms": 367.9,
+      "r4fb_within_170ms": 0,
+      "gt_feedback_delivered_success": 14
+    },
+    "m4-ue1": {
+      "sent_registered": 208,
+      "completed_ack_installed": 26,
+      "map_installed_accepted": 26,
+      "map_observations": 28,
+      "feedback_timeout": 180,
+      "other_terminals": {
+        "STALE_BEFORE_MAP": 2
+      },
+      "one_terminal_per_sent_capture": true,
+      "capture_to_ack_ms": {
+        "p50": 390.1,
+        "p95": 424.1,
+        "max": 477.7
+      },
+      "ack_within_170ms": 0,
+      "policy_decisions": 100,
+      "r4_feedback_delivered_success": 11,
+      "action_open_to_r4fb_p50_ms": 359.7,
+      "r4fb_within_170ms": 0,
+      "gt_feedback_delivered_success": 11
+    }
+  },
+  "edge_stage_counts": {
+    "m4-ue0": {
+      "edge_wire": 208,
+      "reassembled": 35,
+      "prediction_ready": 33,
+      "edge_terminal": 174
+    },
+    "m4-ue1": {
+      "edge_wire": 209,
+      "reassembled": 29,
+      "prediction_ready": 28,
+      "edge_terminal": 180
+    }
+  },
+  "source_isolation": "Both sources sent the same 208 frame IDs; every edge event, ledger capture_id (stream-prefixed), map observation (wire stream == source) and GT/R4 feedback is source-bound; 0 foreign records. Separate markers, ledgers, pose archives.",
+  "analyzer": {
+    "path": "analysis_01/ASSESSMENT.json",
+    "verdict": "STOP (full-route gates; expected for a 20-s smoke)",
+    "caveat": "offered/sent reported 0 because M4 captures do not persist per_frame_metrics.csv (collector rows); counts above are from ledgers/edge/map/controller evidence. Actor replay exact both; exact rescoring true; gt_scored 25."
+  },
+  "observation": "Data path works for both sources, but no feedback within 170 ms: ~85% of frames end FEEDBACK_TIMEOUT after STALE_BEFORE_EDGE NACKs at the shared edge; installs arrive ~370-390 ms after capture. Not diagnosed; no tuning.",
+  "cleanup": {
+    "child_all_teardown_stages": true,
+    "supervisor_verified": true,
+    "carla_stopped_by_parent": true,
+    "postflight": "clean after CN5G core stop; baseline + UI servers 988344/1152770 preserved"
+  },
+  "historical_evidence_modified": false,
+  "deletion_commit": false
+}

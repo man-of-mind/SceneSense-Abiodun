@@ -1,0 +1,1532 @@
+[
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 0,
+  "frame_id": 1365,
+  "stage": "st_gt_extra_wait",
+  "receipt_ms": 228.4,
+  "excess_ms": 62.0,
+  "ue_freeze_wall_ms": 27.3,
+  "ue_freeze_thread_cpu_ms": 14.3,
+  "prep_freeze_wall_ms": 161.6,
+  "prep_freeze_cpu_ms": 148.8,
+  "score_op_wall_ms": 18.1,
+  "score_op_cpu_ms": 14.8,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 17,
+  "frame_id": 1433,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 236.9,
+  "excess_ms": 94.6,
+  "ue_freeze_wall_ms": 111.4,
+  "ue_freeze_thread_cpu_ms": 101.8,
+  "prep_freeze_wall_ms": 78.9,
+  "prep_freeze_cpu_ms": 77.7,
+  "score_op_wall_ms": 8.3,
+  "score_op_cpu_ms": 7.9,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   4.6,
+   103.5
+  ],
+  "window_len_ms": 98.9,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 110.4,
+  "gauge_gap_bounds_ms": [
+   -7.4,
+   205.4
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 28,
+  "frame_id": 1479,
+  "stage": "st_ue_input",
+  "receipt_ms": 201.8,
+  "excess_ms": 36.3,
+  "ue_freeze_wall_ms": 15.0,
+  "ue_freeze_thread_cpu_ms": 11.1,
+  "prep_freeze_wall_ms": 72.2,
+  "prep_freeze_cpu_ms": 71.7,
+  "score_op_wall_ms": 7.7,
+  "score_op_cpu_ms": 7.5,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   10.3,
+   59.4
+  ],
+  "window_len_ms": 49.2,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "profiler-flush(gauge)": 1,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 102.9,
+  "gauge_gap_bounds_ms": [
+   -90.2,
+   113.9
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 118,
+  "frame_id": 1843,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 272.0,
+  "excess_ms": 107.9,
+  "ue_freeze_wall_ms": 123.7,
+  "ue_freeze_thread_cpu_ms": 111.7,
+  "prep_freeze_wall_ms": 66.2,
+  "prep_freeze_cpu_ms": 65.6,
+  "score_op_wall_ms": 10.0,
+  "score_op_cpu_ms": 7.7,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   7.2,
+   119.5
+  ],
+  "window_len_ms": 112.2,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 159.7,
+  "gauge_gap_bounds_ms": [
+   -45.3,
+   216.5
+  ]
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 247,
+  "frame_id": 2365,
+  "stage": "st_gt_extra_wait",
+  "receipt_ms": 204.2,
+  "excess_ms": 45.3,
+  "ue_freeze_wall_ms": 18.1,
+  "ue_freeze_thread_cpu_ms": 11.8,
+  "prep_freeze_wall_ms": 150.6,
+  "prep_freeze_cpu_ms": 148.4,
+  "score_op_wall_ms": 11.9,
+  "score_op_cpu_ms": 10.7,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 328,
+  "frame_id": 2691,
+  "stage": "st_ue_input",
+  "receipt_ms": 286.0,
+  "excess_ms": 126.8,
+  "ue_freeze_wall_ms": 140.9,
+  "ue_freeze_thread_cpu_ms": 127.3,
+  "prep_freeze_wall_ms": 75.9,
+  "prep_freeze_cpu_ms": 73.0,
+  "score_op_wall_ms": 9.3,
+  "score_op_cpu_ms": 8.2,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   9.9,
+   149.5
+  ],
+  "window_len_ms": 139.6,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 1,
+   "profiler-flush(gauge)": 1,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 201.7,
+  "gauge_gap_bounds_ms": [
+   -68.4,
+   238.7
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 441,
+  "frame_id": 3145,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 274.0,
+  "excess_ms": 128.7,
+  "ue_freeze_wall_ms": 151.9,
+  "ue_freeze_thread_cpu_ms": 139.2,
+  "prep_freeze_wall_ms": 81.3,
+  "prep_freeze_cpu_ms": 79.9,
+  "score_op_wall_ms": 16.6,
+  "score_op_cpu_ms": 11.9,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   3.9,
+   137.0
+  ],
+  "window_len_ms": 133.1,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 3,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 196.2,
+  "gauge_gap_bounds_ms": [
+   -59.9,
+   242.0
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 684,
+  "frame_id": 4127,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 304.3,
+  "excess_ms": 158.5,
+  "ue_freeze_wall_ms": 182.3,
+  "ue_freeze_thread_cpu_ms": 161.2,
+  "prep_freeze_wall_ms": 70.9,
+  "prep_freeze_cpu_ms": 70.6,
+  "score_op_wall_ms": 7.8,
+  "score_op_cpu_ms": 7.5,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   3.7,
+   166.6
+  ],
+  "window_len_ms": 162.8,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 258.7,
+  "gauge_gap_bounds_ms": [
+   -92.4,
+   271.8
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 787,
+  "frame_id": 4539,
+  "stage": "st_ue_input",
+  "receipt_ms": 191.8,
+  "excess_ms": 45.4,
+  "ue_freeze_wall_ms": 67.6,
+  "ue_freeze_thread_cpu_ms": 13.0,
+  "prep_freeze_wall_ms": 71.0,
+  "prep_freeze_cpu_ms": 67.5,
+  "score_op_wall_ms": 8.2,
+  "score_op_cpu_ms": 7.2,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   13.7,
+   72.0
+  ],
+  "window_len_ms": 58.3,
+  "records_inside_window_by_thread": {
+   "carla-callback": 1,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 105.8,
+  "gauge_gap_bounds_ms": [
+   11.7,
+   117.5
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 812,
+  "frame_id": 4643,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 319.8,
+  "excess_ms": 163.5,
+  "ue_freeze_wall_ms": 176.7,
+  "ue_freeze_thread_cpu_ms": 155.2,
+  "prep_freeze_wall_ms": 74.4,
+  "prep_freeze_cpu_ms": 66.0,
+  "score_op_wall_ms": 13.1,
+  "score_op_cpu_ms": 7.8,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   3.6,
+   171.5
+  ],
+  "window_len_ms": 167.9,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 3,
+   "carla-callback": 1,
+   "profiler-flush(gauge)": 1,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 200.0,
+  "gauge_gap_bounds_ms": [
+   -37.4,
+   271.3
+  ]
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1024,
+  "frame_id": 5507,
+  "stage": "st_gt_extra_wait",
+  "receipt_ms": 215.3,
+  "excess_ms": 46.4,
+  "ue_freeze_wall_ms": 23.3,
+  "ue_freeze_thread_cpu_ms": 12.3,
+  "prep_freeze_wall_ms": 143.2,
+  "prep_freeze_cpu_ms": 139.9,
+  "score_op_wall_ms": 14.5,
+  "score_op_cpu_ms": 11.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1055,
+  "frame_id": 5631,
+  "stage": "st_gt_extra_wait",
+  "receipt_ms": 262.7,
+  "excess_ms": 90.0,
+  "ue_freeze_wall_ms": 17.0,
+  "ue_freeze_thread_cpu_ms": 11.6,
+  "prep_freeze_wall_ms": 183.0,
+  "prep_freeze_cpu_ms": 177.3,
+  "score_op_wall_ms": 13.3,
+  "score_op_cpu_ms": 11.5,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1060,
+  "frame_id": 5651,
+  "stage": "st_gt_extra_wait",
+  "receipt_ms": 263.8,
+  "excess_ms": 108.7,
+  "ue_freeze_wall_ms": 19.2,
+  "ue_freeze_thread_cpu_ms": 12.2,
+  "prep_freeze_wall_ms": 200.2,
+  "prep_freeze_cpu_ms": 198.2,
+  "score_op_wall_ms": 18.7,
+  "score_op_cpu_ms": 11.7,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1073,
+  "frame_id": 5703,
+  "stage": "st_ue_input",
+  "receipt_ms": 356.6,
+  "excess_ms": 190.3,
+  "ue_freeze_wall_ms": 213.3,
+  "ue_freeze_thread_cpu_ms": 190.1,
+  "prep_freeze_wall_ms": 92.0,
+  "prep_freeze_cpu_ms": 91.2,
+  "score_op_wall_ms": 9.9,
+  "score_op_cpu_ms": 7.6,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   7.7,
+   210.9
+  ],
+  "window_len_ms": 203.2,
+  "records_inside_window_by_thread": {
+   "profiler-flush(gauge)": 1,
+   "carla-callback": 1,
+   "route-b-exact-installed-record": 2,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 252.8,
+  "gauge_gap_bounds_ms": [
+   -60.5,
+   294.8
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1167,
+  "frame_id": 6087,
+  "stage": "st_ue_encode_send",
+  "receipt_ms": 249.9,
+  "excess_ms": 78.0,
+  "ue_freeze_wall_ms": 18.4,
+  "ue_freeze_thread_cpu_ms": 12.0,
+  "prep_freeze_wall_ms": 66.5,
+  "prep_freeze_cpu_ms": 65.7,
+  "score_op_wall_ms": 9.5,
+  "score_op_cpu_ms": 7.7,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   50.6,
+   140.6
+  ],
+  "window_len_ms": 90.0,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 16,
+   "MainThread": 3,
+   "carla-callback": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 101.6,
+  "gauge_gap_bounds_ms": [
+   38.0,
+   240.9
+  ]
+ },
+ {
+  "kind": "C_AT_UE_NOT_RECEIVED",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1213,
+  "frame_id": 6275,
+  "stage": "st_tun_to_app",
+  "receipt_ms": 321.0,
+  "excess_ms": 158.4,
+  "ue_freeze_wall_ms": 18.8,
+  "ue_freeze_thread_cpu_ms": 11.6,
+  "prep_freeze_wall_ms": 68.5,
+  "prep_freeze_cpu_ms": 65.5,
+  "score_op_wall_ms": 7.8,
+  "score_op_cpu_ms": 7.5,
+  "prep_gen2_in_decision": [
+   {
+    "at_ms": 8.3,
+    "wall_ms": 7.6,
+    "cpu_ms": 7.6,
+    "op": null
+   }
+  ],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   162.6,
+   321.0
+  ],
+  "window_len_ms": 158.4,
+  "records_inside_window_by_thread": {
+   "profiler-flush(gauge)": 1,
+   "carla-callback": 1,
+   "MainThread": 1,
+   "splitfusion-sfd1-result": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 217.8,
+  "gauge_gap_bounds_ms": [
+   96.3,
+   421.8
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1291,
+  "frame_id": 6593,
+  "stage": "st_ue_input",
+  "receipt_ms": 204.6,
+  "excess_ms": 44.6,
+  "ue_freeze_wall_ms": 55.3,
+  "ue_freeze_thread_cpu_ms": 12.4,
+  "prep_freeze_wall_ms": 80.6,
+  "prep_freeze_cpu_ms": 78.5,
+  "score_op_wall_ms": 7.9,
+  "score_op_cpu_ms": 7.6,
+  "prep_gen2_in_decision": [
+   {
+    "at_ms": 15.6,
+    "wall_ms": 8.3,
+    "cpu_ms": 8.3,
+    "op": null
+   }
+  ],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   5.4,
+   62.9
+  ],
+  "window_len_ms": 57.5,
+  "records_inside_window_by_thread": {
+   "carla-callback": 1,
+   "route-b-exact-installed-record": 2,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 116.3,
+  "gauge_gap_bounds_ms": [
+   -18.8,
+   97.5
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1356,
+  "frame_id": 6859,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 355.4,
+  "excess_ms": 198.2,
+  "ue_freeze_wall_ms": 213.9,
+  "ue_freeze_thread_cpu_ms": 199.9,
+  "prep_freeze_wall_ms": 79.6,
+  "prep_freeze_cpu_ms": 74.6,
+  "score_op_wall_ms": 7.8,
+  "score_op_cpu_ms": 7.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   4.3,
+   206.9
+  ],
+  "window_len_ms": 202.6,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 3,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 219.9,
+  "gauge_gap_bounds_ms": [
+   -19.1,
+   303.3
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1381,
+  "frame_id": 6959,
+  "stage": "st_ue_actor",
+  "receipt_ms": 205.3,
+  "excess_ms": 45.6,
+  "ue_freeze_wall_ms": 18.4,
+  "ue_freeze_thread_cpu_ms": 12.1,
+  "prep_freeze_wall_ms": 79.7,
+  "prep_freeze_cpu_ms": 73.9,
+  "score_op_wall_ms": 8.5,
+  "score_op_cpu_ms": 7.5,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   0.0,
+   50.0
+  ],
+  "window_len_ms": 50.0,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 5,
+   "MainThread": 1,
+   "route-b-exact-installed-record": 2,
+   "carla-callback": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 103.9,
+  "gauge_gap_bounds_ms": [
+   -61.5,
+   145.0
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1390,
+  "frame_id": 6995,
+  "stage": "st_ue_encode_send",
+  "receipt_ms": 214.3,
+  "excess_ms": 57.0,
+  "ue_freeze_wall_ms": 13.5,
+  "ue_freeze_thread_cpu_ms": 11.6,
+  "prep_freeze_wall_ms": 76.1,
+  "prep_freeze_cpu_ms": 74.5,
+  "score_op_wall_ms": 13.1,
+  "score_op_cpu_ms": 8.6,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   23.0,
+   92.1
+  ],
+  "window_len_ms": 69.0,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 17,
+   "MainThread": 3,
+   "carla-callback": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 102.4,
+  "gauge_gap_bounds_ms": [
+   -30.8,
+   173.0
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1489,
+  "frame_id": 7395,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 393.1,
+  "excess_ms": 222.5,
+  "ue_freeze_wall_ms": 238.1,
+  "ue_freeze_thread_cpu_ms": 219.1,
+  "prep_freeze_wall_ms": 83.4,
+  "prep_freeze_cpu_ms": 81.6,
+  "score_op_wall_ms": 10.1,
+  "score_op_cpu_ms": 7.7,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   9.8,
+   236.6
+  ],
+  "window_len_ms": 226.8,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "route-b-exact-installed-record": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 244.0,
+  "gauge_gap_bounds_ms": [
+   -8.1,
+   342.5
+  ]
+ },
+ {
+  "kind": "C_AT_UE_NOT_RECEIVED",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1615,
+  "frame_id": 7905,
+  "stage": "st_tun_to_app",
+  "receipt_ms": 324.3,
+  "excess_ms": 162.7,
+  "ue_freeze_wall_ms": 25.1,
+  "ue_freeze_thread_cpu_ms": 12.3,
+  "prep_freeze_wall_ms": 79.3,
+  "prep_freeze_cpu_ms": 78.6,
+  "score_op_wall_ms": 8.3,
+  "score_op_cpu_ms": 7.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   161.6,
+   324.3
+  ],
+  "window_len_ms": 162.7,
+  "records_inside_window_by_thread": {
+   "profiler-flush(gauge)": 1,
+   "splitfusion-sfd1-result": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 303.8,
+  "gauge_gap_bounds_ms": [
+   17.9,
+   426.4
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1670,
+  "frame_id": 8131,
+  "stage": "st_ue_actor",
+  "receipt_ms": 245.2,
+  "excess_ms": 30.9,
+  "ue_freeze_wall_ms": 35.7,
+  "ue_freeze_thread_cpu_ms": 11.9,
+  "prep_freeze_wall_ms": 87.7,
+  "prep_freeze_cpu_ms": 82.0,
+  "score_op_wall_ms": 9.3,
+  "score_op_cpu_ms": 8.2,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   0.0,
+   35.3
+  ],
+  "window_len_ms": 35.3,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 4,
+   "MainThread": 1,
+   "route-b-exact-installed-record": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 110.0,
+  "gauge_gap_bounds_ms": [
+   -83.3,
+   129.5
+  ]
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1680,
+  "frame_id": 8171,
+  "stage": "st_result_return",
+  "receipt_ms": 202.2,
+  "excess_ms": 44.4,
+  "ue_freeze_wall_ms": 24.1,
+  "ue_freeze_thread_cpu_ms": 13.6,
+  "prep_freeze_wall_ms": 80.5,
+  "prep_freeze_cpu_ms": 79.4,
+  "score_op_wall_ms": 12.4,
+  "score_op_cpu_ms": 10.6,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1684,
+  "frame_id": 8187,
+  "stage": "st_gt_extra_wait",
+  "receipt_ms": 202.1,
+  "excess_ms": 66.0,
+  "ue_freeze_wall_ms": 38.1,
+  "ue_freeze_thread_cpu_ms": 12.5,
+  "prep_freeze_wall_ms": 120.6,
+  "prep_freeze_cpu_ms": 78.7,
+  "score_op_wall_ms": 15.3,
+  "score_op_cpu_ms": 11.6,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1744,
+  "frame_id": 8431,
+  "stage": "st_ue_actor",
+  "receipt_ms": 211.8,
+  "excess_ms": 33.4,
+  "ue_freeze_wall_ms": 45.7,
+  "ue_freeze_thread_cpu_ms": 12.4,
+  "prep_freeze_wall_ms": 90.2,
+  "prep_freeze_cpu_ms": 87.5,
+  "score_op_wall_ms": 14.2,
+  "score_op_cpu_ms": 11.6,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   0.0,
+   37.8
+  ],
+  "window_len_ms": 37.8,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 4,
+   "carla-callback": 1,
+   "route-b-exact-installed-record": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 107.8,
+  "gauge_gap_bounds_ms": [
+   -95.1,
+   115.1
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V11_GOOD_ALL",
+  "decision_index": 1748,
+  "frame_id": 8447,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 410.8,
+  "excess_ms": 245.3,
+  "ue_freeze_wall_ms": 263.5,
+  "ue_freeze_thread_cpu_ms": 239.0,
+  "prep_freeze_wall_ms": 101.3,
+  "prep_freeze_cpu_ms": 91.6,
+  "score_op_wall_ms": 15.6,
+  "score_op_cpu_ms": 11.1,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   7.8,
+   257.5
+  ],
+  "window_len_ms": 249.7,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 258.4,
+  "gauge_gap_bounds_ms": [
+   -4.8,
+   355.2
+  ]
+ },
+ {
+  "kind": "C_AT_UE_NOT_RECEIVED",
+  "capture": "V20_DEMO_03",
+  "decision_index": 81,
+  "frame_id": 1781,
+  "stage": "st_tun_to_app",
+  "receipt_ms": 229.1,
+  "excess_ms": 59.7,
+  "ue_freeze_wall_ms": 16.3,
+  "ue_freeze_thread_cpu_ms": 11.3,
+  "prep_freeze_wall_ms": 79.8,
+  "prep_freeze_cpu_ms": 70.6,
+  "score_op_wall_ms": 7.6,
+  "score_op_cpu_ms": 7.5,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   169.4,
+   229.1
+  ],
+  "window_len_ms": 59.8,
+  "records_inside_window_by_thread": {
+   "profiler-flush(gauge)": 1,
+   "MainThread": 1,
+   "carla-callback": 1,
+   "route-b-split-front": 2,
+   "splitfusion-sfd1-result": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 162.0,
+  "gauge_gap_bounds_ms": [
+   59.9,
+   324.7
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 124,
+  "frame_id": 1953,
+  "stage": "st_ue_input",
+  "receipt_ms": 219.0,
+  "excess_ms": 54.7,
+  "ue_freeze_wall_ms": 16.9,
+  "ue_freeze_thread_cpu_ms": 10.8,
+  "prep_freeze_wall_ms": 67.7,
+  "prep_freeze_cpu_ms": 65.3,
+  "score_op_wall_ms": 9.2,
+  "score_op_cpu_ms": 8.1,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   10.9,
+   78.9
+  ],
+  "window_len_ms": 68.0,
+  "records_inside_window_by_thread": {
+   "MainThread": 2,
+   "carla-callback": 1,
+   "route-b-exact-installed-record": 2,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 106.1,
+  "gauge_gap_bounds_ms": [
+   -33.1,
+   174.5
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 144,
+  "frame_id": 2033,
+  "stage": "st_ue_input",
+  "receipt_ms": 200.4,
+  "excess_ms": 34.2,
+  "ue_freeze_wall_ms": 15.0,
+  "ue_freeze_thread_cpu_ms": 11.1,
+  "prep_freeze_wall_ms": 67.9,
+  "prep_freeze_cpu_ms": 66.0,
+  "score_op_wall_ms": 8.7,
+  "score_op_cpu_ms": 8.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   19.8,
+   67.4
+  ],
+  "window_len_ms": 47.6,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "profiler-flush(gauge)": 1,
+   "MainThread": 2,
+   "route-b-exact-installed-record": 2,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 104.0,
+  "gauge_gap_bounds_ms": [
+   -80.9,
+   124.3
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 172,
+  "frame_id": 2145,
+  "stage": "st_ue_encode_send",
+  "receipt_ms": 226.7,
+  "excess_ms": 67.0,
+  "ue_freeze_wall_ms": 15.3,
+  "ue_freeze_thread_cpu_ms": 11.3,
+  "prep_freeze_wall_ms": 66.7,
+  "prep_freeze_cpu_ms": 63.0,
+  "score_op_wall_ms": 10.2,
+  "score_op_cpu_ms": 8.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   20.7,
+   101.4
+  ],
+  "window_len_ms": 80.8,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 16,
+   "MainThread": 3,
+   "profiler-flush(gauge)": 1,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 103.5,
+  "gauge_gap_bounds_ms": [
+   -47.2,
+   158.2
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 241,
+  "frame_id": 2425,
+  "stage": "st_ue_encode_send",
+  "receipt_ms": 237.7,
+  "excess_ms": 81.2,
+  "ue_freeze_wall_ms": 17.2,
+  "ue_freeze_thread_cpu_ms": 10.5,
+  "prep_freeze_wall_ms": 82.1,
+  "prep_freeze_cpu_ms": 76.6,
+  "score_op_wall_ms": 9.9,
+  "score_op_cpu_ms": 7.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   35.2,
+   130.3
+  ],
+  "window_len_ms": 95.0,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 17,
+   "MainThread": 4,
+   "carla-callback": 2,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 103.0,
+  "gauge_gap_bounds_ms": [
+   -7.6,
+   197.2
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 290,
+  "frame_id": 2625,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 315.2,
+  "excess_ms": 129.9,
+  "ue_freeze_wall_ms": 163.3,
+  "ue_freeze_thread_cpu_ms": 135.3,
+  "prep_freeze_wall_ms": 87.1,
+  "prep_freeze_cpu_ms": 84.0,
+  "score_op_wall_ms": 7.7,
+  "score_op_cpu_ms": 6.5,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   4.5,
+   138.8
+  ],
+  "window_len_ms": 134.2,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 180.1,
+  "gauge_gap_bounds_ms": [
+   -41.3,
+   138.8
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 342,
+  "frame_id": 2833,
+  "stage": "st_ue_encode_send",
+  "receipt_ms": 237.5,
+  "excess_ms": 44.3,
+  "ue_freeze_wall_ms": 21.3,
+  "ue_freeze_thread_cpu_ms": 10.5,
+  "prep_freeze_wall_ms": 75.3,
+  "prep_freeze_cpu_ms": 75.0,
+  "score_op_wall_ms": 8.4,
+  "score_op_cpu_ms": 6.6,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   59.3,
+   117.4
+  ],
+  "window_len_ms": 58.1,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 15,
+   "profiler-flush(gauge)": 1,
+   "MainThread": 2,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 103.7,
+  "gauge_gap_bounds_ms": [
+   -35.3,
+   170.7
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 343,
+  "frame_id": 2837,
+  "stage": "st_ue_actor",
+  "receipt_ms": 211.4,
+  "excess_ms": 32.5,
+  "ue_freeze_wall_ms": 14.1,
+  "ue_freeze_thread_cpu_ms": 10.9,
+  "prep_freeze_wall_ms": 84.2,
+  "prep_freeze_cpu_ms": 77.4,
+  "score_op_wall_ms": 9.1,
+  "score_op_cpu_ms": 6.7,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   0.0,
+   37.0
+  ],
+  "window_len_ms": 37.0,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 4,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 103.0,
+  "gauge_gap_bounds_ms": [
+   -63.2,
+   39.8
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 531,
+  "frame_id": 3611,
+  "stage": "st_ue_input",
+  "receipt_ms": 222.4,
+  "excess_ms": 52.8,
+  "ue_freeze_wall_ms": 16.4,
+  "ue_freeze_thread_cpu_ms": 11.0,
+  "prep_freeze_wall_ms": 74.8,
+  "prep_freeze_cpu_ms": 71.7,
+  "score_op_wall_ms": 10.5,
+  "score_op_cpu_ms": 7.6,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   8.3,
+   74.4
+  ],
+  "window_len_ms": 66.1,
+  "records_inside_window_by_thread": {
+   "route-b-exact-installed-record": 2,
+   "MainThread": 2,
+   "carla-callback": 1,
+   "profiler-flush(gauge)": 1,
+   "route-b-split-front": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 102.3,
+  "gauge_gap_bounds_ms": [
+   -32.3,
+   171.6
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 545,
+  "frame_id": 3669,
+  "stage": "st_ue_input",
+  "receipt_ms": 229.3,
+  "excess_ms": 57.7,
+  "ue_freeze_wall_ms": 27.1,
+  "ue_freeze_thread_cpu_ms": 11.2,
+  "prep_freeze_wall_ms": 83.0,
+  "prep_freeze_cpu_ms": 71.4,
+  "score_op_wall_ms": 14.9,
+  "score_op_cpu_ms": 8.3,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   9.6,
+   80.6
+  ],
+  "window_len_ms": 71.0,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 1,
+   "route-b-exact-installed-record": 2,
+   "MainThread": 3,
+   "profiler-flush(gauge)": 1,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 107.2,
+  "gauge_gap_bounds_ms": [
+   -63.8,
+   144.4
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 633,
+  "frame_id": 4021,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 337.2,
+  "excess_ms": 161.8,
+  "ue_freeze_wall_ms": 187.4,
+  "ue_freeze_thread_cpu_ms": 164.2,
+  "prep_freeze_wall_ms": 71.3,
+  "prep_freeze_cpu_ms": 69.8,
+  "score_op_wall_ms": 11.2,
+  "score_op_cpu_ms": 8.1,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   3.8,
+   169.9
+  ],
+  "window_len_ms": 166.1,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "carla-callback": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 236.3,
+  "gauge_gap_bounds_ms": [
+   -66.9,
+   276.0
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 708,
+  "frame_id": 4329,
+  "stage": "st_ue_actor",
+  "receipt_ms": 244.4,
+  "excess_ms": 89.3,
+  "ue_freeze_wall_ms": 14.9,
+  "ue_freeze_thread_cpu_ms": 11.2,
+  "prep_freeze_wall_ms": 62.8,
+  "prep_freeze_cpu_ms": 59.3,
+  "score_op_wall_ms": 14.2,
+  "score_op_cpu_ms": 7.3,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   0.0,
+   93.8
+  ],
+  "window_len_ms": 93.8,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 5,
+   "MainThread": 2,
+   "carla-callback": 1,
+   "profiler-flush(gauge)": 1,
+   "route-b-exact-installed-record": 2
+  },
+  "gauge_longest_gap_overlapping_ms": 105.1,
+  "gauge_gap_bounds_ms": [
+   -66.3,
+   142.0
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 762,
+  "frame_id": 4553,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 319.8,
+  "excess_ms": 173.7,
+  "ue_freeze_wall_ms": 197.9,
+  "ue_freeze_thread_cpu_ms": 173.0,
+  "prep_freeze_wall_ms": 73.3,
+  "prep_freeze_cpu_ms": 73.1,
+  "score_op_wall_ms": 8.9,
+  "score_op_cpu_ms": 7.8,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   4.2,
+   182.3
+  ],
+  "window_len_ms": 178.0,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2
+  },
+  "gauge_longest_gap_overlapping_ms": 254.1,
+  "gauge_gap_bounds_ms": [
+   -67.2,
+   186.8
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 820,
+  "frame_id": 4795,
+  "stage": "st_ue_input",
+  "receipt_ms": 205.0,
+  "excess_ms": 36.1,
+  "ue_freeze_wall_ms": 20.9,
+  "ue_freeze_thread_cpu_ms": 11.4,
+  "prep_freeze_wall_ms": 66.1,
+  "prep_freeze_cpu_ms": 65.2,
+  "score_op_wall_ms": 8.8,
+  "score_op_cpu_ms": 7.9,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   22.3,
+   71.7
+  ],
+  "window_len_ms": 49.4,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 1,
+   "MainThread": 2,
+   "route-b-exact-installed-record": 1,
+   "profiler-flush(gauge)": 1,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 106.8,
+  "gauge_gap_bounds_ms": [
+   -71.6,
+   138.2
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 885,
+  "frame_id": 5059,
+  "stage": "st_ue_input",
+  "receipt_ms": 250.7,
+  "excess_ms": 80.5,
+  "ue_freeze_wall_ms": 28.8,
+  "ue_freeze_thread_cpu_ms": 11.7,
+  "prep_freeze_wall_ms": 97.2,
+  "prep_freeze_cpu_ms": 81.5,
+  "score_op_wall_ms": 18.4,
+  "score_op_cpu_ms": 8.0,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   13.8,
+   107.7
+  ],
+  "window_len_ms": 93.9,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "route-b-exact-installed-record": 2,
+   "MainThread": 3,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 104.9,
+  "gauge_gap_bounds_ms": [
+   13.6,
+   118.5
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 891,
+  "frame_id": 5085,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 321.2,
+  "excess_ms": 175.3,
+  "ue_freeze_wall_ms": 189.7,
+  "ue_freeze_thread_cpu_ms": 178.5,
+  "prep_freeze_wall_ms": 83.8,
+  "prep_freeze_cpu_ms": 83.3,
+  "score_op_wall_ms": 17.5,
+  "score_op_cpu_ms": 11.2,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   4.1,
+   183.7
+  ],
+  "window_len_ms": 179.6,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 2,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 193.1,
+  "gauge_gap_bounds_ms": [
+   -15.8,
+   278.0
+  ]
+ },
+ {
+  "kind": "C_AT_UE_NOT_RECEIVED",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1028,
+  "frame_id": 5643,
+  "stage": "st_tun_to_app",
+  "receipt_ms": 317.4,
+  "excess_ms": 152.3,
+  "ue_freeze_wall_ms": 17.1,
+  "ue_freeze_thread_cpu_ms": 11.4,
+  "prep_freeze_wall_ms": 93.2,
+  "prep_freeze_cpu_ms": 90.4,
+  "score_op_wall_ms": 13.1,
+  "score_op_cpu_ms": 11.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   165.0,
+   317.4
+  ],
+  "window_len_ms": 152.3,
+  "records_inside_window_by_thread": {
+   "MainThread": 1,
+   "profiler-flush(gauge)": 1,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 274.3,
+  "gauge_gap_bounds_ms": [
+   41.1,
+   416.3
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1168,
+  "frame_id": 6221,
+  "stage": "st_ue_pre_input",
+  "receipt_ms": 349.1,
+  "excess_ms": 203.2,
+  "ue_freeze_wall_ms": 217.5,
+  "ue_freeze_thread_cpu_ms": 199.6,
+  "prep_freeze_wall_ms": 70.7,
+  "prep_freeze_cpu_ms": 66.7,
+  "score_op_wall_ms": 11.7,
+  "score_op_cpu_ms": 7.9,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   5.7,
+   213.1
+  ],
+  "window_len_ms": 207.4,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 1,
+   "profiler-flush(gauge)": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 262.5,
+  "gauge_gap_bounds_ms": [
+   -59.7,
+   303.5
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1231,
+  "frame_id": 6483,
+  "stage": "st_ue_input",
+  "receipt_ms": 256.9,
+  "excess_ms": 56.6,
+  "ue_freeze_wall_ms": 90.7,
+  "ue_freeze_thread_cpu_ms": 11.9,
+  "prep_freeze_wall_ms": 95.7,
+  "prep_freeze_cpu_ms": 80.2,
+  "score_op_wall_ms": 11.4,
+  "score_op_cpu_ms": 8.0,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   4.2,
+   74.2
+  ],
+  "window_len_ms": 69.9,
+  "records_inside_window_by_thread": {
+   "MainThread": 3,
+   "carla-callback": 1,
+   "route-b-exact-installed-record": 1,
+   "route-b-split-front": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 117.7,
+  "gauge_gap_bounds_ms": [
+   -7.7,
+   110.0
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1310,
+  "frame_id": 6815,
+  "stage": "st_ue_input",
+  "receipt_ms": 378.4,
+  "excess_ms": 227.1,
+  "ue_freeze_wall_ms": 242.2,
+  "ue_freeze_thread_cpu_ms": 214.4,
+  "prep_freeze_wall_ms": 79.7,
+  "prep_freeze_cpu_ms": 78.0,
+  "score_op_wall_ms": 9.0,
+  "score_op_cpu_ms": 7.7,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   7.7,
+   248.2
+  ],
+  "window_len_ms": 240.5,
+  "records_inside_window_by_thread": {
+   "profiler-flush(gauge)": 1,
+   "MainThread": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 302.2,
+  "gauge_gap_bounds_ms": [
+   -68.9,
+   339.8
+  ]
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1376,
+  "frame_id": 7081,
+  "stage": "st_gt_extra_wait",
+  "receipt_ms": 204.9,
+  "excess_ms": 48.8,
+  "ue_freeze_wall_ms": 14.2,
+  "ue_freeze_thread_cpu_ms": 10.8,
+  "prep_freeze_wall_ms": 128.1,
+  "prep_freeze_cpu_ms": 79.7,
+  "score_op_wall_ms": 14.6,
+  "score_op_cpu_ms": 11.4,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": []
+ },
+ {
+  "kind": "B_GT_OR_SERVICE",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1395,
+  "frame_id": 7159,
+  "stage": "st_score_exec",
+  "receipt_ms": 233.9,
+  "excess_ms": 77.3,
+  "ue_freeze_wall_ms": 28.9,
+  "ue_freeze_thread_cpu_ms": 11.9,
+  "prep_freeze_wall_ms": 77.5,
+  "prep_freeze_cpu_ms": 75.5,
+  "score_op_wall_ms": 86.3,
+  "score_op_cpu_ms": 74.8,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [
+   {
+    "at_ms": 151.8,
+    "wall_ms": 75.4,
+    "cpu_ms": 66.6,
+    "op": "PREDICTION"
+   }
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1458,
+  "frame_id": 7425,
+  "stage": "st_ue_input",
+  "receipt_ms": 381.0,
+  "excess_ms": 218.0,
+  "ue_freeze_wall_ms": 234.0,
+  "ue_freeze_thread_cpu_ms": 220.9,
+  "prep_freeze_wall_ms": 97.4,
+  "prep_freeze_cpu_ms": 82.5,
+  "score_op_wall_ms": 12.1,
+  "score_op_cpu_ms": 11.1,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   9.6,
+   240.9
+  ],
+  "window_len_ms": 231.3,
+  "records_inside_window_by_thread": {
+   "profiler-flush(gauge)": 1,
+   "MainThread": 1,
+   "route-b-split-front": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 223.0,
+  "gauge_gap_bounds_ms": [
+   2.1,
+   327.1
+  ]
+ },
+ {
+  "kind": "A_UE_BEFORE_SEND",
+  "capture": "V20_DEMO_03",
+  "decision_index": 1497,
+  "frame_id": 7583,
+  "stage": "st_ue_input",
+  "receipt_ms": 200.8,
+  "excess_ms": 37.0,
+  "ue_freeze_wall_ms": 56.9,
+  "ue_freeze_thread_cpu_ms": 12.0,
+  "prep_freeze_wall_ms": 98.4,
+  "prep_freeze_cpu_ms": 98.1,
+  "score_op_wall_ms": 8.6,
+  "score_op_cpu_ms": 7.2,
+  "prep_gen2_in_decision": [],
+  "score_gen2_in_decision": [],
+  "window_ms": [
+   6.5,
+   56.8
+  ],
+  "window_len_ms": 50.3,
+  "records_inside_window_by_thread": {
+   "route-b-split-front": 1,
+   "MainThread": 1,
+   "carla-callback": 1
+  },
+  "gauge_longest_gap_overlapping_ms": 108.4,
+  "gauge_gap_bounds_ms": [
+   -10.6,
+   97.8
+  ]
+ }
+]

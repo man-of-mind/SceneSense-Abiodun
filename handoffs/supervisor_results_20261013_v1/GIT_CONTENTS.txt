@@ -1,0 +1,15 @@
+Git snapshot versus the complete Ubuntu handoff
+
+Git includes the plotting scripts, exported metric tables, PNG figures, source
+references and provenance summaries. scripts/replot.py uses these exported
+tables and does not need the original captures.
+
+The complete handoff remains at this directory on the experiment host. Its raw/
+folder (packet captures, compressed radio traces and capture-level evidence)
+and regenerated output directories are intentionally excluded from Git. No
+local evidence was deleted when preparing the Git snapshot.
+
+README.md, SOURCE_MANIFEST.json and FILE_SHA256.json describe the complete
+Ubuntu handoff and remain unchanged. Full-package verification and raw-data
+re-extraction require the local raw/ folder; a Git clone alone is not the full
+evidence package. This note is additional metadata, not an experimental result.

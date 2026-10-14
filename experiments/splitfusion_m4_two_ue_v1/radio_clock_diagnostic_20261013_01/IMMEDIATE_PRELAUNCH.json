@@ -1,0 +1,8 @@
+{
+  "binding_sha256": "bbf426fb25f32a3c2b304e425cb32b521ff84baaf695917072f505be3a250022",
+  "exclusive_experiment_lock": true,
+  "exclusive_gpu": false,
+  "free_bytes": 26049089536,
+  "gate_bytes": 17179869184,
+  "wall_s": 1791945724.510154
+}

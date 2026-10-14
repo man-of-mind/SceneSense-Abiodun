@@ -1,0 +1,1236 @@
+{
+ "arms": {
+  "agent": {
+   "arm": "agent",
+   "completion": {
+    "completed": 493,
+    "completed_by_170": 479,
+    "completed_later": 14,
+    "decisions": 493,
+    "latency_ms": {
+     "n": 493,
+     "p50": 134.011624,
+     "p95": 164.1571142,
+     "p99": 203.9592949199997
+    },
+    "no_completed_prediction": 0,
+    "no_completion_subcategories": {}
+   },
+   "feedback_by_170": 390,
+   "frames": {
+    "actor_calls": 493,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 14,
+    "offered_budget": 1000,
+    "policy_decisions": 493,
+    "policy_holds": 493,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {},
+   "gt_coverage": {
+    "LATE|MEASURED": 14,
+    "TIMELY|MEASURED": 479
+   },
+   "label": "Agent (deployed actor)",
+   "launch_rc": 0,
+   "non_pass_checks": {},
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 117275.5,
+    "p99": 165525.31
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.611353711790393,
+     "precision_timely": 0.6083995459704881,
+     "recall_all": {
+      "d": 702,
+      "n": 399,
+      "value": 0.5683760683760684
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 702,
+      "n": 381,
+      "value": 0.5427350427350427
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "493/493",
+     "seg_iou_all": 0.4874058380414313,
+     "seg_iou_deadline": 0.4737140620834775
+    },
+    "vehicle": {
+     "precision_all": 0.8984547461368654,
+     "precision_timely": 0.8978433598183881,
+     "recall_all": {
+      "d": 906,
+      "n": 587,
+      "value": 0.6479028697571744
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 906,
+      "n": 573,
+      "value": 0.6324503311258278
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "493/493",
+     "seg_iou_all": 0.768664521933691,
+     "seg_iou_deadline": 0.7333087404786873
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode00": {
+   "arm": "mode00",
+   "completion": {
+    "completed": 0,
+    "completed_by_170": 0,
+    "completed_later": 0,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 0,
+     "p50": null,
+     "p95": null,
+     "p99": null
+    },
+    "no_completed_prediction": 500,
+    "no_completion_subcategories": {
+     "FAILED|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 1,
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 306,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 2,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 191
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 306
+   },
+   "gt_coverage": {
+    "NONE|MISSING": 306,
+    "NONE|OBJECTS_ONLY": 194
+   },
+   "label": "Mode 0 \u00b7 noAE/UINT8 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE",
+    "P7_FEEDBACK_OVER_DOWNLINK": "NOT_EXERCISED"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 3558880.5,
+    "p99": 3629035.77
+   },
+   "quality": {
+    "person": {
+     "precision_all": null,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 0,
+      "n": 0,
+      "value": null
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 213,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "ZERO_INTERSECTION_UNION_UNMEASURED",
+     "seg_evaluable": "0/500",
+     "seg_iou_all": null,
+     "seg_iou_deadline": null
+    },
+    "vehicle": {
+     "precision_all": null,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 0,
+      "n": 0,
+      "value": null
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 422,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "ZERO_INTERSECTION_UNION_UNMEASURED",
+     "seg_evaluable": "0/500",
+     "seg_iou_all": null,
+     "seg_iou_deadline": null
+    }
+   },
+   "subtype": "ZERO_COMPLETION",
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode01": {
+   "arm": "mode01",
+   "completion": {
+    "completed": 1,
+    "completed_by_170": 0,
+    "completed_later": 1,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 1,
+     "p50": 482.80221,
+     "p95": 482.80221,
+     "p99": 482.80221
+    },
+    "no_completed_prediction": 499,
+    "no_completion_subcategories": {
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 304,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 7,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 188
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 304
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 1,
+    "NONE|MISSING": 304,
+    "NONE|OBJECTS_ONLY": 195
+   },
+   "label": "Mode 1 \u00b7 noAE/UINT6 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 2725992.0,
+    "p99": 2812166.27
+   },
+   "quality": {
+    "person": {
+     "precision_all": null,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 0,
+      "n": 0,
+      "value": null
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 246,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "1/500",
+     "seg_iou_all": null,
+     "seg_iou_deadline": null
+    },
+    "vehicle": {
+     "precision_all": 1.0,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 2,
+      "n": 0,
+      "value": 0.0
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 475,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "1/500",
+     "seg_iou_all": 0.5169789227166276,
+     "seg_iou_deadline": 0.0
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode02": {
+   "arm": "mode02",
+   "completion": {
+    "completed": 153,
+    "completed_by_170": 0,
+    "completed_later": 153,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 153,
+     "p50": 292.939727,
+     "p95": 420.6012142000001,
+     "p99": 470.6979517199998
+    },
+    "no_completed_prediction": 347,
+    "no_completion_subcategories": {
+     "FAILED|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 2,
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 197,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 54,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 94
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 197
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 153,
+    "NONE|MISSING": 197,
+    "NONE|OBJECTS_ONLY": 150
+   },
+   "label": "Mode 2 \u00b7 noAE/UINT4 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 1437706.5,
+    "p99": 1600184.11
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.774390243902439,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 179,
+      "n": 107,
+      "value": 0.5977653631284916
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 413,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "153/500",
+     "seg_iou_all": 0.6103634232121923,
+     "seg_iou_deadline": 0.0
+    },
+    "vehicle": {
+     "precision_all": 0.9618055555555556,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 291,
+      "n": 207,
+      "value": 0.711340206185567
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 470,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "153/500",
+     "seg_iou_all": 0.8422703728022178,
+     "seg_iou_deadline": 0.0
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode03": {
+   "arm": "mode03",
+   "completion": {
+    "completed": 4,
+    "completed_by_170": 0,
+    "completed_later": 4,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 4,
+     "p50": 429.276517,
+     "p95": 469.7055683,
+     "p99": 471.59436325999997
+    },
+    "no_completed_prediction": 496,
+    "no_completion_subcategories": {
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 319,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 10,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 1,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 166
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 319
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 4,
+    "NONE|MISSING": 319,
+    "NONE|OBJECTS_ONLY": 177
+   },
+   "label": "Mode 3 \u00b7 AE128/UINT8 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 2339133.5,
+    "p99": 2379267.08
+   },
+   "quality": {
+    "person": {
+     "precision_all": null,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 0,
+      "n": 0,
+      "value": null
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 246,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "4/500",
+     "seg_iou_all": null,
+     "seg_iou_deadline": null
+    },
+    "vehicle": {
+     "precision_all": 1.0,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 14,
+      "n": 11,
+      "value": 0.7857142857142857
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 392,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "4/500",
+     "seg_iou_all": 0.8349328214971209,
+     "seg_iou_deadline": 0.0
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode04": {
+   "arm": "mode04",
+   "completion": {
+    "completed": 27,
+    "completed_by_170": 0,
+    "completed_later": 27,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 27,
+     "p50": 314.49533,
+     "p95": 385.1220334,
+     "p99": 405.30358221999995
+    },
+    "no_completed_prediction": 473,
+    "no_completion_subcategories": {
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 304,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 10,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 159
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 304
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 27,
+    "NONE|MISSING": 304,
+    "NONE|OBJECTS_ONLY": 169
+   },
+   "label": "Mode 4 \u00b7 AE128/UINT6 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 1864958.5,
+    "p99": 1895384.42
+   },
+   "quality": {
+    "person": {
+     "precision_all": null,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 7,
+      "n": 0,
+      "value": 0.0
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 243,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "27/500",
+     "seg_iou_all": 0.0,
+     "seg_iou_deadline": 0.0
+    },
+    "vehicle": {
+     "precision_all": 0.8372093023255814,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 76,
+      "n": 64,
+      "value": 0.8421052631578947
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 408,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "27/500",
+     "seg_iou_all": 0.9245313884534115,
+     "seg_iou_deadline": 0.0
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode05": {
+   "arm": "mode05",
+   "completion": {
+    "completed": 424,
+    "completed_by_170": 0,
+    "completed_later": 424,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 424,
+     "p50": 228.20322,
+     "p95": 323.8080856499999,
+     "p99": 449.95092947999996
+    },
+    "no_completed_prediction": 76,
+    "no_completion_subcategories": {
+     "FAILED|NO_GT_PRODUCER_CAPACITY": 1,
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 37,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 27,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 11
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 38
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 424,
+    "NONE|MISSING": 38,
+    "NONE|OBJECTS_ONLY": 38
+   },
+   "label": "Mode 5 \u00b7 AE128/UINT4 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 876339.5,
+    "p99": 953787.11
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.8073770491803278,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 555,
+      "n": 289,
+      "value": 0.5207207207207207
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 610,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "424/500",
+     "seg_iou_all": 0.5341191558081728,
+     "seg_iou_deadline": 0.0
+    },
+    "vehicle": {
+     "precision_all": 0.9476961394769614,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 818,
+      "n": 594,
+      "value": 0.726161369193154
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 875,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "424/500",
+     "seg_iou_all": 0.8963419818769283,
+     "seg_iou_deadline": 0.0
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode06": {
+   "arm": "mode06",
+   "completion": {
+    "completed": 316,
+    "completed_by_170": 0,
+    "completed_later": 316,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 316,
+     "p50": 237.7574855,
+     "p95": 423.38818925,
+     "p99": 474.2341541500001
+    },
+    "no_completed_prediction": 184,
+    "no_completion_subcategories": {
+     "FAILED|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 1,
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 95,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 56,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 1,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 31
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 95
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 316,
+    "NONE|MISSING": 95,
+    "NONE|OBJECTS_ONLY": 89
+   },
+   "label": "Mode 6 \u00b7 AE64/UINT8 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 1215259.5,
+    "p99": 1233002.2
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.7894736842105263,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 287,
+      "n": 149,
+      "value": 0.519163763066202
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 402,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "316/500",
+     "seg_iou_all": 0.48681280352016315,
+     "seg_iou_deadline": 0.0
+    },
+    "vehicle": {
+     "precision_all": 0.9446366782006921,
+     "precision_timely": null,
+     "recall_all": {
+      "d": 881,
+      "n": 736,
+      "value": 0.8354143019296254
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 1018,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "316/500",
+     "seg_iou_all": 0.9205938401855225,
+     "seg_iou_deadline": 0.0
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode07": {
+   "arm": "mode07",
+   "completion": {
+    "completed": 413,
+    "completed_by_170": 2,
+    "completed_later": 411,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 413,
+     "p50": 218.705664,
+     "p95": 325.48946959999984,
+     "p99": 451.27405683999996
+    },
+    "no_completed_prediction": 87,
+    "no_completion_subcategories": {
+     "FAILED|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 3,
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 41,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 29,
+     "NO_COMPUTE_SPAN|UNSCORED_NO_RESULT_BY_HORIZON": 14
+    }
+   },
+   "feedback_by_170": 0,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 41
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 411,
+    "NONE|MISSING": 41,
+    "NONE|OBJECTS_ONLY": 46,
+    "TIMELY|MEASURED": 2
+   },
+   "label": "Mode 7 \u00b7 AE64/UINT6 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 959463.5,
+    "p99": 975718.02
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.8159509202453987,
+     "precision_timely": 1.0,
+     "recall_all": {
+      "d": 505,
+      "n": 290,
+      "value": 0.5742574257425742
+     },
+     "recall_deadline": {
+      "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+      "d": 555,
+      "n": 0,
+      "value": 0.0
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "413/500",
+     "seg_iou_all": 0.5586876464680282,
+     "seg_iou_deadline": 0.00016428634013843863
+    },
+    "vehicle": {
+     "precision_all": 0.946611909650924,
+     "precision_timely": 1.0,
+     "recall_all": {
+      "d": 983,
+      "n": 763,
+      "value": 0.7761953204476093
+     },
+     "recall_deadline": {
+      "bound": "UPPER_BOUND_UNKNOWN_GT_ON_FAILED_OPPORTUNITIES",
+      "d": 1025,
+      "n": 4,
+      "value": 0.003902439024390244
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "413/500",
+     "seg_iou_all": 0.9079215712652182,
+     "seg_iou_deadline": 0.0033480164317122242
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode08": {
+   "arm": "mode08",
+   "completion": {
+    "completed": 500,
+    "completed_by_170": 210,
+    "completed_later": 290,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 500,
+     "p50": 173.08027750000002,
+     "p95": 258.46009624999994,
+     "p99": 430.88338098
+    },
+    "no_completed_prediction": 0,
+    "no_completion_subcategories": {}
+   },
+   "feedback_by_170": 30,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {},
+   "gt_coverage": {
+    "LATE|MEASURED": 290,
+    "TIMELY|MEASURED": 210
+   },
+   "label": "Mode 8 \u00b7 AE64/UINT4 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 469126.0,
+    "p99": 511510.82
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.7935578330893118,
+     "precision_timely": 0.8161764705882353,
+     "recall_all": {
+      "d": 725,
+      "n": 423,
+      "value": 0.5834482758620689
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 725,
+      "n": 187,
+      "value": 0.2579310344827586
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "500/500",
+     "seg_iou_all": 0.5372557259928556,
+     "seg_iou_deadline": 0.26610726012404234
+    },
+    "vehicle": {
+     "precision_all": 0.9295010845986985,
+     "precision_timely": 0.9293193717277487,
+     "recall_all": {
+      "d": 942,
+      "n": 715,
+      "value": 0.7590233545647559
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 942,
+      "n": 301,
+      "value": 0.3195329087048832
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "500/500",
+     "seg_iou_all": 0.8933565712330221,
+     "seg_iou_deadline": 0.3649126544749618
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode09": {
+   "arm": "mode09",
+   "completion": {
+    "completed": 476,
+    "completed_by_170": 123,
+    "completed_later": 353,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 476,
+     "p50": 179.1758705,
+     "p95": 245.5818275,
+     "p99": 397.3938925
+    },
+    "no_completed_prediction": 24,
+    "no_completion_subcategories": {
+     "NO_COMPUTE_SPAN|NO_GT_PRODUCER_CAPACITY": 3,
+     "NO_COMPUTE_SPAN|UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 21
+    }
+   },
+   "feedback_by_170": 8,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {
+    "NO_GT_PRODUCER_CAPACITY": 3
+   },
+   "gt_coverage": {
+    "LATE|MEASURED": 353,
+    "NONE|MISSING": 3,
+    "NONE|OBJECTS_ONLY": 21,
+    "TIMELY|MEASURED": 123
+   },
+   "label": "Mode 9 \u00b7 AE32/UINT8 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 600189.5,
+    "p99": 609888.97
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.778169014084507,
+     "precision_timely": 0.7586206896551724,
+     "recall_all": {
+      "d": 574,
+      "n": 333,
+      "value": 0.5801393728222997
+     },
+     "recall_deadline": {
+      "bound": "UPPER_BOUND_UNKNOWN_GT_ON_FAILED_OPPORTUNITIES",
+      "d": 597,
+      "n": 90,
+      "value": 0.1507537688442211
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "476/500",
+     "seg_iou_all": 0.5053091397849462,
+     "seg_iou_deadline": 0.14656898434655988
+    },
+    "vehicle": {
+     "precision_all": 0.924548352816153,
+     "precision_timely": 0.9015748031496063,
+     "recall_all": {
+      "d": 937,
+      "n": 639,
+      "value": 0.6819637139807898
+     },
+     "recall_deadline": {
+      "bound": "UPPER_BOUND_UNKNOWN_GT_ON_FAILED_OPPORTUNITIES",
+      "d": 955,
+      "n": 174,
+      "value": 0.18219895287958116
+     },
+     "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+     "seg_evaluable": "476/500",
+     "seg_iou_all": 0.8766002288031894,
+     "seg_iou_deadline": 0.28085241565673436
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode10": {
+   "arm": "mode10",
+   "completion": {
+    "completed": 500,
+    "completed_by_170": 292,
+    "completed_later": 208,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 500,
+     "p50": 166.5577095,
+     "p95": 247.1314897999999,
+     "p99": 339.56864598
+    },
+    "no_completed_prediction": 0,
+    "no_completion_subcategories": {}
+   },
+   "feedback_by_170": 47,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {},
+   "gt_coverage": {
+    "LATE|MEASURED": 208,
+    "TIMELY|MEASURED": 292
+   },
+   "label": "Mode 10 \u00b7 AE32/UINT6 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 469481.0,
+    "p99": 483185.06
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.6971830985915493,
+     "precision_timely": 0.7060240963855422,
+     "recall_all": {
+      "d": 635,
+      "n": 377,
+      "value": 0.5937007874015748
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 635,
+      "n": 219,
+      "value": 0.34488188976377954
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "500/500",
+     "seg_iou_all": 0.5127810461987504,
+     "seg_iou_deadline": 0.3465651943060858
+    },
+    "vehicle": {
+     "precision_all": 0.9339019189765458,
+     "precision_timely": 0.935374149659864,
+     "recall_all": {
+      "d": 953,
+      "n": 709,
+      "value": 0.7439664218258132
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 953,
+      "n": 455,
+      "value": 0.4774396642182581
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "500/500",
+     "seg_iou_all": 0.8734953360113004,
+     "seg_iou_deadline": 0.4679496006130933
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  },
+  "mode11": {
+   "arm": "mode11",
+   "completion": {
+    "completed": 500,
+    "completed_by_170": 453,
+    "completed_later": 47,
+    "decisions": 500,
+    "latency_ms": {
+     "n": 500,
+     "p50": 143.0729675,
+     "p95": 186.32875015,
+     "p99": 216.70064005999996
+    },
+    "no_completed_prediction": 0,
+    "no_completion_subcategories": {}
+   },
+   "feedback_by_170": 304,
+   "frames": {
+    "actor_calls": 0,
+    "collector_stop": "TRANSMITTED_BUDGET_REACHED",
+    "fallbacks": 0,
+    "offered_budget": 1000,
+    "policy_decisions": 500,
+    "policy_holds": 500,
+    "route_error": "RouteBudgetReached: TRANSMITTED_BUDGET_REACHED",
+    "transmitted": 1000
+   },
+   "gt_capacity_refusals": {},
+   "gt_coverage": {
+    "LATE|MEASURED": 47,
+    "TIMELY|MEASURED": 453
+   },
+   "label": "Mode 11 \u00b7 AE32/UINT4 \u00b7 q=0",
+   "launch_rc": 1,
+   "non_pass_checks": {
+    "G8_REWARD_TIMEOUT_SEMANTICS": "NOT_APPLICABLE",
+    "P0_POLICY_COVERAGE": "NOT_APPLICABLE",
+    "P5_NO_ACTOR_AFTER_REFUSAL": "NOT_APPLICABLE"
+   },
+   "payload": {
+    "layer": "SFD4 application-frame bytes, all transmitted frames",
+    "n": 1000,
+    "p50": 234234.0,
+    "p99": 250834.54
+   },
+   "quality": {
+    "person": {
+     "precision_all": 0.7634069400630915,
+     "precision_timely": 0.7566137566137566,
+     "recall_all": {
+      "d": 692,
+      "n": 318,
+      "value": 0.4595375722543353
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 692,
+      "n": 278,
+      "value": 0.40173410404624277
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "500/500",
+     "seg_iou_all": 0.44863749036253453,
+     "seg_iou_deadline": 0.4017497212453898
+    },
+    "vehicle": {
+     "precision_all": 0.9138513513513513,
+     "precision_timely": 0.9132007233273056,
+     "recall_all": {
+      "d": 1179,
+      "n": 849,
+      "value": 0.7201017811704835
+     },
+     "recall_deadline": {
+      "bound": "EXACT",
+      "d": 1179,
+      "n": 796,
+      "value": 0.6751484308736218
+     },
+     "seg_bound": "EXACT",
+     "seg_evaluable": "500/500",
+     "seg_iou_all": 0.8894572282713036,
+     "seg_iou_deadline": 0.8680942788870364
+    }
+   },
+   "subtype": null,
+   "verdict": "VALID_MEASUREMENT"
+  }
+ },
+ "batch1_rows_equal_sealed": {
+  "agent": true,
+  "mode08": true,
+  "mode11": true
+ },
+ "order": [
+  "agent",
+  "mode08",
+  "mode11",
+  "mode03",
+  "mode02",
+  "mode01",
+  "mode10",
+  "mode07",
+  "mode00",
+  "mode06",
+  "mode04",
+  "mode09",
+  "mode05"
+ ],
+ "schema": "splitfusion.static_modes_v13.campaign_report.v1"
+}

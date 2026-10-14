@@ -1,0 +1,1114 @@
+{
+  "schema": "replay_display_comparison.v3",
+  "conditions": "60 Hz deterministic; current-forward view; 45 m radius; building withholding off in both; v2 consolidation on (its default). GT scored at the GT capture instant using the display as shown then; GT never enters either engine.",
+  "sequences": {
+    "departure": {
+      "v2": {
+        "mean_glyphs": 21.317677198975236,
+        "mean_established": null,
+        "mean_tentative": null,
+        "mean_hypothesis_cells": null,
+        "mean_raw_candidates": 0,
+        "glyph_appearances_per_s": 70.76923076923077,
+        "glyph_disappearances_per_s": 70.76923076923077,
+        "glyph_lifetime_ms": {
+          "n": 646,
+          "mean": 644.0402476780191,
+          "p50": 283.3333333333333,
+          "p95": 2566.6666666666656,
+          "max": 7016.666666666705
+        },
+        "step_m": {
+          "n": 23583,
+          "mean": 0.08750666891773375,
+          "p50": 0.05206224447707392,
+          "p95": 0.30480740542842116,
+          "max": 0.7696420977395053
+        },
+        "established_step_m": {
+          "n": 23583,
+          "mean": 0.08750666891773375,
+          "p50": 0.05206224447707392,
+          "p95": 0.30480740542842116,
+          "max": 0.7696420977395053
+        },
+        "second_difference_m": {
+          "n": 22939,
+          "mean": 0.03419698693406027,
+          "p50": 0.01606892052848582,
+          "p95": 0.12952289913319542,
+          "max": 0.729868251438189
+        },
+        "axis_rate_dps": {
+          "n": 23583,
+          "mean": 77.91500346144359,
+          "p50": 23.052171435763285,
+          "p95": 278.56759736510867,
+          "max": 2622.514719076837
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 7437,
+          "mean": 59.958606312682576,
+          "p50": 0,
+          "p95": 266.4873645205398,
+          "max": 2622.514719076837
+        },
+        "display_ids_created": 961,
+        "established_created": null,
+        "gt_coverage": {
+          "gt_positive_within_45m": 229,
+          "any_glyph_3m": 0.7379912663755459,
+          "established_3m": null,
+          "established_or_tentative_3m": null
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "20to35": {
+              "n": 518,
+              "fraction": 0.7335907335907336
+            },
+            "lt20": {
+              "n": 365,
+              "fraction": 0.40273972602739727
+            },
+            "35to45": {
+              "n": 826,
+              "fraction": 0.9200968523002422
+            }
+          },
+          "fraction": 0.7530719719133997,
+          "established_fraction": null,
+          "n": 1709
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.26174496644295303,
+        "gt_actor_pairs": 149,
+        "gt_actor_multiple_glyphs_fraction": 0.388646288209607,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 7,
+          "mean": 1.1574976782130568,
+          "p50": 0.9013643733604735,
+          "p95": 2.6484745688486857,
+          "max": 2.6484745688486857
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 83,
+          "mean": 2.266695144211748,
+          "p50": 1.890331929897014,
+          "p95": 5.576646505852756,
+          "max": 7.567716023475546
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 83,
+          "mean": 9.909928563048078,
+          "p50": 7.508994946399525,
+          "p95": 25.798455053471912,
+          "max": 35.854780573139465
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 42,
+          "mean": -0.22692606003310453,
+          "p50": -0.13804011663243093,
+          "p95": 1.4863360751450794,
+          "max": 1.5607521625341756
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 42,
+          "mean": 0.39020036374648115,
+          "p50": 0.24853546219356754,
+          "p95": 1.1232022433679199,
+          "max": 1.3238532054018923
+        },
+        "confirmation": null,
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 100
+      },
+      "v3": {
+        "mean_glyphs": 3.933390264730999,
+        "mean_established": 3.237403928266439,
+        "mean_tentative": 0.6959863364645602,
+        "mean_hypothesis_cells": 57.712211784799315,
+        "mean_raw_candidates": 34.8932536293766,
+        "glyph_appearances_per_s": 4.461538461538462,
+        "glyph_disappearances_per_s": 4.461538461538462,
+        "glyph_lifetime_ms": {
+          "n": 80,
+          "mean": 959.5833333333339,
+          "p50": 166.66666666666666,
+          "p95": 5466.666666666677,
+          "max": 11049.999999999956
+        },
+        "step_m": {
+          "n": 4519,
+          "mean": 0.028458760702370214,
+          "p50": 0.007024129967069952,
+          "p95": 0.11141020967390594,
+          "max": 0.7853487214586927
+        },
+        "established_step_m": {
+          "n": 3785,
+          "mean": 0.03330843511324516,
+          "p50": 0.010843389259456705,
+          "p95": 0.1175861323473692,
+          "max": 0.7853487214586927
+        },
+        "second_difference_m": {
+          "n": 4440,
+          "mean": 0.007277945321449224,
+          "p50": 0.0014970425670639317,
+          "p95": 0.02889693655873921,
+          "max": 0.3757648975509862
+        },
+        "axis_rate_dps": {
+          "n": 4133,
+          "mean": 17.381649753296028,
+          "p50": 0,
+          "p95": 90,
+          "max": 90.00000000001364
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 2931,
+          "mean": 2.3508260683730398,
+          "p50": 0,
+          "p95": 0,
+          "max": 90.00000000000682
+        },
+        "display_ids_created": 86,
+        "established_created": 28,
+        "gt_coverage": {
+          "gt_positive_within_45m": 229,
+          "any_glyph_3m": 0.7467248908296943,
+          "established_3m": 0.7248908296943232,
+          "established_or_tentative_3m": 0.7467248908296943
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "20to35": {
+              "n": 142,
+              "fraction": 0.3732394366197183
+            },
+            "lt20": {
+              "n": 97,
+              "fraction": 0.10309278350515463
+            },
+            "35to45": {
+              "n": 67,
+              "fraction": 0.6865671641791045
+            }
+          },
+          "fraction": 0.3562091503267974,
+          "established_fraction": 0.27165354330708663,
+          "n": 306
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.045454545454545456,
+        "gt_actor_pairs": 154,
+        "gt_actor_multiple_glyphs_fraction": 0.09170305676855896,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 8,
+          "mean": 0.9960493824145162,
+          "p50": 1.207201462110439,
+          "p95": 2.4101432925502166,
+          "max": 2.4101432925502166
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 107,
+          "mean": 1.082277867949784,
+          "p50": 0.559134846140784,
+          "p95": 3.492476371591611,
+          "max": 5.997484738021286
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 107,
+          "mean": 3.851141991204576,
+          "p50": 0,
+          "p95": 21.000000000001478,
+          "max": 22.499999999999204
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 41,
+          "mean": -0.0333065688369335,
+          "p50": 0.12702267891856422,
+          "p95": 1.636653183718196,
+          "max": 2.2906971092093533
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 41,
+          "mean": 0.6380940945997293,
+          "p50": 0.6024292913069427,
+          "p95": 1.641997894793901,
+          "max": 2.132169959552021
+        },
+        "confirmation": {
+          "capture_delay_ms": {
+            "n": 28,
+            "mean": 133.84097828571453,
+            "p50": 121.10131200000069,
+            "p95": 237.53651199999968,
+            "max": 244.4979200000016
+          },
+          "arrival_delay_ms": {
+            "n": 28,
+            "mean": 123.18393599999997,
+            "p50": 112.5619200000001,
+            "p95": 225.54572800000005,
+            "max": 253.54188799999974
+          },
+          "tentative_dropped": 56,
+          "ended_expired": 20,
+          "ended_weak_only": 1,
+          "established_lifetime_ms": {
+            "n": 21,
+            "mean": 1424.0684373333333,
+            "p50": 658.7985919999992,
+            "p95": 4044.448,
+            "max": 7520.3499520000005
+          },
+          "bridge_m": {
+            "n": 451,
+            "mean": 0.2556732674745486,
+            "p50": 0.13544644101996134,
+            "p95": 0.7454274899074894,
+            "max": 3.808148205379578
+          },
+          "snaps": 0,
+          "absorbed_duplicates": 746,
+          "hypotheses": 2450
+        },
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 150
+      }
+    },
+    "turn": {
+      "v2": {
+        "mean_glyphs": 25.383432963279247,
+        "mean_established": null,
+        "mean_tentative": null,
+        "mean_hypothesis_cells": null,
+        "mean_raw_candidates": 0,
+        "glyph_appearances_per_s": 77.07692307692308,
+        "glyph_disappearances_per_s": 77.07692307692308,
+        "glyph_lifetime_ms": {
+          "n": 555,
+          "mean": 892.6126126126125,
+          "p50": 366.66666666666674,
+          "p95": 3799.9999999999877,
+          "max": 12716.666666666562
+        },
+        "step_m": {
+          "n": 28221,
+          "mean": 0.0793277353361501,
+          "p50": 0.043322502402063326,
+          "p95": 0.2830984454794679,
+          "max": 0.7362241688038802
+        },
+        "established_step_m": {
+          "n": 28221,
+          "mean": 0.0793277353361501,
+          "p50": 0.043322502402063326,
+          "p95": 0.2830984454794679,
+          "max": 0.7362241688038802
+        },
+        "second_difference_m": {
+          "n": 27669,
+          "mean": 0.03273077084953752,
+          "p50": 0.014983415813956234,
+          "p95": 0.12536958037416715,
+          "max": 0.6721583648835328
+        },
+        "axis_rate_dps": {
+          "n": 28221,
+          "mean": 82.25090526227379,
+          "p50": 27.87932301267574,
+          "p95": 290.98828919661855,
+          "max": 2547.2272192512037
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 8285,
+          "mean": 74.51791610689047,
+          "p50": 0,
+          "p95": 324.3013009240849,
+          "max": 2547.2272192512037
+        },
+        "display_ids_created": 865,
+        "established_created": null,
+        "gt_coverage": {
+          "gt_positive_within_45m": 362,
+          "any_glyph_3m": 0.6795580110497238,
+          "established_3m": null,
+          "established_or_tentative_3m": null
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "20to35": {
+              "n": 790,
+              "fraction": 0.6367088607594936
+            },
+            "lt20": {
+              "n": 311,
+              "fraction": 0.3729903536977492
+            },
+            "35to45": {
+              "n": 915,
+              "fraction": 0.839344262295082
+            }
+          },
+          "fraction": 0.6879960317460317,
+          "established_fraction": null,
+          "n": 2016
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.2535211267605634,
+        "gt_actor_pairs": 213,
+        "gt_actor_multiple_glyphs_fraction": 0.356353591160221,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 12,
+          "mean": 2.128970875246862,
+          "p50": 1.9419971450196587,
+          "p95": 4.732648038881289,
+          "max": 4.732648038881289
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 148,
+          "mean": 2.2064557455729674,
+          "p50": 1.7455153331325037,
+          "p95": 5.8084737441285546,
+          "max": 8.27035978027039
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 148,
+          "mean": 10.286506176977932,
+          "p50": 8.390373171446981,
+          "p95": 24.188710775710547,
+          "max": 38.75808374164984
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 24,
+          "mean": -0.24396050700766492,
+          "p50": -0.42620846148282177,
+          "p95": 1.4927641243434058,
+          "max": 1.821046588534896
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 24,
+          "mean": 0.2757149375725029,
+          "p50": 0.20111616570725663,
+          "p95": 0.6627110005440289,
+          "max": 1.2909593958180132
+        },
+        "confirmation": null,
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 100
+      },
+      "v3": {
+        "mean_glyphs": 6.976942783945346,
+        "mean_established": 5.785653287788215,
+        "mean_tentative": 1.1912894961571308,
+        "mean_hypothesis_cells": 59.70111016225448,
+        "mean_raw_candidates": 38.229718189581554,
+        "glyph_appearances_per_s": 9.58974358974359,
+        "glyph_disappearances_per_s": 9.58974358974359,
+        "glyph_lifetime_ms": {
+          "n": 164,
+          "mean": 830.2845528455273,
+          "p50": 183.33333333333331,
+          "p95": 2883.3333333333294,
+          "max": 14149.999999999844
+        },
+        "step_m": {
+          "n": 7983,
+          "mean": 0.019446388485716167,
+          "p50": 0.00168439263252124,
+          "p95": 0.09115989364963747,
+          "max": 0.7022357011338443
+        },
+        "established_step_m": {
+          "n": 6744,
+          "mean": 0.02284950086042473,
+          "p50": 0.0035898135762201444,
+          "p95": 0.09811352045032296,
+          "max": 0.7022357011338443
+        },
+        "second_difference_m": {
+          "n": 7820,
+          "mean": 0.005822322941541267,
+          "p50": 0.0004675544248013224,
+          "p95": 0.026349133468257183,
+          "max": 0.6527286980867002
+        },
+        "axis_rate_dps": {
+          "n": 7205,
+          "mean": 8.749528135657044,
+          "p50": 0,
+          "p95": 90,
+          "max": 90.00000000000682
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 6196,
+          "mean": 4.560278713904472,
+          "p50": 0,
+          "p95": 48.59619840019377,
+          "max": 90.00000000000682
+        },
+        "display_ids_created": 176,
+        "established_created": 74,
+        "gt_coverage": {
+          "gt_positive_within_45m": 362,
+          "any_glyph_3m": 0.6878453038674033,
+          "established_3m": 0.6574585635359116,
+          "established_or_tentative_3m": 0.6878453038674033
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "20to35": {
+              "n": 269,
+              "fraction": 0.379182156133829
+            },
+            "lt20": {
+              "n": 126,
+              "fraction": 0.25396825396825395
+            },
+            "35to45": {
+              "n": 143,
+              "fraction": 0.7552447552447552
+            }
+          },
+          "fraction": 0.44981412639405205,
+          "established_fraction": 0.421978021978022,
+          "n": 538
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.07476635514018691,
+        "gt_actor_pairs": 214,
+        "gt_actor_multiple_glyphs_fraction": 0.13535911602209943,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 13,
+          "mean": 1.9904086436696744,
+          "p50": 1.495745163286395,
+          "p95": 6.6649944978201034,
+          "max": 6.6649944978201034
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 189,
+          "mean": 1.17506511304609,
+          "p50": 0.44197062960156946,
+          "p95": 4.55913916709179,
+          "max": 20.318866043402256
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 185,
+          "mean": 2.997587528883998,
+          "p50": 0,
+          "p95": 12.978431999999998,
+          "max": 23.604029847400966
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 20,
+          "mean": -0.3792725189108506,
+          "p50": -0.31946089400652705,
+          "p95": 2.596037564180486,
+          "max": 2.596037564180486
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 20,
+          "mean": 0.28814157304231175,
+          "p50": 0.24523395362258152,
+          "p95": 0.8047847783023973,
+          "max": 0.8047847783023973
+        },
+        "confirmation": {
+          "capture_delay_ms": {
+            "n": 74,
+            "mean": 152.1764877837838,
+            "p50": 128.88473599999998,
+            "p95": 273.00991999999997,
+            "max": 363.2384000000002
+          },
+          "arrival_delay_ms": {
+            "n": 74,
+            "mean": 153.35367956756753,
+            "p50": 132.2974720000002,
+            "p95": 286.5756160000001,
+            "max": 370.85209599999985
+          },
+          "tentative_dropped": 99,
+          "ended_expired": 70,
+          "ended_weak_only": 3,
+          "established_lifetime_ms": {
+            "n": 73,
+            "mean": 1416.8217529863014,
+            "p50": 355.2796160000016,
+            "p95": 7032.542207999999,
+            "max": 15136.882943999999
+          },
+          "bridge_m": {
+            "n": 845,
+            "mean": 0.2254971397878143,
+            "p50": 0.07868831489134923,
+            "p95": 0.89641312333506,
+            "max": 3.8166998162447716
+          },
+          "snaps": 0,
+          "absorbed_duplicates": 1084,
+          "hypotheses": 2987
+        },
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 150
+      }
+    },
+    "stop": {
+      "v2": {
+        "mean_glyphs": 20.046968403074295,
+        "mean_established": null,
+        "mean_tentative": null,
+        "mean_hypothesis_cells": null,
+        "mean_raw_candidates": 0,
+        "glyph_appearances_per_s": 57.12820512820513,
+        "glyph_disappearances_per_s": 57.12820512820513,
+        "glyph_lifetime_ms": {
+          "n": 338,
+          "mean": 1157.5443786982232,
+          "p50": 283.3333333333333,
+          "p95": 5600.000000000013,
+          "max": 15316.666666666468
+        },
+        "step_m": {
+          "n": 22361,
+          "mean": 0.04321423664486428,
+          "p50": 0.017078409188431017,
+          "p95": 0.18097506409555345,
+          "max": 0.7242637042812893
+        },
+        "established_step_m": {
+          "n": 22361,
+          "mean": 0.04321423664486428,
+          "p50": 0.017078409188431017,
+          "p95": 0.18097506409555345,
+          "max": 0.7242637042812893
+        },
+        "second_difference_m": {
+          "n": 22024,
+          "mean": 0.018228572896769994,
+          "p50": 0.0058479693863287335,
+          "p95": 0.07905002946824169,
+          "max": 0.6839093699717361
+        },
+        "axis_rate_dps": {
+          "n": 22361,
+          "mean": 65.3446730622163,
+          "p50": 9.913670815803926,
+          "p95": 212.7867613751664,
+          "max": 2549.5275822969634
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 11150,
+          "mean": 56.55718983973357,
+          "p50": 0.7802628826993896,
+          "p95": 193.0259821216123,
+          "max": 2549.5275822969634
+        },
+        "display_ids_created": 578,
+        "established_created": null,
+        "gt_coverage": {
+          "gt_positive_within_45m": 175,
+          "any_glyph_3m": 0.7657142857142857,
+          "established_3m": null,
+          "established_or_tentative_3m": null
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "lt20": {
+              "n": 346,
+              "fraction": 0.9277456647398844
+            },
+            "20to35": {
+              "n": 365,
+              "fraction": 0.5178082191780822
+            },
+            "35to45": {
+              "n": 712,
+              "fraction": 0.8370786516853933
+            }
+          },
+          "fraction": 0.7772312016865777,
+          "established_fraction": null,
+          "n": 1423
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.22330097087378642,
+        "gt_actor_pairs": 103,
+        "gt_actor_multiple_glyphs_fraction": 0.2,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 4,
+          "mean": 3.169578957225193,
+          "p50": 3.4545944163048823,
+          "p95": 4.122947128319961,
+          "max": 4.122947128319961
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 71,
+          "mean": 1.9025896073248265,
+          "p50": 1.557260953632175,
+          "p95": 3.9941797786814077,
+          "max": 10.787297148431842
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 71,
+          "mean": 11.186627978546605,
+          "p50": 9.848630483931288,
+          "p95": 28.752618622845773,
+          "max": 32.124449812393436
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 11,
+          "mean": 0.3242328576509284,
+          "p50": 0.27159885130545874,
+          "p95": 1.746570398526311,
+          "max": 1.746570398526311
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 11,
+          "mean": 0.4993007698064998,
+          "p50": 0.3515286768713953,
+          "p95": 1.2539231591965994,
+          "max": 1.2539231591965994
+        },
+        "confirmation": null,
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 100
+      },
+      "v3": {
+        "mean_glyphs": 2.8360375747224595,
+        "mean_established": 2.623398804440649,
+        "mean_tentative": 0.2126387702818104,
+        "mean_hypothesis_cells": 43.05123825789923,
+        "mean_raw_candidates": 52.94534585824082,
+        "glyph_appearances_per_s": 1.8974358974358974,
+        "glyph_disappearances_per_s": 1.8974358974358974,
+        "glyph_lifetime_ms": {
+          "n": 31,
+          "mean": 1785.4838709677435,
+          "p50": 699.9999999999998,
+          "p95": 7533.333333333381,
+          "max": 10233.33333333332
+        },
+        "step_m": {
+          "n": 3284,
+          "mean": 0.025589753767085197,
+          "p50": 0.008179251567091388,
+          "p95": 0.09617612430068581,
+          "max": 0.6907046584008975
+        },
+        "established_step_m": {
+          "n": 3063,
+          "mean": 0.02743609251423695,
+          "p50": 0.010082278654911049,
+          "p95": 0.0984965897070446,
+          "max": 0.6907046584008975
+        },
+        "second_difference_m": {
+          "n": 3253,
+          "mean": 0.007268258916179463,
+          "p50": 0.0017577606929499849,
+          "p95": 0.029427449609195206,
+          "max": 0.3069685645488446
+        },
+        "axis_rate_dps": {
+          "n": 3093,
+          "mean": 13.794501620101638,
+          "p50": 0,
+          "p95": 90,
+          "max": 90.00000000000682
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 1966,
+          "mean": 4.162543749338782,
+          "p50": 0,
+          "p95": 15.671577600001001,
+          "max": 90.00000000000682
+        },
+        "display_ids_created": 33,
+        "established_created": 17,
+        "gt_coverage": {
+          "gt_positive_within_45m": 175,
+          "any_glyph_3m": 0.84,
+          "established_3m": 0.8171428571428572,
+          "established_or_tentative_3m": 0.84
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "lt20": {
+              "n": 29,
+              "fraction": 0
+            },
+            "20to35": {
+              "n": 133,
+              "fraction": 0.03759398496240601
+            },
+            "35to45": {
+              "n": 33,
+              "fraction": 0.7878787878787878
+            }
+          },
+          "fraction": 0.15897435897435896,
+          "established_fraction": 0.15760869565217392,
+          "n": 195
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.075,
+        "gt_actor_pairs": 120,
+        "gt_actor_multiple_glyphs_fraction": 0.25142857142857145,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 4,
+          "mean": 3.331653143657488,
+          "p50": 3.657718160907903,
+          "p95": 4.647945707444105,
+          "max": 4.647945707444105
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 95,
+          "mean": 1.112501066824965,
+          "p50": 0.6762871369933893,
+          "p95": 4.205695003741649,
+          "max": 7.989965173688352
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 95,
+          "mean": 3.667986910878619,
+          "p50": 0,
+          "p95": 16.72921492952048,
+          "max": 22.49999999999909
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 7,
+          "mean": 0.8981903953260083,
+          "p50": 1.1556133997388882,
+          "p95": 2.2459207392438976,
+          "max": 2.2459207392438976
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 7,
+          "mean": 1.0693865268656955,
+          "p50": 1.1599494918496134,
+          "p95": 1.7985196001444335,
+          "max": 1.7985196001444335
+        },
+        "confirmation": {
+          "capture_delay_ms": {
+            "n": 17,
+            "mean": 149.74483576470578,
+            "p50": 126.20825599999989,
+            "p95": 268.80921599999965,
+            "max": 268.80921599999965
+          },
+          "arrival_delay_ms": {
+            "n": 17,
+            "mean": 154.63413458823518,
+            "p50": 132.81535999999994,
+            "p95": 322.2865919999999,
+            "max": 322.2865919999999
+          },
+          "tentative_dropped": 16,
+          "ended_expired": 12,
+          "ended_weak_only": 0,
+          "established_lifetime_ms": {
+            "n": 12,
+            "mean": 2172.6826453333333,
+            "p50": 842.5689600000001,
+            "p95": 10450.802688,
+            "max": 10450.802688
+          },
+          "bridge_m": {
+            "n": 330,
+            "mean": 0.2523986618904684,
+            "p50": 0.1291881098721054,
+            "p95": 0.7373281546577468,
+            "max": 3.539626689315767
+          },
+          "snaps": 0,
+          "absorbed_duplicates": 164,
+          "hypotheses": 3346
+        },
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 150
+      }
+    },
+    "avenue": {
+      "v2": {
+        "mean_glyphs": 18.468830059777968,
+        "mean_established": null,
+        "mean_tentative": null,
+        "mean_hypothesis_cells": null,
+        "mean_raw_candidates": 0,
+        "glyph_appearances_per_s": 65.53846153846153,
+        "glyph_disappearances_per_s": 65.53846153846153,
+        "glyph_lifetime_ms": {
+          "n": 673,
+          "mean": 535.5869242199107,
+          "p50": 266.66666666666663,
+          "p95": 1916.6666666666697,
+          "max": 12449.999999999905
+        },
+        "step_m": {
+          "n": 20349,
+          "mean": 0.09433209644109197,
+          "p50": 0.058939973342578396,
+          "p95": 0.32267800598428464,
+          "max": 0.7310330928510994
+        },
+        "established_step_m": {
+          "n": 20349,
+          "mean": 0.09433209644109197,
+          "p50": 0.058939973342578396,
+          "p95": 0.32267800598428464,
+          "max": 0.7310330928510994
+        },
+        "second_difference_m": {
+          "n": 19679,
+          "mean": 0.03722786657456354,
+          "p50": 0.017226827720454214,
+          "p95": 0.13975258493444845,
+          "max": 0.7602455134340949
+        },
+        "axis_rate_dps": {
+          "n": 20349,
+          "mean": 80.52825815051868,
+          "p50": 15.111495220717188,
+          "p95": 289.93573227033494,
+          "max": 2565.799118373603
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 5635,
+          "mean": 68.20318137218092,
+          "p50": 0,
+          "p95": 342.5355316907985,
+          "max": 2565.799118373603
+        },
+        "display_ids_created": 1130,
+        "established_created": null,
+        "gt_coverage": {
+          "gt_positive_within_45m": 277,
+          "any_glyph_3m": 0.8158844765342961,
+          "established_3m": null,
+          "established_or_tentative_3m": null
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "lt20": {
+              "n": 313,
+              "fraction": 0.34824281150159747
+            },
+            "20to35": {
+              "n": 528,
+              "fraction": 0.7897727272727273
+            },
+            "35to45": {
+              "n": 534,
+              "fraction": 0.8539325842696629
+            }
+          },
+          "fraction": 0.7141818181818181,
+          "established_fraction": null,
+          "n": 1375
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.2436548223350254,
+        "gt_actor_pairs": 197,
+        "gt_actor_multiple_glyphs_fraction": 0.3104693140794224,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 7,
+          "mean": 1.4101854748964988,
+          "p50": 1.431478057765137,
+          "p95": 2.8402655086824558,
+          "max": 2.8402655086824558
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 81,
+          "mean": 2.336760519967892,
+          "p50": 1.5454261769816247,
+          "p95": 6.733695489893993,
+          "max": 8.837994601643178
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 81,
+          "mean": 13.282215662804717,
+          "p50": 12.898030337074033,
+          "p95": 24.965015072434085,
+          "max": 33.867517920565604
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 107,
+          "mean": -0.35956604919450574,
+          "p50": -0.3065737611939272,
+          "p95": 0.9295295282425613,
+          "max": 1.8610539451751607
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 107,
+          "mean": 0.3291213509487348,
+          "p50": 0.20605624662367816,
+          "p95": 1.1013901571923737,
+          "max": 2.030187712887595
+        },
+        "confirmation": null,
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 100
+      },
+      "v3": {
+        "mean_glyphs": 4.754910333048676,
+        "mean_established": 4.153714773697694,
+        "mean_tentative": 0.601195559350982,
+        "mean_hypothesis_cells": 59.122971818958156,
+        "mean_raw_candidates": 36.22715627668659,
+        "glyph_appearances_per_s": 4.9743589743589745,
+        "glyph_disappearances_per_s": 4.9743589743589745,
+        "glyph_lifetime_ms": {
+          "n": 84,
+          "mean": 1104.7619047619037,
+          "p50": 183.33333333333331,
+          "p95": 4266.666666666655,
+          "max": 9200.000000000024
+        },
+        "step_m": {
+          "n": 5471,
+          "mean": 0.03938289141986262,
+          "p50": 0.014669432860229084,
+          "p95": 0.13377935399396956,
+          "max": 0.6475409313091132
+        },
+        "established_step_m": {
+          "n": 4848,
+          "mean": 0.04444385292039365,
+          "p50": 0.021749481792049608,
+          "p95": 0.1414156971182861,
+          "max": 0.6475409313091132
+        },
+        "second_difference_m": {
+          "n": 5387,
+          "mean": 0.008878187503168418,
+          "p50": 0.0027626342129359427,
+          "p95": 0.03406416442452245,
+          "max": 0.3627734294677219
+        },
+        "axis_rate_dps": {
+          "n": 5091,
+          "mean": 18.42933507957588,
+          "p50": 0,
+          "p95": 90,
+          "max": 90.00000000000682
+        },
+        "nose_flips_per_min": 0,
+        "stationary_glyph_yaw_rate_dps": {
+          "n": 3410,
+          "mean": 6.857290392788246,
+          "p50": 0,
+          "p95": 90,
+          "max": 90
+        },
+        "display_ids_created": 91,
+        "established_created": 38,
+        "gt_coverage": {
+          "gt_positive_within_45m": 277,
+          "any_glyph_3m": 0.7978339350180506,
+          "established_3m": 0.7689530685920578,
+          "established_or_tentative_3m": 0.7978339350180506
+        },
+        "glyphs_without_any_real_object_3m": {
+          "by_range_m": {
+            "lt20": {
+              "n": 108,
+              "fraction": 0.07407407407407407
+            },
+            "20to35": {
+              "n": 154,
+              "fraction": 0.2857142857142857
+            },
+            "35to45": {
+              "n": 89,
+              "fraction": 0.5056179775280899
+            }
+          },
+          "fraction": 0.27635327635327633,
+          "established_fraction": 0.20846905537459284,
+          "n": 351
+        },
+        "gt_actor_glyph_identity_switch_rate": 0.08808290155440414,
+        "gt_actor_pairs": 193,
+        "gt_actor_multiple_glyphs_fraction": 0.1552346570397112,
+        "stationary_gt_actor_glyph_wobble_rms_m": {
+          "n": 7,
+          "mean": 1.0936824288340696,
+          "p50": 1.1222897133319123,
+          "p95": 2.684281959439643,
+          "max": 2.684281959439643
+        },
+        "stationary_gt_actor_same_glyph_apparent_speed_mps": {
+          "n": 96,
+          "mean": 1.0168490726287174,
+          "p50": 0.5163931643450924,
+          "p95": 3.2622616309192876,
+          "max": 8.674821405727725
+        },
+        "stationary_gt_actor_glyph_axis_rotation_deg_per_gt_frame": {
+          "n": 95,
+          "mean": 3.589570378158822,
+          "p50": 0,
+          "p95": 18.663509760003762,
+          "max": 24.000000000000455
+        },
+        "moving_actor_along_track_error_m": {
+          "n": 94,
+          "mean": -0.3247095794297451,
+          "p50": -0.028206077976434384,
+          "p95": 1.103943138644411,
+          "max": 1.9413382523746794
+        },
+        "moving_actor_lateral_error_m": {
+          "n": 94,
+          "mean": 0.19076192653494858,
+          "p50": 0.15152925867985662,
+          "p95": 0.5344834441666323,
+          "max": 1.0469257138098083
+        },
+        "confirmation": {
+          "capture_delay_ms": {
+            "n": 38,
+            "mean": 148.63691452631573,
+            "p50": 127.91833600000064,
+            "p95": 252.10291199999938,
+            "max": 260.83251199999995
+          },
+          "arrival_delay_ms": {
+            "n": 38,
+            "mean": 150.5475503157896,
+            "p50": 143.5340799999999,
+            "p95": 262.2901759999995,
+            "max": 264.66124800000034
+          },
+          "tentative_dropped": 53,
+          "ended_expired": 33,
+          "ended_weak_only": 0,
+          "established_lifetime_ms": {
+            "n": 33,
+            "mean": 1984.800100848485,
+            "p50": 983.9651839999997,
+            "p95": 5069.705728,
+            "max": 5251.188736
+          },
+          "bridge_m": {
+            "n": 578,
+            "mean": 0.3137485466744677,
+            "p50": 0.1981351465918589,
+            "p95": 0.9487359354236957,
+            "max": 3.5004549859263414
+          },
+          "snaps": 0,
+          "absorbed_duplicates": 553,
+          "hypotheses": 2242
+        },
+        "added_input_buffer_ms": 0,
+        "continuity_bridge_ms": 150
+      }
+    }
+  }
+}

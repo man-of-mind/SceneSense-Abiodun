@@ -1,0 +1,24 @@
+{
+ "strong_qualified_vehicle_observations_matched": 4529,
+ "axis_error_p50": 22.2,
+ "axis_error_p90": 74.2,
+ "share_gt20": 0.531,
+ "parked_environment_cars": {
+  "n": 1249,
+  "p50": 9.6,
+  "share_gt20": 0.281
+ },
+ "stationary_actors": {
+  "n": 1533,
+  "p50": 28.4,
+  "share_gt20": 0.6
+ },
+ "moving_actors": {
+  "n": 1747,
+  "p50": 33.5,
+  "share_gt20": 0.649
+ },
+ "stationary_objects_ge6_obs": 69,
+ "objects_with_persistent_mean_bias_gt20": 26,
+ "objects_with_bias_gt60": 11
+}

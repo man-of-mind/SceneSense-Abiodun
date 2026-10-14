@@ -1,0 +1,11 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "experiments/splitfusion_m4_two_ue_v1/receiver_boundary_diagnostic_20261013_01/analyze.py"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+  "end_wall_s": 1791940920.5083137,
+  "returncode": 0,
+  "start_wall_s": 1791940918.606415
+}

@@ -1,0 +1,25 @@
+{
+ "attribution_rows": 1442,
+ "bytes_before_closeout": 32376544,
+ "coalition_slots_checked": 126448,
+ "endpoint_coverage": 938,
+ "exact_prior_case_matches": 16,
+ "fresh_replay": 759,
+ "input_hashes_match": true,
+ "maximum_reconstruction_error": 8.881784197001252e-16,
+ "no_actor_queries_in_check": true,
+ "pairs_checked": 7903,
+ "passed": true,
+ "png_count": 6,
+ "png_size": [
+  3840,
+  2160
+ ],
+ "recorded_states": 6383,
+ "representative_targets": 400,
+ "reused_replay": 179,
+ "same_balanced_backgrounds": true,
+ "source_sha256": "a8781133942964bb6fadc058215dc92fd1413f9fda70dc7ac80d51c72a8e0185",
+ "summary_cohorts_separate": true,
+ "valid_unique_query_states": 26858
+}

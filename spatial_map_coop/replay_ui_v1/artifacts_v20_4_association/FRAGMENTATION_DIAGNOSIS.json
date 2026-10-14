@@ -1,0 +1,5820 @@
+{
+ "schema": "display_track_fragmentation_diagnosis.v1",
+ "clips": {
+  "departure@v10": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 67,
+     "FIRST": 5,
+     "NO_GT": 48,
+     "SPLIT": 10,
+     "REACQUIRE": 4,
+     "split_old_not_updated_same_frame": 7,
+     "split_old_established": 8,
+     "split_offset": {
+      "dist_p50": 1.81,
+      "radial_p50": 1.78,
+      "lateral_p50": 0.15,
+      "lateral_p90": 1.51,
+      "radial_dominant": 8,
+      "within_lateral_0_6": 8
+     },
+     "reacquire": {
+      "gap_ms_p50": 1035.06,
+      "gap_ms_p90": 2191.62,
+      "dist_p50": 2.79,
+      "lateral_p50": 1.37,
+      "old_established": 0
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 20,
+     "FIRST": 1,
+     "NO_GT": 18,
+     "SPLIT": 1,
+     "REACQUIRE": 0,
+     "split_old_not_updated_same_frame": 0,
+     "split_old_established": 1,
+     "split_offset": {
+      "dist_p50": 2.72,
+      "radial_p50": 2.56,
+      "lateral_p50": 0.93,
+      "lateral_p90": 0.93,
+      "radial_dominant": 1,
+      "within_lateral_0_6": 0
+     },
+     "reacquire": {
+      "gap_ms_p50": null,
+      "gap_ms_p90": null,
+      "dist_p50": null,
+      "lateral_p50": null,
+      "old_established": 0
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Vehicle",
+     "t": -213.805568,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -213.805568,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -213.805568,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -77.693696,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 75.539968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 75.539968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 75.539968,
+     "gt": "68",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 75.539968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 75.539968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 428.603136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2292.855552,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2422.247424,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2669.773568,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2905.572608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2905.572608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2905.572608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3027.8848,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3027.8848,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3635.657472,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3635.657472,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4216.605952,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4345.011968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5405.679616,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5405.679616,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5754.75968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5754.75968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6100.124416,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6217.3696,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6600.403456,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7323.115776,
+     "gt": "101",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7323.115776,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7442.656256,
+     "gt": "101",
+     "kind": "SPLIT",
+     "dist": 1.987446094798535,
+     "radial": 1.9843963853602014,
+     "lateral": 0.11005891830885206,
+     "range": 27.541598030763,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7688.57728,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7822.415872,
+     "gt": "101",
+     "kind": "REACQUIRE",
+     "dist": 0.5352826698904675,
+     "radial": 0.3499649073972821,
+     "lateral": 0.40503345574838484,
+     "range": 26.01486301431389,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 133.83859199999915
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7927.291136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8281.075456,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8281.075456,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9464.701184,
+     "gt": "122",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10080.908032,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10318.998784,
+     "gt": "122",
+     "kind": "REACQUIRE",
+     "dist": 2.7949466717139697,
+     "radial": 2.6019240078559247,
+     "lateral": 1.020646047887297,
+     "range": 34.488220398846046,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 615.4094079999995
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10586.045696,
+     "gt": "122",
+     "kind": "SPLIT",
+     "dist": 3.84298960518402,
+     "radial": 3.8284655600713187,
+     "lateral": 0.333797185279074,
+     "range": 37.044128626304065,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10874.892288,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11511.45728,
+     "gt": "139",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11511.45728,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11636.770048,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 1.734361128006389,
+     "radial": 1.7325600861232364,
+     "lateral": 0.07901942996655126,
+     "range": 31.104565794820143,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11636.770048,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11746.1888,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11979.731712,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11979.731712,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12090.43968,
+     "gt": "122",
+     "kind": "SPLIT",
+     "dist": 1.7148009499768655,
+     "radial": 1.7145762949016161,
+     "lateral": 0.0277565668447457,
+     "range": 27.937111151077847,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12090.43968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12090.43968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12090.43968,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12212.276224,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12537.143296,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 5.240985866467232,
+     "radial": 5.240551045728185,
+     "lateral": 0.06750992243004075,
+     "range": 23.875320909049808,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12660.370176,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12772.007168,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12772.007168,
+     "gt": "112",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12888.2368,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 5.390769733468717,
+     "radial": 5.390769259840868,
+     "lateral": 0.002259742711934282,
+     "range": 23.261537541897415,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12888.2368,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13004.786944,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13125.888256,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13125.888256,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13240.569856,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13452.046848,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13796.47104,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13796.47104,
+     "gt": "130",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14039.845888,
+     "gt": "112",
+     "kind": "REACQUIRE",
+     "dist": 4.851648928303914,
+     "radial": 1.9155676135116528,
+     "lateral": 4.4574766450961665,
+     "range": 18.819622244751255,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1035.0589440000003
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14386.189056,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 14617.348352,
+     "gt": "70",
+     "kind": "SPLIT",
+     "dist": 2.720758953618682,
+     "radial": 2.555284912998568,
+     "lateral": 0.9343705352257866,
+     "range": 37.66208943866779,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14722.443776,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15409.986304,
+     "gt": "112",
+     "kind": "SPLIT",
+     "dist": 1.136891753338225,
+     "radial": 0.5330737961244971,
+     "lateral": 1.0041689034688746,
+     "range": 18.629482024670924,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15990.43072,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16118.520064,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16118.520064,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16231.46624,
+     "gt": "130",
+     "kind": "REACQUIRE",
+     "dist": 2.1921443086924692,
+     "radial": 1.714880140787412,
+     "lateral": 1.3655338783295452,
+     "range": 36.45152691734499,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 2191.620352
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16351.180288,
+     "gt": "112",
+     "kind": "SPLIT",
+     "dist": 1.6063565096884391,
+     "radial": 0.5571930075048839,
+     "lateral": 1.506624435154988,
+     "range": 16.801689150247853,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16462.098432,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16565.976576,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16684.834816,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17115.7824,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 1.6909774841757956,
+     "radial": 1.6842751952099884,
+     "lateral": 0.1504058469270989,
+     "range": 15.719100846680165,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17238.245888,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17347.79392,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17347.79392,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17467.206656,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17575.667456,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 1.8119950183356561,
+     "radial": 1.783092062486365,
+     "lateral": 0.3223486360625032,
+     "range": 17.058425580014934,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17703.671296,
+     "gt": null,
+     "kind": "NO_GT"
+    }
+   ]
+  },
+  "turn@v10": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 127,
+     "FIRST": 10,
+     "NO_GT": 84,
+     "SPLIT": 22,
+     "REACQUIRE": 11,
+     "split_old_not_updated_same_frame": 17,
+     "split_old_established": 21,
+     "split_offset": {
+      "dist_p50": 2.46,
+      "radial_p50": 2.46,
+      "lateral_p50": 0.18,
+      "lateral_p90": 0.63,
+      "radial_dominant": 22,
+      "within_lateral_0_6": 19
+     },
+     "reacquire": {
+      "gap_ms_p50": 365.79,
+      "gap_ms_p90": 2227.52,
+      "dist_p50": 2.28,
+      "lateral_p50": 0.72,
+      "old_established": 4
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 46,
+     "FIRST": 0,
+     "NO_GT": 42,
+     "SPLIT": 4,
+     "REACQUIRE": 0,
+     "split_old_not_updated_same_frame": 2,
+     "split_old_established": 4,
+     "split_offset": {
+      "dist_p50": 4.63,
+      "radial_p50": 4.63,
+      "lateral_p50": 0.19,
+      "lateral_p90": 0.23,
+      "radial_dominant": 4,
+      "within_lateral_0_6": 4
+     },
+     "reacquire": {
+      "gap_ms_p50": null,
+      "gap_ms_p90": null,
+      "dist_p50": null,
+      "lateral_p50": null,
+      "old_established": 0
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Pedestrian",
+     "t": -1148.624384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -1148.624384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -1148.624384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -1148.624384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -1148.624384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -1148.624384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -1148.624384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -1019.739648,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -903.753728,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 2.771842911605108,
+     "radial": 2.7713034830120185,
+     "lateral": 0.05468209634735666,
+     "range": 29.635810316477734,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -903.753728,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -785.393408,
+     "gt": "112",
+     "kind": "SPLIT",
+     "dist": 2.3448136653910043,
+     "radial": 2.3428067911734,
+     "lateral": 0.09699208543069149,
+     "range": 24.843469355362075,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -308.013824,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -308.013824,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 46.991872,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 46.991872,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 46.991872,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 614.053632,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 841.761792,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 1.0690387265983994,
+     "radial": 0.808032645004814,
+     "lateral": 0.6999478863270119,
+     "range": 30.247439130592483,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 841.761792,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 841.761792,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 841.761792,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 841.761792,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 970.08128,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 970.08128,
+     "gt": "112",
+     "kind": "REACQUIRE",
+     "dist": 0.8260528327774143,
+     "radial": 0.6595246325126438,
+     "lateral": 0.49738369660519915,
+     "range": 27.687513215987103,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 356.027648
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 970.08128,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 970.08128,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1081.397248,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 1.5276505448786801,
+     "radial": 1.391177747470562,
+     "lateral": 0.6311423470270889,
+     "range": 28.003653620600613,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1196.092416,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1327.961344,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 2.873649607679195,
+     "radial": 2.8730198213464915,
+     "lateral": 0.06015957001976746,
+     "range": 29.22578303994943,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1327.961344,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1486.686464,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 1.9318054774725153,
+     "radial": 1.8896862636091818,
+     "lateral": 0.4011959968887827,
+     "range": 28.070844024016182,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1849.924864,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1965.839616,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2313.395712,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2313.395712,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2423.435776,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2929.278976,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 2.9962702040616676,
+     "radial": 2.974691846288656,
+     "lateral": 0.35894784491835563,
+     "range": 25.550517002190144,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3438.277632,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 2.6416402731665305,
+     "radial": 2.6380021070565682,
+     "lateral": 0.13859370830037987,
+     "range": 26.245408373162498,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3438.277632,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3555.391744,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3555.391744,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3710.069504,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3972.751616,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4205.618432,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4205.618432,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4310.0544,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4436.326144,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4543.249152,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4679.045888,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 1.6927360131903288,
+     "radial": 1.571341784185993,
+     "lateral": 0.6294761374529374,
+     "range": 26.56646436619256,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4823.442176,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4938.509824,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5044.031488,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5168.405248,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 1.5368794767457474,
+     "radial": 1.532881310806892,
+     "lateral": 0.11078543686436049,
+     "range": 26.183715582936877,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5168.405248,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5289.541888,
+     "gt": "139",
+     "kind": "REACQUIRE",
+     "dist": 2.414914333968686,
+     "radial": 2.0887581000126807,
+     "lateral": 1.211982194604706,
+     "range": 31.960625039799567,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 2227.5192319999996
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5289.541888,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5409.052672,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 4.3884514081026715,
+     "radial": 4.3860290089775935,
+     "lateral": 0.14579195343142137,
+     "range": 36.3463215239246,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5907.423744,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 5907.423744,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6163.693056,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6275.304448,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6275.304448,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6389.694464,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6500.75392,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6627.293696,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6737.65248,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 1.6662564064632288,
+     "radial": 1.6662337524057416,
+     "lateral": 0.008688752708829739,
+     "range": 22.630772839273202,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6737.65248,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6737.65248,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6957.419264,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7185.867008,
+     "gt": "72",
+     "kind": "SPLIT",
+     "dist": 3.226862220199218,
+     "radial": 3.218967487874506,
+     "lateral": 0.22558390934620554,
+     "range": 39.2503432676185,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7185.867008,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7444.599808,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7444.599808,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7444.599808,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7715.45344,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7851.62112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7851.62112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7851.62112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7983.642112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7983.642112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7983.642112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7983.642112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7983.642112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7983.642112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8103.419136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8103.419136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8103.419136,
+     "gt": "127",
+     "kind": "SPLIT",
+     "dist": 3.8172096413439074,
+     "radial": 3.8168020846371356,
+     "lateral": 0.055778962687489164,
+     "range": 15.696212509340876,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8103.419136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8230.916096,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8230.916096,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8230.916096,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8360.347648,
+     "gt": "111",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8360.347648,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8491.387904,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8491.387904,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8636.520192,
+     "gt": "112",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8636.520192,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8636.520192,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8779.358464,
+     "gt": "89",
+     "kind": "SPLIT",
+     "dist": 5.492764986038388,
+     "radial": 5.489452377101697,
+     "lateral": 0.19073487196060324,
+     "range": 35.6705986232646,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8779.358464,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8887.606528,
+     "gt": "114",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8887.606528,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9019.771392,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9392.655616,
+     "gt": "112",
+     "kind": "REACQUIRE",
+     "dist": 0.5954228883631564,
+     "radial": 0.4598217515408023,
+     "lateral": 0.37827552497706285,
+     "range": 28.139882585324752,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 505.04908799999976
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9392.655616,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9507.621632,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9507.621632,
+     "gt": "79",
+     "kind": "SPLIT",
+     "dist": 2.134478645610586,
+     "radial": 2.1344631415436632,
+     "lateral": 0.00813547534930148,
+     "range": 30.772306686798675,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9507.621632,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9507.621632,
+     "gt": "114",
+     "kind": "SPLIT",
+     "dist": 1.6526654457833152,
+     "radial": 1.644970490578749,
+     "lateral": 0.15929582797823916,
+     "range": 30.58226932202355,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9625.2864,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9625.2864,
+     "gt": "112",
+     "kind": "REACQUIRE",
+     "dist": 2.161420944613935,
+     "radial": 2.149956118125777,
+     "lateral": 0.2223267639069474,
+     "range": 24.711645694873194,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 0
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9745.98912,
+     "gt": "89",
+     "kind": "SPLIT",
+     "dist": 4.629427322703284,
+     "radial": 4.627254609032236,
+     "lateral": 0.1418172041101533,
+     "range": 36.33343464583731,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9745.98912,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9858.588416,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9858.588416,
+     "gt": "128",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9968.860928,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9968.860928,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10096.427776,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10096.427776,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10214.191104,
+     "gt": "128",
+     "kind": "REACQUIRE",
+     "dist": 1.2021785760400456,
+     "radial": 0.961224120387322,
+     "lateral": 0.7219982819060515,
+     "range": 33.70022404731159,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 117.76332799999909
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10321.465088,
+     "gt": "111",
+     "kind": "SPLIT",
+     "dist": 1.9363243996601618,
+     "radial": 1.9334637841438136,
+     "lateral": 0.10521395403448386,
+     "range": 24.65562183693285,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10321.465088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10321.465088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10321.465088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 10321.465088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10462.134016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10462.134016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10797.60512,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10915.15136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11047.176192,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11279.062528,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11279.062528,
+     "gt": "123",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11386.059264,
+     "gt": "114",
+     "kind": "SPLIT",
+     "dist": 3.242371711351835,
+     "radial": 3.2263374673377165,
+     "lateral": 0.32205723315503954,
+     "range": 24.348786820623772,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12198.704896,
+     "gt": "128",
+     "kind": "REACQUIRE",
+     "dist": 2.5690282881454927,
+     "radial": 1.7975571346864638,
+     "lateral": 1.8354004175736554,
+     "range": 24.342937905739852,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 695.6413439999997
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12320.115712,
+     "gt": "112",
+     "kind": "REACQUIRE",
+     "dist": 3.771577367083539,
+     "radial": 3.699481348095719,
+     "lateral": 0.7339166103779677,
+     "range": 16.149667675357225,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 2694.829312
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12439.922176,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12792.282624,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12920.403456,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13036.049408,
+     "gt": "123",
+     "kind": "REACQUIRE",
+     "dist": 2.7737288866760075,
+     "radial": 2.428594393419934,
+     "lateral": 1.3399631371907914,
+     "range": 22.15240665258843,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1532.9858560000011
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13036.049408,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13036.049408,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13173.502464,
+     "gt": "128",
+     "kind": "SPLIT",
+     "dist": 2.408604665829097,
+     "radial": 2.3934846950484525,
+     "lateral": 0.26945769764939265,
+     "range": 21.47021196747398,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13173.502464,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13283.209984,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13401.582592,
+     "gt": "123",
+     "kind": "SPLIT",
+     "dist": 4.412690599452336,
+     "radial": 4.397302401580788,
+     "lateral": 0.36819820144435433,
+     "range": 16.04523455074962,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13401.582592,
+     "gt": "124",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13638.4896,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13769.177088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13769.177088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13886.724352,
+     "gt": "124",
+     "kind": "SPLIT",
+     "dist": 3.716750480924859,
+     "radial": 3.7068791643663817,
+     "lateral": 0.27070463284096924,
+     "range": 32.196302102137054,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14233.129216,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14233.129216,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14352.640256,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14459.791104,
+     "gt": "107",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14459.791104,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14459.791104,
+     "gt": "107",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14459.791104,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 14571.067904,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15049.681408,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15049.681408,
+     "gt": "132",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15176.044288,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15176.044288,
+     "gt": "124",
+     "kind": "REACQUIRE",
+     "dist": 4.1997572497495,
+     "radial": 4.1336979421696665,
+     "lateral": 0.7419584083530253,
+     "range": 22.136094402080232,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 365.7879039999989
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15392.889856,
+     "gt": "124",
+     "kind": "REACQUIRE",
+     "dist": 2.2807188805540966,
+     "radial": 2.2680848729951233,
+     "lateral": 0.23972822321667608,
+     "range": 23.356341973864502,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 0
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15392.889856,
+     "gt": "132",
+     "kind": "REACQUIRE",
+     "dist": 1.444506877344973,
+     "radial": 1.428983503417449,
+     "lateral": 0.21120195467305455,
+     "range": 34.49536739228193,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 111.61267199999929
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15883.579648,
+     "gt": "132",
+     "kind": "SPLIT",
+     "dist": 2.46369295940954,
+     "radial": 2.458746250704895,
+     "lateral": 0.15604445805204903,
+     "range": 35.20978347323904,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16382.057728,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16598.522624,
+     "gt": "132",
+     "kind": "SPLIT",
+     "dist": 2.1240107247893976,
+     "radial": 2.116514586046073,
+     "lateral": 0.17829067859706815,
+     "range": 30.183949425845153,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16947.850496,
+     "gt": "132",
+     "kind": "SPLIT",
+     "dist": 3.8973398509081707,
+     "radial": 3.8916080274771163,
+     "lateral": 0.21129333627114,
+     "range": 26.35942306469998,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 16947.850496,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17166.976512,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17647.193088,
+     "gt": "135",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17647.193088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17767.668224,
+     "gt": null,
+     "kind": "NO_GT"
+    }
+   ]
+  },
+  "stop@v10": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 29,
+     "FIRST": 1,
+     "NO_GT": 12,
+     "SPLIT": 9,
+     "REACQUIRE": 7,
+     "split_old_not_updated_same_frame": 8,
+     "split_old_established": 9,
+     "split_offset": {
+      "dist_p50": 2.35,
+      "radial_p50": 2.28,
+      "lateral_p50": 0.39,
+      "lateral_p90": 1.77,
+      "radial_dominant": 8,
+      "within_lateral_0_6": 6
+     },
+     "reacquire": {
+      "gap_ms_p50": 254.03,
+      "gap_ms_p90": 1228.05,
+      "dist_p50": 1.26,
+      "lateral_p50": 0.23,
+      "old_established": 4
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 5,
+     "FIRST": 1,
+     "NO_GT": 4,
+     "SPLIT": 0,
+     "REACQUIRE": 0,
+     "split_old_not_updated_same_frame": 0,
+     "split_old_established": 0,
+     "split_offset": {
+      "dist_p50": null,
+      "radial_p50": null,
+      "lateral_p50": null,
+      "lateral_p90": null,
+      "radial_dominant": 0,
+      "within_lateral_0_6": 0
+     },
+     "reacquire": {
+      "gap_ms_p50": null,
+      "gap_ms_p90": null,
+      "dist_p50": null,
+      "lateral_p50": null,
+      "old_established": 0
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Pedestrian",
+     "t": -1115.046144,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -1115.046144,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -364.355328,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 760.532992,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1411.64032,
+     "gt": "136",
+     "kind": "SPLIT",
+     "dist": 1.7137916382874383,
+     "radial": 1.7137634004603208,
+     "lateral": 0.009838023511877014,
+     "range": 19.055559182181643,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3861.097728,
+     "gt": "136",
+     "kind": "REACQUIRE",
+     "dist": 1.2611694151373523,
+     "radial": 1.063037464726135,
+     "lateral": 0.6786012395114842,
+     "range": 22.489857497069686,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1228.053504
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4095.551488,
+     "gt": "136",
+     "kind": "REACQUIRE",
+     "dist": 2.453701889821127,
+     "radial": 2.448917840497972,
+     "lateral": 0.15314821122859967,
+     "range": 24.93825388814285,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 0
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4600.921088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6908.978944,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7416.763392,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8575.078912,
+     "gt": "136",
+     "kind": "SPLIT",
+     "dist": 2.72315657357059,
+     "radial": 2.7227897019115286,
+     "lateral": 0.044698583257732905,
+     "range": 29.847023951101153,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9733.627136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9733.627136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9733.627136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9877.831936,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 10230.97856,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10349.330944,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11311.376128,
+     "gt": "146",
+     "kind": "SPLIT",
+     "dist": 1.8569651655891357,
+     "radial": 1.3664626517058522,
+     "lateral": 1.257417769758523,
+     "range": 25.415724907005423,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12101.61024,
+     "gt": "137",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12714.976256,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13825.430016,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.3534222805941494,
+     "radial": 2.282155343816912,
+     "lateral": 0.5747724919347484,
+     "range": 24.766128786644803,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14077.652736,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14077.652736,
+     "gt": "146",
+     "kind": "REACQUIRE",
+     "dist": 1.5866189816445464,
+     "radial": 1.061372781603517,
+     "lateral": 1.179342024768892,
+     "range": 29.36946743438088,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1217.5101439999999
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14077.652736,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 1.9105109986119395,
+     "radial": 0.7099005289900089,
+     "lateral": 1.7737230659708114,
+     "range": 26.838746512685788,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14342.991872,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.788756686654286,
+     "radial": 2.6603941366928514,
+     "lateral": 0.8363413745650096,
+     "range": 23.32994034690797,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14586.916352,
+     "gt": "137",
+     "kind": "SPLIT",
+     "dist": 2.479597794677964,
+     "radial": 2.479575848596968,
+     "lateral": 0.010432373960495345,
+     "range": 15.400567680900906,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14705.754112,
+     "gt": "146",
+     "kind": "REACQUIRE",
+     "dist": 0.7413422841892333,
+     "radial": 0.7138783641322731,
+     "lateral": 0.19991514087417056,
+     "range": 30.082665389060764,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 362.76224
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14989.963776,
+     "gt": "145",
+     "kind": "REACQUIRE",
+     "dist": 4.4570128301845156,
+     "radial": 4.45093314570703,
+     "lateral": 0.23271764195245015,
+     "range": 21.47301752268885,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 134.38720000000103
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15233.076224,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.0543995689956196,
+     "radial": 2.0177571519960296,
+     "lateral": 0.38628184614120864,
+     "range": 23.910079694429744,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15960.701184,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16201.013504,
+     "gt": "145",
+     "kind": "REACQUIRE",
+     "dist": 1.0141247907422628,
+     "radial": 0.7488127621230908,
+     "lateral": 0.6839068200271334,
+     "range": 21.136233991953766,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 240.3123200000009
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16690.131968,
+     "gt": "145",
+     "kind": "REACQUIRE",
+     "dist": 0.33467185976161107,
+     "radial": 0.30891006712396046,
+     "lateral": 0.12876266596248187,
+     "range": 21.444751842139127,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 254.03084800000215
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17187.212288,
+     "gt": "65",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17442.408448,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.5361204703482394,
+     "radial": 2.535208930894707,
+     "lateral": 0.06799056427986183,
+     "range": 23.72274390091663,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    }
+   ]
+  },
+  "ped_pause@v10": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 36,
+     "FIRST": 1,
+     "NO_GT": 17,
+     "SPLIT": 11,
+     "REACQUIRE": 7,
+     "split_old_not_updated_same_frame": 9,
+     "split_old_established": 11,
+     "split_offset": {
+      "dist_p50": 2.41,
+      "radial_p50": 2.41,
+      "lateral_p50": 0.17,
+      "lateral_p90": 1.26,
+      "radial_dominant": 10,
+      "within_lateral_0_6": 8
+     },
+     "reacquire": {
+      "gap_ms_p50": 362.03,
+      "gap_ms_p90": 1263.9,
+      "dist_p50": 1.01,
+      "lateral_p50": 0.42,
+      "old_established": 5
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 15,
+     "FIRST": 1,
+     "NO_GT": 14,
+     "SPLIT": 0,
+     "REACQUIRE": 0,
+     "split_old_not_updated_same_frame": 0,
+     "split_old_established": 0,
+     "split_offset": {
+      "dist_p50": null,
+      "radial_p50": null,
+      "lateral_p50": null,
+      "lateral_p90": null,
+      "radial_dominant": 0,
+      "within_lateral_0_6": 0
+     },
+     "reacquire": {
+      "gap_ms_p50": null,
+      "gap_ms_p90": null,
+      "dist_p50": null,
+      "lateral_p50": null,
+      "old_established": 0
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Pedestrian",
+     "t": -1091.021056,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -1091.021056,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -1091.021056,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -583.236608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": -339.557632,
+     "gt": "146",
+     "kind": "SPLIT",
+     "dist": 1.5836016266510444,
+     "radial": 1.574549013169578,
+     "lateral": 0.16908434894614693,
+     "range": 24.163756327702703,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 575.078912,
+     "gt": "136",
+     "kind": "SPLIT",
+     "dist": 2.666628745591001,
+     "radial": 2.6662447022711233,
+     "lateral": 0.045255435291357116,
+     "range": 29.847023951101153,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1733.627136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1733.627136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1733.627136,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1877.831936,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2230.97856,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2349.330944,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3311.376128,
+     "gt": "146",
+     "kind": "SPLIT",
+     "dist": 1.8569651655891357,
+     "radial": 1.3664626517058522,
+     "lateral": 1.257417769758523,
+     "range": 25.415724907005423,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4101.61024,
+     "gt": "137",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4714.976256,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5825.430016,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.3534222805941494,
+     "radial": 2.282155343816912,
+     "lateral": 0.5747724919347484,
+     "range": 24.766128786644803,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6077.652736,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6077.652736,
+     "gt": "146",
+     "kind": "REACQUIRE",
+     "dist": 1.5866189816445464,
+     "radial": 1.061372781603517,
+     "lateral": 1.179342024768892,
+     "range": 29.36946743438088,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1217.5101439999999
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6077.652736,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 1.9105109986119435,
+     "radial": 0.7099005289900246,
+     "lateral": 1.7737230659708092,
+     "range": 26.838746512685788,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6342.991872,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.78875668665427,
+     "radial": 2.6603941366928354,
+     "lateral": 0.836341374565008,
+     "range": 23.32994034690797,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6586.916352,
+     "gt": "137",
+     "kind": "SPLIT",
+     "dist": 2.4795977946779706,
+     "radial": 2.479575848596974,
+     "lateral": 0.01043237396049257,
+     "range": 15.400567680900906,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6705.754112,
+     "gt": "146",
+     "kind": "REACQUIRE",
+     "dist": 0.7413422841892333,
+     "radial": 0.7138783641322731,
+     "lateral": 0.19991514087417056,
+     "range": 30.082665389060764,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 362.76224
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6989.963776,
+     "gt": "145",
+     "kind": "REACQUIRE",
+     "dist": 4.4570128301845005,
+     "radial": 4.4509331457070145,
+     "lateral": 0.23271764195245104,
+     "range": 21.47301752268885,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 134.3871999999992
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7233.076224,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.0543995689956196,
+     "radial": 2.0177571519960296,
+     "lateral": 0.38628184614120864,
+     "range": 23.910079694429744,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7960.701184,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8201.013504,
+     "gt": "145",
+     "kind": "REACQUIRE",
+     "dist": 1.0141247907422628,
+     "radial": 0.7488127621230908,
+     "lateral": 0.6839068200271334,
+     "range": 21.136233991953766,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 240.3123200000009
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8690.131968,
+     "gt": "145",
+     "kind": "REACQUIRE",
+     "dist": 0.33467185976161107,
+     "radial": 0.30891006712396046,
+     "lateral": 0.12876266596248187,
+     "range": 21.444751842139127,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 254.03084800000033
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9187.212288,
+     "gt": "65",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9442.408448,
+     "gt": "145",
+     "kind": "SPLIT",
+     "dist": 2.5361204703482394,
+     "radial": 2.535208930894707,
+     "lateral": 0.06799056427986183,
+     "range": 23.72274390091663,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10961.431552,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11216.9344,
+     "gt": "145",
+     "kind": "REACQUIRE",
+     "dist": 2.1704087569461215,
+     "radial": 1.9448927802277889,
+     "lateral": 0.9633619494490279,
+     "range": 19.220838829548587,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1263.8986239999995
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11858.19008,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12705.024512,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12946.859776,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13785.492736,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13916.210944,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14041.403648,
+     "gt": "150",
+     "kind": "SPLIT",
+     "dist": 2.4123667156800335,
+     "radial": 2.4096866256143494,
+     "lateral": 0.1136817366871351,
+     "range": 25.247362153731466,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14160.4288,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15293.316608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15293.316608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15293.316608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15293.316608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15293.316608,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15655.345664,
+     "gt": "137",
+     "kind": "REACQUIRE",
+     "dist": 0.7419911976708864,
+     "radial": 0.6145287683212813,
+     "lateral": 0.41581886720855427,
+     "range": 24.13384750886914,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 362.0290560000012
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16285.714176,
+     "gt": "137",
+     "kind": "SPLIT",
+     "dist": 2.4370177771642108,
+     "radial": 2.43333764475055,
+     "lateral": 0.13387887381598162,
+     "range": 27.310026257466294,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 16417.31328,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 16816.323584,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17192.503552,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17306.682112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17669.661696,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17669.661696,
+     "gt": null,
+     "kind": "NO_GT"
+    }
+   ]
+  },
+  "ped_standing@v10": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 47,
+     "FIRST": 4,
+     "NO_GT": 34,
+     "SPLIT": 7,
+     "REACQUIRE": 2,
+     "split_old_not_updated_same_frame": 5,
+     "split_old_established": 7,
+     "split_offset": {
+      "dist_p50": 2.1,
+      "radial_p50": 2.1,
+      "lateral_p50": 0.07,
+      "lateral_p90": 0.3,
+      "radial_dominant": 7,
+      "within_lateral_0_6": 7
+     },
+     "reacquire": {
+      "gap_ms_p50": 1237.04,
+      "gap_ms_p90": 1237.04,
+      "dist_p50": 2.62,
+      "lateral_p50": 0.57,
+      "old_established": 1
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 35,
+     "FIRST": 9,
+     "NO_GT": 23,
+     "SPLIT": 2,
+     "REACQUIRE": 1,
+     "split_old_not_updated_same_frame": 0,
+     "split_old_established": 2,
+     "split_offset": {
+      "dist_p50": 3.63,
+      "radial_p50": 3.6,
+      "lateral_p50": 0.64,
+      "lateral_p90": 0.64,
+      "radial_dominant": 2,
+      "within_lateral_0_6": 1
+     },
+     "reacquire": {
+      "gap_ms_p50": 2234.21,
+      "gap_ms_p90": 2234.21,
+      "dist_p50": 0.2,
+      "lateral_p50": 0.12,
+      "old_established": 1
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Vehicle",
+     "t": -1042.264064,
+     "gt": "65",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -1042.264064,
+     "gt": "86",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -1042.264064,
+     "gt": "95",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -1042.264064,
+     "gt": "100",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": -1042.264064,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3549.895168,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3665.501952,
+     "gt": "95",
+     "kind": "SPLIT",
+     "dist": 3.6320820976235386,
+     "radial": 3.601087301423034,
+     "lateral": 0.47348770987975375,
+     "range": 39.08531470737991,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4023.983616,
+     "gt": "72",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4153.037312,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4662.572288,
+     "gt": "72",
+     "kind": "SPLIT",
+     "dist": 3.074378684072858,
+     "radial": 3.006725851028444,
+     "lateral": 0.6414077874791042,
+     "range": 34.73854726786365,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5258.326016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5391.985408,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6220.17792,
+     "gt": "130",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6342.234624,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6867.806208,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7263.2704,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7622.767104,
+     "gt": "71",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7738.400768,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7738.400768,
+     "gt": "100",
+     "kind": "REACQUIRE",
+     "dist": 0.19528128521007695,
+     "radial": 0.15673435972237426,
+     "lateral": 0.11648656933619764,
+     "range": 18.477600044544065,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 2234.2072320000007
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7738.400768,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7738.400768,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8252.372736,
+     "gt": "136",
+     "kind": "SPLIT",
+     "dist": 3.5294929929994674,
+     "radial": 3.5279635950376553,
+     "lateral": 0.10389253929574896,
+     "range": 35.5672146171836,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8480.246784,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8823.40992,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8823.40992,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8932.669696,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8932.669696,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9312.09216,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9453.871104,
+     "gt": "137",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9453.871104,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9453.871104,
+     "gt": "95",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9562.97344,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9682.066944,
+     "gt": "137",
+     "kind": "SPLIT",
+     "dist": 4.20821257886319,
+     "radial": 4.2077023134431375,
+     "lateral": 0.06553129288858384,
+     "range": 33.05699934986428,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10039.245056,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 10163.499008,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10272.218624,
+     "gt": "136",
+     "kind": "REACQUIRE",
+     "dist": 0.39203823095642826,
+     "radial": 0.2825377398678929,
+     "lateral": 0.27178373770663444,
+     "range": 28.029495055621734,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 709.2451839999994
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10393.85472,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 10506.847744,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10743.171584,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11111.156224,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11226.66112,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11341.230592,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11465.567232,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11465.567232,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11572.681984,
+     "gt": "137",
+     "kind": "SPLIT",
+     "dist": 1.6846412196987028,
+     "radial": 1.6586025323834153,
+     "lateral": 0.2950486039269731,
+     "range": 23.736354817550925,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11572.681984,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11691.172096,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11691.172096,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11812.769536,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11929.878272,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12035.822336,
+     "gt": "104",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12150.36928,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12150.36928,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12254.071552,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12477.552384,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12586.602496,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12586.602496,
+     "gt": "137",
+     "kind": "SPLIT",
+     "dist": 1.9144591391685606,
+     "radial": 1.9132526788861668,
+     "lateral": 0.06795573766013063,
+     "range": 17.958145014464744,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13086.611712,
+     "gt": "146",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13194.272,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13322.61504,
+     "gt": "104",
+     "kind": "SPLIT",
+     "dist": 2.097661676665134,
+     "radial": 2.0964017851725756,
+     "lateral": 0.07269157361634537,
+     "range": 32.819819912049354,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13438.049024,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13549.021696,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13768.507904,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13883.421696,
+     "gt": "70",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14102.893312,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14102.893312,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14212.903936,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14212.903936,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 14212.903936,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14559.653632,
+     "gt": "146",
+     "kind": "REACQUIRE",
+     "dist": 2.6223255971406725,
+     "radial": 2.5605943957635624,
+     "lateral": 0.5656393531247816,
+     "range": 35.40745102793912,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1237.038591999999
+    },
+    {
+     "cls": "Vehicle",
+     "t": 14682.604544,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15057.69088,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15156.463104,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15381.234944,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 15733.592064,
+     "gt": "146",
+     "kind": "SPLIT",
+     "dist": 1.514535281418418,
+     "radial": 1.513965900955952,
+     "lateral": 0.04152552713451052,
+     "range": 30.051668872634163,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 16300.8064,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16403.223552,
+     "gt": "146",
+     "kind": "SPLIT",
+     "dist": 4.980433839380607,
+     "radial": 4.979694351523127,
+     "lateral": 0.08582187283040321,
+     "range": 30.4462851835966,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 16503.872,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16503.872,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 16824.564992,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17581.116416,
+     "gt": "70",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17693.41568,
+     "gt": null,
+     "kind": "NO_GT"
+    }
+   ]
+  },
+  "parked@v20": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 48,
+     "FIRST": 4,
+     "NO_GT": 35,
+     "SPLIT": 9,
+     "REACQUIRE": 0,
+     "split_old_not_updated_same_frame": 7,
+     "split_old_established": 9,
+     "split_offset": {
+      "dist_p50": 2.3,
+      "radial_p50": 2.28,
+      "lateral_p50": 0.26,
+      "lateral_p90": 1.85,
+      "radial_dominant": 7,
+      "within_lateral_0_6": 6
+     },
+     "reacquire": {
+      "gap_ms_p50": null,
+      "gap_ms_p90": null,
+      "dist_p50": null,
+      "lateral_p50": null,
+      "old_established": 0
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 35,
+     "FIRST": 3,
+     "NO_GT": 29,
+     "SPLIT": 2,
+     "REACQUIRE": 1,
+     "split_old_not_updated_same_frame": 1,
+     "split_old_established": 2,
+     "split_offset": {
+      "dist_p50": 5.4,
+      "radial_p50": 5.34,
+      "lateral_p50": 0.77,
+      "lateral_p90": 0.77,
+      "radial_dominant": 2,
+      "within_lateral_0_6": 1
+     },
+     "reacquire": {
+      "gap_ms_p50": 327.9,
+      "gap_ms_p90": 327.9,
+      "dist_p50": 1.19,
+      "lateral_p50": 0.08,
+      "old_established": 0
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Pedestrian",
+     "t": 266.3772159999935,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 266.3772159999935,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 266.3772159999935,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 266.3772159999935,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 266.3772159999935,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 494.34598400001414,
+     "gt": "129",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 494.34598400001414,
+     "gt": "envobj:v1:314410066bd60cfa108962130bbf934bf4ed2bc8b81d261817dc87b2b5a9656f",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 619.7329920000047,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 793.9256319999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 793.9256319999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 793.9256319999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 793.9256319999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1001.1550719999941,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1121.823743999994,
+     "gt": "129",
+     "kind": "SPLIT",
+     "dist": 2.9342051450034696,
+     "radial": 2.9317979676577233,
+     "lateral": 0.11882975133725071,
+     "range": 23.033748506247782,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1121.823743999994,
+     "gt": "envobj:v1:314410066bd60cfa108962130bbf934bf4ed2bc8b81d261817dc87b2b5a9656f",
+     "kind": "REACQUIRE",
+     "dist": 1.192657890635544,
+     "radial": 1.1896776037882675,
+     "lateral": 0.08426175371917644,
+     "range": 33.58190841786708,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 327.8981119999953
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1838.2292479999887,
+     "gt": "65",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2081.503231999988,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2081.503231999988,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2320.097023999988,
+     "gt": "84",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2569.79430400001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2828.5432319999964,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2828.5432319999964,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2975.3387520000106,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2975.3387520000106,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3113.642495999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3412.0867840000137,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3854.014208000008,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3854.014208000008,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4115.15443200001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4636.5253120000125,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4636.5253120000125,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4781.119487999997,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4781.119487999997,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4913.362431999994,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5072.916223999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5188.147456000006,
+     "gt": "129",
+     "kind": "SPLIT",
+     "dist": 1.8325224470169368,
+     "radial": 1.831526206273907,
+     "lateral": 0.06041750204080831,
+     "range": 3.8290831005325674,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 5983.491840000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 5983.491840000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 5983.491840000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6466.576640000014,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6466.576640000014,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6466.576640000014,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6573.726464000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6573.726464000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6739.467264000006,
+     "gt": "65",
+     "kind": "SPLIT",
+     "dist": 5.399210725263748,
+     "radial": 5.344066038916039,
+     "lateral": 0.7696977507485103,
+     "range": 10.450153331024048,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6975.41606399999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6975.41606399999,
+     "gt": "147",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7113.42540800001,
+     "gt": "147",
+     "kind": "SPLIT",
+     "dist": 1.9801426862094436,
+     "radial": 0.9533066861742843,
+     "lateral": 1.7355608372638966,
+     "range": 27.14785870404224,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7247.237888000003,
+     "gt": "147",
+     "kind": "SPLIT",
+     "dist": 2.1336923771518124,
+     "radial": 1.1766452712499051,
+     "lateral": 1.7799295115147085,
+     "range": 24.662614427502007,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7247.237888000003,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7418.531328000012,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7549.303039999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7549.303039999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7549.303039999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7681.262079999986,
+     "gt": "147",
+     "kind": "SPLIT",
+     "dist": 3.3466199343620153,
+     "radial": 2.788320604709968,
+     "lateral": 1.8507115362527626,
+     "range": 22.853137002507758,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8012.7928320000065,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8600.827904000005,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8880.079616000003,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9182.942719999992,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9182.942719999992,
+     "gt": "148",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9308.867583999992,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9439.439615999989,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9598.165760000004,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9908.066560000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9908.066560000007,
+     "gt": "62",
+     "kind": "SPLIT",
+     "dist": 2.402803897541241,
+     "radial": 2.3722212139634338,
+     "lateral": 0.38214275089451655,
+     "range": 9.100764314351578,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10090.473728000012,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10090.473728000012,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10090.473728000012,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10265.878784,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 10265.878784,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 10265.878784,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10374.166528000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10497.741055999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10497.741055999999,
+     "gt": "149",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11021.036288000003,
+     "gt": "148",
+     "kind": "SPLIT",
+     "dist": 2.587099449188237,
+     "radial": 2.587020023714375,
+     "lateral": 0.020272071698634098,
+     "range": 14.223168979393812,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11021.036288000003,
+     "gt": "149",
+     "kind": "SPLIT",
+     "dist": 2.304471618210456,
+     "radial": 2.276140456107516,
+     "lateral": 0.3602416733363705,
+     "range": 33.61002379579938,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11150.768383999995,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11632.823295999988,
+     "gt": "149",
+     "kind": "SPLIT",
+     "dist": 3.108372696125232,
+     "radial": 3.0972949725461127,
+     "lateral": 0.2621920499508223,
+     "range": 28.740684919209148,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 11632.823295999988,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11870.67008000001,
+     "gt": "148",
+     "kind": "SPLIT",
+     "dist": 1.9593213790436546,
+     "radial": 1.9516389301767918,
+     "lateral": 0.17333710680611247,
+     "range": 16.326779424060522,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12832.977152000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13619.951616000006,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13741.47916799999,
+     "gt": null,
+     "kind": "NO_GT"
+    }
+   ]
+  },
+  "turn@v20": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 68,
+     "FIRST": 10,
+     "NO_GT": 37,
+     "SPLIT": 17,
+     "REACQUIRE": 4,
+     "split_old_not_updated_same_frame": 13,
+     "split_old_established": 17,
+     "split_offset": {
+      "dist_p50": 2.66,
+      "radial_p50": 2.65,
+      "lateral_p50": 0.21,
+      "lateral_p90": 0.82,
+      "radial_dominant": 16,
+      "within_lateral_0_6": 13
+     },
+     "reacquire": {
+      "gap_ms_p50": 1291.38,
+      "gap_ms_p90": 2190.05,
+      "dist_p50": 1.68,
+      "lateral_p50": 0.42,
+      "old_established": 0
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 63,
+     "FIRST": 6,
+     "NO_GT": 49,
+     "SPLIT": 6,
+     "REACQUIRE": 2,
+     "split_old_not_updated_same_frame": 2,
+     "split_old_established": 5,
+     "split_offset": {
+      "dist_p50": 3.21,
+      "radial_p50": 3.2,
+      "lateral_p50": 0.59,
+      "lateral_p90": 2.64,
+      "radial_dominant": 5,
+      "within_lateral_0_6": 4
+     },
+     "reacquire": {
+      "gap_ms_p50": 2606.28,
+      "gap_ms_p90": 2606.28,
+      "dist_p50": 3.35,
+      "lateral_p50": 0.22,
+      "old_established": 0
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Pedestrian",
+     "t": 6.937344000005396,
+     "gt": "210",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6.937344000005396,
+     "gt": "75",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6.937344000005396,
+     "gt": "109",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6.937344000005396,
+     "gt": "213",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6.937344000005396,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6.937344000005396,
+     "gt": "70",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6.937344000005396,
+     "gt": "94",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6.937344000005396,
+     "gt": "71",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6.937344000005396,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 137.0173439999926,
+     "gt": "70",
+     "kind": "SPLIT",
+     "dist": 2.656404075463375,
+     "radial": 2.652940377422855,
+     "lateral": 0.13560960872263533,
+     "range": 34.16349462690487,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 706.168319999997,
+     "gt": "213",
+     "kind": "SPLIT",
+     "dist": 2.449730432670102,
+     "radial": 2.3318489458895426,
+     "lateral": 0.7507727261321346,
+     "range": 29.80866097803332,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 834.1061120000086,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 978.3536639999948,
+     "gt": "105",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1110.8026879999961,
+     "gt": "94",
+     "kind": "REACQUIRE",
+     "dist": 0.43846353335309557,
+     "radial": 0.37683776482357545,
+     "lateral": 0.22415077310429415,
+     "range": 23.866821131413847,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 132.44902400000137
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1110.8026879999961,
+     "gt": "213",
+     "kind": "SPLIT",
+     "dist": 4.0587828703699325,
+     "radial": 3.9983872569470016,
+     "lateral": 0.6975799110440541,
+     "range": 29.364268631187073,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1110.8026879999961,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1421.597184000013,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1547.36998399999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1547.36998399999,
+     "gt": "78",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1671.1682560000045,
+     "gt": "214",
+     "kind": "SPLIT",
+     "dist": 2.25493790121655,
+     "radial": 1.4367789927828014,
+     "lateral": 1.7379329861191248,
+     "range": 24.807650793486033,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1799.1848959999916,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1943.8399999999965,
+     "gt": "94",
+     "kind": "SPLIT",
+     "dist": 2.6410400367041427,
+     "radial": 2.5734749044435152,
+     "lateral": 0.5935649852153182,
+     "range": 21.24420177578199,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1943.8399999999965,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 1943.8399999999965,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2066.665983999992,
+     "gt": "105",
+     "kind": "SPLIT",
+     "dist": 2.7139559669108055,
+     "radial": 2.7131358039769493,
+     "lateral": 0.06671656098090861,
+     "range": 27.479344276056295,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2066.665983999992,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2197.9048959999927,
+     "gt": "214",
+     "kind": "SPLIT",
+     "dist": 2.6611438325865686,
+     "radial": 2.6533415999253336,
+     "lateral": 0.20362920178403376,
+     "range": 21.31415625180522,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2197.9048959999927,
+     "gt": "142",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2197.9048959999927,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2498.715392000013,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 2498.715392000013,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2615.9170560000057,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2748.753663999989,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3301.3207040000125,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3434.264831999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3722.568960000004,
+     "gt": "105",
+     "kind": "SPLIT",
+     "dist": 2.3605006198132092,
+     "radial": 2.336437952139668,
+     "lateral": 0.33618576998430527,
+     "range": 23.334106324970346,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3861.213951999991,
+     "gt": "213",
+     "kind": "REACQUIRE",
+     "dist": 1.0440836875938029,
+     "radial": 0.9561392545487151,
+     "lateral": 0.4194144401549633,
+     "range": 17.16545547806819,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 2190.0456959999865
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3861.213951999991,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3861.213951999991,
+     "gt": "85",
+     "kind": "REACQUIRE",
+     "dist": 3.3478094480017826,
+     "radial": 3.3443223276427636,
+     "lateral": 0.15276213195712218,
+     "range": 20.541651199492293,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 2606.281216000003
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4280.567551999993,
+     "gt": "75",
+     "kind": "SPLIT",
+     "dist": 3.3287036303623245,
+     "radial": 3.30775465262243,
+     "lateral": 0.37286326829279703,
+     "range": 14.876082224113787,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4404.2478079999855,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4404.2478079999855,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4807.480832000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4945.288960000005,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4945.288960000005,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5093.7169920000015,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 5093.7169920000015,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 5093.7169920000015,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5340.7482880000025,
+     "gt": "113",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5467.671295999986,
+     "gt": "113",
+     "kind": "SPLIT",
+     "dist": 3.2386872639385933,
+     "radial": 3.208579945025067,
+     "lateral": 0.4405790848201815,
+     "range": 33.15250276543153,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5850.46272000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5850.46272000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6135.835392000008,
+     "gt": "113",
+     "kind": "SPLIT",
+     "dist": 3.2753005784984173,
+     "radial": 3.25038765723145,
+     "lateral": 0.40320460963326143,
+     "range": 29.610265735588136,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 6260.919552000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6522.9424639999925,
+     "gt": "113",
+     "kind": "SPLIT",
+     "dist": 5.568639103456261,
+     "radial": 5.564557296690664,
+     "lateral": 0.21317494315428576,
+     "range": 29.266820667782703,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6522.9424639999925,
+     "gt": "213",
+     "kind": "SPLIT",
+     "dist": 2.8524573147631997,
+     "radial": 2.8523490866315075,
+     "lateral": 0.024847948375816165,
+     "range": 10.640333158596011,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7182.352127999999,
+     "gt": "219",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7326.079231999989,
+     "gt": "113",
+     "kind": "SPLIT",
+     "dist": 2.9748294605413275,
+     "radial": 2.945842397729068,
+     "lateral": 0.4142739275484982,
+     "range": 23.73247939253673,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9096.052480000013,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9276.380927999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9276.380927999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9276.380927999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9276.380927999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9401.338879999996,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9537.263616000011,
+     "gt": "envobj:v1:1a3c0fe48c56606dbd232bc75d212ab409f7f73963948cc586bc3c948fa51551",
+     "kind": "SPLIT",
+     "dist": 10.93118027116993,
+     "radial": 10.678732699880863,
+     "lateral": 2.335673360149041,
+     "range": 25.17790182780816,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9670.011648000014,
+     "gt": "133",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9929.610752000008,
+     "gt": "133",
+     "kind": "SPLIT",
+     "dist": 1.5482512695147752,
+     "radial": 1.5379617407342459,
+     "lateral": 0.17820122780666198,
+     "range": 27.072484286041444,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10723.375360000005,
+     "gt": "219",
+     "kind": "SPLIT",
+     "dist": 1.6898022022641288,
+     "radial": 1.6846022523993311,
+     "lateral": 0.13246408565267478,
+     "range": 13.031512604140893,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10846.407680000004,
+     "gt": "133",
+     "kind": "SPLIT",
+     "dist": 2.0388065113532194,
+     "radial": 2.0276405262925357,
+     "lateral": 0.21308657130944736,
+     "range": 18.6179157538361,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 10846.407680000004,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10969.515519999986,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11349.107455999998,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11467.474431999988,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11735.407616000011,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11735.407616000011,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12052.919296000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12689.692416000005,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12809.876224000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13308.980479999998,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13566.93555200001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13723.417343999987,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13863.641600000003,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13989.458688000013,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 14267.999488000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14546.38208000001,
+     "gt": "134",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 14821.025536000001,
+     "gt": "134",
+     "kind": "REACQUIRE",
+     "dist": 2.2413713764762058,
+     "radial": 2.1599531957222986,
+     "lateral": 0.5986216163620147,
+     "range": 35.70114765466008,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 0
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15072.43392000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 15649.441791999998,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16205.180415999988,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16205.180415999988,
+     "gt": "140",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 16205.180415999988,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16363.809791999985,
+     "gt": "134",
+     "kind": "REACQUIRE",
+     "dist": 1.6820657241500458,
+     "radial": 1.6817312814986423,
+     "lateral": 0.03354097776381482,
+     "range": 26.764778428647947,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 1291.375871999975
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 16927.866623999987,
+     "gt": "134",
+     "kind": "REACQUIRE",
+     "dist": 0.8662855020242918,
+     "radial": 0.7728221777228458,
+     "lateral": 0.3914031842450919,
+     "range": 23.579305040704206,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 290.1219839999976
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17075.534080000012,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17075.534080000012,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17211.652608000004,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 17357.907199999987,
+     "gt": "134",
+     "kind": "SPLIT",
+     "dist": 1.6358386167309624,
+     "radial": 1.6298750904047459,
+     "lateral": 0.13955346526113122,
+     "range": 20.621253969769402,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17660.179712000012,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 17814.14041600001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 18077.338623999996,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 18214.10150399999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 18353.14918400001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 18499.762943999987,
+     "gt": "134",
+     "kind": "SPLIT",
+     "dist": 4.213411603938466,
+     "radial": 4.133701710155805,
+     "lateral": 0.8156883692062185,
+     "range": 14.113907331578604,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 18499.762943999987,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 18624.732160000014,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 18767.567103999987,
+     "gt": "80",
+     "kind": "SPLIT",
+     "dist": 2.642590468588426,
+     "radial": 0.025383892913623418,
+     "lateral": 2.6424685509301615,
+     "range": 26.437286159627533,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 20007.029760000005,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 20275.76576000001,
+     "gt": "envobj:v1:e41b16f5ef4dcbcdde268b2d65e1a053ec1a9cc31e60b0b69a31632aee50cf9f",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 20573.330687999987,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 20996.852736,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 21304.334592,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 22433.313024000003,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 22657.519104000006,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 22772.240640000004,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 22772.240640000004,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 22772.240640000004,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 22916.847872000013,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 22916.847872000013,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 23208.98790400001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 23481.233664,
+     "gt": "135",
+     "kind": "SPLIT",
+     "dist": 2.654276570716666,
+     "radial": 2.6472734249041605,
+     "lateral": 0.1926850478153883,
+     "range": 21.597863841301805,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 23481.233664,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 23782.880512000003,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 23782.880512000003,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 24495.21280000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 24630.591232000006,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 24630.591232000006,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 24761.40185600001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 24761.40185600001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 25066.988031999994,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 25206.865152000013,
+     "gt": "envobj:v1:d5135c331366ae81591e0ff9282db20d0a4817f97171953e86c1634add4b6e54",
+     "kind": "SPLIT",
+     "dist": 3.2137041994459103,
+     "radial": 3.203854411376394,
+     "lateral": 0.25141915647042135,
+     "range": 35.47119416481659,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 25457.688575999986,
+     "gt": null,
+     "kind": "NO_GT"
+    }
+   ]
+  },
+  "pedestrians@v20": {
+   "summary": {
+    "Pedestrian": {
+     "new_tracks": 59,
+     "FIRST": 2,
+     "NO_GT": 39,
+     "SPLIT": 9,
+     "REACQUIRE": 9,
+     "split_old_not_updated_same_frame": 8,
+     "split_old_established": 9,
+     "split_offset": {
+      "dist_p50": 2.47,
+      "radial_p50": 2.47,
+      "lateral_p50": 0.05,
+      "lateral_p90": 0.62,
+      "radial_dominant": 9,
+      "within_lateral_0_6": 8
+     },
+     "reacquire": {
+      "gap_ms_p50": 384.16,
+      "gap_ms_p90": 2580.42,
+      "dist_p50": 2.67,
+      "lateral_p50": 0.77,
+      "old_established": 6
+     }
+    },
+    "Vehicle": {
+     "new_tracks": 14,
+     "FIRST": 1,
+     "NO_GT": 13,
+     "SPLIT": 0,
+     "REACQUIRE": 0,
+     "split_old_not_updated_same_frame": 0,
+     "split_old_established": 0,
+     "split_offset": {
+      "dist_p50": null,
+      "radial_p50": null,
+      "lateral_p50": null,
+      "lateral_p90": null,
+      "radial_dominant": 0,
+      "within_lateral_0_6": 0
+     },
+     "reacquire": {
+      "gap_ms_p50": null,
+      "gap_ms_p90": null,
+      "dist_p50": null,
+      "lateral_p50": null,
+      "old_established": 0
+     }
+    }
+   },
+   "rows": [
+    {
+     "cls": "Vehicle",
+     "t": 7.438848000001599,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7.438848000001599,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7.438848000001599,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7.438848000001599,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7.438848000001599,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 129.4018560000004,
+     "gt": "139",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 912.4794880000009,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1544.3855360000016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1544.3855360000016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1926.5930240000016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 1926.5930240000016,
+     "gt": "139",
+     "kind": "REACQUIRE",
+     "dist": 2.8138357784672157,
+     "radial": 2.615572025366286,
+     "lateral": 1.037523382051463,
+     "range": 20.35147963573946,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 122.20364800000243
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2292.1338880000003,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2937.1827200000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2937.1827200000007,
+     "gt": "130",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 2937.1827200000007,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 3321.3406719999984,
+     "gt": "122",
+     "kind": "REACQUIRE",
+     "dist": 4.038464243431007,
+     "radial": 3.948818194967225,
+     "lateral": 0.8461845593997563,
+     "range": 27.634960357846108,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 384.15795199999775
+    },
+    {
+     "cls": "Vehicle",
+     "t": 3701.723392,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4121.234944,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4400.134912000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 4526.124800000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4766.349568000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 4904.866559999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5301.614335999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 5571.061248000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6604.947712000001,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 1.6772962840234682,
+     "radial": 1.6770909199642348,
+     "lateral": 0.026246343982571863,
+     "range": 24.390622751759217,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 6719.5376639999995,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7147.857663999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7271.101952000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7400.921856000001,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 2.7462671204365146,
+     "radial": 2.74595388149774,
+     "lateral": 0.04147743336032139,
+     "range": 20.148183579354296,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7529.895680000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 7904.489472000001,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 2.048656998237534,
+     "radial": 2.034496420742211,
+     "lateral": 0.2404575023049922,
+     "range": 22.506708800842762,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Vehicle",
+     "t": 7904.489472000001,
+     "gt": "69",
+     "kind": "FIRST"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8151.481599999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8151.481599999999,
+     "gt": "122",
+     "kind": "REACQUIRE",
+     "dist": 0.7337207844503087,
+     "radial": 0.7143472965898033,
+     "lateral": 0.1674936696989352,
+     "range": 31.907750994794878,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 2580.4203519999974
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8288.738816000001,
+     "gt": "122",
+     "kind": "SPLIT",
+     "dist": 4.016824866943585,
+     "radial": 4.014110089397227,
+     "lateral": 0.14765568697391496,
+     "range": 35.92151943807262,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": true,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8445.051135999998,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8582.859008,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8582.859008,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 8710.42816,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 8838.399743999998,
+     "gt": "122",
+     "kind": "SPLIT",
+     "dist": 5.341725543068048,
+     "radial": 5.306027512258141,
+     "lateral": 0.6165256009488205,
+     "range": 36.425444306159825,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9177.965823999999,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9416.645120000001,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 2.469391865587286,
+     "radial": 2.46938362341826,
+     "lateral": 0.006380142816927004,
+     "range": 26.823866743530306,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9416.645120000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9416.645120000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9416.645120000001,
+     "gt": "122",
+     "kind": "SPLIT",
+     "dist": 4.326392165260752,
+     "radial": 4.324042218972511,
+     "lateral": 0.14257649235726721,
+     "range": 35.700676324846434,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9539.643904,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 9665.974016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9665.974016,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 9933.438719999998,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10475.120384000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10475.120384000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10475.120384000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10615.216128,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10957.218304000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 10957.218304000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11579.237376000001,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 1.952719723961817,
+     "radial": 1.9519664423509764,
+     "lateral": 0.05423401409805895,
+     "range": 28.024014470195773,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11579.237376000001,
+     "gt": "127",
+     "kind": "REACQUIRE",
+     "dist": 2.674925167679996,
+     "radial": 2.575773760938375,
+     "lateral": 0.72153599019677,
+     "range": 33.77203636258961,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 249.2247040000002
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11579.237376000001,
+     "gt": "112",
+     "kind": "REACQUIRE",
+     "dist": 2.0178358282253304,
+     "radial": 2.017332945792008,
+     "lateral": 0.04504681444836489,
+     "range": 24.45544316008526,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 380.46387200000026
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11579.237376000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11579.237376000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 11979.625216,
+     "gt": "139",
+     "kind": "SPLIT",
+     "dist": 1.8061140605617336,
+     "radial": 1.8059422626636543,
+     "lateral": 0.024910714242524445,
+     "range": 28.601620916829532,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": false,
+     "gapMs": null
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12568.290304000002,
+     "gt": "127",
+     "kind": "REACQUIRE",
+     "dist": 0.957967112969728,
+     "radial": 0.16634076339843146,
+     "lateral": 0.9434149352027359,
+     "range": 33.925197502572985,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 701.849344000002
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12568.290304000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12568.290304000002,
+     "gt": "127",
+     "kind": "REACQUIRE",
+     "dist": 4.091105229224832,
+     "radial": 4.018575647400533,
+     "lateral": 0.7669366093166676,
+     "range": 29.74475132600901,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 701.849344000002
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12568.290304000002,
+     "gt": "127",
+     "kind": "REACQUIRE",
+     "dist": 4.372465430146428,
+     "radial": 3.35472603306912,
+     "lateral": 2.804330077019094,
+     "range": 30.300677290843083,
+     "oldEstablished": false,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 701.849344000002
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12568.290304000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 12568.290304000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 12681.226240000004,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13196.667392000003,
+     "gt": "112",
+     "kind": "REACQUIRE",
+     "dist": 0.38959494303968245,
+     "radial": 0.32954166651516054,
+     "lateral": 0.2078136416901069,
+     "range": 24.68131317938559,
+     "oldEstablished": true,
+     "oldUpdatedSameFrame": null,
+     "gapMs": 0
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13464.171007999998,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13590.068480000002,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Pedestrian",
+     "t": 13970.835200000001,
+     "gt": null,
+     "kind": "NO_GT"
+    },
+    {
+     "cls": "Vehicle",
+     "t": 13970.835200000001,
+     "gt": null,
+     "kind": "NO_GT"
+    }
+   ]
+  }
+ }
+}

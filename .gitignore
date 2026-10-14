@@ -78,6 +78,13 @@ dist/
 /rl_agent/**/campaign_runs/
 /rl_agent/**/evaluation_runs/
 /handoffs/*.tar.gz
+# Supervisor raw evidence and regenerated copies stay on the experiment host.
+/handoffs/supervisor_results_20261013_v1/raw/
+/handoffs/supervisor_results_20261013_v1/plots_regenerated/
+/handoffs/supervisor_results_20261013_v1/feedback_regenerated/
+/handoffs/supervisor_results_20261013_v1/transport_regenerated/
+# Keep UI source, screenshots and summaries; recordings remain local.
+/spatial_map_coop/replay_ui_v1/**/*.webm
 /.b_runtime_wt_link
 *.orig
 *.rej

@@ -1,0 +1,10 @@
+{
+  "stage": "read-only host-before evidence writer, before core startup or smoke launcher invocation",
+  "exception": "FileExistsError: receiver_boundary_diagnostic_20261013_01/HOST_BEFORE.json",
+  "cause": "Private binding of the retained before() function did not also bind its write() dependency; the original create-only writer refused the historical path.",
+  "historical_file_overwritten": false,
+  "core_start_invoked": false,
+  "smoke_launcher_invoked": false,
+  "live_attempt_started": false,
+  "correction": "Bind the evidence writer dependency explicitly for before and postflight; no production or native instrumentation change."
+}

@@ -1,0 +1,90 @@
+{
+  "status": "PRE_FRAME_FIRST_TICK_COMPOSITION_FAILURE",
+  "attempts": 1,
+  "retry": false,
+  "raw_host_returncode": -6,
+  "capture": "../abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_05",
+  "preparation_sha256": "66b0afe9d2289cfd9d7116de32bc4031bab37c710634dd4bb8074703a3051c3d",
+  "startup_reached": [
+    "radio_attach (both UEs, RNTIs 57303/other per ATTACHED.json)",
+    "native_telemetry",
+    "GOOD_ALL SNR providers",
+    "map services",
+    "front preload + 12-mode prewarm",
+    "GT handoffs",
+    "CARLA RPC",
+    "world + 50/50 population",
+    "both egos spawned",
+    "both collectors",
+    "edge READY + ROUTES.json"
+  ],
+  "first_failure": {
+    "phase": "world.route_driver.m4-ue1 (origin: TickOwner.run on MainThread-of-drive_pair, world tick 1)",
+    "error": "ValueError('duplicate owned pose')",
+    "location": "rl_agent/splitfusion_m4_two_ue_v1/frontend.py:176 Owned.wait_for_sensor_frame",
+    "mechanism": "world.py TickOwner.run calls collector.wait_for_sensor_frame(frame) and then collector.on_world_tick(frame); the retained live_gt.py:393 on_world_tick calls wait_for_sensor_frame(frame) again, so the M4 owned-pose override registers the same frame twice. Read from code + traceback; not repaired."
+  },
+  "per_ue": {
+    "m4-ue0": {
+      "offered": 0,
+      "sent": 0,
+      "edge_submitted": 0,
+      "completed": 0,
+      "map_installed": 0,
+      "policy_decisions": 0,
+      "feedback_rows": 0,
+      "gt_feedback": 0,
+      "drained": true,
+      "route_completed": false
+    },
+    "m4-ue1": {
+      "offered": 0,
+      "sent": 0,
+      "edge_submitted": 0,
+      "completed": 0,
+      "map_installed": 0,
+      "policy_decisions": 0,
+      "feedback_rows": 0,
+      "gt_feedback": 0,
+      "drained": true,
+      "route_completed": false
+    }
+  },
+  "owner_ticks": 1,
+  "frame_id_mixing": "NOT LIVE-VERIFIABLE: zero frames from either source. Only offline composed checks (equal frame numbers, wrong-source rejection) cover it.",
+  "cleanup": {
+    "world_teardown": "edge CLOSED (no errors, both evaluators clean), follower sensor/vehicle destroyed",
+    "host_teardown_completed": [
+      "gt_m4-ue0",
+      "gt_m4-ue1",
+      "map_api",
+      "maps",
+      "pose x2",
+      "retention x2",
+      "telemetry",
+      "radio_restore (-50)",
+      "snr x2"
+    ],
+    "last_entered": "teardown.carla (never DONE)",
+    "not_reached": [
+      "teardown.processes",
+      "teardown.write_records (no CLEANUP.json / RUN_RESULT.json)"
+    ],
+    "recovery": "ownership-checked cli cleanup --execute-owned: gnb/ue/ue_relay SIGTERM, CARLA group SIGTERM (certified member), carla_remaining []",
+    "postflight": "POSTFLIGHT.json clean: no CARLA/softmodem, no containers after core stop, no oaitun; MPS/remote-desktop baseline + UI servers 988344/1152770 preserved"
+  },
+  "native_abort": {
+    "recurred": true,
+    "stderr": "libc++abi: terminating due to uncaught exception of type std::exception: std::exception",
+    "faulthandler": "only Python thread = MainThread in data_collection/run_route_b_collection_supervised_v1.py:184 stop_carla (time.sleep in post-SIGTERM wait loop), via host.py clean(carla)",
+    "interpretation": "Abort occurs while the owned CARLA server is exiting after SIGTERM, with no other Python thread alive; the throwing native thread is not identified by a Python traceback. Same libc++abi signature as smoke_live_20261013_04. Native cause NOT established."
+  },
+  "instrumentation_files": [
+    "PHASES.jsonl",
+    "FIRST_FAILURE.json",
+    "FAULTHANDLER.log",
+    "ORIGINAL_FAILURE.json"
+  ],
+  "historical_evidence_modified": false,
+  "deletion_archive_commit_push": false
+}

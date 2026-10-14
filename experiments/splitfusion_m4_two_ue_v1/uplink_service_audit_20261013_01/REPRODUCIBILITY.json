@@ -1,0 +1,8 @@
+{
+  "command": "env -u PYTHONPATH PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES= OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 -B experiments/splitfusion_m4_two_ue_v1/uplink_service_audit_20261013_01/analyze.py experiments/splitfusion_m4_two_ue_v1/uplink_service_audit_20261013_01 --refresh-unsealed",
+  "cpu_affinity": [
+    23
+  ],
+  "elapsed_s": 6.41619610786438,
+  "note": "Create-only outputs; optional positional argument selects a NEW output directory. No live services imported."
+}

@@ -1,0 +1,22 @@
+{
+  "figures": {
+    "11_application_rlc_data_rates.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    },
+    "12_rlc_and_gnb_buffer_time.png": {
+      "pixels": [
+        3840,
+        2160
+      ],
+      "text_inside_canvas": true
+    }
+  },
+  "inputs_unchanged": true,
+  "no_live_services": true,
+  "raw_records_parse_to_eof": true,
+  "raw_schema_from_recording": true
+}

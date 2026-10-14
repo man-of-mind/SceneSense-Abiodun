@@ -1,0 +1,1 @@
+{"returncode": 0, "stdout": "{\"status\":\"PASS\",\"struct_bytes\":4736,\"empty_scope_ns\":305.018,\"wait_wall_ns\":20243143,\"wait_cpu_ns\":50044,\"busy_cpu_ns\":5000439}\n", "stderr": ""}

@@ -1,0 +1,25 @@
+Working directory:
+/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun
+
+Executed once for selection and once for attribution (CPU only):
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 -B experiments/splitfusion_m3_grouped_shapley_v1/select.py --out experiments/splitfusion_m3_grouped_shapley_v1/selection_01
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 MPLCONFIGDIR=experiments/splitfusion_m3_grouped_shapley_v1/.mpl python3 -B experiments/splitfusion_m3_grouped_shapley_v1/attribute.py --selection experiments/splitfusion_m3_grouped_shapley_v1/selection_01/SELECTION.json --out experiments/splitfusion_m3_grouped_shapley_v1/attribution_01
+
+Final rendering (no actor queries; figures_01 retains the first layout draft):
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 MPLCONFIGDIR=experiments/splitfusion_m3_grouped_shapley_v1/.mpl python3 -B experiments/splitfusion_m3_grouped_shapley_v1/render.py --selection-dir experiments/splitfusion_m3_grouped_shapley_v1/selection_01 --attribution-dir experiments/splitfusion_m3_grouped_shapley_v1/attribution_01 --out experiments/splitfusion_m3_grouped_shapley_v1/figures_02
+
+Focused artifact check executed once, no actor queries:
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 -B experiments/splitfusion_m3_grouped_shapley_v1/verify.py
+
+Create-only final hash/storage inventory, no actor queries:
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 -B experiments/splitfusion_m3_grouped_shapley_v1/closeout.py
+
+Reproduce numeric analysis and final figures without overwriting any retained artifact:
+study_dir=experiments/splitfusion_m3_grouped_shapley_v1
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 -B "$study_dir/select.py" --out "$study_dir/selection_REPRO_01"
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 -B "$study_dir/attribute.py" --selection "$study_dir/selection_REPRO_01/SELECTION.json" --out "$study_dir/attribution_REPRO_01"
+env CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python3 -B "$study_dir/render.py" --selection-dir "$study_dir/selection_REPRO_01" --attribution-dir "$study_dir/attribution_REPRO_01" --out "$study_dir/figures_REPRO_01"
+
+All computation/output directories are create-only. Choose a fresh REPRO suffix if already used; do not remove existing evidence. The reproduction commands are provided, not run in this task. Numeric results and selections should match; provenance paths, durations and gzip headers can differ. Selection and attribution also perform their own exact-replay/hash/mask/reconstruction checks. verify.py is the focused check of the retained *_01 analysis and final figures_02, and creates checks_01; it intentionally refuses overwriting it.
+
+No new SHAP dependency is installed. common.py executes the unchanged retained ask/explain function definitions with explicit actor/cache/distance inputs; no production module is edited. The selected-mode margin uses the same 16 coalition outputs. Dependencies are the existing CPU PyTorch, NumPy, Matplotlib and Pillow environment. A pre-existing Matplotlib Axes3D warning does not affect the 2D PNGs.

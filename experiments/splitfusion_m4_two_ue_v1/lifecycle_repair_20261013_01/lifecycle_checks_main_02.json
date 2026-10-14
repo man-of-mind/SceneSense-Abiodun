@@ -1,0 +1,20 @@
+{
+  "command": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "python3",
+    "-B",
+    "experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/checks.py",
+    "experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/LIFECYCLE_CHECKS_MAIN_02.json",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/before/world.py"
+  ],
+  "cwd": ".",
+  "end_wall_s": 1791882141.1192217,
+  "returncode": 0,
+  "start_wall_s": 1791882107.6017642
+}

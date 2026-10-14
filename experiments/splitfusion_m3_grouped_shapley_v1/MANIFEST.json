@@ -1,0 +1,258 @@
+{
+ "additive_error": 8.881784197001252e-16,
+ "attribution_seconds": 98.05288689956069,
+ "available_disk_GiB": 13.304065704345703,
+ "available_disk_bytes": 14285131776,
+ "cuda_initialized": false,
+ "draft_figures_retained": "figures_01",
+ "elapsed_seconds": 1406.87551,
+ "files": {
+  ".mpl/fontlist-v390.json": {
+   "bytes": 141640,
+   "sha256": "3b166830d5a6c15c6a21cc54679741d3219df47812b4e63e46b1e7bf4d0f9f77"
+  },
+  "CAPTIONS.md": {
+   "bytes": 4053,
+   "sha256": "cf982a254814b1a8028077e26061f9f47c5550c5a079a44af6c99c8643d5f532"
+  },
+  "COMMANDS.txt": {
+   "bytes": 3636,
+   "sha256": "faaecf4e05aa604ba435304a4e87427fd265d8d341e61f48d54f24722b9c7016"
+  },
+  "GLOSSARY.md": {
+   "bytes": 5670,
+   "sha256": "8455a779e66cacde88a630e451c5c3832f934a48825b6dd956f5285eef54a617"
+  },
+  "PLAN.md": {
+   "bytes": 4651,
+   "sha256": "153ebe95a9f47ae614558444d91e5df8f16c815898b077b6f91368b1e0a5d469"
+  },
+  "REPORT.md": {
+   "bytes": 9467,
+   "sha256": "7e7f38eef793de1ec3e56b5697abf5f1c32f6eb9f057af27daa7c13f138c1f0a"
+  },
+  "SLIDES.md": {
+   "bytes": 1672,
+   "sha256": "b244fc41098a04a6ee29fce4ada0229ec3ad5a38bd8c812e70f060014b4526cd"
+  },
+  "attribute.py": {
+   "bytes": 12466,
+   "sha256": "62af0e2d89ba1159ab92f0545a25a601d6b583348cd069162aff9271807d2602"
+  },
+  "attribution_01/ATTRIBUTIONS.csv": {
+   "bytes": 755828,
+   "sha256": "b53ba8a4d0b7291907941b694236ec9462720e4fb5769de1cce705b41eec1db4"
+  },
+  "attribution_01/ATTRIBUTIONS.json.gz": {
+   "bytes": 235436,
+   "sha256": "5fdc231a7f2fad0c3b1469073a421ef4b661f8253f37fde95b09e625781c73c4"
+  },
+  "attribution_01/EXACT_REPLAY.json": {
+   "bytes": 8692,
+   "sha256": "12182c838eddec73fc18754fdc43c367dba0074fb8764b3f470b5a443f18940d"
+  },
+  "attribution_01/PAIR_COALITIONS.jsonl.gz": {
+   "bytes": 13439977,
+   "sha256": "913f59ae0e7eac523a559b09697a06b1cd5a7920b28fa7b971735fd990179674"
+  },
+  "attribution_01/QUERY_CACHE.jsonl.gz": {
+   "bytes": 4894310,
+   "sha256": "ce40cd04e9eda4a44b6ada66dfe5085136ea375831bf72289434fe158a8b6205"
+  },
+  "attribution_01/RESULTS.json": {
+   "bytes": 43736,
+   "sha256": "1cb13950a7f0d52914f6b89fa7bb8dec5ec9be4df877d702655722be85069333"
+  },
+  "checks_01/CHECKS.json": {
+   "bytes": 671,
+   "sha256": "b4991fe43bb788652532492f8af651163148d02a5b067fa1c92fbfd4f6dbba8c"
+  },
+  "checks_01/FINDINGS.json": {
+   "bytes": 30706,
+   "sha256": "3e210bd5706197ee4f37518d4c2ef668d054c91939de760968f953b7acf67c88"
+  },
+  "checks_01/SUMMARY.csv": {
+   "bytes": 5556,
+   "sha256": "ebbd3da15bff9cf5fdaa350bc42481e395f352f04ddf2977f032416bc07e1969"
+  },
+  "closeout.py": {
+   "bytes": 2439,
+   "sha256": "ed53d60d60690c27a1eac6d992039fbb5fdeb75aebbc990fb28644fa517e3536"
+  },
+  "common.py": {
+   "bytes": 3865,
+   "sha256": "a9570c28c612e02fb377b34647f73ff59f97070c21c5391f852f6ac54f976453"
+  },
+  "figures_01/01_four_condition_summary.png": {
+   "bytes": 392333,
+   "sha256": "3069462a72617e5b99d6281fe2e40304f1234b95a58f0b7944ffa7bcf294de93"
+  },
+  "figures_01/02_M3_1_timeline.png": {
+   "bytes": 706090,
+   "sha256": "01aab2c2ee4326be2ccfaefebe3e4a68f5bd0debd65a23d552454416a60fa059"
+  },
+  "figures_01/03_M3_2_timeline.png": {
+   "bytes": 719015,
+   "sha256": "4671ef9f297104478a570b11e902965039bac36adf23dd24f35e3ed6dfd16b22"
+  },
+  "figures_01/04_M3_3_timeline.png": {
+   "bytes": 718553,
+   "sha256": "911e3790be6d060968623cac6c214d8fea067724e3d5c54791b100e96c6edf58"
+  },
+  "figures_01/05_M3_4_timeline.png": {
+   "bytes": 706035,
+   "sha256": "d1f2e5afd403c1acb656f1a384a773fedae005ac030e3af90b29e161e464e3e7"
+  },
+  "figures_01/06_waterfall_examples.png": {
+   "bytes": 567358,
+   "sha256": "f24944bbfc2ea74ae5e55af4e01f76fa43f0e5171b90755200c694447c2adc05"
+  },
+  "figures_01/OUTPUT_SHA256.json": {
+   "bytes": 989,
+   "sha256": "81f4e8fb9dbcfe7a5bd270110442a09634e9d0c35985f9766b61c1433ce0ae0a"
+  },
+  "figures_02/01_four_condition_summary.png": {
+   "bytes": 392868,
+   "sha256": "dcadce04d62040bd5a974b4e0e8a0c5d9fb2cb78790091ae2dc206b09dd4d794"
+  },
+  "figures_02/02_M3_1_timeline.png": {
+   "bytes": 701998,
+   "sha256": "e91624e751f12742e771fbe2b19b40c30937b82d3d9893fb81cec251937d78fc"
+  },
+  "figures_02/03_M3_2_timeline.png": {
+   "bytes": 717478,
+   "sha256": "1788929cd2524c9477f5fdc3c0eb11553bf019d28531685122317f1477e5ec0d"
+  },
+  "figures_02/04_M3_3_timeline.png": {
+   "bytes": 715705,
+   "sha256": "5d1adeee6b9659c1d80b79459e544c4fc914cc15dbf5b150adeb504ea06e29de"
+  },
+  "figures_02/05_M3_4_timeline.png": {
+   "bytes": 704434,
+   "sha256": "0d5399ebe07cd8e17fda991a440052fceba2edf32901c22b9af9115692009837"
+  },
+  "figures_02/06_waterfall_examples.png": {
+   "bytes": 567358,
+   "sha256": "f24944bbfc2ea74ae5e55af4e01f76fa43f0e5171b90755200c694447c2adc05"
+  },
+  "figures_02/OUTPUT_SHA256.json": {
+   "bytes": 989,
+   "sha256": "b40944c9643f6b26080d9b8f8e7a75a49e486f786a3d568811b1f0c23f38f66f"
+  },
+  "render.py": {
+   "bytes": 14757,
+   "sha256": "1c082b9b68bc95318fdc1e10e101395070915a53420db55088d31f893d4ad040"
+  },
+  "select.py": {
+   "bytes": 3285,
+   "sha256": "421b965a934d4877eed604955487eac88f06974fdf7e62c3bd7c3cc3d9b2965e"
+  },
+  "selection_01/RECORDED_STATES.json": {
+   "bytes": 5119938,
+   "sha256": "3c78ff98e2f5002ccb5c9e45de74a7423162df3206c5a7e943ccf8bb9850b275"
+  },
+  "selection_01/SELECTION.json": {
+   "bytes": 42643,
+   "sha256": "4a41b9439a42e38672d7f5e59467cbfd54ed79daeadc3504edf5c4b921e2b774"
+  },
+  "verify.py": {
+   "bytes": 7855,
+   "sha256": "a8781133942964bb6fadc058215dc92fd1413f9fda70dc7ac80d51c72a8e0185"
+  }
+ },
+ "final_figures": "figures_02",
+ "inputs_sha256": {
+  "/home/shr_aisvcs/.codex/attachments/b89eb487-b939-42ad-aaf1-d1c4a3f6ce5a/Pasted text.txt": "61e387a203e718cbc84cb74db6cb93f1f2149d33864b6a3e30860648535a9997",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_decision_cases_v1/MEMO.md": "7833b3eb1567a377225470cf694186c0e232786138e1cb0e78024633ea2e294e",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_decision_cases_v1/PLAN.md": "07f943ff68bfabb91c196a373c34d8cf5e1c4c40a0123370c56cbdfd54697dc9",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_decision_cases_v1/explain.py": "df7a73d4e5a8402cbe850e1546fb90bd59ec43e84769018f4b9b57534ab8183e",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_decision_cases_v1/results_01/ATTRIBUTIONS.json": "8076bfa80fd9c2a85a98e6a8a918501d1f7aa3e4370a960033c71437860bc74f",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_decision_cases_v1/results_01/RESULTS.json": "0f3057929024782d51cc883c57ade885c95daa33d4df59e9473413b8663e2d9a",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_actor_diagnosis_v1/MEMO.md": "3a91ca7560398f630103a5c24496990c7e2efdb980c07f637bcefac7e9adc645",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_actor_diagnosis_v1/diagnose.py": "6c4f1fb2ca42158c27a1b5a336f12979ca12fbf8e3e5e101bea292b98de07614",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_actor_diagnosis_v1/results_02/RESULTS.json": "0ac24b0ced9ea19e1e357247619cd7b79005736b3e0c3a5e13308eff28a139ba",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_actor_diagnosis_v1/results_02/SELECTED_STATES.csv": "ed88d7901553c60414ef1b26cd04237e4862eb351a2939370ae29921cab62937",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/PLAN.md": "153ebe95a9f47ae614558444d91e5df8f16c815898b077b6f91368b1e0a5d469",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/attribute.py": "62af0e2d89ba1159ab92f0545a25a601d6b583348cd069162aff9271807d2602",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/common.py": "a9570c28c612e02fb377b34647f73ff59f97070c21c5391f852f6ac54f976453",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/selection_01/SELECTION.json": "4a41b9439a42e38672d7f5e59467cbfd54ed79daeadc3504edf5c4b921e2b774",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_route_b_v11/analysis_01/DECISION_TIMELINE.csv": "ab3344cc2f021397b0c574a3b1964c092b5b42137490f26e789ee1f312cc83ab",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_route_b_v12/analysis_01/DECISION_TIMELINE.csv": "9a132e80897cf682000539f9563bc666996e598160ed0479b9955dddc9547f5d",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_route_b_v13/analysis_01/DECISION_TIMELINE.csv": "cdfbbfc458c3eb47ecd8685a394659a02bd392b68dcd403fd8cd740978ae8854",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_route_b_v14/analysis_01/DECISION_TIMELINE.csv": "7ec7100b8397119ed5730bd6a4000d6ad7d6f236c6e160abb2473f0b63fe2187",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_live_route_b_v2/__init__.py": "1aec26f308479ef2108d60ad9bbddca31e9a82f41ba7b3cc916087b73e8ea763",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_live_route_b_v2/frozen_actor_v2.py": "8851e3a0e10008ecd36b2be842a599c51d1de234584baa3581787e490cd29c8d",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_live_route_b_v2/live_state_v2.py": "c74b2d1c43ef878651c5394802bd80213d41ea4baf3e67c59b23822e80c0a21a",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_live_route_b_v2/ue_telemetry_provider_v2.py": "7bcd8bcc82fc3b085c999719d18968a097acfb1f854f16e28cc19fbb63008217",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/__init__.py": "5d4073f62b1b392bfadf63cc5a1d16b819d9109398d08daf4922c0597f90a5be",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/dynamic_mcs_273prb_evidence.py": "eb3b61efbd131835a6342aeddd0d253d124a189727d117b5f82f23ac400d3959",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/exploration.py": "1de3236a75d807d31f28684e2e9b665b1a5bd8dbd5971c2d3ccf8498508a4b85",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/held_payload.py": "1363d356b98c7d5751a95abf97d90c50a72ffbdad20e6e37cd4e2a4e03d567b3",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/mcs_transition_acceptance.py": "0400fe4f864a98e484cde3bef37ae2738e8aabd194479539e72e19936355c61f",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/mcs_transition_provider.py": "5b50480e76b9b0083276fba1e31a365135ba43946201500cfed8e14a7f9a8a73",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/modeled_composite_training.py": "7d95e0370382e33bd0d92fc0140b18e1f1ea50eb7ce3ac996ecd4ddf584e1dc3",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/modeled_offline_runtime.py": "ed6d17a00abbcd8941cce0f44879c24646dd69f7c1a191e690c56046e0f782e6",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/modeled_smoke_orchestrator.py": "9cc98fbf153c7ca28104ccbf705fcf814930bc3b09eccc42267edb05ed738758",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/models.py": "fa618f26d7596c9eb2f3e7a4ebbbaa0578f57eb44f4ea7d2310045ab7277ba5b",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/quality_adapter.py": "f32ffceaa8b636146e3c8e801097daa40998a6f8ff92864b89790be96af60df6",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/replay.py": "20f8afd7ee0b5eac2e705b0dbb2cc6b8892de07df3b8ddba242d955d99a55e3d",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/run4_contract.py": "c3aaf4450deb80e3427972d745bd171cacda517864860f1106ce9d140dc4c18b",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/scientific_basis.py": "fe494b2ec3456991e2d4e98625d8b6d167638b0a17be5c887196ac370444550e",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/sequential_kernel.py": "a1f6ab5df12cdc03f3fba1414c262e3fce93cacece04d04d4c9c7f10b9e0ab47",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/smoke_preregistration.py": "e5ddb8379ccd3df1809007f19d81265256e375b47cf79b6623c3c2b9f02d7eeb",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/state_adapter.py": "11dba06f419736f3d873bcc638865e6313bb3d1c6a416ce7ab92c9b38185515b",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/trainer.py": "12f84e9263c352cf24cbca59b9bc2340f2d0d2f613d5ebd46a6ca5eec178d511",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run5_v1/__init__.py": "8468acc07597a41bccb957bf851ffef44a86ec93ef96e55a48cb5d9f224b83d4",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run5_v1/run5_snr_v2.py": "94d68d5a0e048c35b02a04932c3594185da4977eb2f1d18f62e371bd9a9c1846",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run5_v1/run5_state_contract.py": "718315b65a08b71c519b2328539d274800398794c46db363cf4a78b5a272e5ae",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/__init__.py": "21d24077482e12ece9200f06b794c93cd7e5c30ced64ade57331d800c649769d",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/action_contract.py": "72ba342cb9c4772c152f56ae00a490bc5048c154047e9f7944c4614cb1a9d6fe",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/anchor_store.py": "d8f47f85e87178e457bf4a821f334fd4e6a70bb64368c31da2b9385872360d42",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/empirical_quality_surface.py": "60f8079c9db6536dbf4c70bfb992cb1bafd805990174f1843c485052033b4507",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/hybrid_sac_models.py": "f5c5c39391c7970ae22428e542b48704a7542915ca8fe2a19f97b99555dba65b",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/modeled_smoke_support.py": "d588d2ceda83be750fcb5df4dfece6c85c6c2b033ab47be2d7bd97eb47ea03dc",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/__init__.py": "e9a887d5f15067b14629ce3d9ba36e78d3927406e3e07c336277e58f81b44dfb",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/contract.py": "2f501833a07a6bda2b126c6da95cfc432b64aca4c1234a0498ba4c3c3523a520",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/manifest.py": "eb4f517388ecb8aa7279bf66bbe189d8a7435d3f3357bf05206a44b8b34f7b11",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/preflight.py": "819d2c578eb0e6f07834f8d743f5709d9501dea3e032833a26d994b586886912",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/quality.py": "de1c3657a2c23e05b684e9a739539baec303db52c423240ffe17ebe5545974cc",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/schema.py": "a9d133ce98d5f29b6830d1a5f4034128d0d685c995d1e932917e684622e92d3b",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/offline_quality_grid/selection.py": "008a5f29e69d0403db00def5e05df3d332fb9de106385566b520167b6af49657",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/payload_network_surrogate.py": "36d3da8aa3b92dc9cb68f1f8d45421e4c89e6186d3a3c2f1fefeb9031b1c3e88",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/protocol_v2_contract.py": "db6afd84d4076b2024d93a3ca2d0eef3624643dcefddf90fc3d8ec91bec9fb44",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/reward_ticket_controller.py": "756acb573fe563d6886d7bd1a590e0bdc2564ad64eca0dd5647198fb76e4438a",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/scene_descriptors.py": "88bc00adf26f49c1ae04c8162bc626620238e7122ae5c68d4a623ec3aec10c3a",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/state_reward_transition_contract.py": "fa3c08ef5e67f142ac80271d4d9c44431d0d3b0d7d92a1d02f5c1ab43a7495bc",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_v1/transaction_identity.py": "56635daff1bf4b38737be902a3dfd5bbabe21559cbae5375f4e2307bb485c7dc",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_channel_response_v1_analysis/__init__.py": "cc016cf3ed53724659f56bc6b797127ccd20d707917bd484071a4e398fab780d",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_channel_response_v1_analysis/actor_sensitivity.py": "fd87934df9c00dcaaf4af012d6862fddd4e49efa960a7244777c07cf8ebf4f73",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_channel_response_v1_analysis/channel_analysis.py": "c486a0b6d8860899528b5e966e702197c0ec6df985babba21cc11169fc7afea9",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_channel_response_v1_analysis/definitions.py": "c4038e5a052ca2659227a684e2e7735e75b703999cb6622f5661efe504d2515b",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_full_live_v1/__init__.py": "23a5edd00c8d6321d69a397d76e02d59bf5d9be099f47ab2a322ec3c9819cd61",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_full_live_v1/actor.py": "730d7571c01e0ce36787f550ef53dfd430eb2e47a21874021f00ea09851e9e64",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_full_live_v1/actor_export/actor_state_dict.pt": "bb9b0d256de79b4498cd622e1daa59edcf43ff3072dc9f675b265aac579ed3ce",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_full_v1/__init__.py": "b519ff8a0de6d6fe17badcda7dbdb859c888256ab2b7facd53ab2fdfc2075734",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_full_v1/support.py": "5cadfada46a5ff84c925e8e5c739b8b4a9a20137148e711bc0dd20c831a0820a",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_live_avo_v1/__init__.py": "754dd9fcdd0fe74b22b4d0d68ce721b0a0b2e3d980608860b83848522893e4ec",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_live_avo_v1/actor_binding.py": "995d8ba6de3e1bf80bbd970c62ef1797a0bc0d9b5a244bb8fb84d28c6c8acc20",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_single_gpu_profiler_v1/__init__.py": "12fe735aed016ade94bf4dd65cc4f01e138ee9e10b18153af29f6d5292f5aae3",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_single_gpu_profiler_v1/analyze_v1.py": "ec7624874f6b1e9795fbb8621c36e12e0bee29f0d919d1eb6b28b029a44d70ae",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_single_gpu_profiler_v1/recorder_v1.py": "30b3319cfccadfa2bd99da79f7a69a8032820bec6644312a906c619fd58d22aa",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_single_gpu_profiler_v1/stages_v1.py": "945fa30cf8b0c3af5e0bb05cb43b161a203b1129cec97062433db7a37b164a92",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v11/good_all_prospective_01/capture/cells/a71__favorable_stable/profiler/ue.profile.jsonl": "42d151a3dd1bfa03cbddc3016056fb9b11a886f451d8c43c6acf55b471bea4bb",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v12/bad_all_prospective_02/capture/cells/a71__favorable_stable/profiler/ue.profile.jsonl": "8926b0432fa0e2113895059c3a2b94223eb876a42eba73225e0b8d809071b68d",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v13/good_to_bad_prospective_02/capture/cells/a71__favorable_stable/profiler/ue.profile.jsonl": "7367ab6e674edd8531d3601496ade921df44ced8cab835fec393fa6d519d733a",
+  "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v14/bad_to_good_prospective_02/capture/cells/a71__favorable_stable/profiler/ue.profile.jsonl": "af9720fa72069e78ac8febc4ed86211441e0615533613d775fb025592c68b9ab"
+ },
+ "limit_bytes": 524288000,
+ "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+ "schema": "splitfusion.grouped_shapley.closeout.v1",
+ "scope": "CPU actor interpretation only; no live/GPU/training/production/evidence mutation",
+ "start_available_disk_bytes": 14324477952,
+ "start_utc": "2026-10-12T06:37:03+00:00",
+ "storage_note": "No cleanup, deletion or archiving. Filesystem headroom change also reflects other host activity. Manifest excludes its own hash/size.",
+ "total_artifact_bytes_before_manifest": 32404152,
+ "utc": "2026-10-12T07:00:29.875510+00:00",
+ "visual_inspection": "All six final PNGs inspected; first draft label clipping and legend collision corrected in final render; no attribution rerun.",
+ "weights_sha256": "bb9b0d256de79b4498cd622e1daa59edcf43ff3072dc9f675b265aac579ed3ce"
+}

@@ -1,0 +1,43 @@
+{
+  "both_endpoints_use_mode_11": true,
+  "figures": [
+    {
+      "pdf": "01_what_influences_agent.pdf",
+      "pixels": [
+        3840,
+        2160
+      ],
+      "png": "01_what_influences_agent.png",
+      "text_bounds": "PASS"
+    },
+    {
+      "pdf": "02_four_q_examples.pdf",
+      "pixels": [
+        3840,
+        2160
+      ],
+      "png": "02_four_q_examples.png",
+      "text_bounds": "PASS"
+    }
+  ],
+  "input_and_original_sha256": {
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/attribution_01/ATTRIBUTIONS.json.gz": "5fdc231a7f2fad0c3b1469073a421ef4b661f8253f37fde95b09e625781c73c4",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/attribution_01/RESULTS.json": "1cb13950a7f0d52914f6b89fa7bb8dec5ec9be4df877d702655722be85069333",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/figures_02/01_four_condition_summary.png": "dcadce04d62040bd5a974b4e0e8a0c5d9fb2cb78790091ae2dc206b09dd4d794",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/figures_02/02_M3_1_timeline.png": "e91624e751f12742e771fbe2b19b40c30937b82d3d9893fb81cec251937d78fc",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/figures_02/03_M3_2_timeline.png": "1788929cd2524c9477f5fdc3c0eb11553bf019d28531685122317f1477e5ec0d",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/figures_02/04_M3_3_timeline.png": "5d1adeee6b9659c1d80b79459e544c4fc914cc15dbf5b150adeb504ea06e29de",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/figures_02/05_M3_4_timeline.png": "0d5399ebe07cd8e17fda991a440052fceba2edf32901c22b9af9115692009837",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/figures_02/06_waterfall_examples.png": "f24944bbfc2ea74ae5e55af4e01f76fa43f0e5171b90755200c694447c2adc05",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/render.py": "1c082b9b68bc95318fdc1e10e101395070915a53420db55088d31f893d4ad040",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/selection_01/RECORDED_STATES.json": "3c78ff98e2f5002ccb5c9e45de74a7423162df3206c5a7e943ccf8bb9850b275",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m3_grouped_shapley_v1/selection_01/SELECTION.json": "4a41b9439a42e38672d7f5e59467cbfd54ed79daeadc3504edf5c4b921e2b774"
+  },
+  "max_case_reconstruction_error": 0.0,
+  "new_actor_queries": 0,
+  "q_at_both_endpoints_matches_executed_action": true,
+  "sources_unchanged": true,
+  "status": "PASS",
+  "summary_rows_checked": 24,
+  "waterfalls_checked": 4
+}

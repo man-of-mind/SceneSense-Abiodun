@@ -1,0 +1,328 @@
+{
+  "status": "PASS",
+  "browser": "133.0.6943.16",
+  "conditions": "Actual rAF 1x replay; side-by-side video at 2880x1240. Standalone timing at 1440x1100, no video. Software rendering; host-specific, not live qualification.",
+  "comparisons": [
+    {
+      "name": "departure",
+      "samples": 178,
+      "frame_interval_ms": {
+        "n": 177,
+        "mean": 22.880790960452007,
+        "p50": 16.700000000000273,
+        "p95": 33.40000000000009,
+        "max": 50
+      },
+      "clock_difference_ms": {
+        "n": 178,
+        "mean": 0.052808988767394746,
+        "p50": 0.09999999999809006,
+        "p95": 0.10000000000582077,
+        "max": 0.20000000000436557
+      },
+      "before": {
+        "mean_shown": 21.921348314606742,
+        "mean_raw_current": 36.758426966292134,
+        "mean_consolidated": 0,
+        "mean_building_withheld": 0,
+        "mean_uncertainty_diamonds": 0,
+        "step_m": {
+          "n": 3481,
+          "mean": 0.1979661657017734,
+          "p50": 0.11444358734957712,
+          "p95": 0.6798800401770502,
+          "max": 1.4551745373705625
+        },
+        "second_difference_m": {
+          "n": 3243,
+          "mean": 0.14939833013965037,
+          "p50": 0.0783109213887117,
+          "p95": 0.5710893214586362,
+          "max": 1.5620848088022286
+        },
+        "appearances": 421,
+        "disappearances": 406,
+        "ego_distance_m": 22.942139823439533
+      },
+      "after": {
+        "mean_shown": 22.06741573033708,
+        "mean_raw_current": 36.758426966292134,
+        "mean_consolidated": 0,
+        "mean_building_withheld": 0,
+        "mean_uncertainty_diamonds": 0.8146067415730337,
+        "step_m": {
+          "n": 3515,
+          "mean": 0.13623779924207213,
+          "p50": 0.08167692859141736,
+          "p95": 0.46716531926330507,
+          "max": 1.274538514637827
+        },
+        "second_difference_m": {
+          "n": 3299,
+          "mean": 0.10050349345229924,
+          "p50": 0.05138565010364893,
+          "p95": 0.3861813954285394,
+          "max": 1.1148068887910931
+        },
+        "appearances": 413,
+        "disappearances": 398,
+        "ego_distance_m": 22.407157956356063
+      }
+    },
+    {
+      "name": "turn",
+      "samples": 571,
+      "frame_interval_ms": {
+        "n": 570,
+        "mean": 21.11017543859649,
+        "p50": 16.700000000000728,
+        "p95": 33.400000000001455,
+        "max": 66.59999999999945
+      },
+      "clock_difference_ms": {
+        "n": 571,
+        "mean": 0.04605954465930652,
+        "p50": 1.8189894035458565e-12,
+        "p95": 0.10000000000218279,
+        "max": 0.20000000000254659
+      },
+      "before": {
+        "mean_shown": 30.600700525394046,
+        "mean_raw_current": 42.711033274956215,
+        "mean_consolidated": 0,
+        "mean_building_withheld": 0,
+        "mean_uncertainty_diamonds": 0,
+        "step_m": {
+          "n": 16330,
+          "mean": 0.1519312887076826,
+          "p50": 0.0850179553660113,
+          "p95": 0.5145242066212022,
+          "max": 2.001175938637478
+        },
+        "second_difference_m": {
+          "n": 15925,
+          "mean": 0.10268552310672871,
+          "p50": 0.04492012473126349,
+          "p95": 0.42900540102018436,
+          "max": 1.7425070233108477
+        },
+        "appearances": 1143,
+        "disappearances": 1121,
+        "ego_distance_m": 29.08226618008325
+      },
+      "after": {
+        "mean_shown": 30.416812609457093,
+        "mean_raw_current": 42.711033274956215,
+        "mean_consolidated": 0.2276707530647986,
+        "mean_building_withheld": 0.21015761821366025,
+        "mean_uncertainty_diamonds": 0.3134851138353765,
+        "step_m": {
+          "n": 16296,
+          "mean": 0.09247008043474451,
+          "p50": 0.04781627087683971,
+          "p95": 0.33541734230718434,
+          "max": 1.3994765648072585
+        },
+        "second_difference_m": {
+          "n": 15959,
+          "mean": 0.06329460884819241,
+          "p50": 0.02604822262380217,
+          "p95": 0.2552573405220788,
+          "max": 1.2131290576943514
+        },
+        "appearances": 1072,
+        "disappearances": 1050,
+        "ego_distance_m": 29.036692540437286
+      }
+    },
+    {
+      "name": "stop",
+      "samples": 287,
+      "frame_interval_ms": {
+        "n": 286,
+        "mean": 21.09475524475524,
+        "p50": 16.700000000000728,
+        "p95": 33.400000000001455,
+        "max": 50.10000000000218
+      },
+      "clock_difference_ms": {
+        "n": 287,
+        "mean": 0.0459930313589129,
+        "p50": 3.637978807091713e-12,
+        "p95": 0.10000000000218279,
+        "max": 0.2000000000007276
+      },
+      "before": {
+        "mean_shown": 19.89198606271777,
+        "mean_raw_current": 51.97560975609756,
+        "mean_consolidated": 0,
+        "mean_building_withheld": 0,
+        "mean_uncertainty_diamonds": 0,
+        "step_m": {
+          "n": 5344,
+          "mean": 0.09583655296501233,
+          "p50": 0.03837446656128924,
+          "p95": 0.3775683485118134,
+          "max": 1.5018197488299336
+        },
+        "second_difference_m": {
+          "n": 5198,
+          "mean": 0.0657622757264045,
+          "p50": 0.020425360222432132,
+          "p95": 0.2984223647895776,
+          "max": 1.2734082267612346
+        },
+        "appearances": 365,
+        "disappearances": 335,
+        "ego_distance_m": 0
+      },
+      "after": {
+        "mean_shown": 19.5609756097561,
+        "mean_raw_current": 51.97560975609756,
+        "mean_consolidated": 0.9512195121951219,
+        "mean_building_withheld": 0,
+        "mean_uncertainty_diamonds": 1.6062717770034842,
+        "step_m": {
+          "n": 5275,
+          "mean": 0.04595702488666041,
+          "p50": 0.014610559461524305,
+          "p95": 0.20896224627788562,
+          "max": 1.3687548520272954
+        },
+        "second_difference_m": {
+          "n": 5140,
+          "mean": 0.032105130028026264,
+          "p50": 0.008723224052008345,
+          "p95": 0.14293190778350692,
+          "max": 0.875071065208408
+        },
+        "appearances": 339,
+        "disappearances": 310,
+        "ego_distance_m": 0
+      }
+    },
+    {
+      "name": "interruption",
+      "samples": 125,
+      "frame_interval_ms": {
+        "n": 88,
+        "mean": 21.780681818181787,
+        "p50": 16.69999999999709,
+        "p95": 33.400000000001455,
+        "max": 50
+      },
+      "clock_difference_ms": {
+        "n": 125,
+        "mean": 0.054399999998568094,
+        "p50": 7.275957614183426e-12,
+        "p95": 0.19999999998981366,
+        "max": 0.19999999999708962
+      },
+      "before": {
+        "mean_shown": 11.4,
+        "mean_raw_current": 58.928,
+        "mean_consolidated": 0,
+        "mean_building_withheld": 0,
+        "mean_uncertainty_diamonds": 0,
+        "step_m": {
+          "n": 1375,
+          "mean": 0.053814630614618386,
+          "p50": 0,
+          "p95": 0.2906100634790461,
+          "max": 1.2130717469237962
+        },
+        "second_difference_m": {
+          "n": 1329,
+          "mean": 0.04004065397347003,
+          "p50": 7.105427357601002e-15,
+          "p95": 0.22270238028279676,
+          "max": 1.1309357235406556
+        },
+        "appearances": 50,
+        "disappearances": 50,
+        "ego_distance_m": 0
+      },
+      "after": {
+        "mean_shown": 11.888,
+        "mean_raw_current": 58.928,
+        "mean_consolidated": 0.216,
+        "mean_building_withheld": 0,
+        "mean_uncertainty_diamonds": 0.232,
+        "step_m": {
+          "n": 1441,
+          "mean": 0.030857678205811305,
+          "p50": 0.003647321972317558,
+          "p95": 0.1589310552320396,
+          "max": 0.7141513893355923
+        },
+        "second_difference_m": {
+          "n": 1398,
+          "mean": 0.02088176100577968,
+          "p50": 0.0009998953037170107,
+          "p95": 0.10975439576557659,
+          "max": 0.7090493201968767
+        },
+        "appearances": 45,
+        "disappearances": 45,
+        "ego_distance_m": 0
+      }
+    }
+  ],
+  "standalone": {
+    "frame_ms": {
+      "n": 600,
+      "mean": 16.66583333333333,
+      "p50": 16.699999999999818,
+      "p95": 16.700000000000728,
+      "max": 16.80000000000109
+    },
+    "render_cpu_ms": {
+      "n": 600,
+      "mean": 1.5934999879201253,
+      "p50": 1.5,
+      "p95": 2.6999998092651367,
+      "max": 5.600000381469727
+    },
+    "churn": {
+      "created": 438,
+      "backend_id_changes": 802
+    },
+    "motion": {
+      "created": 438,
+      "resets": 3,
+      "reacquired": 118,
+      "updates": 3525,
+      "corrections": {
+        "n": 3525,
+        "mean": 0.4698724546348531,
+        "p50": 0.3445049492810186,
+        "p95": 1.3171875345967112,
+        "max": 2.409897579025032
+      },
+      "innovations": {
+        "n": 3525,
+        "mean": 0.8754901878139916,
+        "p50": 0.6416588391391499,
+        "p95": 2.5394461130414925,
+        "max": 4.12198197589904
+      },
+      "filterOffsets": {
+        "n": 3525,
+        "mean": 0.5206019778788102,
+        "p50": 0.3804558708598147,
+        "p95": 1.52366766782489,
+        "max": 2.473189185539419
+      },
+      "correctionClips": 0
+    }
+  },
+  "added_input_buffer_ms": 0,
+  "continuity_bridge_ms": 100,
+  "expiry_ms": 750,
+  "horizon_ms": 500,
+  "strict_visibility_unchanged": true,
+  "raw_access": true,
+  "seek_deterministic": true,
+  "page_errors": [],
+  "external_requests": 0
+}

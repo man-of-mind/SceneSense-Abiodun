@@ -1,0 +1,23 @@
+{
+  "command": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "-u",
+    "CUDA_VISIBLE_DEVICES",
+    "-u",
+    "LD_PRELOAD",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "python3",
+    "-B",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/launch.py",
+    "preflight"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "end_wall_s": 1791945576.28615,
+  "returncode": 0,
+  "start_wall_s": 1791945573.2458622
+}

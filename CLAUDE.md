@@ -355,6 +355,65 @@ Static-mode v13 BATCH 3 LIVE (2026-10-09, mode10/07/00/06/04/09/05, 1 attempt ea
 timely; agent best (479/493 at 117 kB) then m11 q0 (453 at 234 kB). Feedback<=170 separate (agent 390, m11 304, m10 47, m8 30, m9 8,
 rest 0). m9/m7 deadline-aware = UPPER_BOUND (GT unknown on failed decisions). Sessions differ -> descriptive only. 26.48 GB free,
 host clean. Final: `experiments/splitfusion_static_modes_v13/campaign_report_05/REPORT.md` (04 = same data, bad plot layout).
+M3.5 V15 operating-range screen, constant 12.0 dB (2026-10-12, ONE capture): `experiments/splitfusion_m3_route_b_v15/LIVE_CAPTURE_REPORT.md`,
+pkgs `rl_agent/splitfusion_m3_route_b_v15{,_offline_v1,_analysis}` = V12 copy, anchor 07 (RFsim -6.0, MCS 15), state idx 1 label only,
+compared field-by-field vs V11. Integration PASS 24/24, rc 0, 301/301, fidelity F1-F5 MATCH (PUSCH 11.5/12.0/12.0). Feedback<=170
+1,174/1,489 = 0.788 (Wilson 0.767-0.808) -> >=80% screen NOT MET; prediction<=170 0.987; 291/315 late had both inputs ready (~23 ms
+tail). End-of-route stall (dec 1483-1487: FREEZE 518 ms, 1 NO_GT_FREEZE_QUEUE_FULL; not GC; cause not investigated). Vehicle seg IoU
+0.724 / prec 0.888 lowest of V11/V15/V12. Recommended next 14 dB (not launched). Disk 11.5 GB < 16-GiB gate.
+M3.6 V16 constant 14.0 dB (2026-10-12, ONE capture): `experiments/splitfusion_m3_route_b_v16/LIVE_CAPTURE_REPORT.md`, pkgs
+`rl_agent/splitfusion_m3_route_b_v16{,_offline_v1,_analysis}` = V15 copy, anchor 06 (RFsim -7.0, MCS 16). Integration PASS 24/24,
+rc 0, 301/301, 1,491/1,491 SCORED + exact rescore, fidelity MATCH (PUSCH 13.0/14.0/14.0; 53 retx, 0 errors). Feedback<=170
+1,112/1,491 = 0.746 (Wilson 0.723-0.767) -> NOT MET, below 12 dB's 0.788 (session/scene dominates the 2-dB step; 0.81-0.90 first
+180 s, 0.48-0.77 after); 348/379 late had both inputs ready (~23 ms tail). No GC stop. Quality-undefined decisions are SCORED with
+zero eligible GT (not missing GT) in V11/V12/V15/V16. Deadline-aware boundary = feedback received at UE <=170 ms. Disk 12.58 GB < gate.
+M3 low-SNR repeatability (2026-10-12, 4 sessions planned, order 14/12/12/14 seed 20261012): STOPPED FOR REVIEW after S1
+(`experiments/splitfusion_m3_low_snr_repeatability_v1/STOP_FOR_REVIEW.md`). Reused unchanged V15/V16 packages with new
+create-only roots (only numeric_run_binding differs). S1 14 dB INCOMPLETE_ROUTE (244/301, 1,179 decisions): prep FREEZE hit the
+registered tilt-AVO fail-closed (person target 106 pitch 3.7/roll 7.6 deg, footprint 0.037 > 0.03 m) -> GT service closed ->
+UE channel reset. S2-S4 prepared+startup-verified, NOT launched. 37.9 GB free. Low endpoint still inconclusive; decision pending.
+GT geometry-refusal containment v1 (2026-10-12, OFFLINE, READY_FOR_INDEPENDENT_OFFLINE_REVIEW; not registered/deployed):
+`experiments/splitfusion_gt_geometry_containment_v1/REPORT.md` + HANDOFF.md, pkg `rl_agent/splitfusion_gt_geometry_containment_v1/`.
+Only the two envelope refusals (typed: exact type, code-identity raise path assemble->numeric_avo->score->_envelope,
+diagnostics schema, message integrity) become per-frame NO_GT_DEFERRAL_REFUSED_GT_GEOMETRY_ENVELOPE_{TARGET,POSSIBLE_COMPETITOR}
+via the existing BIND-refusal path -> edge GROUND_TRUTH_UNAVAILABLE; owner rollback verified; everything else fatal as before.
+S1 frame 6146 (seq 1176) AVO-step replay verbatim; engine 11/11 (49 upright exact, 43 successive refusals no history advance);
+real service 22/22 (14 refusals, 20 valid exact, fd flat, bbox corruption still fatal + V7 snapshot); tests 14/14.
+Timely refusal -> EVALUATOR_FAULT/session break (CLEARED); late -> TIMEOUT. Fast refusal counts in the unchanged screen:
+report scored_feedback_le170 + coverage separately (metrics.py). Fixed defect: traceback cycle kept views exported (BufferError).
+Correction 01 (review_v1 HOLD -> fixed, READY_FOR_INDEPENDENT_OFFLINE_REVIEW): `.../CORRECTION_01.md` + HANDOFF_02.md. Prep stack
+now = V16 (accounting V3.v2 session+timer+capability refusal) -> V8 tilt AVO -> V7 lifetime -> containment -> V4/V3; contract on V16
+gc_registration. Refused-frame bind now runs the same owner bind_plan / anchor / admission(+P3 pose) checks as a normal frame
+(17-mutation differential incl. review counterexamples). review_rerun_01 PROBES_PASS 5/5; engine_02 12/12; service_02 27/27
+(accounting active, exact per-caller counts, identical to V16 control). Replay covers all policy decisions; rescore = SCORED only.
+M3 repeat v2 WITH containment (2026-10-12): `experiments/splitfusion_m3_low_snr_repeatability_v2/STOP_FOR_REVIEW.md`. Pkgs
+`rl_agent/splitfusion_m3_route_b_v17` (14 dB = V16 + reviewed containment GT stack) / `_v18` (12 dB = v17 + V16->V15 patch, audited).
+R1 14 dB PASS (screen 1215/1524 = 0.797 NOT met; scored-timely 0.793; 6 contained geometry refusals). R2 12 dB INCOMPLETE_ROUTE:
+route runner rc 1 (FATAL_ROUTE_RUNNER_FAILURE, density FAIL, 3 collision incidents) -> stopped; R3/R4 not launched. Decision pending.
+Edge container lacks scipy: never import GT-producer code from contract functions the edge calls (gc_registration).
+Live spatial-map viewer + V20 supervised GOOD_ALL demo (2026-10-12, ONE run): `experiments/splitfusion_m3_route_b_v20/REPORT.md`.
+Viewer `spatial_map_coop/replay_ui_v1/README_LIVE.md` (server `--live-root`, /live; camera panel hidden live; replay unchanged).
+Display-only taps `rl_agent/splitfusion_live_view_tap_v1` (map post-install copy w/ producer yaw pair; UE pose-evidence copy;
+bounded put_nowait) in V20 = V19 stack + sealed V11 GOOD_ALL schedule (channel byte-identical to V11). rc 0, ROUTE_COMPLETED,
+retention PASS, but registered verdict STOP: only P0_POLICY_COVERAGE 0.843 < 0.95 (MCS-missing 249 + stale camera_si 57
+fallbacks); timely 0.630 vs V19 0.895. Host load1 P50 17.2 vs ~11 (viewer+recorder ~1.5 CPUs; on-host Firefox ~54% GPU SM)
+-> viewing contaminated the run; watch remotely / recorder off-host for M4. Viewer: 3,576/3,576 frames pose-bound, exact
+heading joins, 0 drops. Disk 13.50 GB < 16-GiB gate.
+M4 two-UE instrumented smoke (2026-10-13, ONE attempt): `experiments/splitfusion_m4_two_ue_v1/instrumented_smoke_20261013_01/SMOKE_RESULT.json`
+(capture `../abiodun_run4_single_gpu_profiler_v1/.../smoke_live_20261013_05`; new `phases.py` = PHASES.jsonl/FIRST_FAILURE.json/FAULTHANDLER.log;
+prep `preparation_smoke_20261013_08`, 718 sources). Startup now reaches edge READY, but world tick 1 fails `duplicate owned pose`: TickOwner calls
+wait_for_sensor_frame then on_world_tick, and retained live_gt on_world_tick calls it again (frontend.py:176). 0 frames per UE. Native SIGABRT recurred
+in teardown.carla: faulthandler shows only MainThread in stop_carla post-SIGTERM sleep (cause not established); processes stage not reached -> owned recovery clean.
+M4 lifecycle repair + smoke 06 (2026-10-13, ONE attempt): `experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/SMOKE_RESULT.json`.
+TickOwner now calls on_world_tick only (SamplingWorld parity; real-chain regression in composed_checks, fails on old TickOwner). New `supervisor.py`:
+`cli smoke/capture` = carla-free parent, client = `supervised-child`, parent records real exit + ownership-checked recover + certified CARLA stop.
+Live: 6 ticks, one pose per source/frame 45-49; child finished all teardown, no abort this run; cleanup verified. FAIL at first send:
+both sources touch(exist_ok=False) the SAME pre-written `TARGET_STARTED.json` (host.py campaign_for `_target_start_file`). 0 sent per UE. Not repaired.
+M4 first-send marker repair + smoke 07 (2026-10-13, ONE attempt): `experiments/splitfusion_m4_two_ue_v1/first_send_marker_repair_20261013_01/SMOKE_RESULT.json`.
+host.first_send_marker = <capture>/<stream>/first_send_target_start (not pre-created; retained exclusive touch kept); real first-send regression in
+composed_checks. FIRST TWO-UE SMOKE PASS: child 0 / parent 0, gates both true, cleanup verified, no abort. Per UE sent 208/208 (same frame IDs, 0
+foreign records), completed = map-installed 29/26, timeouts 178/180, capture->ACK P50 367/390 ms, 0 within 170 ms (most STALE_BEFORE_EDGE at the
+shared edge; not diagnosed). Analyzer offered/sent=0 because M4 does not persist per_frame_metrics.csv.
 Live target collection and prediction/confidence preservation now have tested additive wiring; deployment and live qualification remain;
 then controlled channel response, good-network map checks, two UEs, and finally occlusion alerts.
 Diagnose the Run-4/Run-5 comparison before retraining. Keep quality in state/reward and inside the 170-ms clock.

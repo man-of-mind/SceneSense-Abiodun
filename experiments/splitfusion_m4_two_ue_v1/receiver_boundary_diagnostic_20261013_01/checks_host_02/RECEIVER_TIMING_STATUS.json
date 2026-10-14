@@ -1,0 +1,17 @@
+{
+  "counters": {
+    "attempted": 61,
+    "enqueued": 61,
+    "written": 61,
+    "timestamp_OK": 21,
+    "receiver_instrumentation_ns": 390355,
+    "timestamp_ANCILLARY_TRUNCATED": 1,
+    "timestamp_MISSING": 1
+  },
+  "errors": [],
+  "writer_alive": false,
+  "queue_peak": 15,
+  "producer_wall_ns": 317773,
+  "producer_max_wall_ns": 15305,
+  "clock_pair": "RAW before / REALTIME / RAW after on each recvmsg; no substitution for missing kernel stamps"
+}

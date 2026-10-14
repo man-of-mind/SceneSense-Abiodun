@@ -1,0 +1,23 @@
+{
+  "command": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "python3",
+    "-B",
+    "-m",
+    "rl_agent.splitfusion_m4_two_ue_v1.cli",
+    "prepare",
+    "--output",
+    "experiments/splitfusion_m4_two_ue_v1/instrumented_smoke_20261013_01/main_preparation"
+  ],
+  "cwd": ".",
+  "end_wall_s": 1791880908.321012,
+  "returncode": 0,
+  "start_wall_s": 1791880907.1923466
+}

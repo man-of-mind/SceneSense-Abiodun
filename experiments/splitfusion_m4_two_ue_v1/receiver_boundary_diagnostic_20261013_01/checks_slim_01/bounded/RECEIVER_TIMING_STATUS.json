@@ -1,0 +1,14 @@
+{
+  "counters": {
+    "attempted": 7,
+    "enqueued": 2,
+    "dropped_limit": 5,
+    "written": 2
+  },
+  "errors": [],
+  "writer_alive": false,
+  "queue_peak": 2,
+  "producer_wall_ns": 17468,
+  "producer_max_wall_ns": 11663,
+  "clock_pair": "RAW before / REALTIME / RAW after on each recvmsg; no substitution for missing kernel stamps"
+}

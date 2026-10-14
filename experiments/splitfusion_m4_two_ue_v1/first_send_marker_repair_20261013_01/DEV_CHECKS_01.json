@@ -1,0 +1,16 @@
+{
+  "checks": {
+    "previous_shared_wiring_reproduces_live_error": {
+      "m4-ue0:101": "FileExistsError(17, 'File exists')",
+      "m4-ue0:103": "FileExistsError(17, 'File exists')",
+      "m4-ue1:101": "FileExistsError(17, 'File exists')",
+      "m4-ue1:103": "FileExistsError(17, 'File exists')"
+    },
+    "real_first_send_and_tick_chain_tests": [
+      "test_real_first_send_marker_per_source",
+      "test_real_collector_chain_one_pose_per_source_frame"
+    ]
+  },
+  "root": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+  "status": "PASS"
+}

@@ -1,0 +1,734 @@
+{
+  "status": "PASS",
+  "native": {
+    "status": "PASS",
+    "struct_bytes": 4736,
+    "empty_scope_ns": 305.018,
+    "wait_wall_ns": 20243143,
+    "wait_cpu_ns": 50044,
+    "busy_cpu_ns": 5000439,
+    "reader": "PASS",
+    "tcp_peer_ports": [
+      51895,
+      57566
+    ]
+  },
+  "old_clock": {
+    "0": {
+      "ticks": 8180,
+      "min_slot_step": 1,
+      "max_slot_step": 5,
+      "min_wall_step_ns": 339000,
+      "max_wall_step_ns": 88932000,
+      "radio_per_wall": 0.08537609092138444,
+      "backward_clock_steps": 0,
+      "unwrapping": "20 slots per 10-ms NR frame; SFN wrap adds 20480 slots, not wall time."
+    },
+    "1": {
+      "ticks": 8184,
+      "min_slot_step": 1,
+      "max_slot_step": 5,
+      "min_wall_step_ns": 380000,
+      "max_wall_step_ns": 97901000,
+      "radio_per_wall": 0.08526865394519113,
+      "backward_clock_steps": 0,
+      "unwrapping": "20 slots per 10-ms NR frame; SFN wrap adds 20480 slots, not wall time."
+    }
+  },
+  "synthetic_wrap": [
+    20478,
+    20479,
+    20480,
+    20481
+  ],
+  "private_binding": {
+    "retained": "rl_agent.splitfusion_m4_two_ue_v1.host.run",
+    "original_sha256": "c6413dd45960b2b3c08fb1c90536d7d0b62af91986534fc468d0a5c844262d56",
+    "constructed_sha256": "bef14f265989e4ad4151beb2dfef3804937fbcbf75a5275ef4fcfda9b14bddaf",
+    "substitutions": [
+      [
+        "from .radio_runtime import AttachedRadio, GoodAll",
+        "from .radio_runtime import GoodAll\n    AttachedRadio = diagnostic_radio"
+      ]
+    ],
+    "dependencies": [
+      "diagnostic_radio"
+    ]
+  },
+  "unchanged_radio_argv_except_module_path_and_diagnostic_directory": true,
+  "source_modules_unmodified": true,
+  "compile_command": [
+    "g++",
+    "-std=c++11",
+    "-O2",
+    "-o",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/checks_02/test_native",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/native/test_native.cpp"
+  ],
+  "native_snapshot": {
+    "seq": 400016,
+    "magic": 5563161901456245041,
+    "pid": 2386502,
+    "tid": 2386502,
+    "ru": 0,
+    "role": 1,
+    "sample_rate": 122880000,
+    "mono_origin": 8582990278535380,
+    "wall_origin": 1791945406967839114,
+    "rx_ts": 1000,
+    "rx_calls": 1,
+    "overflow": 0,
+    "peers": [
+      {
+        "fd": 5,
+        "local_port": 51895,
+        "remote_port": 57566,
+        "received_ts": 100,
+        "required_ts": 150,
+        "model": "TEST_UE0",
+        "local_ip": "127.0.0.1",
+        "remote_ip": "127.0.0.1"
+      },
+      {
+        "fd": 0,
+        "local_port": 0,
+        "remote_port": 0,
+        "received_ts": 0,
+        "required_ts": 0,
+        "model": "",
+        "local_ip": "",
+        "remote_ip": ""
+      },
+      {
+        "fd": 0,
+        "local_port": 0,
+        "remote_port": 0,
+        "received_ts": 0,
+        "required_ts": 0,
+        "model": "",
+        "local_ip": "",
+        "remote_ip": ""
+      },
+      {
+        "fd": 0,
+        "local_port": 0,
+        "remote_port": 0,
+        "received_ts": 0,
+        "required_ts": 0,
+        "model": "",
+        "local_ip": "",
+        "remote_ip": ""
+      }
+    ],
+    "counters": [
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 1,
+        "wall": 5000589,
+        "cpu": 5000439,
+        "max_wall": 5000589,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 100000,
+        "wall": 28343465,
+        "cpu": 13850058,
+        "max_wall": 31681,
+        "active_wall": 0,
+        "hist": [
+          100000,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 1,
+        "wall": 20243143,
+        "cpu": 50044,
+        "max_wall": 20243143,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "count": 0,
+        "wall": 0,
+        "cpu": 0,
+        "max_wall": 0,
+        "active_wall": 0,
+        "hist": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  }
+}

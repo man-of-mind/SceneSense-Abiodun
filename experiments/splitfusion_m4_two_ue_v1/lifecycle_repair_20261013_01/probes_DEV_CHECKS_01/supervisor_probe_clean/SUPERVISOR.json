@@ -1,0 +1,133 @@
+{
+  "child_argv": [
+    "/usr/bin/python3",
+    "-B",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/fake_child.py",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/probes_DEV_CHECKS_01/supervisor_probe_clean",
+    "clean"
+  ],
+  "child_ended_wall_s": 1791881886.6759946,
+  "child_exit": {
+    "native_fault": false,
+    "returncode": 0
+  },
+  "child_pid": 1492461,
+  "child_records": {
+    "CLEANUP.json": true,
+    "FIRST_FAILURE.json": false,
+    "ORIGINAL_FAILURE.json": false,
+    "RUN_RESULT.json": true,
+    "SMOKE.json": true
+  },
+  "cleanup": {
+    "carla": {
+      "certificate": true,
+      "members_after": [],
+      "members_before": [],
+      "pgid": 1492463,
+      "rpc_port_listening": false,
+      "stopped": true
+    },
+    "lock": "HELD",
+    "owned_after": [
+      {
+        "name": "fake_radio",
+        "pid": 1492462,
+        "still_owned": false
+      }
+    ],
+    "recover": {
+      "active_parent": false,
+      "carla_remaining": [],
+      "executed": true,
+      "normal_cleanup": "host.run finally: both collectors -> edge -> both GT -> map -> radio restore -> owned processes",
+      "owned_processes": [
+        {
+          "argv": [
+            "sleep",
+            "300"
+          ],
+          "birth": "851946966",
+          "group": true,
+          "name": "fake_radio",
+          "pgid": 1492462,
+          "pid": 1492462,
+          "still_owned": false
+        }
+      ],
+      "remaining": [
+        {
+          "argv": [
+            "sleep",
+            "300"
+          ],
+          "birth": "851946966",
+          "group": true,
+          "name": "fake_radio",
+          "pgid": 1492462,
+          "pid": 1492462,
+          "still_owned": false
+        }
+      ]
+    },
+    "verified": true
+  },
+  "finished_wall_s": 1791881886.6983974,
+  "first_failure": null,
+  "forwarded_signals": [],
+  "last_phase_markers": [
+    {
+      "event": "ENTER",
+      "monotonic_ns": 8519469973741201,
+      "phase": "teardown.processes",
+      "pid": 1492461,
+      "seq": 6,
+      "stage": "teardown",
+      "thread": "MainThread",
+      "wall_ns": 1791881886663044806
+    },
+    {
+      "event": "DONE",
+      "monotonic_ns": 8519469982148488,
+      "phase": "teardown.processes",
+      "pid": 1492461,
+      "seq": 7,
+      "stage": "teardown",
+      "thread": "MainThread",
+      "wall_ns": 1791881886671451337
+    },
+    {
+      "event": "EVENT",
+      "monotonic_ns": 8519469982376242,
+      "phase": "process.atexit",
+      "pid": 1492461,
+      "seq": 8,
+      "thread": "MainThread",
+      "threads": [
+        {
+          "daemon": false,
+          "name": "MainThread"
+        }
+      ],
+      "wall_ns": 1791881886671679772
+    }
+  ],
+  "original_failure": null,
+  "parent_imports_carla": false,
+  "parent_imports_torch": false,
+  "phases_entered_not_closed": [],
+  "reasons": [],
+  "run_result": {
+    "cleanup_failures": [],
+    "error": null,
+    "returncode": 0,
+    "status": "SMOKE_ONLY"
+  },
+  "schema": "splitfusion.m4.supervised_attempt.v1",
+  "smoke": {
+    "pass_": true
+  },
+  "started_wall_s": 1791881886.3296063,
+  "verdict": "PASS"
+}

@@ -1,0 +1,334 @@
+{
+  "agent": {
+    "capture_origin_wall_s": 1791568909.64319,
+    "decisions": 493,
+    "duration_s": 122.57177662849426,
+    "feedback_kinds": {
+      "DELIVERED_SUCCESS": 459,
+      "EVALUATOR_FAULT": 34
+    },
+    "feedback_missing": 0,
+    "feedback_ms": {
+      "n": 493,
+      "p50": 158.307333,
+      "p95": 188.5100084,
+      "p99": 229.01123655999962
+    },
+    "feedback_timely": 390,
+    "gt_coverage": {
+      "LATE|MEASURED": 14,
+      "TIMELY|MEASURED": 479
+    },
+    "initial_no_map_s": 0.2192366123199463,
+    "inter_install_gaps_over_500ms": 0,
+    "label": "Agent",
+    "map_aoi_fraction_above_500ms": 0.0,
+    "map_aoi_s": {
+      "p50": 0.2511819089467615,
+      "p99": 0.3568443304842165
+    },
+    "map_install_age_ms": {
+      "n": 1000,
+      "p50": 188.1546974182129,
+      "p95": 224.41819906234738,
+      "p99": 262.52162218093866
+    },
+    "map_installs": 1000,
+    "max_inter_install_gap_s": 0.27349400520324707,
+    "payload_bytes": {
+      "n": 1000,
+      "p50": 117275.5,
+      "p95": 154935.55,
+      "p99": 165525.31
+    },
+    "prediction_counts": {
+      "LATE": 14,
+      "TIMELY": 479
+    },
+    "prediction_ms": {
+      "n": 493,
+      "p50": 134.011624,
+      "p95": 164.1571142,
+      "p99": 203.9592949199997
+    },
+    "quality": {
+      "person": {
+        "precision_all": 0.611353711790393,
+        "precision_timely": 0.6083995459704881,
+        "recall_all": {
+          "d": 702,
+          "n": 399,
+          "value": 0.5683760683760684
+        },
+        "recall_deadline": {
+          "bound": "EXACT",
+          "d": 702,
+          "n": 381,
+          "value": 0.5427350427350427
+        },
+        "seg_bound": "EXACT",
+        "seg_evaluable": "493/493",
+        "seg_iou_all": 0.4874058380414313,
+        "seg_iou_deadline": 0.4737140620834775
+      },
+      "vehicle": {
+        "precision_all": 0.8984547461368654,
+        "precision_timely": 0.8978433598183881,
+        "recall_all": {
+          "d": 906,
+          "n": 587,
+          "value": 0.6479028697571744
+        },
+        "recall_deadline": {
+          "bound": "EXACT",
+          "d": 906,
+          "n": 573,
+          "value": 0.6324503311258278
+        },
+        "seg_bound": "EXACT",
+        "seg_evaluable": "493/493",
+        "seg_iou_all": 0.768664521933691,
+        "seg_iou_deadline": 0.7333087404786873
+      }
+    },
+    "radio_mcs": {
+      "n": 17269,
+      "p50": 26.0,
+      "p95": 27.0,
+      "p99": 27.0
+    },
+    "radio_rows": 17269,
+    "radio_snr_db": {
+      "n": 17269,
+      "p50": 21.0,
+      "p95": 23.5,
+      "p99": 24.0
+    },
+    "scene_observations": 493,
+    "trailing_no_install_s": 0.08057761192321777,
+    "transmitted_frames": 1000
+  },
+  "mode03": {
+    "capture_origin_wall_s": 1791570794.2644842,
+    "decisions": 500,
+    "duration_s": 123.71895933151245,
+    "feedback_kinds": {
+      "DELIVERED_SUCCESS": 4,
+      "NO_RECORDED_RECEIPT": 496
+    },
+    "feedback_missing": 496,
+    "feedback_ms": {
+      "n": 4,
+      "p50": 458.66310999999996,
+      "p95": 494.86075795,
+      "p99": 495.81126439
+    },
+    "feedback_timely": 0,
+    "gt_coverage": {
+      "LATE|MEASURED": 4,
+      "NONE|MISSING": 319,
+      "NONE|OBJECTS_ONLY": 177
+    },
+    "initial_no_map_s": 0.463763952255249,
+    "inter_install_gaps_over_500ms": 0,
+    "label": "AE128 / 8-bit",
+    "map_aoi_fraction_above_500ms": 0.9992138224858913,
+    "map_aoi_s": {
+      "p50": 61.69105780124664,
+      "p99": 122.08610353708266
+    },
+    "map_install_age_ms": {
+      "n": 4,
+      "p50": 470.2415466308594,
+      "p95": 495.20851373672485,
+      "p99": 498.1236958503723
+    },
+    "map_installs": 4,
+    "max_inter_install_gap_s": 0.17619061470031738,
+    "payload_bytes": {
+      "n": 1000,
+      "p50": 2339133.5,
+      "p95": 2368145.5,
+      "p99": 2379267.08
+    },
+    "prediction_counts": {
+      "LATE": 4,
+      "NONE": 496
+    },
+    "prediction_ms": {
+      "n": 4,
+      "p50": 429.276517,
+      "p95": 469.7055683,
+      "p99": 471.59436325999997
+    },
+    "quality": {
+      "person": {
+        "precision_all": null,
+        "precision_timely": null,
+        "recall_all": {
+          "d": 0,
+          "n": 0,
+          "value": null
+        },
+        "recall_deadline": {
+          "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+          "d": 246,
+          "n": 0,
+          "value": 0.0
+        },
+        "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+        "seg_evaluable": "4/500",
+        "seg_iou_all": null,
+        "seg_iou_deadline": null
+      },
+      "vehicle": {
+        "precision_all": 1.0,
+        "precision_timely": null,
+        "recall_all": {
+          "d": 14,
+          "n": 11,
+          "value": 0.7857142857142857
+        },
+        "recall_deadline": {
+          "bound": "EXACT_ZERO_NO_TIMELY_PREDICTION",
+          "d": 392,
+          "n": 0,
+          "value": 0.0
+        },
+        "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+        "seg_evaluable": "4/500",
+        "seg_iou_all": 0.8349328214971209,
+        "seg_iou_deadline": 0.0
+      }
+    },
+    "radio_mcs": {
+      "n": 83501,
+      "p50": 26.0,
+      "p95": 27.0,
+      "p99": 27.0
+    },
+    "radio_rows": 83501,
+    "radio_snr_db": {
+      "n": 83501,
+      "p50": 21.5,
+      "p95": 23.5,
+      "p99": 24.0
+    },
+    "scene_observations": 31,
+    "trailing_no_install_s": 122.81980299949646,
+    "transmitted_frames": 1000
+  },
+  "mode09": {
+    "capture_origin_wall_s": 1791573961.24927,
+    "decisions": 500,
+    "duration_s": 129.85672760009766,
+    "feedback_kinds": {
+      "DELIVERED_SUCCESS": 435,
+      "EVALUATOR_FAULT": 41,
+      "NO_RECORDED_RECEIPT": 24
+    },
+    "feedback_missing": 24,
+    "feedback_ms": {
+      "n": 476,
+      "p50": 202.644593,
+      "p95": 275.55996600000003,
+      "p99": 417.63144375
+    },
+    "feedback_timely": 8,
+    "gt_coverage": {
+      "LATE|MEASURED": 353,
+      "NONE|MISSING": 3,
+      "NONE|OBJECTS_ONLY": 21,
+      "TIMELY|MEASURED": 123
+    },
+    "initial_no_map_s": 0.26749229431152344,
+    "inter_install_gaps_over_500ms": 2,
+    "label": "AE32 / 8-bit",
+    "map_aoi_fraction_above_500ms": 0.05700297323833814,
+    "map_aoi_s": {
+      "p50": 0.30942062932019787,
+      "p99": 4.079735879898047
+    },
+    "map_install_age_ms": {
+      "n": 947,
+      "p50": 238.1894588470459,
+      "p95": 305.4087877273559,
+      "p99": 417.6049184799194
+    },
+    "map_installs": 947,
+    "max_inter_install_gap_s": 4.896591901779175,
+    "payload_bytes": {
+      "n": 1000,
+      "p50": 600189.5,
+      "p95": 607631.3,
+      "p99": 609888.97
+    },
+    "prediction_counts": {
+      "LATE": 353,
+      "NONE": 24,
+      "TIMELY": 123
+    },
+    "prediction_ms": {
+      "n": 476,
+      "p50": 179.1758705,
+      "p95": 245.5818275,
+      "p99": 397.3938925
+    },
+    "quality": {
+      "person": {
+        "precision_all": 0.778169014084507,
+        "precision_timely": 0.7586206896551724,
+        "recall_all": {
+          "d": 574,
+          "n": 333,
+          "value": 0.5801393728222997
+        },
+        "recall_deadline": {
+          "bound": "UPPER_BOUND_UNKNOWN_GT_ON_FAILED_OPPORTUNITIES",
+          "d": 597,
+          "n": 90,
+          "value": 0.1507537688442211
+        },
+        "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+        "seg_evaluable": "476/500",
+        "seg_iou_all": 0.5053091397849462,
+        "seg_iou_deadline": 0.14656898434655988
+      },
+      "vehicle": {
+        "precision_all": 0.924548352816153,
+        "precision_timely": 0.9015748031496063,
+        "recall_all": {
+          "d": 937,
+          "n": 639,
+          "value": 0.6819637139807898
+        },
+        "recall_deadline": {
+          "bound": "UPPER_BOUND_UNKNOWN_GT_ON_FAILED_OPPORTUNITIES",
+          "d": 955,
+          "n": 174,
+          "value": 0.18219895287958116
+        },
+        "seg_bound": "UPPER_BOUND_GT_PIXELS_UNKNOWN_ON_FAILED_OPPORTUNITIES",
+        "seg_evaluable": "476/500",
+        "seg_iou_all": 0.8766002288031894,
+        "seg_iou_deadline": 0.28085241565673436
+      }
+    },
+    "radio_mcs": {
+      "n": 45787,
+      "p50": 26.0,
+      "p95": 27.0,
+      "p99": 27.0
+    },
+    "radio_rows": 45787,
+    "radio_snr_db": {
+      "n": 45787,
+      "p50": 21.0,
+      "p95": 23.5,
+      "p99": 24.0
+    },
+    "scene_observations": 497,
+    "trailing_no_install_s": 0.02993488311767578,
+    "transmitted_frames": 1000
+  }
+}

@@ -1,0 +1,82 @@
+[
+ {
+  "id": "T325",
+  "movingSamples": 1760,
+  "fitAxisRangeDeg": 90,
+  "neutralWhileMoving": 0,
+  "drawnVsV201_p50": 0,
+  "drawnVsV201_p95": 0.45,
+  "offFit_v201_p95": 0,
+  "offFit_v202_p95": 0.46
+ },
+ {
+  "id": "T351",
+  "movingSamples": 1081,
+  "fitAxisRangeDeg": 86.3,
+  "neutralWhileMoving": 15,
+  "drawnVsV201_p50": 0,
+  "drawnVsV201_p95": 0.4,
+  "offFit_v201_p95": 4.82,
+  "offFit_v202_p95": 5.01
+ },
+ {
+  "id": "T354",
+  "movingSamples": 1752,
+  "fitAxisRangeDeg": 75.5,
+  "neutralWhileMoving": 43,
+  "drawnVsV201_p50": 0,
+  "drawnVsV201_p95": 0.46,
+  "offFit_v201_p95": 4.45,
+  "offFit_v202_p95": 1.51
+ },
+ {
+  "id": "T396",
+  "movingSamples": 258,
+  "fitAxisRangeDeg": 74.8,
+  "neutralWhileMoving": 15,
+  "drawnVsV201_p50": 0,
+  "drawnVsV201_p95": 48.03,
+  "offFit_v201_p95": 47.35,
+  "offFit_v202_p95": 10.75
+ },
+ {
+  "id": "T394",
+  "movingSamples": 138,
+  "fitAxisRangeDeg": 73,
+  "neutralWhileMoving": 0,
+  "drawnVsV201_p50": 0,
+  "drawnVsV201_p95": 17.74,
+  "offFit_v201_p95": 36.77,
+  "offFit_v202_p95": 41.27
+ },
+ {
+  "id": "T386",
+  "movingSamples": 134,
+  "fitAxisRangeDeg": 62,
+  "neutralWhileMoving": 0,
+  "drawnVsV201_p50": 26.43,
+  "drawnVsV201_p95": 43.09,
+  "offFit_v201_p95": 41.86,
+  "offFit_v202_p95": 34.03
+ },
+ {
+  "id": "T381",
+  "movingSamples": 276,
+  "fitAxisRangeDeg": 17.6,
+  "neutralWhileMoving": 16,
+  "drawnVsV201_p50": 0,
+  "drawnVsV201_p95": 2.45,
+  "offFit_v201_p95": 27.33,
+  "offFit_v202_p95": 1.13
+ },
+ {
+  "id": "T373",
+  "movingSamples": 189,
+  "fitAxisRangeDeg": 15.4,
+  "neutralWhileMoving": 0,
+  "drawnVsV201_p50": 0,
+  "drawnVsV201_p95": 37.5,
+  "offFit_v201_p95": 37.63,
+  "offFit_v202_p95": 1.12
+ }
+]

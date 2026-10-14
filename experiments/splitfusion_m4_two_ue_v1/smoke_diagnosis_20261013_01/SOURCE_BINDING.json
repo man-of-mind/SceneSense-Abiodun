@@ -1,0 +1,52 @@
+{
+  "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/phase6_edge_runtime_v2.py": {
+    "registered": "8446eaa50ec881028ff66e0718060410edf1c066b1f1589fc985457eb1111cd6",
+    "sha256": "8446eaa50ec881028ff66e0718060410edf1c066b1f1589fc985457eb1111cd6"
+  },
+  "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/phase6_ue_runtime_v2.py": {
+    "registered": "c97103645d4e55dea3a35a7be8b942ec15d1320223d83996c04bcb5d5ebc3e66",
+    "sha256": "c97103645d4e55dea3a35a7be8b942ec15d1320223d83996c04bcb5d5ebc3e66"
+  },
+  "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/run4_live_wire_v2.py": {
+    "registered": "2337edbfa2613a418a76a76235c190638cc088576903a61b5e408aabba669924",
+    "sha256": "2337edbfa2613a418a76a76235c190638cc088576903a61b5e408aabba669924"
+  },
+  "rl_agent/splitfusion_hybrid_sac_live_route_b_v2/ue_telemetry_provider_v2.py": {
+    "registered": "7bcd8bcc82fc3b085c999719d18968a097acfb1f854f16e28cc19fbb63008217",
+    "sha256": "7bcd8bcc82fc3b085c999719d18968a097acfb1f854f16e28cc19fbb63008217"
+  },
+  "rl_agent/splitfusion_m4_two_ue_v1/analysis.py": {
+    "registered": "4518bbf926c497f8cc203fcb2cad4e4b8433128d65b8b2ff72668acb7d170eae",
+    "sha256": "4518bbf926c497f8cc203fcb2cad4e4b8433128d65b8b2ff72668acb7d170eae"
+  },
+  "rl_agent/splitfusion_m4_two_ue_v1/datapath.py": {
+    "registered": "01e98865e4c08cf9d721a22454fbbda226552e0d1994a36213d1380893d29a21",
+    "sha256": "01e98865e4c08cf9d721a22454fbbda226552e0d1994a36213d1380893d29a21"
+  },
+  "rl_agent/splitfusion_m4_two_ue_v1/edge_components.py": {
+    "registered": "15992ba37a10f7349951d485ac94fa35eab7af9544cf0f5a95c618df793882e8",
+    "sha256": "15992ba37a10f7349951d485ac94fa35eab7af9544cf0f5a95c618df793882e8"
+  },
+  "rl_agent/splitfusion_m4_two_ue_v1/edge_entry.py": {
+    "registered": "b32783030d5ba1b62ebeeaf21b2daad047027099adb397b34ca5e1fa892bfa3c",
+    "sha256": "b32783030d5ba1b62ebeeaf21b2daad047027099adb397b34ca5e1fa892bfa3c"
+  },
+  "rl_agent/splitfusion_m4_two_ue_v1/frontend.py": {
+    "registered": "a7c7f36d34b3bc009242f749a036dc6fbd04701fb2dd7f2752d93c1664ab1f8a",
+    "sha256": "a7c7f36d34b3bc009242f749a036dc6fbd04701fb2dd7f2752d93c1664ab1f8a"
+  },
+  "rl_agent/splitfusion_m4_two_ue_v1/sender.py": {
+    "registered": "6eead7465faa854766b7cac1f1ec19d23e4953501148988fd165ee0b5010b768",
+    "sha256": "6eead7465faa854766b7cac1f1ec19d23e4953501148988fd165ee0b5010b768"
+  },
+  "rl_agent/splitfusion_m4_two_ue_v1/transport.py": {
+    "registered": "5afeb33a2689bd382801572d897cb4396e8bd02520f507e0d810810d735addd2",
+    "sha256": "5afeb33a2689bd382801572d897cb4396e8bd02520f507e0d810810d735addd2"
+  },
+  "rl_agent/ue_route_b_split_cell_adapter_v1.py": {
+    "deployment_sha256": "3589c7b1366d7b2309cf142b9210116697f14b4c9ad4f42de80ddc896803ae5b",
+    "registered": null,
+    "scope": "current main/deployment byte agreement; not separately hashed in outer registration",
+    "sha256": "3589c7b1366d7b2309cf142b9210116697f14b4c9ad4f42de80ddc896803ae5b"
+  }
+}

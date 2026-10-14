@@ -1,0 +1,23 @@
+# Frozen grouped Shapley selection and interpretation plan
+
+Written before new attribution. CPU float32, batch one, frozen deployed 22-feature actor; no perception inference, live services, training, runtime edits or performance intervention. New output cap 500 MiB.
+
+Representative cohort: exactly 100 decision indices per run, `floor(linspace(0, n-1, 100))`, including first and last. Each decision has equal weight within its run; no history or mode stratification. Extra cohorts are the existing V13/V14 offsets −20 through +39 around the first changed commanded-SNR decision, and the 16 cases selected in splitfusion_decision_cases_v1/results_01/SELECTION.json. They are labelled separately and never added to representative means. Include their immediate predecessors and all background states in endpoint admission.
+
+Common primary background: eight real states with equal weight 1/8. V11 and V12 each contribute decisions at floor(.25*(n−1)) and floor(.75*(n−1)). V13 and V14 each contribute the midpoint, floor(.50*(n_phase−1)), of each of their two commanded phases. This gives two states per session and four GOOD/four BAD states. No matching on history, scene, backlog or outcomes. Its actual history distribution is reported, not altered. This empirical reference is not the training distribution.
+
+One fixed reference sensitivity: eight equal-weight real states. V11/V12 use fractions .125 and .625 of their runs; V13 uses fraction .25 within each phase; V14 uses fraction .75 within each phase. It remains balanced across channel and session. Compute it only for the 400 representative targets, never search for another background.
+
+Question A: exact four-group Shapley from every primary-background state to the target, averaged over the eight references. Contributions reconstruct target output minus mean background output. Representative summary = mean over targets of the absolute **background-averaged signed contribution**, not mean absolute donor differences and not percentages of causation. The alternative reference repeats this definition.
+
+Question B: exact four-group Shapley from the immediately preceding recorded decision to the target. There is no preceding-state explanation at the first decision. Keep this step-change question separate from Question A. Reuse old case coalitions and endpoint proofs only after source/input/output identities match.
+
+Use the original four intact blocks: channel [2,21], scene [0,1], backlog [3], previous decision/outcome [4..20]. Reuse the existing 16-coalition function and CPU query function; their source is pinned. Contributions distribute interactions symmetrically over all 24 insertion orders. Check complete-output reconstruction to 1e−10, with actual maximum error reported. Explain mode-11 logit margin and mode-11 conditional quantised q; additionally explain every selected non-11 mode's margin and own conditional q. Mode IDs remain categorical. Observed payload has no Shapley attribution.
+
+Validate all masks/one-hots and retain the established full-state nearest-neighbour diagnostic, fixed radius and scaling from the prior diagnosis. Keep all coalitions, including distant ones. Report far nonendpoint coalition slots, target coverage with every coalition near, and actual distances. Near is not proof of training or physical support; far is a warning, not permission to remove terms from an additive explanation.
+
+History is classified from masks plus the preceding recorded outcome: first-decision empty, cleared following timely undefined quality, normal defined history, timeout/failure history, or unknown cleared origin if the chain does not identify it. Do not interpret unavailable zero placeholders as measurements. Do not split the history block; narrow field interpretations only in examples whose unchanged coordinates permit it.
+
+Six 3840×2160 PNGs: representative common-background summary; one aligned timeline per full Town10 map condition; six waterfall examples G1, G2, B2, G6, T13I, T14I (constant GOOD rise/fall, constant BAD, non-11 switch, both transitions). Timelines show actual mode/q/payload and actor-input context, plus signed **preceding-decision** contributions at sampled times; V13/V14 include the real transition-window detail, not fabricated highlighted intervals. No attribution interpolation over sampling gaps. Measured PUSCH is not an actor input and is not substituted for the plotted commanded SNR.
+
+V13's historical registered STOP stays unchanged. The closed q+1000 quality screen is not reopened. No attribution demonstrates optimality, adaptive superiority, quality or latency improvement, or live causality.

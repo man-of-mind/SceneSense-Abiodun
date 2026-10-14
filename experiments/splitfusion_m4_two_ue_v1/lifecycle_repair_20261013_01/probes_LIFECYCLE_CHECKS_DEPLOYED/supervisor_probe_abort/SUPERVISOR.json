@@ -1,0 +1,117 @@
+{
+  "child_argv": [
+    "/usr/bin/python3",
+    "-B",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/fake_child.py",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/probes_LIFECYCLE_CHECKS_DEPLOYED/supervisor_probe_abort",
+    "abort"
+  ],
+  "child_ended_wall_s": 1791881984.436441,
+  "child_exit": {
+    "native_fault": true,
+    "returncode": -6,
+    "signal_name": "SIGABRT",
+    "terminating_signal": 6
+  },
+  "child_pid": 1494650,
+  "child_records": {
+    "CLEANUP.json": false,
+    "FIRST_FAILURE.json": true,
+    "ORIGINAL_FAILURE.json": true,
+    "RUN_RESULT.json": false,
+    "SMOKE.json": false
+  },
+  "cleanup": {
+    "carla": {
+      "certificate": true,
+      "members_after": [],
+      "members_before": [
+        {
+          "cmdline": "sleep 300",
+          "pid": 1494652
+        }
+      ],
+      "pgid": 1494652,
+      "rpc_port_listening": false,
+      "sigkill": "sent",
+      "stopped": true
+    },
+    "lock": "HELD",
+    "owned_after": [
+      {
+        "name": "fake_radio",
+        "pid": 1494651,
+        "still_owned": true
+      }
+    ],
+    "recover_error": "ValueError('recovery must name one scoped capture directory')",
+    "verified": false
+  },
+  "finished_wall_s": 1791882044.5140426,
+  "first_failure": {
+    "error": "ValueError('synthetic first failure')",
+    "phase": "run.world_and_routes",
+    "stage": "startup",
+    "thread": "MainThread",
+    "traceback": [
+      "Traceback (most recent call last):\n",
+      "  File \"/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/splitfusion_m4_two_ue_v1/phases.py\", line 92, in phase\n    yield\n",
+      "  File \"/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/fake_child.py\", line 32, in <module>\n    with P.phase('run.world_and_routes'): raise ValueError('synthetic first failure')\n",
+      "ValueError: synthetic first failure\n"
+    ],
+    "wall_ns": 1791881984390503075
+  },
+  "forwarded_signals": [],
+  "last_phase_markers": [
+    {
+      "event": "DONE",
+      "monotonic_ns": 8519567701316747,
+      "phase": "teardown.gt_m4-ue0",
+      "pid": 1494650,
+      "seq": 9,
+      "stage": "teardown",
+      "thread": "MainThread",
+      "wall_ns": 1791881984390620352
+    },
+    {
+      "event": "EVENT",
+      "monotonic_ns": 8519567701324736,
+      "pgid": 1494652,
+      "phase": "teardown.carla_delegated_to_supervisor",
+      "pid": 1494650,
+      "seq": 10,
+      "thread": "MainThread",
+      "wall_ns": 1791881984390628333
+    },
+    {
+      "event": "ENTER",
+      "monotonic_ns": 8519567701331786,
+      "phase": "teardown.processes",
+      "pid": 1494650,
+      "seq": 11,
+      "stage": "teardown",
+      "thread": "MainThread",
+      "wall_ns": 1791881984390635411
+    }
+  ],
+  "original_failure": {
+    "error": "ValueError('synthetic first failure')"
+  },
+  "parent_imports_carla": false,
+  "parent_imports_torch": false,
+  "phases_entered_not_closed": [
+    "teardown.processes"
+  ],
+  "reasons": [
+    "child exit {\"native_fault\": true, \"returncode\": -6, \"signal_name\": \"SIGABRT\", \"terminating_signal\": 6}",
+    "child run not clean or unrecorded",
+    "smoke gates not met",
+    "supervisor cleanup not verified"
+  ],
+  "run_result": null,
+  "schema": "splitfusion.m4.supervised_attempt.v1",
+  "smoke": null,
+  "started_wall_s": 1791881984.059665,
+  "verdict": "FAIL"
+}

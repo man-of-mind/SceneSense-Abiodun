@@ -1,0 +1,61 @@
+
+/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem:     file format elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .plt.got:
+
+Disassembly of section .plt.sec:
+
+Disassembly of section .text:
+
+0000000000410870 <gaussZiggurat>:
+  410870:	f3 0f 1e fa          	endbr64 
+  410874:	80 3d a5 a2 8b 00 00 	cmpb   $0x0,0x8ba2a5(%rip)        # ccab20 <tableNordDone>
+  41087b:	74 73                	je     4108f0 <gaussZiggurat+0x80>
+  41087d:	8b 05 bd f9 31 00    	mov    0x31f9bd(%rip),%eax        # 730240 <jsr>
+  410883:	89 c2                	mov    %eax,%edx
+  410885:	c1 e2 0d             	shl    $0xd,%edx
+  410888:	31 c2                	xor    %eax,%edx
+  41088a:	89 d1                	mov    %edx,%ecx
+  41088c:	c1 e9 11             	shr    $0x11,%ecx
+  41088f:	31 d1                	xor    %edx,%ecx
+  410891:	89 ce                	mov    %ecx,%esi
+  410893:	c1 e6 05             	shl    $0x5,%esi
+  410896:	31 ce                	xor    %ecx,%esi
+  410898:	01 f0                	add    %esi,%eax
+  41089a:	89 35 a0 f9 31 00    	mov    %esi,0x31f9a0(%rip)        # 730240 <jsr>
+  4108a0:	89 c7                	mov    %eax,%edi
+  4108a2:	89 05 44 98 8b 00    	mov    %eax,0x8b9844(%rip)        # cca0ec <hz>
+  4108a8:	83 e7 7f             	and    $0x7f,%edi
+  4108ab:	89 3d 4f 9a 8b 00    	mov    %edi,0x8b9a4f(%rip)        # cca300 <iz>
+  4108b1:	3d 00 00 00 80       	cmp    $0x80000000,%eax
+  4108b6:	74 30                	je     4108e8 <gaussZiggurat+0x78>
+  4108b8:	41 89 c0             	mov    %eax,%r8d
+  4108bb:	4c 8d 0d 3e 98 8b 00 	lea    0x8b983e(%rip),%r9        # cca100 <kn>
+  4108c2:	41 f7 d8             	neg    %r8d
+  4108c5:	44 0f 48 c0          	cmovs  %eax,%r8d
+  4108c9:	45 3b 04 b9          	cmp    (%r9,%rdi,4),%r8d
+  4108cd:	73 19                	jae    4108e8 <gaussZiggurat+0x78>
+  4108cf:	c5 f8 57 c0          	vxorps %xmm0,%xmm0,%xmm0
+  4108d3:	4c 8d 15 46 9e 8b 00 	lea    0x8b9e46(%rip),%r10        # cca720 <wn>
+  4108da:	c5 fb 2a c8          	vcvtsi2sd %eax,%xmm0,%xmm1
+  4108de:	c4 c1 73 59 04 fa    	vmulsd (%r10,%rdi,8),%xmm1,%xmm0
+  4108e4:	c3                   	ret    
+  4108e5:	0f 1f 00             	nopl   (%rax)
+  4108e8:	e9 53 fd ff ff       	jmp    410640 <nfix>
+  4108ed:	0f 1f 00             	nopl   (%rax)
+  4108f0:	48 83 ec 08          	sub    $0x8,%rsp
+  4108f4:	4c 8b 1d bd f6 31 00 	mov    0x31f6bd(%rip),%r11        # 72ffb8 <stderr@GLIBC_2.2.5>
+  4108fb:	be 01 00 00 00       	mov    $0x1,%esi
+  410900:	31 c0                	xor    %eax,%eax
+  410902:	48 8d 0d 0f b8 17 00 	lea    0x17b80f(%rip),%rcx        # 58c118 <__func__.0>
+  410909:	48 8d 15 d0 b7 17 00 	lea    0x17b7d0(%rip),%rdx        # 58c0e0 <_ZL10tasks_info+0x28c0>
+  410910:	49 8b 3b             	mov    (%r11),%rdi
+  410913:	e8 a8 a8 eb ff       	call   2cb1c0 <__fprintf_chk@plt>
+  410918:	e8 13 ae eb ff       	call   2cb730 <abort@plt>
+
+Disassembly of section .fini:

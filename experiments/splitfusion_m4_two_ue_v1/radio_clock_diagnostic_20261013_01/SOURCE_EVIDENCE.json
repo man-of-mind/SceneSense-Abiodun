@@ -1,0 +1,68 @@
+{
+  "binary": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem",
+  "binary_sha256": "60ecc9a1d102e8b66871727a6a23da22977ff907fecc3870a8dc46414080c975",
+  "connections": [
+    {
+      "actual_host_order_port": 36238,
+      "line": 203,
+      "text": "\u001b[0m[HW]     Client connects from ::ffff:127.0.0.1:36493"
+    },
+    {
+      "actual_host_order_port": 36246,
+      "line": 205,
+      "text": "\u001b[0m[HW]     Client connects from ::ffff:127.0.0.1:38541"
+    }
+  ],
+  "disassembly_commands": [
+    [
+      "objdump",
+      "-d",
+      "--disassemble=gaussZiggurat",
+      "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem"
+    ],
+    [
+      "objdump",
+      "-d",
+      "--disassemble=nfix",
+      "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem"
+    ]
+  ],
+  "gnb_log": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_09/gnb.log",
+  "gnb_log_sha256": "aa022a37a3091185f23e4e5b2994550eb99aa91c0212c72701f06bacecef0965",
+  "inference": "Shared writable non-TLS Gaussian RNG state in one UE process is a candidate for coherence cost/data races. Stage cost is measured; the share due to RNG and cache coherence is not.",
+  "peer_join": "Native unique reversed TCP port pair, owned PID and RU index, ATTACHED source/RNTI. Original gNB connection log prints sin6_port in network order; ntohs reconciles it. Ignore gNB native IPv4-only address strings.",
+  "sources": [
+    {
+      "excerpts": [
+        {
+          "end": 157,
+          "start": 120,
+          "text": "120: */\n121: // Ziggurat\n122: static double wn[128], fn[128];\n123: static uint32_t iz, jz, jsr = 123456789, kn[128];\n124: static int32_t hz;\n125: #define SHR3 (jz = jsr, jsr ^= (jsr << 13), jsr ^= (jsr >> 17), jsr ^= (jsr << 5), jz + jsr)\n126: #define UNI (0.5 + (signed)SHR3 * 0.2328306e-9)\n127: \n128: double nfix(void)\n129: {\n130:   const double r = 3.442620;\n131:   static double x, y;\n132: \n133:   for (;;) {\n134:     x = hz * wn[iz];\n135: \n136:     if (iz == 0) {\n137:       do {\n138:         x = -0.2904764 * log(UNI);\n139:         y = -log(UNI);\n140:       } while (y + y < x * x);\n141: \n142:       return (hz > 0) ? r + x : -r - x;\n143:     }\n144: \n145:     if (fn[iz] + UNI * (fn[iz - 1] - fn[iz]) < exp(-0.5 * x * x)) {\n146:       return x;\n147:     }\n148: \n149:     hz = SHR3;\n150:     iz = hz & 127;\n151: \n152:     if (abs(hz) < kn[iz]) {\n153:       return ((hz)*wn[iz]);\n154:     }\n155:   }\n156: }\n157: "
+        },
+        {
+          "end": 201,
+          "start": 189,
+          "text": "189:   if (!__builtin_expect(tableNordDone, 1)) {\n190:     fprintf(stderr, \"%s(): RNG not initialized, run randominit() first\\n\", __func__);\n191:     abort();\n192:   }\n193: \n194:   hz = SHR3;\n195:   iz = hz & 127;\n196:   return hz != INT32_MIN && abs(hz) < kn[iz] ? hz * wn[iz] : nfix();\n197: }\n198: \n199: #ifdef MAIN\n200: main(int argc,char **argv)\n201: {"
+        }
+      ],
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/openair1/SIMULATION/TOOLS/rangen_double.c",
+      "sha256": "4da94fe17c1fa4267e232e5b3f71ceca7334a3be1644d63d7399bb7071199078"
+    },
+    {
+      "excerpts": [
+        {
+          "end": 264,
+          "start": 216,
+          "text": "216: void rxAddInput(c16_t **input_sig, cf_t *after_channel_sig, int rxAnt, channel_desc_t *channelDesc, int nbSamples)\n217: {\n218:   // channelDesc->path_loss_dB should contain the total path gain\n219:   // so, in actual RF: tx gain + path loss + rx gain (+antenna gain, ...)\n220:   // UE and NB gain control to be added\n221:   // Fixme: not sure when it is \"volts\" so dB is 20*log10(...) or \"power\", so dB is 10*log10(...)\n222:   const double pathLossLinear = pow(10, channelDesc->path_loss_dB / 20.0);\n223:   // Energy in one sample to calibrate input noise\n224:   // the normalized OAI value seems to be 256 as average amplitude (numerical amplification = 1)\n225:   const double noise_per_sample = pow(10, channelDesc->noise_power_dB / 10.0) * 256;\n226:   const int nbTx = channelDesc->nb_tx;\n227:   double Doppler_phase_cur = channelDesc->Doppler_phase_cur[rxAnt];\n228:   Doppler_phase_cur -= 2 * M_PI * round(Doppler_phase_cur / (2 * M_PI));\n229: \n230:   for (int i = 0; i < nbSamples; i++) {\n231:     cf_t *out_ptr = after_channel_sig + i;\n232:     struct complexd rx_tmp = {0};\n233: \n234:     for (int txAnt = 0; txAnt < nbTx; txAnt++) {\n235:       const struct complexd *channelModel = channelDesc->ch[rxAnt + (txAnt * channelDesc->nb_rx)];\n236: \n237:       // const struct complex *channelModelEnd=channelModel+channelDesc->channel_length;\n238:       for (int l = 0; l < (int)channelDesc->channel_length; l++) {\n239:         const int idx = i - l + channelDesc->channel_length - 1;\n240:         const struct complex16 tx16 = input_sig[txAnt][idx];\n241:         rx_tmp.r += tx16.r * channelModel[l].r - tx16.i * channelModel[l].i;\n242:         rx_tmp.i += tx16.i * channelModel[l].r + tx16.r * channelModel[l].i;\n243:       } // l\n244:     }\n245: \n246:     if (channelDesc->Doppler_phase_inc != 0.0) {\n247: #ifdef CMPLX\n248:       double complex in = CMPLX(rx_tmp.r, rx_tmp.i);\n249: #else\n250:       double complex in = rx_tmp.r + rx_tmp.i * I;\n251: #endif\n252:       double complex out = in * cexp(Doppler_phase_cur * I);\n253:       rx_tmp.r = creal(out);\n254:       rx_tmp.i = cimag(out);\n255:       Doppler_phase_cur += channelDesc->Doppler_phase_inc;\n256:     }\n257: \n258:     out_ptr->r += rx_tmp.r * pathLossLinear + noise_per_sample * gaussZiggurat(0.0, 1.0);\n259:     out_ptr->i += rx_tmp.i * pathLossLinear + noise_per_sample * gaussZiggurat(0.0, 1.0);\n260:     out_ptr++;\n261:   }\n262: \n263:   channelDesc->Doppler_phase_cur[rxAnt] = Doppler_phase_cur;\n264: "
+        }
+      ],
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/radio/rfsimulator/apply_channelmod.c",
+      "sha256": "d87fb051292bdb7da91cac2358110f6d0df8a06652cf106c71a2ad5d31fdf6f8"
+    },
+    {
+      "excerpts": [],
+      "path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/OAI/openairinterface5g/radio/rfsimulator/simulator.cpp",
+      "sha256": "8d78932b06903344d4a137bdafb5729173b40a98330116d1609a0abca0315c3a"
+    }
+  ]
+}

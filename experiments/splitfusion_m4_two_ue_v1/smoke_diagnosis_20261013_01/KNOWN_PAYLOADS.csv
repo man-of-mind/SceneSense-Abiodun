@@ -1,0 +1,77 @@
+stream_id,frame_id,kind,mode_id,q_e4,payload_sfd4_bytes,payload_provenance,edge_terminal_stage
+m4-ue0,50,FALLBACK,11,9800,6690,edge admission log,
+m4-ue0,58,POLICY_HOLD,8,3550,320776,edge admission log,
+m4-ue0,60,POLICY_DECISION,11,2809,169423,edge admission log,
+m4-ue0,62,POLICY_HOLD,11,2809,169608,edge admission log,
+m4-ue0,64,POLICY_DECISION,8,3980,299005,edge admission log,
+m4-ue0,66,POLICY_HOLD,8,3980,296944,edge admission log,
+m4-ue0,68,POLICY_DECISION,10,8333,83625,edge admission log,
+m4-ue0,70,POLICY_HOLD,10,8333,83530,edge admission log,
+m4-ue0,72,FALLBACK,11,9800,6750,edge admission log,
+m4-ue0,74,POLICY_DECISION,11,5734,111610,edge admission log,
+m4-ue0,76,POLICY_HOLD,11,5734,113777,edge admission log,
+m4-ue0,78,POLICY_DECISION,8,6420,191766,edge admission log,EDGE_PENDING_SLOT
+m4-ue0,80,POLICY_HOLD,8,6420,194633,edge admission log,
+m4-ue0,82,POLICY_DECISION,11,5944,107874,retained SFD4 and edge admission log,
+m4-ue0,84,POLICY_HOLD,11,5944,109358,edge admission log,
+m4-ue0,86,POLICY_DECISION,8,6483,190956,edge admission log,
+m4-ue0,88,POLICY_HOLD,8,6483,189826,edge admission log,
+m4-ue0,90,POLICY_DECISION,11,5801,111144,edge admission log,
+m4-ue0,92,POLICY_HOLD,11,5801,111754,edge admission log,
+m4-ue0,94,POLICY_DECISION,11,4956,127662,edge admission log,
+m4-ue0,96,POLICY_HOLD,11,4956,131046,edge admission log,
+m4-ue0,98,POLICY_DECISION,8,3824,301739,edge admission log,
+m4-ue0,100,POLICY_HOLD,8,3824,316872,edge admission log,
+m4-ue0,102,POLICY_DECISION,11,3522,165917,edge admission log,
+m4-ue0,104,POLICY_HOLD,11,3522,162789,edge admission log,
+m4-ue0,106,POLICY_DECISION,11,4101,148378,edge admission log,
+m4-ue0,108,POLICY_HOLD,11,4101,145938,edge admission log,
+m4-ue0,110,POLICY_DECISION,11,4123,146127,edge admission log,
+m4-ue0,112,POLICY_HOLD,11,4123,144192,edge admission log,
+m4-ue0,114,POLICY_DECISION,11,3730,149619,edge admission log,
+m4-ue0,116,POLICY_HOLD,11,3730,151690,edge admission log,
+m4-ue0,142,POLICY_DECISION,8,4667,280001,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue0,202,POLICY_DECISION,11,3591,154063,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue0,262,POLICY_DECISION,8,4653,286914,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue0,322,POLICY_DECISION,11,2987,180464,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue0,382,POLICY_DECISION,11,3034,178593,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue0,442,POLICY_DECISION,11,2952,179300,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue0,458,POLICY_DECISION,11,3138,176792,edge admission log,EDGE_BEFORE_TAIL
+m4-ue0,460,POLICY_HOLD,11,3138,177546,edge admission log,
+m4-ue0,462,POLICY_DECISION,11,3209,175768,edge admission log,
+m4-ue0,464,POLICY_HOLD,11,3209,174056,edge admission log,
+m4-ue1,58,POLICY_HOLD,11,1821,195333,edge admission log,
+m4-ue1,60,POLICY_DECISION,8,3747,329048,edge admission log,
+m4-ue1,62,POLICY_HOLD,8,3747,326751,edge admission log,
+m4-ue1,64,POLICY_DECISION,11,3350,169217,edge admission log,
+m4-ue1,66,POLICY_HOLD,11,3350,167364,edge admission log,
+m4-ue1,68,FALLBACK,11,9800,6674,edge admission log,
+m4-ue1,70,POLICY_DECISION,11,5415,118044,edge admission log,
+m4-ue1,72,POLICY_HOLD,11,5415,117905,edge admission log,
+m4-ue1,74,POLICY_DECISION,8,6436,186740,edge admission log,
+m4-ue1,76,POLICY_HOLD,8,6436,180605,edge admission log,
+m4-ue1,78,FALLBACK,11,9800,6675,edge admission log,
+m4-ue1,80,POLICY_DECISION,11,4178,146120,edge admission log,
+m4-ue1,82,POLICY_HOLD,11,4178,150533,edge admission log,
+m4-ue1,84,POLICY_DECISION,11,5987,106081,retained SFD4 and edge admission log,
+m4-ue1,86,POLICY_HOLD,11,5987,106909,edge admission log,
+m4-ue1,88,POLICY_DECISION,11,5587,116421,edge admission log,
+m4-ue1,90,POLICY_HOLD,11,5587,116988,edge admission log,
+m4-ue1,92,POLICY_DECISION,11,5411,122244,edge admission log,
+m4-ue1,94,POLICY_HOLD,11,5411,122078,edge admission log,
+m4-ue1,96,POLICY_DECISION,8,3940,316923,edge admission log,
+m4-ue1,98,POLICY_HOLD,8,3940,318748,edge admission log,EDGE_BEFORE_TAIL
+m4-ue1,100,FALLBACK,11,9800,6692,edge admission log,
+m4-ue1,102,FALLBACK,11,9800,6639,edge admission log,
+m4-ue1,104,FALLBACK,11,9800,6698,edge admission log,
+m4-ue1,106,FALLBACK,11,9800,6741,edge admission log,
+m4-ue1,108,POLICY_DECISION,11,4248,145922,edge admission log,
+m4-ue1,110,POLICY_HOLD,11,4248,146878,edge admission log,
+m4-ue1,112,POLICY_DECISION,11,4987,126106,edge admission log,
+m4-ue1,114,POLICY_HOLD,11,4987,125535,edge admission log,
+m4-ue1,152,POLICY_DECISION,8,4157,297949,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue1,212,POLICY_DECISION,11,3495,149990,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue1,274,POLICY_DECISION,11,3114,171288,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue1,334,POLICY_DECISION,8,4561,290772,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue1,394,POLICY_DECISION,11,2451,191542,retained SFD4,EDGE_AFTER_REASSEMBLY
+m4-ue1,454,POLICY_DECISION,11,2617,189135,retained SFD4,EDGE_AFTER_REASSEMBLY

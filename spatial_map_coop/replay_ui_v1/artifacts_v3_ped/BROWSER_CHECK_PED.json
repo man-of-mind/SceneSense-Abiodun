@@ -1,0 +1,101 @@
+{
+  "status": "PASS",
+  "browser": "133.0.6943.16",
+  "conditions": "Actual rAF 1x, both sides 45 m heading-up default view; left ?ped=v3.0, right v3.1",
+  "video_marks": [
+    {
+      "clip": "ped_pause",
+      "start_ms": 6500,
+      "duration_ms": 6500,
+      "video_s": 1.253
+    },
+    {
+      "clip": "ped_standing",
+      "start_ms": 7000,
+      "duration_ms": 6000,
+      "video_s": 9.3
+    },
+    {
+      "clip": "stop",
+      "start_ms": 2000,
+      "duration_ms": 5000,
+      "video_s": 18.11
+    }
+  ],
+  "summary": [
+    {
+      "clip": "ped_pause",
+      "start_ms": 6500,
+      "duration_ms": 6500,
+      "samples": 217,
+      "clock_diff_max_ms": 0.2000000000016371,
+      "v3_0": {
+        "mean_pedestrians_shown": 2.1059907834101383,
+        "motion_state_share": {
+          "stationary": 0.5601750547045952,
+          "moving": 0.17943107221006566,
+          "init": 0.2603938730853392
+        },
+        "distinct_pedestrian_display_ids": 12
+      },
+      "v3_1": {
+        "mean_pedestrians_shown": 2.087557603686636,
+        "motion_state_share": {
+          "unresolved": 0.5827814569536424,
+          "moving": 0.41721854304635764
+        },
+        "distinct_pedestrian_display_ids": 12
+      }
+    },
+    {
+      "clip": "ped_standing",
+      "start_ms": 7000,
+      "duration_ms": 6000,
+      "samples": 203,
+      "clock_diff_max_ms": 0.2000000000007276,
+      "v3_0": {
+        "mean_pedestrians_shown": 2.8374384236453203,
+        "motion_state_share": {
+          "stationary": 0.2725694444444444,
+          "init": 0.6163194444444444,
+          "moving": 0.1111111111111111
+        },
+        "distinct_pedestrian_display_ids": 30
+      },
+      "v3_1": {
+        "mean_pedestrians_shown": 2.7044334975369457,
+        "motion_state_share": {
+          "moving": 0.09836065573770492,
+          "unresolved": 0.9016393442622951
+        },
+        "distinct_pedestrian_display_ids": 29
+      }
+    },
+    {
+      "clip": "stop",
+      "start_ms": 2000,
+      "duration_ms": 5000,
+      "samples": 167,
+      "clock_diff_max_ms": 0.2000000000007276,
+      "v3_0": {
+        "mean_pedestrians_shown": 1.81437125748503,
+        "motion_state_share": {
+          "stationary": 0.38613861386138615,
+          "init": 0.132013201320132,
+          "moving": 0.48184818481848185
+        },
+        "distinct_pedestrian_display_ids": 7
+      },
+      "v3_1": {
+        "mean_pedestrians_shown": 1.7964071856287425,
+        "motion_state_share": {
+          "moving": 0.7766666666666666,
+          "unresolved": 0.22333333333333333
+        },
+        "distinct_pedestrian_display_ids": 6
+      }
+    }
+  ],
+  "page_errors": [],
+  "external_requests": 0
+}

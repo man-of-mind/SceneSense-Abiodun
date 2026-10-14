@@ -1,0 +1,1958 @@
+{
+  "schema": "replay_heading_geometry_evidence.v2",
+  "producer_source_hashes": {
+    "carla_collect_parked_ego_fusion_training_data.py": "d9cb8c8357269c9cbb2ad86d492fec9fb2966c838135889ce7946b926c11d836",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/route_b_v3_1_clean_base_v1/build_contract_v1.py": "69eb5a8df84bd625af99a74d6ef7e8b50ac23ec73a7ee142c151725d2d55a264",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/data.py": "b2530718dfc04e6436baa4a8ea0135cedc901210918e829b8050579948dc9047",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/model.py": "457992bf675fd9ff209f382fc21b537957b54989a9f61ae507e8a0677ac9958c",
+    "pole_lraspp_multimodal_fusion/object_head_pilot_v1/splitfusion_fcos_r50_fpn_p2_p7_v1/infer.py": "b34308f9ad6fa6524511c2d5e43fab335d5d4c1024914e7c2f5719a5950b3194",
+    "uplink_only_spatial_map_pipeline/spatial_map_server_moving_ego_uplink_only_baseline.py": "cc301919b767688f1eab0923d4a935791b06a6cda3d0d5f565484aeae4b05bc1",
+    "rl_agent/splitfusion_direct_edge_map_v1/spatial_map_direct_server_v1.py": "c6b8d888d06aa629e2516102dbe9462dd47f82fbcce4bd8a309f3871cec2cf03",
+    "rl_agent/splitfusion_direct_edge_map_v1/protocol.py": "158ecab3a8b3f2bd7efab2862a9ac5e12343fab38dad4760f295d28dff5df0da",
+    "extract_traffic_lights.py": "4190b9258f840bf87e5278d7eaef74a09c5936e1facaa9dfc8f0cdf3715feb66"
+  },
+  "convention": {
+    "space": "CARLA world XY",
+    "positive_yaw": "+X toward +Y",
+    "length": "size_x along local +X",
+    "width": "size_y along local +Y",
+    "conversion": "wrap(degrees(atan2(yaw_sin,yaw_cos))); no camera rotation, no 90-degree offset",
+    "trace": [
+      "actor transform.rotation.yaw / static bbox_rotation_yaw_deg -> object_yaw_deg",
+      "FCOS data.py targets sin/cos of world yaw; dimensions unchanged",
+      "model.py geometry_decode rotates local_xyz using camera extrinsic; yaw only normalized",
+      "infer.py record copies yaw[0]/yaw[1], dimensions[0:3]",
+      "legacy map normalizer defaults model yaw to zero, then adds configured offset"
+    ]
+  },
+  "static_geometry": {
+    "valid": true,
+    "geometry_sha256": "3332b8b331b0e41e2f30488a06123a67fe577aee115e076cbd6459048209d44c",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/spatial_map_coop/recordings/two_ego_occl.jsonl.static.json",
+    "registered_town": true,
+    "coordinates": "CARLA world XY metres; no fitted transform",
+    "pose_to_lane_p95_m": 1.158253627014809,
+    "meaning": "Filtered environment-object bounding-box footprints, not facade meshes",
+    "extraction": "extract_traffic_lights.py:_environment_object_bbox_footprint / _build_precise_static_map",
+    "limitations": "2D static buildings only; size/road-proximity filtered; no heights, transparency, bridges or dynamic occluders; asset version not retained"
+  },
+  "clips": {
+    "departure": {
+      "events": 150,
+      "objects": 5214,
+      "joined_frames": 74,
+      "heading_reasons": {
+        "NO_RETAINED_PREDICTION": 2649,
+        "PRODUCER_WORLD_YAW": 2565
+      }
+    },
+    "turn": {
+      "events": 157,
+      "objects": 6160,
+      "joined_frames": 78,
+      "heading_reasons": {
+        "NO_RETAINED_PREDICTION": 3104,
+        "PRODUCER_WORLD_YAW": 3056
+      }
+    },
+    "stop": {
+      "events": 148,
+      "objects": 7710,
+      "joined_frames": 71,
+      "heading_reasons": {
+        "NO_RETAINED_PREDICTION": 3968,
+        "PRODUCER_WORLD_YAW": 3742
+      }
+    },
+    "avenue": {
+      "events": 152,
+      "objects": 5555,
+      "joined_frames": 75,
+      "heading_reasons": {
+        "NO_RETAINED_PREDICTION": 2803,
+        "PRODUCER_WORLD_YAW": 2752
+      }
+    }
+  },
+  "examples": [
+    {
+      "frame": 1480,
+      "record_count": 38,
+      "headings": [
+        {
+          "installed_ordinal": 0,
+          "prediction_index": 0,
+          "candidate_identity": "0:1:2525:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 123.87900215883036,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 1,
+          "prediction_index": 1,
+          "candidate_identity": "0:0:10274:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 49.10335564824396,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 2,
+          "prediction_index": 2,
+          "candidate_identity": "0:2:559:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -177.47113694726815,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 3,
+          "prediction_index": 3,
+          "candidate_identity": "0:2:726:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 149.47332369386532,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 4,
+          "prediction_index": 5,
+          "candidate_identity": "0:2:681:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 173.1283791693047,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 5,
+          "prediction_index": 7,
+          "candidate_identity": "0:1:2531:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -154.08504044295933,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 6,
+          "prediction_index": 10,
+          "candidate_identity": "0:2:635:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 179.95270243408442,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 7,
+          "prediction_index": 11,
+          "candidate_identity": "0:2:682:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 179.6186779549298,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 8,
+          "prediction_index": 19,
+          "candidate_identity": "0:2:637:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 178.09694143485808,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 9,
+          "prediction_index": 20,
+          "candidate_identity": "0:0:10617:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -163.7922066182421,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 10,
+          "prediction_index": 23,
+          "candidate_identity": "0:1:2535:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -162.47511602120926,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 11,
+          "prediction_index": 24,
+          "candidate_identity": "0:2:675:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -14.982713091476029,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 12,
+          "prediction_index": 32,
+          "candidate_identity": "0:0:10670:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -114.68017535181723,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 13,
+          "prediction_index": 34,
+          "candidate_identity": "0:0:10248:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -159.96742861991544,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 14,
+          "prediction_index": 37,
+          "candidate_identity": "0:0:10601:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -53.24651480944755,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 15,
+          "prediction_index": 40,
+          "candidate_identity": "0:0:9706:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -55.79383631875956,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 16,
+          "prediction_index": 41,
+          "candidate_identity": "0:0:10477:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -135.64166203173878,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 17,
+          "prediction_index": 46,
+          "candidate_identity": "0:1:2533:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -139.23903083931125,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 18,
+          "prediction_index": 47,
+          "candidate_identity": "0:0:10054:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -158.63162992332266,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 19,
+          "prediction_index": 49,
+          "candidate_identity": "0:0:8019:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -135.28073071963826,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 20,
+          "prediction_index": 50,
+          "candidate_identity": "0:1:2609:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -12.404776976940042,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 21,
+          "prediction_index": 51,
+          "candidate_identity": "0:1:4030:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -6.480996827642258,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 22,
+          "prediction_index": 60,
+          "candidate_identity": "0:1:2435:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -153.66554074120396,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 23,
+          "prediction_index": 61,
+          "candidate_identity": "0:0:10057:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -124.22830014016964,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 24,
+          "prediction_index": 62,
+          "candidate_identity": "0:0:10600:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -58.7724797998504,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 25,
+          "prediction_index": 66,
+          "candidate_identity": "0:2:522:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -19.842446973429873,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 26,
+          "prediction_index": 67,
+          "candidate_identity": "0:0:10287:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -145.03605275144255,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 27,
+          "prediction_index": 70,
+          "candidate_identity": "0:2:722:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -16.122074929770974,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 28,
+          "prediction_index": 71,
+          "candidate_identity": "0:2:525:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 16.86136868825804,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 29,
+          "prediction_index": 75,
+          "candidate_identity": "0:2:965:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 5.439288137568553,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 30,
+          "prediction_index": 79,
+          "candidate_identity": "0:0:10793:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -89.52932402516298,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 31,
+          "prediction_index": 80,
+          "candidate_identity": "0:0:10602:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -45.673568963457285,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 32,
+          "prediction_index": 81,
+          "candidate_identity": "0:0:7443:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -177.15164642885287,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 33,
+          "prediction_index": 83,
+          "candidate_identity": "0:0:10408:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -53.35665076036351,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 34,
+          "prediction_index": 84,
+          "candidate_identity": "0:1:4893:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -11.84474405999066,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 35,
+          "prediction_index": 92,
+          "candidate_identity": "0:1:2436:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -133.57581699644095,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 36,
+          "prediction_index": 93,
+          "candidate_identity": "0:0:10058:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -130.26881391039237,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 37,
+          "prediction_index": 94,
+          "candidate_identity": "0:1:2702:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -14.937490429685795,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        }
+      ]
+    },
+    {
+      "frame": 2020,
+      "record_count": 40,
+      "headings": [
+        {
+          "installed_ordinal": 0,
+          "prediction_index": 0,
+          "candidate_identity": "0:2:782:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -18.777557795307416,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 1,
+          "prediction_index": 1,
+          "candidate_identity": "0:0:10207:1",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 54.04545494308644,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 2,
+          "prediction_index": 2,
+          "candidate_identity": "0:0:10194:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -26.521694842669007,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 3,
+          "prediction_index": 3,
+          "candidate_identity": "0:0:9922:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -55.24855634331104,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 4,
+          "prediction_index": 4,
+          "candidate_identity": "0:0:9918:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -133.51590737504637,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 5,
+          "prediction_index": 6,
+          "candidate_identity": "0:0:9987:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -9.568013268826917,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 6,
+          "prediction_index": 7,
+          "candidate_identity": "0:0:9921:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -66.42245533786998,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 7,
+          "prediction_index": 8,
+          "candidate_identity": "0:1:2464:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -44.03705793369434,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 8,
+          "prediction_index": 9,
+          "candidate_identity": "0:0:10445:1",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 68.01206830674096,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 9,
+          "prediction_index": 11,
+          "candidate_identity": "0:1:2595:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 4.762477620876865,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 10,
+          "prediction_index": 12,
+          "candidate_identity": "0:1:2522:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -118.06219404162805,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 11,
+          "prediction_index": 13,
+          "candidate_identity": "0:0:9924:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -38.01083929386925,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 12,
+          "prediction_index": 17,
+          "candidate_identity": "0:1:2525:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -179.42199026440903,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 13,
+          "prediction_index": 21,
+          "candidate_identity": "0:0:9856:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -100.15896281477455,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 14,
+          "prediction_index": 24,
+          "candidate_identity": "0:1:2508:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -69.69761780724438,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 15,
+          "prediction_index": 26,
+          "candidate_identity": "0:0:9845:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -127.56612209959252,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 16,
+          "prediction_index": 34,
+          "candidate_identity": "0:1:2526:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -171.5014836607382,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 17,
+          "prediction_index": 35,
+          "candidate_identity": "0:1:2527:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -156.9918534384497,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 18,
+          "prediction_index": 38,
+          "candidate_identity": "0:1:2510:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -54.602912770526515,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 19,
+          "prediction_index": 39,
+          "candidate_identity": "0:1:2521:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -97.40931400531984,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 20,
+          "prediction_index": 40,
+          "candidate_identity": "0:1:3001:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -73.61969138309249,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 21,
+          "prediction_index": 46,
+          "candidate_identity": "0:0:10181:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -2.937173788046806,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 22,
+          "prediction_index": 47,
+          "candidate_identity": "0:2:626:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 26.083449364998586,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 23,
+          "prediction_index": 49,
+          "candidate_identity": "0:1:2509:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -47.598912323405415,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 24,
+          "prediction_index": 51,
+          "candidate_identity": "0:0:9930:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -93.83497097841492,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 25,
+          "prediction_index": 59,
+          "candidate_identity": "0:1:2471:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 164.36247803010463,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 26,
+          "prediction_index": 63,
+          "candidate_identity": "0:1:2564:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -127.91856853525908,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 27,
+          "prediction_index": 65,
+          "candidate_identity": "0:0:9928:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -126.84031541368986,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 28,
+          "prediction_index": 66,
+          "candidate_identity": "0:0:10422:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 21.355544275236753,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 29,
+          "prediction_index": 72,
+          "candidate_identity": "0:2:779:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -8.879575097975504,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 30,
+          "prediction_index": 73,
+          "candidate_identity": "0:1:2809:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -153.84385770239186,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 31,
+          "prediction_index": 77,
+          "candidate_identity": "0:1:2620:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 145.42398941456833,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 32,
+          "prediction_index": 78,
+          "candidate_identity": "0:0:10208:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -48.471221897304815,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 33,
+          "prediction_index": 83,
+          "candidate_identity": "0:1:2597:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -6.822514691792918,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 34,
+          "prediction_index": 86,
+          "candidate_identity": "0:2:625:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 33.668563769713444,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 35,
+          "prediction_index": 87,
+          "candidate_identity": "0:1:3110:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -21.904836179058066,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 36,
+          "prediction_index": 88,
+          "candidate_identity": "0:1:2529:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -109.12525464383155,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 37,
+          "prediction_index": 89,
+          "candidate_identity": "0:0:10013:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -28.400620129769038,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 38,
+          "prediction_index": 92,
+          "candidate_identity": "0:2:628:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -167.31505410887354,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 39,
+          "prediction_index": 99,
+          "candidate_identity": "0:0:1921:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 17.329763344222613,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        }
+      ]
+    },
+    {
+      "frame": 2748,
+      "record_count": 54,
+      "headings": [
+        {
+          "installed_ordinal": 0,
+          "prediction_index": 0,
+          "candidate_identity": "0:0:10031:1",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 95.1059058781118,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 1,
+          "prediction_index": 3,
+          "candidate_identity": "0:0:1347:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 173.31947289609315,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 2,
+          "prediction_index": 5,
+          "candidate_identity": "0:1:2518:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 31.30681765195638,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 3,
+          "prediction_index": 7,
+          "candidate_identity": "0:1:2973:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -8.987886155127882,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 4,
+          "prediction_index": 9,
+          "candidate_identity": "0:1:2517:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 12.327413163968544,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 5,
+          "prediction_index": 10,
+          "candidate_identity": "0:1:2455:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 3.57080140574746,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 6,
+          "prediction_index": 11,
+          "candidate_identity": "0:1:3165:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -12.171311109463659,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 7,
+          "prediction_index": 13,
+          "candidate_identity": "0:1:2494:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -176.0492927249159,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 8,
+          "prediction_index": 15,
+          "candidate_identity": "0:2:97:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -9.82654355261326,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 9,
+          "prediction_index": 19,
+          "candidate_identity": "0:0:12265:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -69.59690310005998,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 10,
+          "prediction_index": 20,
+          "candidate_identity": "0:1:3167:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -6.005875345316355,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 11,
+          "prediction_index": 21,
+          "candidate_identity": "0:1:2879:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -6.587790438796844,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 12,
+          "prediction_index": 23,
+          "candidate_identity": "0:1:2502:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 98.00958610189991,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 13,
+          "prediction_index": 27,
+          "candidate_identity": "0:0:12264:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -76.13588624864009,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 14,
+          "prediction_index": 28,
+          "candidate_identity": "0:1:4988:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -16.66650379464454,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 15,
+          "prediction_index": 29,
+          "candidate_identity": "0:1:2516:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -12.82224732229352,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 16,
+          "prediction_index": 30,
+          "candidate_identity": "0:1:4989:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -13.142390583521205,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 17,
+          "prediction_index": 31,
+          "candidate_identity": "0:0:5115:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -15.573524880447337,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 18,
+          "prediction_index": 32,
+          "candidate_identity": "0:0:10197:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -50.963267578695536,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 19,
+          "prediction_index": 35,
+          "candidate_identity": "0:2:106:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 28.772180473296288,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 20,
+          "prediction_index": 38,
+          "candidate_identity": "0:0:10388:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 150.53889405797474,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 21,
+          "prediction_index": 42,
+          "candidate_identity": "0:0:12458:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -42.89575512216766,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 22,
+          "prediction_index": 43,
+          "candidate_identity": "0:1:4317:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -9.524456854849234,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 23,
+          "prediction_index": 44,
+          "candidate_identity": "0:1:4799:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -2.9876516530219988,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 24,
+          "prediction_index": 46,
+          "candidate_identity": "0:1:4316:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -12.662005869095196,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 25,
+          "prediction_index": 47,
+          "candidate_identity": "0:1:2972:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -14.256293708775615,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 26,
+          "prediction_index": 48,
+          "candidate_identity": "0:1:2782:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -5.78259927669518,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 27,
+          "prediction_index": 49,
+          "candidate_identity": "0:0:10367:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -179.92634277887612,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 28,
+          "prediction_index": 50,
+          "candidate_identity": "0:0:10390:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -72.94602490207738,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 29,
+          "prediction_index": 52,
+          "candidate_identity": "0:1:2534:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 147.77477985429738,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 30,
+          "prediction_index": 55,
+          "candidate_identity": "0:0:10365:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -172.38749518170607,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 31,
+          "prediction_index": 56,
+          "candidate_identity": "0:1:2503:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 87.67614985861894,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 32,
+          "prediction_index": 57,
+          "candidate_identity": "0:1:3649:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -29.6166745820382,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 33,
+          "prediction_index": 60,
+          "candidate_identity": "0:2:10:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 14.204480230113973,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 34,
+          "prediction_index": 61,
+          "candidate_identity": "0:1:2506:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -36.54667635658973,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 35,
+          "prediction_index": 62,
+          "candidate_identity": "0:1:4319:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -2.2702175908389677,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 36,
+          "prediction_index": 64,
+          "candidate_identity": "0:0:20737:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -27.40353162366813,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 37,
+          "prediction_index": 65,
+          "candidate_identity": "0:1:4605:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -10.2952699094389,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 38,
+          "prediction_index": 66,
+          "candidate_identity": "0:0:1538:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -168.4706538614086,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 39,
+          "prediction_index": 68,
+          "candidate_identity": "0:2:157:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 53.172375765390825,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 40,
+          "prediction_index": 70,
+          "candidate_identity": "0:0:1729:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 174.42442790227722,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 41,
+          "prediction_index": 78,
+          "candidate_identity": "0:0:4226:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 27.79906708857598,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 42,
+          "prediction_index": 79,
+          "candidate_identity": "0:0:12263:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -78.94645953825409,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 43,
+          "prediction_index": 80,
+          "candidate_identity": "0:1:3260:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -14.835096112571648,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 44,
+          "prediction_index": 82,
+          "candidate_identity": "0:1:3455:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -1.6434415228875707,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 45,
+          "prediction_index": 85,
+          "candidate_identity": "0:1:2977:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -167.13470505988133,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 46,
+          "prediction_index": 86,
+          "candidate_identity": "0:0:12268:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -45.885070399219586,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 47,
+          "prediction_index": 87,
+          "candidate_identity": "0:1:4801:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -10.402630555276971,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 48,
+          "prediction_index": 92,
+          "candidate_identity": "0:1:2687:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -34.4521723450365,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 49,
+          "prediction_index": 93,
+          "candidate_identity": "0:0:9979:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -85.92515181315058,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 50,
+          "prediction_index": 95,
+          "candidate_identity": "0:1:2492:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -170.5833521874232,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 51,
+          "prediction_index": 96,
+          "candidate_identity": "0:0:5691:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -68.88549430188063,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 52,
+          "prediction_index": 97,
+          "candidate_identity": "0:2:982:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": -99.60306673573054,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        },
+        {
+          "installed_ordinal": 53,
+          "prediction_index": 99,
+          "candidate_identity": "0:0:10223:0",
+          "heading": {
+            "schema": "spatial_map_heading.v2",
+            "contract": "p025_world_yaw.v1",
+            "valid": true,
+            "yaw_deg": 41.831955695613885,
+            "space": "CARLA_WORLD_XY",
+            "axis": "length +X; +yaw toward +Y",
+            "reason": "PRODUCER_WORLD_YAW"
+          }
+        }
+      ]
+    }
+  ],
+  "historical_input_sha256": {
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v10/good_all_prospective_03/capture/cells/a71__favorable_stable/m3_map/installed_map_records.jsonl": "ba65812b4b462f42457341789bcccdf89d3de858334034725fa5feec01b5029a",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v10/good_all_prospective_03/capture/cells/a71__favorable_stable/pose_archive/pose_evidence.jsonl": "e1d6babb4a90530fcf46dd8380b8f7f200bf946e4b807f9be7ac3860970de22b",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_m3_route_b_v10/good_all_prospective_03/capture/cells/a71__favorable_stable/direct_edge_map/direct_map_ingest.csv": "eb5f54a86cbf54fd836c7195608c264db98d9d51bda92afd52be91301ff6a596"
+  },
+  "baseline_hash_matches_prior_validation": {
+    "recording.py": true,
+    "replay_app_v1.js": true,
+    "replay_v1.css": true,
+    "presentation_predictor_v1.js": true,
+    "replay_policy_v1.js": true,
+    "replay_v1.html": true
+  }
+}

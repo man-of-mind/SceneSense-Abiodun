@@ -1,0 +1,50 @@
+[
+  [
+    "} rfsimulator_state_t;",
+    "} rfsimulator_state_t;\n\n#include \"diagnostic.h\""
+  ],
+  [
+    "static void fullwrite(int fd, void *_buf, ssize_t count, rfsimulator_state_t *t)\n{",
+    "static void fullwrite(int fd, void *_buf, ssize_t count, rfsimulator_state_t *t)\n{\n  rd::Scope diag_socket(rd::data(t),6);"
+  ],
+  [
+    "  void *samples[num_beams][nbAnt];",
+    "  rd::Scope diag_write(rd::data(t),5);\n  void *samples[num_beams][nbAnt];"
+  ],
+  [
+    "static bool flushInput(rfsimulator_state_t *t, int timeout, bool first_time)\n{",
+    "static bool flushInput(rfsimulator_state_t *t, int timeout, bool first_time)\n{\n  rd::Scope diag_flush(rd::data(t),2);"
+  ],
+  [
+    "  int nfds = epoll_wait(t->epollfd, events, MAX_FD_RFSIMU, timeout);",
+    "  int nfds;\n  { rd::Scope diag_epoll(rd::data(t),3);\n    nfds = epoll_wait(t->epollfd, events, MAX_FD_RFSIMU, timeout); }"
+  ],
+  [
+    "        combine_received_beams(t,\n                               ptr->received_packets,",
+    "        { rd::Scope diag_merge(rd::data(t),24+rd::peer(rd::data(t),t,ptr));\n        combine_received_beams(t,\n                               ptr->received_packets,"
+  ],
+  [
+    "                               input);\n\n        for (int aarx",
+    "                               input); }\n\n        for (int aarx"
+  ],
+  [
+    "          rxAddInput(input, temp_array[aarx], aarx, ptr->channel_model, nsamps);",
+    "          rd::Scope diag_channel(rd::data(t),16+rd::peer(rd::data(t),t,ptr));\n          rxAddInput(input, temp_array[aarx], aarx, ptr->channel_model, nsamps);"
+  ],
+  [
+    "  LOG_D(HW,\n        \"Enter rfsimulator_read,",
+    "  rd::Scope diag_read(rd::data(t),0);\n  LOG_D(HW,\n        \"Enter rfsimulator_read,"
+  ],
+  [
+    "        flushInput(t, 3, false);",
+    "        rd::Scope diag_peer_wait(rd::data(t),rd::waiting(rd::data(t),t,b,nsamps));\n        flushInput(t, 3, false);"
+  ],
+  [
+    "  struct timespec start_time;\n  int ret = clock_gettime(CLOCK_REALTIME, &start_time);",
+    "  rd::Scope diag_available(rd::data(t),4);\n  struct timespec start_time;\n  int ret = clock_gettime(CLOCK_REALTIME, &start_time);"
+  ],
+  [
+    "  return nsamps;\n}\n\nstatic int rfsimulator_read(openair0_device_t *device,",
+    "  rd::progress(rd::data(t),t);\n  return nsamps;\n}\n\nstatic int rfsimulator_read(openair0_device_t *device,"
+  ]
+]

@@ -1,0 +1,14 @@
+/* Live-only additions on top of replay_v3.css. */
+.livebadge{font-weight:650;letter-spacing:1.5px;font-size:11px;padding:6px 12px;border-radius:6px;border:1px solid;min-width:150px;text-align:center}
+.livebadge.live{color:#0a1016;background:var(--ego);border-color:var(--ego)}
+.livebadge.stale{color:#1a1206;background:#e7b45c;border-color:#e7b45c}
+.livebadge.disconnected{color:#fff;background:#c4473f;border-color:#c4473f}
+.livebadge.waiting{color:var(--muted);background:#122130;border-color:#2c3d4c}
+body.live.stale #stage{border-color:#e7b45c}
+body.live.disconnected #stage{border-color:#c4473f}
+.livestrip{gap:8px;flex-wrap:wrap}
+.livestrip .lbl{font-size:9px;letter-spacing:1.3px;color:var(--muted);margin-left:10px}
+.livestrip .lbl:first-child{margin-left:0}
+.feedgrid{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;margin:0;font-size:11px}
+.feedgrid dt{color:var(--muted)}
+.feedgrid dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}

@@ -1,0 +1,160 @@
+
+/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem:     file format elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .plt.got:
+
+Disassembly of section .plt.sec:
+
+Disassembly of section .text:
+
+0000000000410640 <nfix>:
+  410640:	f3 0f 1e fa          	endbr64 
+  410644:	41 57                	push   %r15
+  410646:	4c 8d 3d d3 9c 8b 00 	lea    0x8b9cd3(%rip),%r15        # cca320 <fn>
+  41064d:	41 56                	push   %r14
+  41064f:	4c 8d 35 aa 9a 8b 00 	lea    0x8b9aaa(%rip),%r14        # cca100 <kn>
+  410656:	41 55                	push   %r13
+  410658:	4c 8d 2d c1 a0 8b 00 	lea    0x8ba0c1(%rip),%r13        # cca720 <wn>
+  41065f:	41 54                	push   %r12
+  410661:	55                   	push   %rbp
+  410662:	53                   	push   %rbx
+  410663:	48 83 ec 18          	sub    $0x18,%rsp
+  410667:	44 8b 15 92 9c 8b 00 	mov    0x8b9c92(%rip),%r10d        # cca300 <iz>
+  41066e:	8b 1d cc fb 31 00    	mov    0x31fbcc(%rip),%ebx        # 730240 <jsr>
+  410674:	44 8b 25 71 9a 8b 00 	mov    0x8b9a71(%rip),%r12d        # cca0ec <hz>
+  41067b:	4d 89 d0             	mov    %r10,%r8
+  41067e:	e9 9c 00 00 00       	jmp    41071f <nfix+0xdf>
+  410683:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+  410688:	41 8d 48 ff          	lea    -0x1(%r8),%ecx
+  41068c:	c4 81 7b 10 1c d7    	vmovsd (%r15,%r10,8),%xmm3
+  410692:	c5 4b 59 05 66 48 13 	vmulsd 0x134866(%rip),%xmm6,%xmm8        # 544f00 <__FUNCTION__.10+0x60>
+  410699:	00 
+  41069a:	89 2d a0 fb 31 00    	mov    %ebp,0x31fba0(%rip)        # 730240 <jsr>
+  4106a0:	c4 c1 7b 10 14 cf    	vmovsd (%r15,%rcx,8),%xmm2
+  4106a6:	c5 fb 11 74 24 08    	vmovsd %xmm6,0x8(%rsp)
+  4106ac:	c5 eb 5c fb          	vsubsd %xmm3,%xmm2,%xmm7
+  4106b0:	c4 e2 e1 99 f8       	vfmadd132sd %xmm0,%xmm3,%xmm7
+  4106b5:	c5 bb 59 c6          	vmulsd %xmm6,%xmm8,%xmm0
+  4106b9:	c5 fb 11 3c 24       	vmovsd %xmm7,(%rsp)
+  4106be:	e8 6d a9 eb ff       	call   2cb030 <exp@plt>
+  4106c3:	c5 f9 2f 04 24       	vcomisd (%rsp),%xmm0
+  4106c8:	c5 7b 10 5c 24 08    	vmovsd 0x8(%rsp),%xmm11
+  4106ce:	0f 87 50 01 00 00    	ja     410824 <nfix+0x1e4>
+  4106d4:	89 eb                	mov    %ebp,%ebx
+  4106d6:	c1 e3 0d             	shl    $0xd,%ebx
+  4106d9:	31 eb                	xor    %ebp,%ebx
+  4106db:	89 de                	mov    %ebx,%esi
+  4106dd:	c1 ee 11             	shr    $0x11,%esi
+  4106e0:	31 de                	xor    %ebx,%esi
+  4106e2:	89 f3                	mov    %esi,%ebx
+  4106e4:	c1 e3 05             	shl    $0x5,%ebx
+  4106e7:	31 f3                	xor    %esi,%ebx
+  4106e9:	44 8d 24 2b          	lea    (%rbx,%rbp,1),%r12d
+  4106ed:	89 1d 4d fb 31 00    	mov    %ebx,0x31fb4d(%rip)        # 730240 <jsr>
+  4106f3:	45 89 e0             	mov    %r12d,%r8d
+  4106f6:	45 89 e1             	mov    %r12d,%r9d
+  4106f9:	44 89 25 ec 99 8b 00 	mov    %r12d,0x8b99ec(%rip)        # cca0ec <hz>
+  410700:	41 83 e0 7f          	and    $0x7f,%r8d
+  410704:	41 f7 d9             	neg    %r9d
+  410707:	45 89 c2             	mov    %r8d,%r10d
+  41070a:	44 89 05 ef 9b 8b 00 	mov    %r8d,0x8b9bef(%rip)        # cca300 <iz>
+  410711:	45 0f 48 cc          	cmovs  %r12d,%r9d
+  410715:	47 3b 0c 96          	cmp    (%r14,%r10,4),%r9d
+  410719:	0f 82 21 01 00 00    	jb     410840 <nfix+0x200>
+  41071f:	89 da                	mov    %ebx,%edx
+  410721:	c5 d9 57 e4          	vxorpd %xmm4,%xmm4,%xmm4
+  410725:	c5 fb 10 2d f3 da 12 	vmovsd 0x12daf3(%rip),%xmm5        # 53e220 <tasks_info+0x26a0>
+  41072c:	00 
+  41072d:	c1 e2 0d             	shl    $0xd,%edx
+  410730:	c4 c1 5b 2a cc       	vcvtsi2sd %r12d,%xmm4,%xmm1
+  410735:	c4 81 73 59 74 d5 00 	vmulsd 0x0(%r13,%r10,8),%xmm1,%xmm6
+  41073c:	31 da                	xor    %ebx,%edx
+  41073e:	89 d0                	mov    %edx,%eax
+  410740:	c1 e8 11             	shr    $0x11,%eax
+  410743:	31 d0                	xor    %edx,%eax
+  410745:	89 c5                	mov    %eax,%ebp
+  410747:	c1 e5 05             	shl    $0x5,%ebp
+  41074a:	31 c5                	xor    %eax,%ebp
+  41074c:	8d 3c 2b             	lea    (%rbx,%rbp,1),%edi
+  41074f:	c5 db 2a c7          	vcvtsi2sd %edi,%xmm4,%xmm0
+  410753:	c4 e2 d1 99 05 34 ba 	vfmadd132sd 0x17ba34(%rip),%xmm5,%xmm0        # 58c190 <__FUNCTION__.5+0x68>
+  41075a:	17 00 
+  41075c:	45 85 c0             	test   %r8d,%r8d
+  41075f:	0f 85 23 ff ff ff    	jne    410688 <nfix+0x48>
+  410765:	0f 1f 00             	nopl   (%rax)
+  410768:	41 89 db             	mov    %ebx,%r11d
+  41076b:	c4 41 19 57 e4       	vxorpd %xmm12,%xmm12,%xmm12
+  410770:	c5 7b 10 2d a8 da 12 	vmovsd 0x12daa8(%rip),%xmm13        # 53e220 <tasks_info+0x26a0>
+  410777:	00 
+  410778:	41 c1 e3 0d          	shl    $0xd,%r11d
+  41077c:	41 31 db             	xor    %ebx,%r11d
+  41077f:	45 89 dd             	mov    %r11d,%r13d
+  410782:	41 c1 ed 11          	shr    $0x11,%r13d
+  410786:	45 31 dd             	xor    %r11d,%r13d
+  410789:	45 89 ef             	mov    %r13d,%r15d
+  41078c:	41 c1 e7 05          	shl    $0x5,%r15d
+  410790:	45 31 ef             	xor    %r13d,%r15d
+  410793:	44 01 fb             	add    %r15d,%ebx
+  410796:	45 89 fe             	mov    %r15d,%r14d
+  410799:	c5 9b 2a c3          	vcvtsi2sd %ebx,%xmm12,%xmm0
+  41079d:	41 c1 e6 0d          	shl    $0xd,%r14d
+  4107a1:	c4 e2 91 99 05 e6 b9 	vfmadd132sd 0x17b9e6(%rip),%xmm13,%xmm0        # 58c190 <__FUNCTION__.5+0x68>
+  4107a8:	17 00 
+  4107aa:	45 31 fe             	xor    %r15d,%r14d
+  4107ad:	e8 ee a8 eb ff       	call   2cb0a0 <log@plt>
+  4107b2:	44 89 f2             	mov    %r14d,%edx
+  4107b5:	c4 41 01 57 ff       	vxorpd %xmm15,%xmm15,%xmm15
+  4107ba:	c5 fb 10 25 5e da 12 	vmovsd 0x12da5e(%rip),%xmm4        # 53e220 <tasks_info+0x26a0>
+  4107c1:	00 
+  4107c2:	c5 7b 59 35 ce b9 17 	vmulsd 0x17b9ce(%rip),%xmm0,%xmm14        # 58c198 <__FUNCTION__.5+0x70>
+  4107c9:	00 
+  4107ca:	c1 ea 11             	shr    $0x11,%edx
+  4107cd:	44 31 f2             	xor    %r14d,%edx
+  4107d0:	89 d3                	mov    %edx,%ebx
+  4107d2:	c1 e3 05             	shl    $0x5,%ebx
+  4107d5:	31 d3                	xor    %edx,%ebx
+  4107d7:	41 01 df             	add    %ebx,%r15d
+  4107da:	89 1d 60 fa 31 00    	mov    %ebx,0x31fa60(%rip)        # 730240 <jsr>
+  4107e0:	c4 c1 03 2a c7       	vcvtsi2sd %r15d,%xmm15,%xmm0
+  4107e5:	c5 7b 11 34 24       	vmovsd %xmm14,(%rsp)
+  4107ea:	c4 e2 d9 99 05 9d b9 	vfmadd132sd 0x17b99d(%rip),%xmm4,%xmm0        # 58c190 <__FUNCTION__.5+0x68>
+  4107f1:	17 00 
+  4107f3:	e8 a8 a8 eb ff       	call   2cb0a0 <log@plt>
+  4107f8:	c5 fb 10 2c 24       	vmovsd (%rsp),%xmm5
+  4107fd:	c5 f9 57 0d 3b e8 12 	vxorpd 0x12e83b(%rip),%xmm0,%xmm1        # 53f040 <__FUNCTION__.17+0x38>
+  410804:	00 
+  410805:	c5 d3 59 c5          	vmulsd %xmm5,%xmm5,%xmm0
+  410809:	c5 f3 58 f1          	vaddsd %xmm1,%xmm1,%xmm6
+  41080d:	c5 f9 2f c6          	vcomisd %xmm6,%xmm0
+  410811:	0f 87 51 ff ff ff    	ja     410768 <nfix+0x128>
+  410817:	45 85 e4             	test   %r12d,%r12d
+  41081a:	7e 3c                	jle    410858 <nfix+0x218>
+  41081c:	c5 53 58 1d 7c b9 17 	vaddsd 0x17b97c(%rip),%xmm5,%xmm11        # 58c1a0 <__FUNCTION__.5+0x78>
+  410823:	00 
+  410824:	48 83 c4 18          	add    $0x18,%rsp
+  410828:	c5 23 11 d8          	vmovsd %xmm11,%xmm11,%xmm0
+  41082c:	5b                   	pop    %rbx
+  41082d:	5d                   	pop    %rbp
+  41082e:	41 5c                	pop    %r12
+  410830:	41 5d                	pop    %r13
+  410832:	41 5e                	pop    %r14
+  410834:	41 5f                	pop    %r15
+  410836:	c3                   	ret    
+  410837:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+  41083e:	00 00 
+  410840:	c4 41 31 57 c9       	vxorpd %xmm9,%xmm9,%xmm9
+  410845:	c4 41 33 2a d4       	vcvtsi2sd %r12d,%xmm9,%xmm10
+  41084a:	c4 01 2b 59 5c d5 00 	vmulsd 0x0(%r13,%r10,8),%xmm10,%xmm11
+  410851:	eb d1                	jmp    410824 <nfix+0x1e4>
+  410853:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+  410858:	c5 fb 10 1d 48 b9 17 	vmovsd 0x17b948(%rip),%xmm3        # 58c1a8 <__FUNCTION__.5+0x80>
+  41085f:	00 
+  410860:	c5 63 5c dd          	vsubsd %xmm5,%xmm3,%xmm11
+  410864:	eb be                	jmp    410824 <nfix+0x1e4>
+
+Disassembly of section .fini:

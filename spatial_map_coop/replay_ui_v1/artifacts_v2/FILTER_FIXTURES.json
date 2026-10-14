@@ -1,0 +1,73 @@
+{
+  "schema": "synthetic_filter_fixture.v2",
+  "input_cadence_ms": 100,
+  "capture_to_arrival_ms": 200,
+  "noise": "deterministic 0.18 m sinusoids; synthetic, not M3 truth",
+  "added_input_buffer_ms": 0,
+  "cases": {
+    "stationary": {
+      "before": {
+        "display_error_rmse_m": 0.3925695622421612,
+        "raw_measurement_error_rmse_m": 0.18082389770659896,
+        "mean_frame_motion_m": 0.10275397516773331,
+        "first_stop_settle_after_truth_ms": null,
+        "constant_motion_signed_lag_ms": null
+      },
+      "after": {
+        "display_error_rmse_m": 0.09645370630390059,
+        "raw_measurement_error_rmse_m": 0.18082389770659896,
+        "mean_frame_motion_m": 0.02447498752666817,
+        "first_stop_settle_after_truth_ms": null,
+        "constant_motion_signed_lag_ms": null
+      }
+    },
+    "constant_motion": {
+      "before": {
+        "display_error_rmse_m": 0.7276281038698731,
+        "raw_measurement_error_rmse_m": 0.18082389770659896,
+        "mean_frame_motion_m": 0.14963158326788176,
+        "first_stop_settle_after_truth_ms": null,
+        "constant_motion_signed_lag_ms": 96.39426847474986
+      },
+      "after": {
+        "display_error_rmse_m": 0.0965455824138603,
+        "raw_measurement_error_rmse_m": 0.18082389770659896,
+        "mean_frame_motion_m": 0.0696651918656592,
+        "first_stop_settle_after_truth_ms": null,
+        "constant_motion_signed_lag_ms": -0.1638207671109422
+      }
+    },
+    "turn": {
+      "before": {
+        "display_error_rmse_m": 0.8428645933941112,
+        "raw_measurement_error_rmse_m": 0.180823897706599,
+        "mean_frame_motion_m": 0.17404951166188445,
+        "first_stop_settle_after_truth_ms": null,
+        "constant_motion_signed_lag_ms": null
+      },
+      "after": {
+        "display_error_rmse_m": 0.5354999696266833,
+        "raw_measurement_error_rmse_m": 0.180823897706599,
+        "mean_frame_motion_m": 0.090221641838041,
+        "first_stop_settle_after_truth_ms": null,
+        "constant_motion_signed_lag_ms": null
+      }
+    },
+    "stop": {
+      "before": {
+        "display_error_rmse_m": 0.5643576613356869,
+        "raw_measurement_error_rmse_m": 0.18082389770659896,
+        "mean_frame_motion_m": 0.12551199188887793,
+        "first_stop_settle_after_truth_ms": 649.9999999999955,
+        "constant_motion_signed_lag_ms": null
+      },
+      "after": {
+        "display_error_rmse_m": 0.38602914614366574,
+        "raw_measurement_error_rmse_m": 0.18082389770659896,
+        "mean_frame_motion_m": 0.04362234030254328,
+        "first_stop_settle_after_truth_ms": 1166.6666666666715,
+        "constant_motion_signed_lag_ms": null
+      }
+    }
+  }
+}

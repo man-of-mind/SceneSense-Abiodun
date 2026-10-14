@@ -1,0 +1,30 @@
+{
+  "command": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "-u",
+    "CUDA_VISIBLE_DEVICES",
+    "-u",
+    "LD_PRELOAD",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "python3",
+    "-B",
+    "-m",
+    "rl_agent.splitfusion_m4_two_ue_v1.cli",
+    "smoke",
+    "--preparation",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/preparation_smoke_20261013_08/PREPARATION.json",
+    "--output",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_05",
+    "--execute-token",
+    "M4_TWO_UE_SMOKE_SEPARATELY_AUTHORIZED"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "end_wall_s": 1791881085.2565894,
+  "returncode": -6,
+  "start_wall_s": 1791880997.0235567
+}

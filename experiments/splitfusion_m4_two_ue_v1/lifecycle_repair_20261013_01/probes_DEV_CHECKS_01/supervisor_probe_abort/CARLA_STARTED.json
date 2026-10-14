@@ -1,0 +1,11 @@
+{
+  "members": [
+    {
+      "birth": "851946922",
+      "cmdline": "sleep 300",
+      "pid": 1492442
+    }
+  ],
+  "pgid": 1492442,
+  "rpc_port": 2999
+}

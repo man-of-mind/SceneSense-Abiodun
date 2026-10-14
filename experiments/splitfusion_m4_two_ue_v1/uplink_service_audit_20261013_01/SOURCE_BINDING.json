@@ -1,0 +1,68 @@
+{
+  "OAI/openairinterface5g/cmake_targets/ran_build/build/librfsimulator.so": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "3475c7f971f959701b7808f3d6c3e0eba10f9a6bf485892b54e3b2f6c660f706"
+  },
+  "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-softmodem": {
+    "main_deploy_agree": true,
+    "registered_sha256": "ebcd85f4c96cf6e3d0a1752d0047e8377811014be75cdeeef6334c982fcfab70",
+    "scope": "sealed preparation match",
+    "sha256": "ebcd85f4c96cf6e3d0a1752d0047e8377811014be75cdeeef6334c982fcfab70"
+  },
+  "OAI/openairinterface5g/cmake_targets/ran_build/build/nr-uesoftmodem": {
+    "main_deploy_agree": true,
+    "registered_sha256": "60ecc9a1d102e8b66871727a6a23da22977ff907fecc3870a8dc46414080c975",
+    "scope": "sealed preparation match",
+    "sha256": "60ecc9a1d102e8b66871727a6a23da22977ff907fecc3870a8dc46414080c975"
+  },
+  "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_UE/nr_ue_scheduler.c": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "97707d2dfcb212428f690d33f872fe36f43ce4fba8407fb594129c3fcf1aa66c"
+  },
+  "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_primitives.c": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "b29e9235bcc212de3e07b768af28e4d19269c6e47ab38f022325c41fb302206f"
+  },
+  "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/gNB_scheduler_ulsch.c": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "c2776fab4cd7e51e37d2a6c1a4a1f6a6388dc8145cb1705d6961719986c35804"
+  },
+  "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/main.c": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "fee51c0e47a08228c8eec13bd51c6c052754f347baa6a9a60c54b1fd3e1073ba"
+  },
+  "OAI/openairinterface5g/openair2/LAYER2/NR_MAC_gNB/nr_radio_config.c": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "541db8ac7061a5c8ea90a560f8fb3522be753390cb7e7fdf094af1e8a94646eb"
+  },
+  "OAI/openairinterface5g/openair2/LAYER2/nr_pdcp/nr_pdcp_oai_api.c": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "3bdc6185626f3d77d0d81dcdc4304f990110e57933502dc9432ffacbff90a215"
+  },
+  "OAI/openairinterface5g/radio/rfsimulator/apply_channelmod.c": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "d87fb051292bdb7da91cac2358110f6d0df8a06652cf106c71a2ad5d31fdf6f8"
+  },
+  "OAI/openairinterface5g/radio/rfsimulator/simulator.cpp": {
+    "main_deploy_agree": true,
+    "registered_sha256": null,
+    "scope": "current main/deployment agreement; not in historical source inventory",
+    "sha256": "8d78932b06903344d4a137bdafb5729173b40a98330116d1609a0abca0315c3a"
+  }
+}

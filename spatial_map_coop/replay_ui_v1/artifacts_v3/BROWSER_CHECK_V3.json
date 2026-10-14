@@ -1,0 +1,163 @@
+{
+  "status": "PASS",
+  "browser": "133.0.6943.16",
+  "conditions": "Actual rAF 1x playback, both sides 45 m radius, heading-up, default views. Side-by-side 2880x1240 with video; standalone 1440x1000 without video. Software rendering, host-specific.",
+  "video_marks": [
+    {
+      "clip": "departure",
+      "start_ms": 0,
+      "duration_ms": 4500,
+      "video_s": 1.202
+    },
+    {
+      "clip": "turn",
+      "start_ms": 8000,
+      "duration_ms": 6500,
+      "video_s": 7.192
+    },
+    {
+      "clip": "stop",
+      "start_ms": 2000,
+      "duration_ms": 6000,
+      "video_s": 15.343
+    },
+    {
+      "clip": "turn",
+      "start_ms": 17400,
+      "duration_ms": 1700,
+      "video_s": 22.864
+    }
+  ],
+  "comparisons": [
+    {
+      "clip": "departure",
+      "start_ms": 0,
+      "duration_ms": 4500,
+      "samples": 160,
+      "clock_difference_ms": {
+        "n": 160,
+        "mean": 0.06000000000002217,
+        "p50": 0.0999999999994543,
+        "p95": 0.10000000000013642,
+        "max": 0.20000000000027285
+      },
+      "v2": {
+        "mean_glyphs": 25.375,
+        "appearances_per_s": 96.66666666666667,
+        "disappearances_per_s": 92.66666666666667
+      },
+      "v3": {
+        "mean_glyphs": 4.3625,
+        "appearances_per_s": 4,
+        "disappearances_per_s": 3.3333333333333335
+      }
+    },
+    {
+      "clip": "turn",
+      "start_ms": 8000,
+      "duration_ms": 6500,
+      "samples": 247,
+      "clock_difference_ms": {
+        "n": 247,
+        "mean": 0.06720647773692638,
+        "p50": 0.10000000000400178,
+        "p95": 0.10000000000582077,
+        "max": 0.20000000000618456
+      },
+      "v2": {
+        "mean_glyphs": 30.153846153846153,
+        "appearances_per_s": 108.46153846153847,
+        "disappearances_per_s": 105.6923076923077
+      },
+      "v3": {
+        "mean_glyphs": 7.627530364372469,
+        "appearances_per_s": 14,
+        "disappearances_per_s": 12.76923076923077
+      }
+    },
+    {
+      "clip": "stop",
+      "start_ms": 2000,
+      "duration_ms": 6000,
+      "samples": 231,
+      "clock_difference_ms": {
+        "n": 231,
+        "mean": 0.0649350649349547,
+        "p50": 0.09999999999854481,
+        "p95": 0.19999999999708962,
+        "max": 0.2000000000007276
+      },
+      "v2": {
+        "mean_glyphs": 19.116883116883116,
+        "appearances_per_s": 55.833333333333336,
+        "disappearances_per_s": 52.666666666666664
+      },
+      "v3": {
+        "mean_glyphs": 1.9437229437229437,
+        "appearances_per_s": 1.5,
+        "disappearances_per_s": 1
+      }
+    },
+    {
+      "clip": "turn",
+      "start_ms": 17400,
+      "duration_ms": 1700,
+      "samples": 61,
+      "clock_difference_ms": {
+        "n": 61,
+        "mean": 0.039344262297312464,
+        "p50": 3.637978807091713e-12,
+        "p95": 0.10000000000218279,
+        "max": 0.10000000000218279
+      },
+      "v2": {
+        "mean_glyphs": 3.6721311475409837,
+        "appearances_per_s": 23.529411764705884,
+        "disappearances_per_s": 23.529411764705884
+      },
+      "v3": {
+        "mean_glyphs": 0.9836065573770492,
+        "appearances_per_s": 2.9411764705882355,
+        "disappearances_per_s": 2.9411764705882355
+      }
+    }
+  ],
+  "standalone": {
+    "v2": {
+      "frame_ms": {
+        "n": 400,
+        "mean": 16.666,
+        "p50": 16.699999999999818,
+        "p95": 16.700000000000728,
+        "max": 16.80000000000109
+      },
+      "render_cpu_ms": {
+        "n": 400,
+        "mean": 2.2254999923706054,
+        "p50": 1.9000005722045898,
+        "p95": 4.100000381469727,
+        "max": 6.5
+      }
+    },
+    "v3": {
+      "frame_ms": {
+        "n": 400,
+        "mean": 16.665999999999997,
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109
+      },
+      "render_cpu_ms": {
+        "n": 400,
+        "mean": 1.561500039100647,
+        "p50": 1.2000007629394531,
+        "p95": 3.40000057220459,
+        "max": 4.40000057220459
+      }
+    }
+  },
+  "added_input_buffer_ms": 0,
+  "v3_correction_blend_ms": 150,
+  "page_errors": [],
+  "external_requests": 0
+}

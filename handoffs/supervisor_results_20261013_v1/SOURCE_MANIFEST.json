@@ -1,0 +1,677 @@
+[
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 317629,
+    "packaged_path": "figures/01_completion_curves.png",
+    "packaged_sha256": "ff829928f33a116de8c36bcbde4823a877009e75f391ce5bc140c8da9f91e906",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/01_completion_curves.png",
+    "source_bytes": 317629,
+    "source_sha256": "ff829928f33a116de8c36bcbde4823a877009e75f391ce5bc140c8da9f91e906"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 353767,
+    "packaged_path": "figures/02_outcomes_and_latency_quantiles.png",
+    "packaged_sha256": "5d1af59acb932c59639610ef1a72af8e3b08b6cf8ae8f1bfc759cc4e36d7b042",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/02_outcomes_and_latency_quantiles.png",
+    "source_bytes": 353767,
+    "source_sha256": "5d1af59acb932c59639610ef1a72af8e3b08b6cf8ae8f1bfc759cc4e36d7b042"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 273384,
+    "packaged_path": "figures/03_payload_statistics_and_time.png",
+    "packaged_sha256": "238f18c6559c2125c3e894d84ceb439fe720c07eb697fcf2f9947c7690c2b9d4",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/03_payload_statistics_and_time.png",
+    "source_bytes": 273384,
+    "source_sha256": "238f18c6559c2125c3e894d84ceb439fe720c07eb697fcf2f9947c7690c2b9d4"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 525921,
+    "packaged_path": "figures/04_snr_mcs_time.png",
+    "packaged_sha256": "3827862ce2758a77fa717151d277a411febe49cf7c343f3ef3178edcecf4d609",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/04_snr_mcs_time.png",
+    "source_bytes": 525921,
+    "source_sha256": "3827862ce2758a77fa717151d277a411febe49cf7c343f3ef3178edcecf4d609"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 530376,
+    "packaged_path": "figures/05_prediction_feedback_time.png",
+    "packaged_sha256": "3fe74e38f8579cfe32c971c0e17783a4f6d2c27ac73da51440475837575d8ed7",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/05_prediction_feedback_time.png",
+    "source_bytes": 530376,
+    "source_sha256": "3fe74e38f8579cfe32c971c0e17783a4f6d2c27ac73da51440475837575d8ed7"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 350943,
+    "packaged_path": "figures/06_deadline_quality.png",
+    "packaged_sha256": "272133eeebc58cdd344e7a048b0ce18f3a403163d0a76c31a4ca98e4997fd947",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/06_deadline_quality.png",
+    "source_bytes": 350943,
+    "source_sha256": "272133eeebc58cdd344e7a048b0ce18f3a403163d0a76c31a4ca98e4997fd947"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 561308,
+    "packaged_path": "figures/07_scene_complexity_and_q_time.png",
+    "packaged_sha256": "1201da8c3a8274407426ef5d5f577e59500b19ded4ffab508c87d763df438d06",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/07_scene_complexity_and_q_time.png",
+    "source_bytes": 561308,
+    "source_sha256": "1201da8c3a8274407426ef5d5f577e59500b19ded4ffab508c87d763df438d06"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 535696,
+    "packaged_path": "figures/08_map_freshness_cdf_and_time.png",
+    "packaged_sha256": "a5ea125094c1d2b6a794b660429a4d64cdd01936372600e42e30b18d0f8555a2",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/08_map_freshness_cdf_and_time.png",
+    "source_bytes": 535696,
+    "source_sha256": "a5ea125094c1d2b6a794b660429a4d64cdd01936372600e42e30b18d0f8555a2"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 486496,
+    "packaged_path": "figures/09_perception_time.png",
+    "packaged_sha256": "607062eba6cc13c854095967ff8a4b43dfc70d6374159b050a92c208c9425859",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/09_perception_time.png",
+    "source_bytes": 486496,
+    "source_sha256": "607062eba6cc13c854095967ff8a4b43dfc70d6374159b050a92c208c9425859"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 339009,
+    "packaged_path": "figures/10_map_freshness_quantiles.png",
+    "packaged_sha256": "4f396fe42384c651bb59fea7c7f7b09c5989b30d9b62ee5ee429fe727f983c51",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/10_map_freshness_quantiles.png",
+    "source_bytes": 339009,
+    "source_sha256": "4f396fe42384c651bb59fea7c7f7b09c5989b30d9b62ee5ee429fe727f983c51"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 488082,
+    "packaged_path": "figures/11_application_rlc_data_rates.png",
+    "packaged_sha256": "705e436a0c38476b45eef159b62ea6622a45ef7301f92de4c8570c55062b2180",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/11_application_rlc_data_rates.png",
+    "source_bytes": 488082,
+    "source_sha256": "705e436a0c38476b45eef159b62ea6622a45ef7301f92de4c8570c55062b2180"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 420975,
+    "packaged_path": "figures/12_rlc_and_gnb_buffer_time.png",
+    "packaged_sha256": "c3802179fa5dfb88a10d848f929ec2b6846b88d3be96f6e6e55c709a322fdba3",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/12_rlc_and_gnb_buffer_time.png",
+    "source_bytes": 420975,
+    "source_sha256": "c3802179fa5dfb88a10d848f929ec2b6846b88d3be96f6e6e55c709a322fdba3"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 395772,
+    "packaged_path": "figures/13_payload_time_and_relative_variation.png",
+    "packaged_sha256": "12f4ba5076cc689baa868463dd1543e45f5a0889729f82c2188caec5c513f2cf",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/13_payload_time_and_relative_variation.png",
+    "source_bytes": 395772,
+    "source_sha256": "12f4ba5076cc689baa868463dd1543e45f5a0889729f82c2188caec5c513f2cf"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 162670,
+    "packaged_path": "data/AOI_SEGMENTS.csv",
+    "packaged_sha256": "eb2b31fe3aa962d312ef61d068974be91cac08aaedd1157d4f4985970639d7ee",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/AOI_SEGMENTS.csv",
+    "source_bytes": 162670,
+    "source_sha256": "eb2b31fe3aa962d312ef61d068974be91cac08aaedd1157d4f4985970639d7ee"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 21438,
+    "packaged_path": "data/BUFFER_OCCUPANCY_1S.csv",
+    "packaged_sha256": "c1820bcdc82980c683d3ddac90f241244cf25de8b6d2a85515243b0f093c3be8",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/BUFFER_OCCUPANCY_1S.csv",
+    "source_bytes": 21438,
+    "source_sha256": "c1820bcdc82980c683d3ddac90f241244cf25de8b6d2a85515243b0f093c3be8"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 4203,
+    "packaged_path": "data/CAPTIONS.json",
+    "packaged_sha256": "d5f7d71fff0100f54fb27fd2d4a21d7ce5ad55e3b56b7ba7933f3a46cb14dc4d",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/CAPTIONS.json",
+    "source_bytes": 4203,
+    "source_sha256": "d5f7d71fff0100f54fb27fd2d4a21d7ce5ad55e3b56b7ba7933f3a46cb14dc4d"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 167805,
+    "packaged_path": "data/CHANNEL_COMMANDS.csv",
+    "packaged_sha256": "32c1514e034313d35a860e6688199a3a6ec8d6fe7983320a578521ba571a4ee0",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/CHANNEL_COMMANDS.csv",
+    "source_bytes": 167805,
+    "source_sha256": "32c1514e034313d35a860e6688199a3a6ec8d6fe7983320a578521ba571a4ee0"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 225077,
+    "packaged_path": "data/DECISIONS.csv",
+    "packaged_sha256": "c9e9b69b3bf9a408273c758d18c7fcc8487f88753c7054e502a3fbc1fefe0d8b",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/DECISIONS.csv",
+    "source_bytes": 225077,
+    "source_sha256": "c9e9b69b3bf9a408273c758d18c7fcc8487f88753c7054e502a3fbc1fefe0d8b"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 185778,
+    "packaged_path": "data/FRAMES.csv",
+    "packaged_sha256": "37e9b18283e4b72b9bb07fac5ce801bf473525f6764a1ff08323421519a3e334",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/FRAMES.csv",
+    "source_bytes": 185778,
+    "source_sha256": "37e9b18283e4b72b9bb07fac5ce801bf473525f6764a1ff08323421519a3e334"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 7302,
+    "packaged_path": "provenance/original_plot_bundle/INPUT_SHA256.json",
+    "packaged_sha256": "0cd13a5854c1c5746712ffc47a2227ff76df6dc7fda1b3819865219466a01cc6",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/INPUT_SHA256.json",
+    "source_bytes": 7302,
+    "source_sha256": "0cd13a5854c1c5746712ffc47a2227ff76df6dc7fda1b3819865219466a01cc6"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 132199,
+    "packaged_path": "data/MAP_INSTALLS.csv",
+    "packaged_sha256": "f896e6cc18b19c56a723f1b0ae5153fcd29a28cfefd33672553584ab191e04cc",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/MAP_INSTALLS.csv",
+    "source_bytes": 132199,
+    "source_sha256": "f896e6cc18b19c56a723f1b0ae5153fcd29a28cfefd33672553584ab191e04cc"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 8430,
+    "packaged_path": "data/METRICS.json",
+    "packaged_sha256": "fb2138175fdba71b363d6159361e8e9f78f8b8a6448ad24be611ec992d545738",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/METRICS.json",
+    "source_bytes": 8430,
+    "source_sha256": "fb2138175fdba71b363d6159361e8e9f78f8b8a6448ad24be611ec992d545738"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 3004,
+    "packaged_path": "provenance/original_plot_bundle/OUTPUT_SHA256.json",
+    "packaged_sha256": "a8b2ead28bc7622675a5a4ba4204c9c4e9481ce4361d95b561088918e97cdc35",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/OUTPUT_SHA256.json",
+    "source_bytes": 3004,
+    "source_sha256": "a8b2ead28bc7622675a5a4ba4204c9c4e9481ce4361d95b561088918e97cdc35"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 5879634,
+    "packaged_path": "data/PUSCH.csv",
+    "packaged_sha256": "5eeb57b0bc0c18c9453bebadf719516bea288e8c6e1e37e242614a7143a4d1b9",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/PUSCH.csv",
+    "source_bytes": 5879634,
+    "source_sha256": "5eeb57b0bc0c18c9453bebadf719516bea288e8c6e1e37e242614a7143a4d1b9"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 2042,
+    "packaged_path": "provenance/original_plot_bundle/READ_ME.txt",
+    "packaged_sha256": "90fb4f310988cda60b2863c24767a75e8cfb5d45d7591ef5c6e10a8b87f77237",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/READ_ME.txt",
+    "source_bytes": 2042,
+    "source_sha256": "90fb4f310988cda60b2863c24767a75e8cfb5d45d7591ef5c6e10a8b87f77237"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 1023,
+    "packaged_path": "data/TRANSPORT_CAPTIONS.json",
+    "packaged_sha256": "54846e7104dc2c132d57b132951a9e26c9845321a27b22faa7bd999c32204a39",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/TRANSPORT_CAPTIONS.json",
+    "source_bytes": 1023,
+    "source_sha256": "54846e7104dc2c132d57b132951a9e26c9845321a27b22faa7bd999c32204a39"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 2794,
+    "packaged_path": "provenance/original_plot_bundle/TRANSPORT_INPUT_SHA256.json",
+    "packaged_sha256": "0ffa918cc103f218829fdbb26bd92972468bbfacaad8cbe020749eb18f3e89d8",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/TRANSPORT_INPUT_SHA256.json",
+    "source_bytes": 2794,
+    "source_sha256": "0ffa918cc103f218829fdbb26bd92972468bbfacaad8cbe020749eb18f3e89d8"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 7995,
+    "packaged_path": "data/TRANSPORT_METRICS.json",
+    "packaged_sha256": "b549c4f4ca610e0705119a2f14d855912e34d365a062ab66ea93a73f7fe74b74",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/TRANSPORT_METRICS.json",
+    "source_bytes": 7995,
+    "source_sha256": "b549c4f4ca610e0705119a2f14d855912e34d365a062ab66ea93a73f7fe74b74"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 19890,
+    "packaged_path": "data/TRANSPORT_RATES_1S.csv",
+    "packaged_sha256": "070b8bef3814782bc29b50f5ff692e27530752f96ae1039c22df45c6399ccfb6",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/TRANSPORT_RATES_1S.csv",
+    "source_bytes": 19890,
+    "source_sha256": "070b8bef3814782bc29b50f5ff692e27530752f96ae1039c22df45c6399ccfb6"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 1119,
+    "packaged_path": "provenance/original_plot_bundle/TRANSPORT_READ_ME.txt",
+    "packaged_sha256": "b202c50972b50e9af9bb6233a9a38334ba99530cb4ca8dfdc975a788a29d3c87",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/TRANSPORT_READ_ME.txt",
+    "source_bytes": 1119,
+    "source_sha256": "b202c50972b50e9af9bb6233a9a38334ba99530cb4ca8dfdc975a788a29d3c87"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 422,
+    "packaged_path": "provenance/original_plot_bundle/TRANSPORT_VALIDATION.json",
+    "packaged_sha256": "0d15b4fc0d0a82319a673b6d60b535aa61268158e94f1c82e9f286cb2ceb73b7",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/TRANSPORT_VALIDATION.json",
+    "source_bytes": 422,
+    "source_sha256": "0d15b4fc0d0a82319a673b6d60b535aa61268158e94f1c82e9f286cb2ceb73b7"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 2164,
+    "packaged_path": "provenance/original_plot_bundle/VALIDATION.json",
+    "packaged_sha256": "4aeef9440b7cd88394586d62d83a6a20efda8892580a2017b29939f7163771cd",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/three_arm_plots_01/VALIDATION.json",
+    "source_bytes": 2164,
+    "source_sha256": "4aeef9440b7cd88394586d62d83a6a20efda8892580a2017b29939f7163771cd"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 43486,
+    "packaged_path": "scripts/prepare_plots.py",
+    "packaged_sha256": "46395d755a1864f28779d9fd52b7882d13738648d0c5f86e48852da0b397f37f",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/prepare_plots.py",
+    "source_bytes": 43486,
+    "source_sha256": "46395d755a1864f28779d9fd52b7882d13738648d0c5f86e48852da0b397f37f"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 17133,
+    "packaged_path": "scripts/transport_plots.py",
+    "packaged_sha256": "25beef25681d025aef6af851243b09f7e03909ba244545e486bcb92b92d23ffa",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/transport_plots.py",
+    "source_bytes": 17133,
+    "source_sha256": "25beef25681d025aef6af851243b09f7e03909ba244545e486bcb92b92d23ffa"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 4440789,
+    "packaged_path": "raw/agent/PHASE6_UE_EVIDENCE.json",
+    "packaged_sha256": "4be8bcc7bca5edfa4d1e0c49b81dc751bda517b24701bba4280ce819694e38b0",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json",
+    "source_bytes": 4440789,
+    "source_sha256": "4be8bcc7bca5edfa4d1e0c49b81dc751bda517b24701bba4280ce819694e38b0"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 853404,
+    "packaged_path": "raw/agent/edge_report.json",
+    "packaged_sha256": "e983018f330220dac1a30fa39085823f862997a875c36c79f79382ec1ce599f7",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/run4_phase6/edge_report.json",
+    "source_bytes": 853404,
+    "source_sha256": "e983018f330220dac1a30fa39085823f862997a875c36c79f79382ec1ce599f7"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 675501,
+    "packaged_path": "raw/agent/per_frame_metrics.csv",
+    "packaged_sha256": "ad05470fdb9e7ccce19cc3ee9422cc2983659b6ded9bbc918fa3cbbbd84ed737",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/per_frame_metrics.csv",
+    "source_bytes": 675501,
+    "source_sha256": "ad05470fdb9e7ccce19cc3ee9422cc2983659b6ded9bbc918fa3cbbbd84ed737"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 159013,
+    "packaged_path": "raw/agent/perception_metrics.csv",
+    "packaged_sha256": "2cea45880969943b960dba03d65d8960253694a0a26fb4cc5e421b2569326370",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/perception_metrics.csv",
+    "source_bytes": 159013,
+    "source_sha256": "2cea45880969943b960dba03d65d8960253694a0a26fb4cc5e421b2569326370"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 520634,
+    "packaged_path": "raw/agent/map_feedback.csv",
+    "packaged_sha256": "cc74710d46ee808dd1e0b67f8c3741c17f413e8cf4645e57893657329c91071e",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/map_feedback.csv",
+    "source_bytes": 520634,
+    "source_sha256": "cc74710d46ee808dd1e0b67f8c3741c17f413e8cf4645e57893657329c91071e"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 108484,
+    "packaged_path": "raw/agent/quality_ack_oaitun_ue1.pcap",
+    "packaged_sha256": "077c8680de25b366a8e8ac873543d9296d0d45b8b5b72cbfb034d7e2008f9d9b",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap",
+    "source_bytes": 108484,
+    "source_sha256": "077c8680de25b366a8e8ac873543d9296d0d45b8b5b72cbfb034d7e2008f9d9b"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 167,
+    "packaged_path": "raw/agent/quality_ack_tcpdump.log",
+    "packaged_sha256": "8efd58899851164bea90eb1f9277fd5991934a97e982c6b05b00fbb5158723c9",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/quality_ack_tcpdump.log",
+    "source_bytes": 167,
+    "source_sha256": "8efd58899851164bea90eb1f9277fd5991934a97e982c6b05b00fbb5158723c9"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 960465,
+    "packaged_path": "raw/agent/gt_service_frames.jsonl.gz",
+    "packaged_sha256": "232e543f55e6c543017a208dff60e538cdd45bba62f49ac49adbe2613c382e2e",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+    "source_bytes": 5087035,
+    "source_sha256": "3d7c87f69cf7a5ad37c5af510614ee1059fd9eed2927a8c7f7b78f183c4b90d3"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 6872977,
+    "packaged_path": "raw/agent/ue.raw.gz",
+    "packaged_sha256": "62ad261d452980ad3b875161d5eb601d59f7c52d5caf568bc3f646614e2f6a03",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/cells/a71__favorable_stable/ttracer/ue/ue.raw",
+    "source_bytes": 44067999,
+    "source_sha256": "7eea8e4ee89de9b6e71f5fe9f4ae440d59cd4fcaf27f0ce3e0617b3638a77e25"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 574955,
+    "packaged_path": "raw/agent/live_mcs_with_ingest.csv.gz",
+    "packaged_sha256": "266b2f8c575eb607227a79b994200df4b40a3a2fd52e65bf6d5c35f5b223970a",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/m3_radio/ttracer/live_mcs_with_ingest.csv",
+    "source_bytes": 2348770,
+    "source_sha256": "a7f5307800459daea173ea6626c02c1f5a4ff03140705056b0d9b1ca7c9d91f3"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 464588,
+    "packaged_path": "raw/agent/live_pusch_with_ingest.csv.gz",
+    "packaged_sha256": "56baf9d1cdc4987b51069c4d7bfd35a2d1020287a89c530c4825e01ea55d1fbc",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/agent/capture/m3_radio/ttracer/live_pusch_with_ingest.csv",
+    "source_bytes": 1677017,
+    "source_sha256": "8c767d5b9d56a75b5065296016ab6cd115f9bb019f1b64a51b95d09e942dc85b"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 4173002,
+    "packaged_path": "raw/mode03/PHASE6_UE_EVIDENCE.json",
+    "packaged_sha256": "79f9a98662c1376638585dc026a92a3f57aa8dff0a37c32769ff9a2cfbe36e98",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json",
+    "source_bytes": 4173002,
+    "source_sha256": "79f9a98662c1376638585dc026a92a3f57aa8dff0a37c32769ff9a2cfbe36e98"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 8036,
+    "packaged_path": "raw/mode03/edge_report.json",
+    "packaged_sha256": "723c91da961447dba108ee64fb923acea2119952d0dbcb0c6932be4b5573c351",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/run4_phase6/edge_report.json",
+    "source_bytes": 8036,
+    "source_sha256": "723c91da961447dba108ee64fb923acea2119952d0dbcb0c6932be4b5573c351"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 670341,
+    "packaged_path": "raw/mode03/per_frame_metrics.csv",
+    "packaged_sha256": "70fa4e8eed313fef219f1c995ceb8dc630f06eddc3f1aa044793aa578bacc4f8",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/per_frame_metrics.csv",
+    "source_bytes": 670341,
+    "source_sha256": "70fa4e8eed313fef219f1c995ceb8dc630f06eddc3f1aa044793aa578bacc4f8"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 123437,
+    "packaged_path": "raw/mode03/perception_metrics.csv",
+    "packaged_sha256": "87a35eb364f7342f7fdb51c9b7c6ac2f20e638240424b1f55c0ea807cc4ec20e",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/perception_metrics.csv",
+    "source_bytes": 123437,
+    "source_sha256": "87a35eb364f7342f7fdb51c9b7c6ac2f20e638240424b1f55c0ea807cc4ec20e"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 500855,
+    "packaged_path": "raw/mode03/map_feedback.csv",
+    "packaged_sha256": "38afcdb8a64434e659712d5b4b99b593311e51765a97960e8a5924494d69640b",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/map_feedback.csv",
+    "source_bytes": 500855,
+    "source_sha256": "38afcdb8a64434e659712d5b4b99b593311e51765a97960e8a5924494d69640b"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 103458,
+    "packaged_path": "raw/mode03/quality_ack_oaitun_ue1.pcap",
+    "packaged_sha256": "ca8cffb72e0030ae7169105f53e3ff8a7a618109dd5623155e8a29dff779e9cd",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap",
+    "source_bytes": 103458,
+    "source_sha256": "ca8cffb72e0030ae7169105f53e3ff8a7a618109dd5623155e8a29dff779e9cd"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 165,
+    "packaged_path": "raw/mode03/quality_ack_tcpdump.log",
+    "packaged_sha256": "b1e0a45a0eb73dc7bfb1ba593398cbe75250f62f83c0c5bc71cfe6fcebfbf27b",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/quality_ack_tcpdump.log",
+    "source_bytes": 165,
+    "source_sha256": "b1e0a45a0eb73dc7bfb1ba593398cbe75250f62f83c0c5bc71cfe6fcebfbf27b"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 427599,
+    "packaged_path": "raw/mode03/gt_service_frames.jsonl.gz",
+    "packaged_sha256": "13fb25a0fba04c7d6bd380852448d41a1513d6fe406f0e39c8e063d3f97af9ed",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+    "source_bytes": 2618453,
+    "source_sha256": "5064eb76b89a6df3c3214b95136bb000519153647a74731212b6b062d26606ff"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 45463709,
+    "packaged_path": "raw/mode03/ue.raw.gz",
+    "packaged_sha256": "07942b1c0b06b444dacda60f368f787e5b19be3565bea2b081c40283211fe962",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/cells/a71__favorable_stable/ttracer/ue/ue.raw",
+    "source_bytes": 240293031,
+    "source_sha256": "07365613da968e5a4e4d1934cade01512a44fe69a57bb17cec0a175e0abc0bb2"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 2433748,
+    "packaged_path": "raw/mode03/live_mcs_with_ingest.csv.gz",
+    "packaged_sha256": "09d3f72a5083866fc727c0600f0aab098b941c8c1925391eef668c659952cc6a",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/m3_radio/ttracer/live_mcs_with_ingest.csv",
+    "source_bytes": 11857512,
+    "source_sha256": "8a6122ceb2e23960a4eaf63d32153d605e8cb1514605ac675820bf402a30c490"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 2011368,
+    "packaged_path": "raw/mode03/live_pusch_with_ingest.csv.gz",
+    "packaged_sha256": "702f2db4202b37850fd20b7da4b0322bde225fbd166821cc6eb54077b66b582a",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode03/capture/m3_radio/ttracer/live_pusch_with_ingest.csv",
+    "source_bytes": 8116914,
+    "source_sha256": "3e4745e48bfb9a4b31ce7613717cf14f055ba82d6c5f0461e2f60bbe9e466b91"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 4472016,
+    "packaged_path": "raw/mode09/PHASE6_UE_EVIDENCE.json",
+    "packaged_sha256": "45c60c306a9f7387524ccf04781f771ce2e61177038a58ecef64acd274cc1bf3",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/run4_phase6/PHASE6_UE_EVIDENCE.json",
+    "source_bytes": 4472016,
+    "source_sha256": "45c60c306a9f7387524ccf04781f771ce2e61177038a58ecef64acd274cc1bf3"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 821697,
+    "packaged_path": "raw/mode09/edge_report.json",
+    "packaged_sha256": "5466820289c2f67270e634fcc3834e145f2a830b0c5d1658faa0c6fb0da81ed2",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/run4_phase6/edge_report.json",
+    "source_bytes": 821697,
+    "source_sha256": "5466820289c2f67270e634fcc3834e145f2a830b0c5d1658faa0c6fb0da81ed2"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 698356,
+    "packaged_path": "raw/mode09/per_frame_metrics.csv",
+    "packaged_sha256": "fbf774c9428fbab63b57190409474dfb5cf76b1274903b7d911070479601dedb",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/per_frame_metrics.csv",
+    "source_bytes": 698356,
+    "source_sha256": "fbf774c9428fbab63b57190409474dfb5cf76b1274903b7d911070479601dedb"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 157455,
+    "packaged_path": "raw/mode09/perception_metrics.csv",
+    "packaged_sha256": "957a155b2a057772fdc7be67d3bf24d263fbb4827257e2306982da20511f5f1e",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/perception_metrics.csv",
+    "source_bytes": 157455,
+    "source_sha256": "957a155b2a057772fdc7be67d3bf24d263fbb4827257e2306982da20511f5f1e"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 559887,
+    "packaged_path": "raw/mode09/map_feedback.csv",
+    "packaged_sha256": "43c9fa7de8fd3cffbfc5fa1a77dc119bea8902302742109b16f5901bd60a37d1",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/map_feedback.csv",
+    "source_bytes": 559887,
+    "source_sha256": "43c9fa7de8fd3cffbfc5fa1a77dc119bea8902302742109b16f5901bd60a37d1"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 162113,
+    "packaged_path": "raw/mode09/quality_ack_oaitun_ue1.pcap",
+    "packaged_sha256": "40ce79b44031d7218bd9717a13c5b93c9e72566ac135c4d899f0a7cd5a5ad4d2",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/quality_ack_oaitun_ue1.pcap",
+    "source_bytes": 162113,
+    "source_sha256": "40ce79b44031d7218bd9717a13c5b93c9e72566ac135c4d899f0a7cd5a5ad4d2"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 167,
+    "packaged_path": "raw/mode09/quality_ack_tcpdump.log",
+    "packaged_sha256": "c1a83ee0d5803a2e060da9725ef59110ee6daa8ed0348602b4d5e164319813df",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/quality_ack_tcpdump.log",
+    "source_bytes": 167,
+    "source_sha256": "c1a83ee0d5803a2e060da9725ef59110ee6daa8ed0348602b4d5e164319813df"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 1070470,
+    "packaged_path": "raw/mode09/gt_service_frames.jsonl.gz",
+    "packaged_sha256": "28c949ec9cbd4668c2229e508416295fc666e9f007d86528821c28e6786799eb",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/numeric_gt/service/FRAMES.jsonl",
+    "source_bytes": 6516495,
+    "source_sha256": "6ef2caa308a7289ac9bd1fe5fab254936c7531254b77c5d7a3992c3327044a64"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 17745173,
+    "packaged_path": "raw/mode09/ue.raw.gz",
+    "packaged_sha256": "032f06dd44c33a61e9f59906901b46d52264e3ebc7f0644c6adce4b89eb9d3cb",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/cells/a71__favorable_stable/ttracer/ue/ue.raw",
+    "source_bytes": 96030179,
+    "source_sha256": "4563108341dc15e551ed2f885ec91a0fe077d4d64e3509f0efc00f88dc77490b"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 1398468,
+    "packaged_path": "raw/mode09/live_mcs_with_ingest.csv.gz",
+    "packaged_sha256": "ec35a6f2c8f3aa9ca1637cab2322068c165e9aa381818974212f057218942517",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/m3_radio/ttracer/live_mcs_with_ingest.csv",
+    "source_bytes": 6251726,
+    "source_sha256": "b0aff23b0dab070faeeee734f830ac169c31d90c248ce3e1a3834ed1d2eb79e0"
+  },
+  {
+    "encoding": "gzip",
+    "packaged_bytes": 1121810,
+    "packaged_path": "raw/mode09/live_pusch_with_ingest.csv.gz",
+    "packaged_sha256": "b030c2842183239c9dc2c0110a79bb316b5ac34be8ead4e5d155fff1f4485089",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/rl_agent/experiments/splitfusion_single_gpu_profiler_v1/20261009_static_modes_v13/mode09/capture/m3_radio/ttracer/live_pusch_with_ingest.csv",
+    "source_bytes": 4336686,
+    "source_sha256": "7ba0cddf86f9f07e0b53b743f0b6a609f8281f5f07d2c1235fe88582e61d92ec"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 15945,
+    "packaged_path": "source_reference/rl_agent/splitfusion_hybrid_sac_live_route_b_v2/run4_live_wire_v2.py",
+    "packaged_sha256": "2337edbfa2613a418a76a76235c190638cc088576903a61b5e408aabba669924",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_live_route_b_v2/run4_live_wire_v2.py",
+    "source_bytes": 15945,
+    "source_sha256": "2337edbfa2613a418a76a76235c190638cc088576903a61b5e408aabba669924"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 80030,
+    "packaged_path": "source_reference/rl_agent/splitfusion_hybrid_sac_run4_v1/run4_contract.py",
+    "packaged_sha256": "c3aaf4450deb80e3427972d745bd171cacda517864860f1106ce9d140dc4c18b",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/run4_contract.py",
+    "source_bytes": 80030,
+    "source_sha256": "c3aaf4450deb80e3427972d745bd171cacda517864860f1106ce9d140dc4c18b"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 10504,
+    "packaged_path": "source_reference/rl_agent/splitfusion_hybrid_sac_run4_v1/RUN4_CONTRACT.md",
+    "packaged_sha256": "96d41e114edd9230ecbbf7ab34da09b55fa7db906a3bae7acde5942a3878c65a",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_hybrid_sac_run4_v1/RUN4_CONTRACT.md",
+    "source_bytes": 10504,
+    "source_sha256": "96d41e114edd9230ecbbf7ab34da09b55fa7db906a3bae7acde5942a3878c65a"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 4095,
+    "packaged_path": "source_reference/rl_agent/splitfusion_run5_full_v1/quality.py",
+    "packaged_sha256": "9b989a686764a6514c70616ac449b78da39a047073024121725f3f357c08f4d4",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_run5_full_v1/quality.py",
+    "source_bytes": 4095,
+    "source_sha256": "9b989a686764a6514c70616ac449b78da39a047073024121725f3f357c08f4d4"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 31795,
+    "packaged_path": "provenance/campaign/CAMPAIGN_REPORT.json",
+    "packaged_sha256": "110eced3771ee2a35f4e310d49fca083cd1a43dc68bfcf11fec45262c10871f5",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_static_modes_v13/campaign_report_05/CAMPAIGN_REPORT.json",
+    "source_bytes": 31795,
+    "source_sha256": "110eced3771ee2a35f4e310d49fca083cd1a43dc68bfcf11fec45262c10871f5"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 6909,
+    "packaged_path": "provenance/campaign/CAMPAIGN_TABLE.md",
+    "packaged_sha256": "33ae05814ad703f8e521da1c6d725554b6e4240ee95172de82b3df9f6d52663d",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_static_modes_v13/campaign_report_05/CAMPAIGN_TABLE.md",
+    "source_bytes": 6909,
+    "source_sha256": "33ae05814ad703f8e521da1c6d725554b6e4240ee95172de82b3df9f6d52663d"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 9970,
+    "packaged_path": "provenance/campaign/REPORT.md",
+    "packaged_sha256": "fb53e318cabf9d1fe06624a8e42b124427a01dec745b3ed094b64571d961116d",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_static_modes_v13/campaign_report_05/REPORT.md",
+    "source_bytes": 9970,
+    "source_sha256": "fb53e318cabf9d1fe06624a8e42b124427a01dec745b3ed094b64571d961116d"
+  },
+  {
+    "encoding": "byte-identical copy",
+    "packaged_bytes": 4662,
+    "packaged_path": "source_reference/build_results_handoff.py",
+    "packaged_sha256": "6ddac34349fae70178573603aa72129ffb4138badef1b13013303c0e3f9f1dd9",
+    "source": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_supervisor_followup_20261013/build_results_handoff.py",
+    "source_bytes": 4662,
+    "source_sha256": "6ddac34349fae70178573603aa72129ffb4138badef1b13013303c0e3f9f1dd9"
+  }
+]

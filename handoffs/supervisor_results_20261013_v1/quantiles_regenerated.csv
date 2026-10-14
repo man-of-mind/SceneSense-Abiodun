@@ -1,0 +1,76 @@
+arm,configuration,metric,unit,n_observed,weighting,observed_duration_s,p50,p95,p99,population
+agent,Agent,payload_bytes,bytes,1000,sample,,117275.5,154935.55,165525.31,"All 1000 transmitted frames, including holds and fallbacks"
+agent,Agent,prediction_ms,ms,493,sample,,134.011624,164.1571142,203.9592949199997,"Recorded completed policy predictions only; missing outcomes excluded, not zero"
+agent,Agent,feedback_ms,ms,493,sample,,158.307333,188.5100084,229.01123655999962,"Recorded policy feedback receipts only; action-open to UE receive, not pure downlink"
+agent,Agent,map_install_age_ms,ms,1000,sample,,188.1546974182129,224.41819906234738,262.52162218093866,"Successful map installations, including drain; capture to install"
+agent,Agent,radio_snr_db,dB,17269,sample,,21.0,23.5,24.0,All retained PUSCH transmission events inside capture window
+agent,Agent,radio_mcs,index,17269,sample,,26.0,27.0,27.0,All retained PUSCH transmission events inside capture window
+agent,Agent,payload_kB,decimal kB,1000,sample,,117.2755,154.93554999999998,165.52531,"All 1000 transmitted frames, including holds and fallbacks"
+agent,Agent,map_AoI,ms,,continuous time,122.35254001617432,251.18190894676152,320.64983380107446,356.84433048421647,After first map install until last transmitted capture; initial no-map interval excluded
+agent,Agent,SI,Sobel variability,493,sample,,131.7901611328125,146.6918182373047,147.38312194824218,Defined per-decision values only; recall quantiles are NOT pooled object recall
+agent,Agent,P40,unitless,493,sample,,0.3913138244058586,0.5018487561467244,0.5835536160988304,Defined per-decision values only; recall quantiles are NOT pooled object recall
+agent,Agent,q,fraction,493,sample,,0.5462,0.821,0.8569119999999999,Defined per-decision values only; recall quantiles are NOT pooled object recall
+agent,Agent,Q_perc,score,459,sample,,0.5923539318476762,0.8556815364603714,0.9329640964837153,Defined per-decision values only; recall quantiles are NOT pooled object recall
+agent,Agent,vehicle_recall_completed,fraction,377,sample,,0.6666666666666666,1.0,1.0,Defined per-decision values only; recall quantiles are NOT pooled object recall
+agent,Agent,person_recall_completed,fraction,348,sample,,0.5,1.0,1.0,Defined per-decision values only; recall quantiles are NOT pooled object recall
+agent,Agent,application_offered,Mb/s,122,sample,,7.5798559999999995,9.955834399999997,10.929265839999998,Complete 1-second bins; partial final second excluded
+agent,Agent,pdcp_ingress,Mb/s,122,sample,,7.607232,10.699678799999997,10.939839119999998,Complete 1-second bins; partial final second excluded
+agent,Agent,rlc_dequeue,Mb/s,122,sample,,7.644196,10.209131199999998,10.971307199999998,Complete 1-second bins; partial final second excluded
+agent,Agent,rlc_ingress,Mb/s,122,sample,,7.623456,10.722458399999997,10.96320384,Complete 1-second bins; partial final second excluded
+agent,Agent,UE_RLC_occupancy,bytes,101231,sample,,0.0,142320.0,160076.0,Completed UE ticks; distinct LCIDs summed; not a rate or BSR
+agent,Agent,gNB_UL_buffer_estimate,bytes,16482,sample,,150000.0,300000.0,300000.0,Observed scheduler estimates; not a directly measured BSR
+agent,Agent,feedback_port_ip_Mbps,Mb/s,122,sample,,0.006528,0.00816,0.00816,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+agent,Agent,feedback_port_udp_payload_Mbps,Mb/s,122,sample,,0.005632,0.00704,0.00704,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+agent,Agent,r4fb_udp_payload_Mbps,Mb/s,122,sample,,0.005632,0.00704,0.00704,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+agent,Agent,logged_controller_reward,reward,466,sample,,0.2885451400772516,0.6064718606470053,0.7017543529610454,"Legacy Run4 logging schema; timeout=-1, evaluator fault excluded; not frozen Run5 training reward"
+agent,Agent,R4FB_udp_payload,bytes,493,sample,,176.0,176.0,176.0,Captured R4FB quality/status messages only; reward scalar resolved locally at UE
+mode03,AE128 / 8-bit,payload_bytes,bytes,1000,sample,,2339133.5,2368145.5,2379267.08,"All 1000 transmitted frames, including holds and fallbacks"
+mode03,AE128 / 8-bit,prediction_ms,ms,4,sample,,429.276517,469.7055683,471.59436325999997,"Recorded completed policy predictions only; missing outcomes excluded, not zero"
+mode03,AE128 / 8-bit,feedback_ms,ms,4,sample,,458.66310999999996,494.86075795,495.81126439,"Recorded policy feedback receipts only; action-open to UE receive, not pure downlink"
+mode03,AE128 / 8-bit,map_install_age_ms,ms,4,sample,,470.2415466308594,495.20851373672485,498.1236958503723,"Successful map installations, including drain; capture to install"
+mode03,AE128 / 8-bit,radio_snr_db,dB,83501,sample,,21.5,23.5,24.0,All retained PUSCH transmission events inside capture window
+mode03,AE128 / 8-bit,radio_mcs,index,83501,sample,,26.0,27.0,27.0,All retained PUSCH transmission events inside capture window
+mode03,AE128 / 8-bit,payload_kB,decimal kB,1000,sample,,2339.1335,2368.1455,2379.26708,"All 1000 transmitted frames, including holds and fallbacks"
+mode03,AE128 / 8-bit,map_AoI,ms,,continuous time,123.2551953792572,61691.05780124664,117155.89572191237,122086.10353708266,After first map install until last transmitted capture; initial no-map interval excluded
+mode03,AE128 / 8-bit,SI,Sobel variability,31,sample,,114.0860824584961,119.06679916381836,120.21690063476562,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode03,AE128 / 8-bit,P40,unitless,31,sample,,0.5328894032907832,0.5983555589264187,0.6062532304494488,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode03,AE128 / 8-bit,q,fraction,500,sample,,0.0,0.0,0.0,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode03,AE128 / 8-bit,Q_perc,score,4,sample,,0.7373892523299548,0.9021164993324076,0.9105187610989383,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode03,AE128 / 8-bit,vehicle_recall_completed,fraction,4,sample,,0.65,0.97,0.994,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode03,AE128 / 8-bit,person_recall_completed,fraction,0,sample,,,,,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode03,AE128 / 8-bit,application_offered,Mb/s,123,sample,,150.139744,169.2802144,170.16776208000002,Complete 1-second bins; partial final second excluded
+mode03,AE128 / 8-bit,pdcp_ingress,Mb/s,123,sample,,149.701568,171.1213824,171.78837552,Complete 1-second bins; partial final second excluded
+mode03,AE128 / 8-bit,rlc_dequeue,Mb/s,123,sample,,106.482896,114.747684,117.6143408,Complete 1-second bins; partial final second excluded
+mode03,AE128 / 8-bit,rlc_ingress,Mb/s,123,sample,,149.862608,171.4852656,172.15372272,Complete 1-second bins; partial final second excluded
+mode03,AE128 / 8-bit,UE_RLC_occupancy,bytes,100663,sample,,49172476.0,49891912.8,50000248.76,Completed UE ticks; distinct LCIDs summed; not a rate or BSR
+mode03,AE128 / 8-bit,gNB_UL_buffer_estimate,bytes,82284,sample,,300000.0,300000.0,300000.0,Observed scheduler estimates; not a directly measured BSR
+mode03,AE128 / 8-bit,feedback_port_ip_Mbps,Mb/s,123,sample,,0.0,0.038519199999999996,0.04597760000000001,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+mode03,AE128 / 8-bit,feedback_port_udp_payload_Mbps,Mb/s,123,sample,,0.0,0.037623199999999996,0.04490688000000001,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+mode03,AE128 / 8-bit,r4fb_udp_payload_Mbps,Mb/s,123,sample,,0.0,0.0,0.0021964800000000033,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+mode03,AE128 / 8-bit,logged_controller_reward,reward,500,sample,,-1.0,-1.0,-1.0,"Legacy Run4 logging schema; timeout=-1, evaluator fault excluded; not frozen Run5 training reward"
+mode03,AE128 / 8-bit,R4FB_udp_payload,bytes,4,sample,,176.0,176.0,176.0,Captured R4FB quality/status messages only; reward scalar resolved locally at UE
+mode09,AE32 / 8-bit,payload_bytes,bytes,1000,sample,,600189.5,607631.3,609888.97,"All 1000 transmitted frames, including holds and fallbacks"
+mode09,AE32 / 8-bit,prediction_ms,ms,476,sample,,179.1758705,245.5818275,397.3938925,"Recorded completed policy predictions only; missing outcomes excluded, not zero"
+mode09,AE32 / 8-bit,feedback_ms,ms,476,sample,,202.644593,275.55996600000003,417.63144375,"Recorded policy feedback receipts only; action-open to UE receive, not pure downlink"
+mode09,AE32 / 8-bit,map_install_age_ms,ms,947,sample,,238.1894588470459,305.4087877273559,417.6049184799194,"Successful map installations, including drain; capture to install"
+mode09,AE32 / 8-bit,radio_snr_db,dB,45787,sample,,21.0,23.5,24.0,All retained PUSCH transmission events inside capture window
+mode09,AE32 / 8-bit,radio_mcs,index,45787,sample,,26.0,27.0,27.0,All retained PUSCH transmission events inside capture window
+mode09,AE32 / 8-bit,payload_kB,decimal kB,1000,sample,,600.1895,607.6313,609.88897,"All 1000 transmitted frames, including holds and fallbacks"
+mode09,AE32 / 8-bit,map_AoI,ms,,continuous time,129.58923530578613,309.42062932019786,556.4840263790541,4079.735879898047,After first map install until last transmitted capture; initial no-map interval excluded
+mode09,AE32 / 8-bit,SI,Sobel variability,497,sample,,129.68246459960938,147.03180541992188,147.94140258789062,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode09,AE32 / 8-bit,P40,unitless,497,sample,,0.3826215892020099,0.5016453118578104,0.5956755044325966,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode09,AE32 / 8-bit,q,fraction,500,sample,,0.0,0.0,0.0,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode09,AE32 / 8-bit,Q_perc,score,435,sample,,0.6156701024985647,0.8770047909155158,0.9494094508717538,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode09,AE32 / 8-bit,vehicle_recall_completed,fraction,411,sample,,0.75,1.0,1.0,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode09,AE32 / 8-bit,person_recall_completed,fraction,311,sample,,0.5,1.0,1.0,Defined per-decision values only; recall quantiles are NOT pooled object recall
+mode09,AE32 / 8-bit,application_offered,Mb/s,129,sample,,37.798016,38.8266176,43.6599328,Complete 1-second bins; partial final second excluded
+mode09,AE32 / 8-bit,pdcp_ingress,Mb/s,129,sample,,38.425168,39.465512,44.36011136,Complete 1-second bins; partial final second excluded
+mode09,AE32 / 8-bit,rlc_dequeue,Mb/s,129,sample,,37.322432,41.786312,52.39360896,Complete 1-second bins; partial final second excluded
+mode09,AE32 / 8-bit,rlc_ingress,Mb/s,129,sample,,38.506912,39.5411856,44.45448992,Complete 1-second bins; partial final second excluded
+mode09,AE32 / 8-bit,UE_RLC_occupancy,bytes,104640,sample,,223079.0,1352080.0,3735289.95,Completed UE ticks; distinct LCIDs summed; not a rate or BSR
+mode09,AE32 / 8-bit,gNB_UL_buffer_estimate,bytes,44654,sample,,300000.0,300000.0,300000.0,Observed scheduler estimates; not a directly measured BSR
+mode09,AE32 / 8-bit,feedback_port_ip_Mbps,Mb/s,129,sample,,0.006528,0.019987199999999962,0.08135935999999998,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+mode09,AE32 / 8-bit,feedback_port_udp_payload_Mbps,Mb/s,129,sample,,0.005632,0.019001599999999962,0.07946879999999998,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+mode09,AE32 / 8-bit,r4fb_udp_payload_Mbps,Mb/s,129,sample,,0.005632,0.005632,0.00704,"Captured feedback-port downlink, complete 1-second bins; not total radio DL throughput"
+mode09,AE32 / 8-bit,logged_controller_reward,reward,499,sample,,-1.0,-1.0,0.274531798016628,"Legacy Run4 logging schema; timeout=-1, evaluator fault excluded; not frozen Run5 training reward"
+mode09,AE32 / 8-bit,R4FB_udp_payload,bytes,476,sample,,176.0,176.0,176.0,Captured R4FB quality/status messages only; reward scalar resolved locally at UE

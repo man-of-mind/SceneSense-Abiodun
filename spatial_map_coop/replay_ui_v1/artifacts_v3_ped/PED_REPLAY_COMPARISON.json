@@ -1,0 +1,506 @@
+{
+  "schema": "pedestrian_replay_comparison.v1",
+  "conditions": "60 Hz, current-forward view, 45 m, glyph within 3 m of GT person at the GT capture instant; moving = GT speed >= 0.3 m/s from GT positions",
+  "clips": {
+    "departure": {
+      "v3.0": {
+        "gt_person_frames": 104,
+        "visible": 0.5288461538461539,
+        "visible_established": 0.49038461538461536,
+        "identity_switch_rate": 0.14583333333333334,
+        "identity_pairs": 48,
+        "moving_person_frames": 55,
+        "moving_shown_as_moving": 0.45454545454545453,
+        "moving_error_m": {
+          "n": 55,
+          "p50": 0.9345222971767035,
+          "p95": 2.5663164803834215,
+          "max": 2.738762287456092
+        },
+        "along_track_error_m": {
+          "n": 55,
+          "p50": -0.19319818089746166,
+          "p95": 0.7809373915149852,
+          "max": 2.057654419390662
+        },
+        "slow_or_stopped_person_frames": 0,
+        "slow_false_moving": null,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "step_m": {
+          "n": 2009,
+          "p50": 0,
+          "p95": 0.07595901277025124,
+          "max": 0.5451755054629595
+        },
+        "step_p99": 0.21419138648387714,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      },
+      "v3.1": {
+        "gt_person_frames": 104,
+        "visible": 0.5384615384615384,
+        "visible_established": 0.5,
+        "identity_switch_rate": 0.08163265306122448,
+        "identity_pairs": 49,
+        "moving_person_frames": 56,
+        "moving_shown_as_moving": 0.5892857142857143,
+        "moving_error_m": {
+          "n": 56,
+          "p50": 0.8666919298990498,
+          "p95": 2.419757176380101,
+          "max": 2.7337480128790785
+        },
+        "along_track_error_m": {
+          "n": 56,
+          "p50": -0.019715604245815626,
+          "p95": 0.7434545081175965,
+          "max": 1.348466714767864
+        },
+        "slow_or_stopped_person_frames": 0,
+        "slow_false_moving": null,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "step_m": {
+          "n": 2042,
+          "p50": 0.002544709931234285,
+          "p95": 0.0837013491577246,
+          "max": 0.42324748509050764
+        },
+        "step_p99": 0.15769380352273538,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      }
+    },
+    "turn": {
+      "v3.0": {
+        "gt_person_frames": 219,
+        "visible": 0.5251141552511416,
+        "visible_established": 0.4748858447488584,
+        "identity_switch_rate": 0.1348314606741573,
+        "identity_pairs": 89,
+        "moving_person_frames": 115,
+        "moving_shown_as_moving": 0.11304347826086956,
+        "moving_error_m": {
+          "n": 115,
+          "p50": 1.181378331515826,
+          "p95": 2.7593435207679144,
+          "max": 2.9980233845061455
+        },
+        "along_track_error_m": {
+          "n": 115,
+          "p50": -0.2976316711614954,
+          "p95": 1.9071342338262853,
+          "max": 2.4413449138045187
+        },
+        "slow_or_stopped_person_frames": 0,
+        "slow_false_moving": null,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "step_m": {
+          "n": 4157,
+          "p50": 0.000003048906836905119,
+          "p95": 0.07648197427534209,
+          "max": 0.4357067055799156
+        },
+        "step_p99": 0.19411806008907795,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      },
+      "v3.1": {
+        "gt_person_frames": 219,
+        "visible": 0.5388127853881278,
+        "visible_established": 0.4885844748858447,
+        "identity_switch_rate": 0.14893617021276595,
+        "identity_pairs": 94,
+        "moving_person_frames": 118,
+        "moving_shown_as_moving": 0.2711864406779661,
+        "moving_error_m": {
+          "n": 118,
+          "p50": 1.1198270401968773,
+          "p95": 2.6549784396854936,
+          "max": 2.9980233845061455
+        },
+        "along_track_error_m": {
+          "n": 118,
+          "p50": -0.274141609556609,
+          "p95": 2.122570026008387,
+          "max": 2.6450305554832
+        },
+        "slow_or_stopped_person_frames": 0,
+        "slow_false_moving": null,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "step_m": {
+          "n": 4174,
+          "p50": 0.00025330785233581275,
+          "p95": 0.08165148488572538,
+          "max": 0.19828230957414136
+        },
+        "step_p99": 0.1379314616956299,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      }
+    },
+    "stop": {
+      "v3.0": {
+        "gt_person_frames": 152,
+        "visible": 0.8421052631578947,
+        "visible_established": 0.8157894736842105,
+        "identity_switch_rate": 0.08653846153846154,
+        "identity_pairs": 104,
+        "moving_person_frames": 123,
+        "moving_shown_as_moving": 0.3089430894308943,
+        "moving_error_m": {
+          "n": 123,
+          "p50": 0.8461408152813515,
+          "p95": 2.095085876067059,
+          "max": 2.963709774310981
+        },
+        "along_track_error_m": {
+          "n": 123,
+          "p50": -0.4119077785585922,
+          "p95": 1.2062246976447988,
+          "max": 2.6865631634886893
+        },
+        "slow_or_stopped_person_frames": 5,
+        "slow_false_moving": 0.8,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 4,
+          "p50": 1.5537982052773651,
+          "p95": 1.9153666185865206,
+          "max": 1.9153666185865206
+        },
+        "step_m": {
+          "n": 2437,
+          "p50": 0.006956985267173217,
+          "p95": 0.0710902428116604,
+          "max": 0.3560059715495755
+        },
+        "step_p99": 0.21314211952148657,
+        "stop_events": 1,
+        "stop_represent_delay_ms": [
+          989.5045120000013
+        ],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      },
+      "v3.1": {
+        "gt_person_frames": 152,
+        "visible": 0.8552631578947368,
+        "visible_established": 0.8223684210526315,
+        "identity_switch_rate": 0.06666666666666667,
+        "identity_pairs": 105,
+        "moving_person_frames": 125,
+        "moving_shown_as_moving": 0.744,
+        "moving_error_m": {
+          "n": 125,
+          "p50": 0.7709454379959465,
+          "p95": 2.2840143887258546,
+          "max": 2.971705660129368
+        },
+        "along_track_error_m": {
+          "n": 125,
+          "p50": -0.3082823786575385,
+          "p95": 1.109860943585631,
+          "max": 2.4656801647949615
+        },
+        "slow_or_stopped_person_frames": 5,
+        "slow_false_moving": 0.4,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 4,
+          "p50": 0.7948166584099688,
+          "p95": 3.6299599803899376,
+          "max": 3.6299599803899376
+        },
+        "step_m": {
+          "n": 2430,
+          "p50": 0.012523892435678032,
+          "p95": 0.06427547845663954,
+          "max": 0.1687745233289275
+        },
+        "step_p99": 0.11907790547381361,
+        "stop_events": 1,
+        "stop_represent_delay_ms": [
+          491.2583680000007
+        ],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      }
+    },
+    "avenue": {
+      "v3.0": {
+        "gt_person_frames": 131,
+        "visible": 0.7404580152671756,
+        "visible_established": 0.7099236641221374,
+        "identity_switch_rate": 0.17045454545454544,
+        "identity_pairs": 88,
+        "moving_person_frames": 97,
+        "moving_shown_as_moving": 0.2268041237113402,
+        "moving_error_m": {
+          "n": 97,
+          "p50": 0.9726732288260255,
+          "p95": 1.9337802817385445,
+          "max": 2.9460576681190638
+        },
+        "along_track_error_m": {
+          "n": 97,
+          "p50": -0.23437010193136837,
+          "p95": 1.5990422377037108,
+          "max": 2.9014223625050963
+        },
+        "slow_or_stopped_person_frames": 0,
+        "slow_false_moving": null,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "step_m": {
+          "n": 2657,
+          "p50": 0.004242077303545309,
+          "p95": 0.07680260722484382,
+          "max": 0.49001475513391357
+        },
+        "step_p99": 0.22074275592434664,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      },
+      "v3.1": {
+        "gt_person_frames": 131,
+        "visible": 0.7251908396946565,
+        "visible_established": 0.7022900763358778,
+        "identity_switch_rate": 0.12790697674418605,
+        "identity_pairs": 86,
+        "moving_person_frames": 95,
+        "moving_shown_as_moving": 0.42105263157894735,
+        "moving_error_m": {
+          "n": 95,
+          "p50": 0.7009465813685729,
+          "p95": 2.6243360682812122,
+          "max": 2.9460576681190638
+        },
+        "along_track_error_m": {
+          "n": 95,
+          "p50": -0.11335198174128819,
+          "p95": 1.6606613827451004,
+          "max": 2.9014223625050963
+        },
+        "slow_or_stopped_person_frames": 0,
+        "slow_false_moving": null,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "max": null
+        },
+        "step_m": {
+          "n": 2503,
+          "p50": 0.007720550724493371,
+          "p95": 0.05911972640793352,
+          "max": 0.18293341379107442
+        },
+        "step_p99": 0.11306837137068898,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      }
+    },
+    "ped_pause": {
+      "v3.0": {
+        "gt_person_frames": 164,
+        "visible": 0.8841463414634146,
+        "visible_established": 0.8658536585365854,
+        "identity_switch_rate": 0.09523809523809523,
+        "identity_pairs": 126,
+        "moving_person_frames": 138,
+        "moving_shown_as_moving": 0.2536231884057971,
+        "moving_error_m": {
+          "n": 138,
+          "p50": 0.9433811472820846,
+          "p95": 2.3736936205668213,
+          "max": 2.963709774310981
+        },
+        "along_track_error_m": {
+          "n": 138,
+          "p50": -0.33434258115436993,
+          "p95": 1.2201428822105769,
+          "max": 2.6865631634886897
+        },
+        "slow_or_stopped_person_frames": 7,
+        "slow_false_moving": 0.5714285714285714,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 5,
+          "p50": 1.1673185001322661,
+          "p95": 1.91536661858692,
+          "max": 1.91536661858692
+        },
+        "step_m": {
+          "n": 2689,
+          "p50": 0.005479171050367042,
+          "p95": 0.07309479522848521,
+          "max": 0.3764547002553379
+        },
+        "step_p99": 0.25044959716735776,
+        "stop_events": 1,
+        "stop_represent_delay_ms": [
+          989.5045120000004
+        ],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      },
+      "v3.1": {
+        "gt_person_frames": 164,
+        "visible": 0.8963414634146342,
+        "visible_established": 0.8719512195121951,
+        "identity_switch_rate": 0.07086614173228346,
+        "identity_pairs": 127,
+        "moving_person_frames": 140,
+        "moving_shown_as_moving": 0.6142857142857143,
+        "moving_error_m": {
+          "n": 140,
+          "p50": 0.7416226681267707,
+          "p95": 2.4291963729352006,
+          "max": 2.971705660129668
+        },
+        "along_track_error_m": {
+          "n": 140,
+          "p50": -0.3716223586230069,
+          "p95": 1.1098609435854891,
+          "max": 2.465680164794962
+        },
+        "slow_or_stopped_person_frames": 7,
+        "slow_false_moving": 0.5714285714285714,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 5,
+          "p50": 0.7948166584103247,
+          "p95": 3.6299599803912286,
+          "max": 3.6299599803912286
+        },
+        "step_m": {
+          "n": 2719,
+          "p50": 0.01445275595093385,
+          "p95": 0.06906825580887956,
+          "max": 0.17438402422630456
+        },
+        "step_p99": 0.1128552977025859,
+        "stop_events": 1,
+        "stop_represent_delay_ms": [
+          491.2583679999998
+        ],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      }
+    },
+    "ped_standing": {
+      "v3.0": {
+        "gt_person_frames": 84,
+        "visible": 0.6904761904761905,
+        "visible_established": 0.6428571428571429,
+        "identity_switch_rate": 0.061224489795918366,
+        "identity_pairs": 49,
+        "moving_person_frames": 23,
+        "moving_shown_as_moving": 0.08695652173913043,
+        "moving_error_m": {
+          "n": 23,
+          "p50": 0.7964198454118553,
+          "p95": 2.9466667852012804,
+          "max": 2.9796683223286657
+        },
+        "along_track_error_m": {
+          "n": 23,
+          "p50": -0.3480583104635531,
+          "p95": 0.6716882951227813,
+          "max": 1.084777290425289
+        },
+        "slow_or_stopped_person_frames": 35,
+        "slow_false_moving": 0.2857142857142857,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 27,
+          "p50": 0.7918370255587122,
+          "p95": 5.220250893674758,
+          "max": 13.100146633296754
+        },
+        "step_m": {
+          "n": 1694,
+          "p50": 0.0012166073628767432,
+          "p95": 0.0644902427029134,
+          "max": 0.5499156938173908
+        },
+        "step_p99": 0.32342533116424066,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      },
+      "v3.1": {
+        "gt_person_frames": 84,
+        "visible": 0.6904761904761905,
+        "visible_established": 0.6547619047619048,
+        "identity_switch_rate": 0.061224489795918366,
+        "identity_pairs": 49,
+        "moving_person_frames": 24,
+        "moving_shown_as_moving": 0.375,
+        "moving_error_m": {
+          "n": 24,
+          "p50": 0.5561846703493656,
+          "p95": 1.6013060250556383,
+          "max": 1.8538812809852
+        },
+        "along_track_error_m": {
+          "n": 24,
+          "p50": 0.03567068803194013,
+          "p95": 0.6371948310728567,
+          "max": 1.084777290425289
+        },
+        "slow_or_stopped_person_frames": 34,
+        "slow_false_moving": 0.20588235294117646,
+        "slow_glyph_apparent_speed_mps": {
+          "n": 25,
+          "p50": 0.7526183249166911,
+          "p95": 3.692146309075466,
+          "max": 6.548354166311675
+        },
+        "step_m": {
+          "n": 1639,
+          "p50": 0.002849331721703031,
+          "p95": 0.08565427837360332,
+          "max": 0.25004277212143833
+        },
+        "step_p99": 0.13073485796668033,
+        "stop_events": 0,
+        "stop_represent_delay_ms": [],
+        "start_events": 0,
+        "start_represent_delay_ms": []
+      }
+    }
+  }
+}

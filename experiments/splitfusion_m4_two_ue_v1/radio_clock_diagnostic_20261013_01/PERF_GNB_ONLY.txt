@@ -1,0 +1,39 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 940  of event 'cpu-clock:u' (time slices: 8583362.194066415,8583403.926582875)
+# Event count (approx.): 19183673220
+#
+# Overhead  Command          Shared Object      Symbol                                                                            IPC   [IPC Coverage]
+# ........  ...............  .................  ................................................................................  ....................
+#
+    21.60%  ru_thread        librfsimulator.so  [.] rxAddInput                                                                    -      -            
+     5.96%  ru_thread        nr-softmodem       [.] gaussZiggurat                                                                 -      -            
+     5.64%  ru_thread        librfsimulator.so  [.] rfsimulator_read_beams(openair0_device*, long*, void***, int, int, int)       -      -            
+     4.89%  ru_thread        libm.so.6          [.] __lroundf                                                                     -      -            
+     3.30%  ru_thread        nr-softmodem       [.] nfix                                                                          -      -            
+     2.87%  ru_thread        libc.so.6          [.] __memset_avx2_unaligned_erms                                                  -      -            
+     1.91%  ru_thread        librfsimulator.so  [.] gaussZiggurat@plt                                                             -      -            
+     1.81%  ru_thread        libc.so.6          [.] __memmove_avx_unaligned_erms                                                  -      -            
+     1.60%  Tpool2_-1        libldpc.so         [.] nrLDPC_cnProc_BG1_R23_AVX2                                                    -      -            
+     1.38%  Tpool0_-1        libc.so.6          [.] __memmove_avx_unaligned_erms                                                  -      -            
+     1.38%  Tpool5_-1        libldpc.so         [.] nrLDPC_cnProc_BG1_R23_AVX2                                                    -      -            
+     1.38%  Tpool6_-1        libc.so.6          [.] __memmove_avx_unaligned_erms                                                  -      -            
+     1.28%  Tpool1_-1        libc.so.6          [.] __memmove_avx_unaligned_erms                                                  -      -            
+     1.28%  Tpool3_-1        libldpc.so         [.] nrLDPC_cnProc_BG1_R23_AVX2                                                    -      -            
+     1.28%  Tpool4_-1        libldpc.so         [.] nrLDPC_cnProc_BG1_R23_AVX2                                                    -      -            
+     1.17%  Tpool0_-1        libldpc.so         [.] nrLDPC_cnProc_BG1_R23_AVX2                                                    -      -            
+     1.17%  Tpool1_-1        libldpc.so         [.] nrLDPC_cnProc_BG1_R23_AVX2                                                    -      -            
+     1.17%  Tpool7_-1        libc.so.6          [.] __memset_avx2_unaligned_erms                                                  -      -            
+     1.06%  Tpool0_-1        libc.so.6          [.] __memset_avx2_unaligned_erms                                                  -      -            
+     1.06%  Tpool3_-1        libc.so.6          [.] __memset_avx2_unaligned_erms                                                  -      -            
+     1.06%  Tpool6_-1        libc.so.6          [.] __memset_avx2_unaligned_erms                                                  -      -            
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#
+
+STDERR

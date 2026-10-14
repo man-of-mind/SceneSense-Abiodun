@@ -1,0 +1,48 @@
+{
+  "status": "PASS",
+  "checks": [
+    "two sources same frame/chunk IDs",
+    "production DataPath byte/routing parity",
+    "reordering/duplicates",
+    "incomplete both sources",
+    "expired terminal timing retained",
+    "foreign source refused",
+    "real missing/truncated ancillary",
+    "delayed socket service",
+    "bounded logging drops visible",
+    "CPU only"
+  ],
+  "delayed_receive_service_ms": 25.093765,
+  "complete_frames": 4,
+  "timing_status": {
+    "counters": {
+      "attempted": 61,
+      "enqueued": 61,
+      "written": 61,
+      "timestamp_OK": 21,
+      "receiver_instrumentation_ns": 377297,
+      "timestamp_ANCILLARY_TRUNCATED": 1,
+      "timestamp_MISSING": 1
+    },
+    "errors": [],
+    "writer_alive": false,
+    "queue_peak": 12,
+    "producer_wall_ns": 265390,
+    "producer_max_wall_ns": 18826,
+    "clock_pair": "RAW before / REALTIME / RAW after on each recvmsg; no substitution for missing kernel stamps"
+  },
+  "bounded_status": {
+    "counters": {
+      "attempted": 7,
+      "enqueued": 2,
+      "dropped_limit": 5,
+      "written": 2
+    },
+    "errors": [],
+    "writer_alive": false,
+    "queue_peak": 2,
+    "producer_wall_ns": 17468,
+    "producer_max_wall_ns": 11663,
+    "clock_pair": "RAW before / REALTIME / RAW after on each recvmsg; no substitution for missing kernel stamps"
+  }
+}

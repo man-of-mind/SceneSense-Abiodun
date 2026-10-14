@@ -1,0 +1,17 @@
+{
+  "user_request": "repair the two observed M4 lifecycle failures, then run ONE bounded smoke",
+  "repairs": [
+    "world.py TickOwner: on_world_tick only (SamplingWorld parity); collector-internal barrier/pose capture/duplicate rejection unchanged",
+    "supervisor.py parent (route-B supervised pattern): client child, real exit recorded, parent ownership-checked recover + certified CARLA stop; host.run carla_stop_delegated"
+  ],
+  "scope": "Exactly one 20-sim-s two-UE smoke; GOOD_ALL 23.5 dB (-12), 100 MHz/273 PRB, frozen actor/model/GT/deadlines unchanged",
+  "preparation_sha256": "b3a97d209d328cd15be79504487b280ce8cc71121afe4de08688d04da4437f1b",
+  "no_retry": true,
+  "no_tuning": true,
+  "no_deletion_commit": true,
+  "approved_baseline_preserved": true,
+  "ui_servers_preserved": [
+    988344,
+    1152770
+  ]
+}

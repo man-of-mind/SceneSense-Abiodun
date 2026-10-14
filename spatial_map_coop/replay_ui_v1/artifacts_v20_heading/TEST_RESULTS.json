@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "new_js_heading_cases": 15,
+  "existing_js_checks": 165,
+  "existing_python_tests": 27,
+  "recorded_frames_pose_and_heading_joins": 3576,
+  "pedestrian_equivalence_frames": 31305,
+  "browser": "BROWSER_CHECK.json",
+  "notes": [
+    "No experiment qualification suite was run.",
+    "Existing Python tests emitted non-failing file-handle and optional Matplotlib warnings.",
+    "Browser regression fixture time was corrected to select unresolved pedestrians; a canvas-size guard fixed the observed startup/resize error."
+  ]
+}

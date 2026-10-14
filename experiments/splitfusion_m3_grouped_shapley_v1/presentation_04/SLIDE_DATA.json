@@ -1,0 +1,305 @@
+{
+  "alternative_background": "A different fixed set of eight recorded reference states, used for sensitivity. Not an experiment, confidence interval or error bar. Not displayed on the main slide; original figures_02/01_four_condition_summary.png retains it.",
+  "cases": [
+    {
+      "actual_mode_before_and_after": 11,
+      "case": "G1",
+      "far_mixed_states": 0,
+      "frame": "5503",
+      "mixed_states": 14,
+      "phi": {
+        "backlog": 0.0,
+        "channel": 0.0,
+        "history": 0.2866,
+        "scene": 0.0005000000000000004
+      },
+      "previous_frame": "5499",
+      "q_after": 0.6044,
+      "q_before": 0.3173,
+      "run": 11,
+      "takeaway": "Previous action / outcome leads this change"
+    },
+    {
+      "actual_mode_before_and_after": 11,
+      "case": "G2",
+      "far_mixed_states": 4,
+      "frame": "6235",
+      "mixed_states": 14,
+      "phi": {
+        "backlog": -0.23733333333333337,
+        "channel": 0.0,
+        "history": 0.026766666666666685,
+        "scene": -0.01633333333333331
+      },
+      "previous_frame": "6229",
+      "q_after": 0.3728,
+      "q_before": 0.5997,
+      "run": 11,
+      "takeaway": "RLC backlog leads this change"
+    },
+    {
+      "actual_mode_before_and_after": 11,
+      "case": "T13I",
+      "far_mixed_states": 4,
+      "frame": "4330",
+      "mixed_states": 14,
+      "phi": {
+        "backlog": 0.0,
+        "channel": -0.08681666666666665,
+        "history": -0.0708666666666667,
+        "scene": -1.66666666666464e-05
+      },
+      "previous_frame": "4326",
+      "q_after": 0.4782,
+      "q_before": 0.6359,
+      "run": 13,
+      "takeaway": "Channel and previous outcome both contribute"
+    },
+    {
+      "actual_mode_before_and_after": 11,
+      "case": "T14I",
+      "far_mixed_states": 8,
+      "frame": "4172",
+      "mixed_states": 14,
+      "phi": {
+        "backlog": 0.0,
+        "channel": 0.008850000000000004,
+        "history": 0.08709999999999998,
+        "scene": 0.002550000000000033
+      },
+      "previous_frame": "4168",
+      "q_after": 0.808,
+      "q_before": 0.7095,
+      "run": 14,
+      "takeaway": "Cleared history contributes most to the rise"
+    }
+  ],
+  "scope": "Actor-output explanation only; no model query, experiment, training or changed scientific conclusion.",
+  "summary": [
+    {
+      "alternative_backup_only": 0.5809808038764943,
+      "group": "scene",
+      "main": 0.7051430692958337,
+      "output": "margin11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.6149349658020461,
+      "group": "scene",
+      "main": 0.7632394638091016,
+      "output": "margin11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.4991228325789173,
+      "group": "scene",
+      "main": 0.6870673694368452,
+      "output": "margin11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.5925364349301282,
+      "group": "scene",
+      "main": 0.6105096176189061,
+      "output": "margin11",
+      "run": 14
+    },
+    {
+      "alternative_backup_only": 0.49598969074121363,
+      "group": "history",
+      "main": 0.4221022107141713,
+      "output": "margin11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.39638895556951553,
+      "group": "history",
+      "main": 0.44237452803257243,
+      "output": "margin11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.3690358870414396,
+      "group": "history",
+      "main": 0.37043230150826273,
+      "output": "margin11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.431414213705187,
+      "group": "history",
+      "main": 0.3819921256772553,
+      "output": "margin11",
+      "run": 14
+    },
+    {
+      "alternative_backup_only": 0.5772606959147379,
+      "group": "channel",
+      "main": 0.24055673591792587,
+      "output": "margin11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.27593104873628665,
+      "group": "channel",
+      "main": 0.26539254704723136,
+      "output": "margin11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.4013872291520238,
+      "group": "channel",
+      "main": 0.20803366669453677,
+      "output": "margin11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.46076961211084083,
+      "group": "channel",
+      "main": 0.2919564149932315,
+      "output": "margin11",
+      "run": 14
+    },
+    {
+      "alternative_backup_only": 0.0,
+      "group": "backlog",
+      "main": 0.07909767251461744,
+      "output": "margin11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.07263158001936972,
+      "group": "backlog",
+      "main": 0.14155766317077603,
+      "output": "margin11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.010266461564848822,
+      "group": "backlog",
+      "main": 0.10445863812851407,
+      "output": "margin11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.019974158729116117,
+      "group": "backlog",
+      "main": 0.10391774412244556,
+      "output": "margin11",
+      "run": 14
+    },
+    {
+      "alternative_backup_only": 0.058150729166666665,
+      "group": "scene",
+      "main": 0.08670482291666665,
+      "output": "q11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.05166248958333333,
+      "group": "scene",
+      "main": 0.07742104166666668,
+      "output": "q11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.05725402083333335,
+      "group": "scene",
+      "main": 0.06771951041666667,
+      "output": "q11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.05986516666666668,
+      "group": "scene",
+      "main": 0.09019828125,
+      "output": "q11",
+      "run": 14
+    },
+    {
+      "alternative_backup_only": 0.04663747916666665,
+      "group": "history",
+      "main": 0.05273451041666667,
+      "output": "q11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.04856473958333333,
+      "group": "history",
+      "main": 0.054889583333333325,
+      "output": "q11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.04278258333333332,
+      "group": "history",
+      "main": 0.05242309375,
+      "output": "q11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.051426979166666664,
+      "group": "history",
+      "main": 0.05585173958333334,
+      "output": "q11",
+      "run": 14
+    },
+    {
+      "alternative_backup_only": 0.030586416666666665,
+      "group": "channel",
+      "main": 0.03406565624999999,
+      "output": "q11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.03617886458333333,
+      "group": "channel",
+      "main": 0.06043652083333334,
+      "output": "q11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.03308239583333334,
+      "group": "channel",
+      "main": 0.04518638541666668,
+      "output": "q11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.02523810416666667,
+      "group": "channel",
+      "main": 0.03787584375,
+      "output": "q11",
+      "run": 14
+    },
+    {
+      "alternative_backup_only": 0.0,
+      "group": "backlog",
+      "main": 0.022261614583333332,
+      "output": "q11",
+      "run": 11
+    },
+    {
+      "alternative_backup_only": 0.014835218749999999,
+      "group": "backlog",
+      "main": 0.03395160416666666,
+      "output": "q11",
+      "run": 12
+    },
+    {
+      "alternative_backup_only": 0.001970833333333333,
+      "group": "backlog",
+      "main": 0.026838739583333333,
+      "output": "q11",
+      "run": 13
+    },
+    {
+      "alternative_backup_only": 0.0042380625,
+      "group": "backlog",
+      "main": 0.026549927083333334,
+      "output": "q11",
+      "run": 14
+    }
+  ],
+  "summary_definition": "For each sampled target, average signed grouped contributions across the eight references, then average the absolute values over the 100 targets in each run."
+}

@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "joined_frames": 416,
+  "figure_bases": 2,
+  "png_dimensions": [
+    3840,
+    2160
+  ],
+  "matched_input_hashes": 53,
+  "negative_durations": 0,
+  "production_mutations": 0,
+  "checks": "identity/count crosswalk; explicit noncompletion; clocks; source SNR; final script hash; formats and dimensions",
+  "visual_review": "Both PNGs inspected; labels, denominator notes and distinct deadline anchors readable"
+}

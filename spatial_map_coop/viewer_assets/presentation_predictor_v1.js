@@ -107,10 +107,11 @@
    *
    * Velocity is derived ONLY from the last two accepted measured samples, using
    * the measured capture clock so the magnitude is in real m/s. The
-   * extrapolation horizon is counted in LOCAL browser time since the sample
-   * arrived, because the browser has no synchronised relationship to the CARLA
-   * simulation clock; the horizon is therefore an honest "how long have I been
-   * guessing" bound rather than a claim about measured age.
+   * By default the horizon counts local elapsed time since arrival. A validated
+   * adapter may additionally supply ageAtArrivalMs, computed within a declared
+   * clock domain. The replay UI supplies recorded installation minus capture;
+   * it never subtracts browser time from CARLA time. Optional velocity-consistency
+   * and correction-distance guards are disabled for existing callers.
    *
    * No future measurement is ever consulted: observe() only ever sees samples
    * that have already arrived, and sample() is a pure function of the state
@@ -122,6 +123,10 @@
     this.correctionMs = finiteOr(opts.correctionMs, CORRECTION_MS);
     this.maxSampleGapMs = finiteOr(opts.maxSampleGapMs, MAX_SAMPLE_GAP_MS);
     this.backwardResetMs = finiteOr(opts.backwardResetMs, BACKWARD_RESET_MS);
+    this.stationarySpeedMps = finiteOr(opts.stationarySpeedMps, 0);
+    this.teleportDistanceM = optionalMs(opts.teleportDistanceM);
+    this.maxCorrectionM = optionalMs(opts.maxCorrectionM);
+    this.velocityConsistencyMps = optionalMs(opts.velocityConsistencyMps);
     this.states = Object.create(null);
   }
 
@@ -132,7 +137,11 @@
       sampleId: sample.sampleId === undefined ? null : sample.sampleId,
       x: sample.x, y: sample.y, yaw: sample.yaw,
       vx: 0.0, vy: 0.0, yawRateDps: 0.0,
+      rawVx: null, rawVy: null,
       arrivalMs: nowMs,
+      // Only a validated adapter may supply a same-clock measurement age.
+      // Absent means arrival-relative animation, never browser minus CARLA.
+      ageAtArrivalMs: optionalMs(sample.ageAtArrivalMs),
       errX: 0.0, errY: 0.0, errYaw: 0.0, errStartMs: nowMs,
       acceptedCount: 1, rejectedCount: 0
     };
@@ -143,7 +152,7 @@
   /**
    * Offer one already-received measurement.
    *
-   * sample = {x, y, yaw, className, measuredMs, sampleId}
+   * sample = {x, y, yaw, className, measuredMs, sampleId, ageAtArrivalMs?}
    *   measuredMs  measured capture time in ms (may be null/undefined/NaN)
    *   sampleId    opaque per-measurement identity used for change detection
    *               when no measured timestamp exists (e.g. a frame counter)
@@ -159,8 +168,10 @@
     var sampleId = sample.sampleId === undefined ? null : sample.sampleId;
     var normalized = {
       x: x, y: y, yaw: yaw, className: sample.className,
-      measuredMs: measuredMs, sampleId: sampleId
+      measuredMs: measuredMs, sampleId: sampleId,
+      ageAtArrivalMs: optionalMs(sample.ageAtArrivalMs)
     };
+    if (normalized.ageAtArrivalMs !== null && normalized.ageAtArrivalMs < 0) { return 'INVALID'; }
 
     var state = this.states[key];
     if (!state) { this._reset(key, normalized, nowMs); return 'CREATED'; }
@@ -186,7 +197,11 @@
     }
 
     // ---- velocity from the last two measured samples only -----------------
-    var vx = 0.0, vy = 0.0, yawRateDps = 0.0;
+    if (this.teleportDistanceM !== null &&
+        Math.hypot(x - state.x, y - state.y) > this.teleportDistanceM) {
+      this._reset(key, normalized, nowMs); return 'RESET';
+    }
+    var vx = 0.0, vy = 0.0, yawRateDps = 0.0, rawVx = null, rawVy = null;
     if (measuredMs !== null && state.measuredMs !== null) {
       var dtMs = measuredMs - state.measuredMs;
       if (dtMs > 0.0 && dtMs <= this.maxSampleGapMs) {
@@ -196,6 +211,19 @@
         );
         vx = clamped[0];
         vy = clamped[1];
+        rawVx = vx; rawVy = vy;
+        if (this.velocityConsistencyMps !== null) {
+          // Two consistent measured displacement intervals are needed before
+          // predicting noisy, untracked detector candidates. No GT identity.
+          if (state.rawVx === null || Math.hypot(vx - state.rawVx, vy - state.rawVy) > this.velocityConsistencyMps) {
+            vx = 0; vy = 0;
+          } else {
+            vx = (vx + state.rawVx) / 2; vy = (vy + state.rawVy) / 2;
+          }
+          // A stationary latest interval stops prediction immediately.
+          if (Math.hypot(rawVx, rawVy) < this.stationarySpeedMps) { vx = 0; vy = 0; }
+        }
+        if (Math.hypot(vx, vy) < this.stationarySpeedMps) { vx = 0; vy = 0; }
         yawRateDps = Math.max(
           -MAX_DISPLAY_YAW_RATE_DPS,
           Math.min(MAX_DISPLAY_YAW_RATE_DPS, angleDeltaDeg(state.yaw, yaw) / dtS)
@@ -205,15 +233,24 @@
 
     // ---- adopt the measurement, keeping the drawn pose continuous ----------
     var before = this.sample(key, nowMs);
-    state.errX = before.x - x;
-    state.errY = before.y - y;
-    state.errYaw = angleDeltaDeg(yaw, before.yaw);
+    var ageSeconds = Math.min(normalized.ageAtArrivalMs || 0, this.horizonMs) / 1000;
+    if (this.maxCorrectionM !== null &&
+        Math.hypot(before.x - (x + vx * ageSeconds), before.y - (y + vy * ageSeconds)) > this.maxCorrectionM) {
+      // A large residual is not evidence of a traversed path. Let the caller
+      // identify a display reset instead of sweeping a glyph across the scene.
+      this._reset(key, normalized, nowMs); return 'RESET';
+    }
+    state.errX = before.x - (x + vx * ageSeconds);
+    state.errY = before.y - (y + vy * ageSeconds);
+    state.errYaw = angleDeltaDeg(yaw + yawRateDps * ageSeconds, before.yaw);
     state.errStartMs = nowMs;
     state.x = x; state.y = y; state.yaw = yaw;
     state.measuredMs = measuredMs;
     state.sampleId = sampleId;
     state.vx = vx; state.vy = vy; state.yawRateDps = yawRateDps;
+    state.rawVx = rawVx; state.rawVy = rawVy;
     state.arrivalMs = nowMs;
+    state.ageAtArrivalMs = normalized.ageAtArrivalMs;
     state.acceptedCount += 1;
     return 'ACCEPTED';
   };
@@ -221,7 +258,7 @@
   /**
    * Pose to draw at local time nowMs. Pure: never mutates predictor state.
    *
-   *   t        = clamp(nowMs - arrivalMs, 0, horizonMs) / 1000
+   *   t        = clamp(nowMs - arrivalMs + (ageAtArrivalMs || 0), 0, horizonMs) / 1000
    *   x_disp   = x_meas + vx * t + errX * (1 - ease(u))
    *   y_disp   = y_meas + vy * t + errY * (1 - ease(u))
    *   yaw_disp = yaw_meas + yawRate * t + errYaw * (1 - ease(u))
@@ -230,7 +267,7 @@
   DisplayPredictor.prototype.sample = function (key, nowMs) {
     var state = this.states[key];
     if (!state) { return null; }
-    var elapsedMs = nowMs - state.arrivalMs;
+    var elapsedMs = nowMs - state.arrivalMs + (state.ageAtArrivalMs || 0);
     var boundedMs = Math.min(Math.max(0.0, elapsedMs), this.horizonMs);
     var t = boundedMs / 1000.0;
     var weight = 0.0;
@@ -245,6 +282,8 @@
       vx: state.vx,
       vy: state.vy,
       predictionMs: boundedMs,
+      ageMs: state.ageAtArrivalMs === null ? null : elapsedMs,
+      clockMode: state.ageAtArrivalMs === null ? 'ARRIVAL_RELATIVE' : 'MAPPED_CAPTURE',
       // true once local time has passed the horizon: the pose is held, not
       // extrapolated any further.
       held: elapsedMs > this.horizonMs

@@ -1,0 +1,16 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "rl_agent.splitfusion_m4_two_ue_v1.cli",
+    "preflight",
+    "--preparation",
+    "experiments/splitfusion_m4_two_ue_v1/preparation_smoke_20261013_11/PREPARATION.json",
+    "--host"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "end_wall_s": 1791940448.1695726,
+  "returncode": 0,
+  "start_wall_s": 1791940445.5207002
+}

@@ -1,0 +1,9 @@
+{
+  "analysis_wall_s": 1.396289836615324,
+  "command": "env -u PYTHONPATH CUDA_VISIBLE_DEVICES= OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python3 -B experiments/splitfusion_m4_two_ue_v1/receiver_boundary_diagnostic_20261013_01/analyze.py NEW_OUTPUT_DIRECTORY",
+  "cpu_affinity": [
+    23
+  ],
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "script_sha256": "a066e448d001561d8c62758b04874d0c8059f5967cb36c1952de1aecb98a3f73"
+}

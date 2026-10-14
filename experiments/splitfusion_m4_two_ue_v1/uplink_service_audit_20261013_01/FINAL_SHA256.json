@@ -1,0 +1,66 @@
+{
+  "status": "OFFLINE_AUDIT_COMPLETE_NO_SMOKE",
+  "created_utc": "2026-10-14T02:11:26.610189+00:00",
+  "input_hashes_verified": 55,
+  "png_count": 2,
+  "png_dimensions": [
+    3840,
+    2160
+  ],
+  "production_changes": false,
+  "live_attempts": 0,
+  "files": {
+    "01_LOAD_BACKLOG_DELAY.png": {
+      "sha256": "e17389566e5e628b4b810722a7abd62d2fee990c0cb52d95f7c201c7c873c10f",
+      "bytes": 467125
+    },
+    "02_RADIO_RESOURCES.png": {
+      "sha256": "70c2575e555ddabb4ba9f6932869fd5d9c99a9251a527490200c7c51ee12ecae",
+      "bytes": 497478
+    },
+    "ALIGNED_1S.csv": {
+      "sha256": "4642b1132159c4490ee248fa0ea79aa86cd6900551fbc41839aef0978335f3a2",
+      "bytes": 11401
+    },
+    "ALLOCATION_BY_SLOT.csv": {
+      "sha256": "ff50bc583cd816c9f7ba178011bd01d2a5d013a789e778bb66667e2ee27a66a2",
+      "bytes": 678
+    },
+    "FRAME_DELAY.csv": {
+      "sha256": "71d111940453e48222ca31efa95985a379810d1d63aa239dc15be1a4b66866b7",
+      "bytes": 37281
+    },
+    "INPUT_SHA256.json": {
+      "sha256": "771a15a9ed046b4001617ae831506c4601e6a95e02a9dd0d7279435115b405da",
+      "bytes": 17477
+    },
+    "MEMO.md": {
+      "sha256": "2a20e7f230c9b16635506378ba7d3d21873f0f4de32bc056e41e3039b2a1ce52",
+      "bytes": 10547
+    },
+    "PER_UE.csv": {
+      "sha256": "a22ac69a05658d63d0346e08fd5d70737e27f9c441d30067c5f852c948f8f3d9",
+      "bytes": 943
+    },
+    "REPRODUCIBILITY.json": {
+      "sha256": "c2f47f76a8eeb8c514cf8afc20a373edb3121beadf93f9fee5a569f791c27144",
+      "bytes": 493
+    },
+    "SOURCE_BINDING.json": {
+      "sha256": "3e507eaea6fad26c4feda599e7fc1887956f0d8184b32a9f7bd75b18434a43f6",
+      "bytes": 3413
+    },
+    "SUMMARY.json": {
+      "sha256": "2ba89f53c44212b878234260fb49abf3ebabee02c3f2fbc027f3a7a82d82180f",
+      "bytes": 26519
+    },
+    "UL_GRANTS.csv": {
+      "sha256": "41a28bbc5f1254df612aee06d37ac03d9b7c83dd12a7d741e75ced943103e164",
+      "bytes": 559718
+    },
+    "analyze.py": {
+      "sha256": "796df1e4c7f31f1a32cca4d0a1e0617ac6ae0e330162c026fd1c8076004aa3ea",
+      "bytes": 27058
+    }
+  }
+}

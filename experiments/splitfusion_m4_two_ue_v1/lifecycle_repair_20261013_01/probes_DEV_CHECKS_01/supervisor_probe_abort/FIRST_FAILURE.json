@@ -1,0 +1,13 @@
+{
+  "error": "ValueError('synthetic first failure')",
+  "phase": "run.world_and_routes",
+  "stage": "startup",
+  "thread": "MainThread",
+  "traceback": [
+    "Traceback (most recent call last):\n",
+    "  File \"/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/rl_agent/splitfusion_m4_two_ue_v1/phases.py\", line 92, in phase\n    yield\n",
+    "  File \"/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/lifecycle_repair_20261013_01/fake_child.py\", line 32, in <module>\n    with P.phase('run.world_and_routes'): raise ValueError('synthetic first failure')\n",
+    "ValueError: synthetic first failure\n"
+  ],
+  "wall_ns": 1791881886218334852
+}

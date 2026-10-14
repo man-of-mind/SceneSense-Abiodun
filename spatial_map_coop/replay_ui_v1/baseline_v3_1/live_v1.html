@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SceneSense · LIVE ego traffic view</title><link rel="stylesheet" href="/assets/replay_v3.css"><link rel="stylesheet" href="/assets/live_v1.css"></head>
+<body class="live">
+<header>
+  <a class="brand" href="/live" aria-label="SceneSense live view"><span class="brandmark">◈</span> SCENESENSE <span class="sub">EGO TRAFFIC VIEW · LIVE · FULL TOWN10 MAP</span></a>
+  <div class="headctl">
+    <span id="liveBadge" class="livebadge waiting" role="status" aria-live="polite">WAITING FOR FEED</span>
+    <div class="segmented"><button id="heading" class="active">Heading up</button><button id="north">North up</button></div>
+    <button id="flag" title="Record a timestamped flag in the event log (key F)">Flag moment</button>
+    <button id="inspect" aria-pressed="false" title="Policies, raw candidates and feed diagnostics">Inspect</button>
+  </div>
+</header>
+<main>
+  <section class="viewer">
+    <div id="stage">
+      <canvas id="map" aria-label="Ego-following live traffic map"></canvas>
+      <div class="chip" id="statusChip"><span class="dot"></span><span id="frameLabel">WAITING</span><span class="sep"></span><span id="ageLabel">—</span></div>
+      <div class="compass" id="compass">↑ FORWARD</div>
+      <div id="mapNotice" role="status"></div>
+      <div class="overview"><canvas id="overview" width="150" height="116"></canvas></div>
+      <div class="scalebar"><span id="scale"></span><small>10 m</small></div>
+    </div>
+    <div class="transport livestrip">
+      <span class="lbl">HOST TIME</span><span class="time" id="clock">—</span>
+      <span class="lbl">SESSION</span><span class="time" id="elapsed">—</span>
+      <span class="lbl">MAP UPDATES</span><span class="time" id="rate">—</span>
+      <span class="lbl">CAPTURE→DISPLAY</span><span class="time" id="displayAge">—</span>
+      <span class="lbl">LAST FLAG</span><span class="time dim" id="lastFlag">—</span>
+    </div>
+  </section>
+  <aside>
+    <section class="card now">
+      <div class="cardtitle">IN VIEW NOW <span class="tag" id="radiusTag">45 m · forward</span></div>
+      <div class="bignums">
+        <div><b id="nVeh">—</b><span>vehicles</span></div>
+        <div><b id="nPed">—</b><span>people</span></div>
+        <div class="soft"><b id="nTent">—</b><span>tentative</span></div>
+        <div class="amber"><b id="nHyp">—</b><span>unresolved</span></div>
+      </div>
+      <div class="small" id="rawLine">—</div>
+    </section>
+    <section class="card legend">
+      <div class="cardtitle">HOW TO READ</div>
+      <ul>
+        <li><i class="g-est"></i><span><b>Tracked object</b> — confirmed by ≥2 confident detections in 3 frames. Nose shows travel direction when known.</span></li>
+        <li><i class="g-ped"></i><span><b>Person</b> — same rule, warm colour. A short tick shows walking direction once movement is statistically supported (no minimum speed).</span></li>
+        <li><i class="g-pedu"></i><span><b>Person, motion unresolved</b> — faint ellipse: the detector's range error (long along the camera ray). Standing and slow walking cannot yet be told apart; the person stays shown.</span></li>
+        <li><i class="g-tent"></i><span><b>Tentative</b> — one confident detection, not yet confirmed.</span></li>
+        <li><i class="g-miss"></i><span><b>Missed update</b> — no new detection for &gt;350 ms; fades out by 750 ms.</span></li>
+        <li><i class="g-hyp"></i><span><b>Unresolved hypotheses</b> — recent low-confidence detections. Not vehicles; not counted as objects.</span></li>
+        <li><i class="g-conf"></i><span><b>Conflicting pair</b> — two tracks occupying the same footprint; at most one is real.</span></li>
+        <li><i class="g-los"></i><span><b>Shaded area</b> — 2D estimate of what static buildings leave in camera line of sight. Not qualified visibility.</span></li>
+      </ul>
+    </section>
+    <section class="card feed">
+      <div class="cardtitle">LIVE MAP FEED <span class="tag" id="feedTag">display only</span></div>
+      <dl class="feedgrid">
+        <dt>Last installed frame</dt><dd id="fFrame">—</dd>
+        <dt>Capture → map install</dt><dd id="fInstall">—</dd>
+        <dt>Install → viewer</dt><dd id="fViewer">—</dd>
+        <dt>Viewer → browser</dt><dd id="fBrowser">—</dd>
+        <dt>Dropped (browser queue)</dt><dd id="fDrops">0</dd>
+        <dt>Reconnects</dt><dd id="fReconnects">0</dd>
+        <dt>Pose / heading join</dt><dd id="fJoin">—</dd>
+      </dl>
+      <div class="small">Only what the spatial-map pipeline installs is shown. No camera stream or images are sent to this view. The 170-ms scientific deadline is separate from display timing.</div>
+    </section>
+  </aside>
+</main>
+<section id="drawer" hidden>
+  <div class="drawergrid">
+    <section class="card">
+      <div class="cardtitle">DISPLAY POLICY</div>
+      <label>View <select id="policy">
+        <option value="current">Tracks + tentative + unresolved (default)</option>
+        <option value="established">Tracked objects only</option>
+        <option value="visible">Strict qualified-visible only</option></select></label>
+      <label class="check"><input id="buildings" type="checkbox" checked> Withhold objects fully behind a modelled building</label>
+      <label class="check"><input id="rawOverlay" type="checkbox"> Overlay every raw candidate of the latest frame (unfiltered)</label>
+      <label class="check"><input id="ids" type="checkbox"> Show track IDs</label>
+      <label>Radius <input id="radius" type="range" min="20" max="90" step="5" value="45"><output id="radiusValue">45 m</output></label>
+      <div class="small" id="policyText"></div>
+      <div class="small mono" id="performance">Measuring render cadence…</div>
+      <pre id="feedDetail">—</pre>
+    </section>
+    <section class="card wide">
+      <div class="cardtitle">LATEST FRAME · EVERY RAW CANDIDATE AND ITS DISPLAY DISPOSITION <span class="tag" id="auditSummary"></span></div>
+      <div class="tablewrap"><table><thead><tr><th>Candidate</th><th>Class</th><th>Score</th><th>Tier</th><th>Disposition</th><th>Display track</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <pre id="detail">Select a row to inspect the unchanged measurement, its provenance and the display decision.</pre>
+    </section>
+  </div>
+</section>
+<footer><span>LIVE · display-only copy of installed map updates · GT not used for display</span><span id="footerStatus"></span><span><a href="/" target="_blank" rel="noopener">recorded replay</a></span></footer>
+<script src="/assets/presentation_predictor_v1.js"></script><script src="/assets/presentation_inventory_v1.js"></script><script src="/assets/replay_motion_v2.js"></script><script src="/assets/replay_geometry_v2.js"></script><script src="/assets/replay_policy_v1.js"></script><script src="/assets/replay_tracks_v3.js"></script><script src="/assets/live_app_v1.js"></script>
+</body></html>

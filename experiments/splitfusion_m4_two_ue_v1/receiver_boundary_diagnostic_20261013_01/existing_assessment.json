@@ -1,0 +1,25 @@
+{
+  "command": [
+    "nice",
+    "-n",
+    "15",
+    "taskset",
+    "-c",
+    "23",
+    "python3",
+    "-B",
+    "-m",
+    "rl_agent.splitfusion_m4_two_ue_v1.cli",
+    "analyze",
+    "--preparation",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/preparation_smoke_20261013_11/PREPARATION.json",
+    "--capture",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_08",
+    "--output",
+    "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/receiver_boundary_diagnostic_20261013_01/existing_assessment_01"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "end_wall_s": 1791940644.0276074,
+  "returncode": 0,
+  "start_wall_s": 1791940641.4146338
+}

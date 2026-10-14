@@ -1,0 +1,135 @@
+{
+  "all_sources_byte_identical_or_losslessly_compressed": true,
+  "architecture_snapshot_modified": false,
+  "feedback_from_pcap_and_phase_evidence_matches": {
+    "DOWNLINK_PACKETS.csv": true,
+    "DOWNLINK_RATES_1S.csv": true,
+    "DOWNLINK_SUMMARY.json": true,
+    "FEEDBACK_REWARD_DECISIONS.csv": true
+  },
+  "historical_data_modified": false,
+  "live_services_or_inference_started": false,
+  "original_quantiles_preserved": true,
+  "policy_decisions_exported": 1493,
+  "portable_plot_reproduction": {
+    "figures": {
+      "01_completion_curves.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "02_outcomes_and_latency_quantiles.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "03_payload_statistics_and_time.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "04_snr_mcs_time.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "05_prediction_feedback_time.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "06_deadline_quality.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "07_scene_complexity_and_q_time.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "08_map_freshness_cdf_and_time.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "09_perception_time.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "10_map_freshness_quantiles.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "11_application_rlc_data_rates.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "12_rlc_and_gnb_buffer_time.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      },
+      "13_payload_time_and_relative_variation.png": {
+        "pixels": [
+          3840,
+          2160
+        ],
+        "text_inside_canvas": true
+      }
+    },
+    "matches_shared_png": {
+      "01_completion_curves.png": true,
+      "02_outcomes_and_latency_quantiles.png": true,
+      "03_payload_statistics_and_time.png": true,
+      "04_snr_mcs_time.png": true,
+      "05_prediction_feedback_time.png": true,
+      "06_deadline_quality.png": true,
+      "07_scene_complexity_and_q_time.png": true,
+      "08_map_freshness_cdf_and_time.png": true,
+      "09_perception_time.png": true,
+      "10_map_freshness_quantiles.png": true,
+      "11_application_rlc_data_rates.png": true,
+      "12_rlc_and_gnb_buffer_time.png": true,
+      "13_payload_time_and_relative_variation.png": true
+    },
+    "png_count": 13
+  },
+  "quality_feedback_pcap_hash_matches": 973,
+  "quantile_rows": 75,
+  "quantile_table_reproduced": true,
+  "source_files_checked_unchanged": 75,
+  "status": "PASS",
+  "transport_from_compressed_raw_matches": {
+    "BUFFER_OCCUPANCY_1S.csv": true,
+    "TRANSPORT_METRICS.json": true,
+    "TRANSPORT_RATES_1S.csv": true
+  }
+}

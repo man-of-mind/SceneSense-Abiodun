@@ -1,0 +1,917 @@
+{
+  "aligned_m4_window_seconds": 41.692565997,
+  "aligned_m4_window_wall_ns": [
+    1791940531915659009,
+    1791940573608225006
+  ],
+  "allocation": {
+    "configured_mixed_slots_per_frame": 2,
+    "configured_ul_full_slots_per_frame": 10,
+    "full_width_13_symbol_tbs_MCS25_bytes": 22547,
+    "nominal_reachable_saturated_TB_bytes_per_radio_frame": 190110,
+    "prb_symbol_shares": {
+      "m4-ue0": 0.5019934686258102,
+      "m4-ue1": 0.4980065313741898
+    },
+    "radio_opportunity_note": "Two 5-ms periods/frame; configured 5 full UL + mixed, but k2=6 full-slot TDAs cannot reach first UL slots 5/15.",
+    "reachable_slots_per_radio_frame": 10,
+    "slots": [
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 0
+      },
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 1
+      },
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 2
+      },
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 3
+      },
+      {
+        "configured_role": "MIXED",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 819,
+        "observed_mean_prb_symbols": 805.3135593220339,
+        "occupied_frames": 349,
+        "slot": 4
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 5
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3460.901129943503,
+        "occupied_frames": 350,
+        "slot": 6
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3486.2033898305085,
+        "occupied_frames": 352,
+        "slot": 7
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3475.590395480226,
+        "occupied_frames": 347,
+        "slot": 8
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3480.584745762712,
+        "occupied_frames": 349,
+        "slot": 9
+      },
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 10
+      },
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 11
+      },
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 12
+      },
+      {
+        "configured_role": "DL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 0,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 13
+      },
+      {
+        "configured_role": "MIXED",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 819,
+        "observed_mean_prb_symbols": 805.1186440677966,
+        "occupied_frames": 348,
+        "slot": 14
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 0.0,
+        "occupied_frames": 0,
+        "slot": 15
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3494.502824858757,
+        "occupied_frames": 350,
+        "slot": 16
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3484.367231638418,
+        "occupied_frames": 353,
+        "slot": 17
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3478.822033898305,
+        "occupied_frames": 347,
+        "slot": 18
+      },
+      {
+        "configured_role": "UL",
+        "fully_covered_frames": 354,
+        "max_pusch_prb_symbols": 3549,
+        "observed_mean_prb_symbols": 3413.124293785311,
+        "occupied_frames": 349,
+        "slot": 19
+      }
+    ],
+    "unused_full_slot_uplift_arithmetic_only": 0.23719951606964385
+  },
+  "clock_uncertainty": {
+    "bracket_width_ns": {
+      "max": 10938.0,
+      "min": 182.0,
+      "n": 5586,
+      "p50": 798.5,
+      "p95": 2197.0,
+      "p99": 2937.499999999989
+    },
+    "caveat": "Empirical cross-check plus worst bracket, not a formal bound on unobserved clock steps or kernel timestamp-generation error",
+    "empirical_uncertainty_envelope_ns": 9625.981899261475,
+    "holdout_abs_residual_ns": {
+      "max": 4156.981899261475,
+      "min": 0.0573272705078125,
+      "n": 2792,
+      "p50": 289.21141052246094,
+      "p95": 592.6104265213012,
+      "p99": 735.6295264434826
+    },
+    "holdout_pairs": 2792,
+    "independent_sender_pair_abs_residual_ns": {
+      "max": 824.0,
+      "min": 0.0,
+      "n": 416,
+      "p50": 159.5,
+      "p95": 437.5,
+      "p99": 618.9500000000006
+    },
+    "linear_drift_ppm": 30.28004756238962,
+    "maximum_pair_gap_ms": 1275.84354,
+    "method": "piecewise-linear paired REALTIME/RAW interpolation; no clipping; no extrapolation",
+    "offset_span_ns": 1369602.0,
+    "pairs": 5586
+  },
+  "per_ue": {
+    "m4-ue0": {
+      "app_udp_outstanding_at_window_end_bytes": 7399214,
+      "completed_feature_bytes": 31158525,
+      "completed_feature_goodput_Mbps": 5.978720523412643,
+      "feature_bytes": 39070989,
+      "force_mcs": {
+        "-1": 1760
+      },
+      "last_send_to_kernel_ms": {
+        "max": 8193.48998,
+        "min": 70.595229,
+        "n": 177,
+        "p50": 5361.456016,
+        "p95": 7960.5626993999995,
+        "p99": 8142.0620121599995
+      },
+      "layer_balance_caveat": "Different layers, fragmentation/PDCP/RLC/MAC headers, in-flight data and asynchronously sampled endpoints; not an exact per-packet RLC conservation equation.",
+      "offered_by_kind": {
+        "FALLBACK": {
+          "feature_bytes": 33409,
+          "frames": 5,
+          "udp_bytes": 33449
+        },
+        "POLICY_DECISION": {
+          "feature_bytes": 19584580,
+          "frames": 102,
+          "udp_bytes": 19597516
+        },
+        "POLICY_HOLD": {
+          "feature_bytes": 19453000,
+          "frames": 101,
+          "udp_bytes": 19465880
+        }
+      },
+      "offered_feature_Mbps": 7.496969892006429,
+      "offered_udp_Mbps": 7.501931160161881,
+      "offered_udp_bytes": 39096845,
+      "outstanding_minus_rlc_delta_bytes": -25813,
+      "pdcp_events": 28199,
+      "pdcp_sdu_bytes": 39714880,
+      "ph": {
+        "max": 65.0,
+        "min": 48.0,
+        "n": 1760,
+        "p50": 65.0,
+        "p95": 65.0,
+        "p99": 65.0
+      },
+      "phr_mcs_reductions": 0,
+      "pusch_snr_db": {
+        "max": 21.0,
+        "min": 20.0,
+        "n": 1770,
+        "p50": 20.5,
+        "p95": 21.0,
+        "p99": 21.0
+      },
+      "pusch_tb_Mbps": 6.375929176897574,
+      "pusch_tb_bytes": 33228606,
+      "pusch_tpc": {
+        "0": 181,
+        "1": 1589
+      },
+      "pusch_txpower_calc": {
+        "0": 1770
+      },
+      "received_feature_chunk_bytes": 31676719,
+      "received_feature_chunks_Mbps": 6.078151966425728,
+      "received_udp_Mbps": 6.082164576251951,
+      "received_udp_bytes": 31697631,
+      "received_udp_bytes_by_close": 34006266,
+      "receiver_close_wall_ns": 1791940576320569190,
+      "resources": {
+        "clock_end_wall_ns": 1791940573577350000,
+        "clock_observation_wall_s": 41.662718,
+        "clock_start_wall_ns": 1791940531914632000,
+        "dci_formats": {
+          "7": 1772
+        },
+        "grants": 1772,
+        "grants_per_wall_s": 42.50158169990076,
+        "mcs": {
+          "25": 1668,
+          "26": 31,
+          "27": 37,
+          "28": 36
+        },
+        "mcs_tables": {
+          "0": 1772
+        },
+        "median_full_width_grant_tb_bytes": 22547.0,
+        "new_grants": 1758,
+        "new_tb_Mbps": 6.343348404582008,
+        "new_tb_bytes": 33058809,
+        "prb": {
+          "max": 273.0,
+          "min": 5.0,
+          "n": 1772,
+          "p50": 273.0,
+          "p95": 273.0,
+          "p99": 273.0
+        },
+        "radio_elapsed_s": 3.557,
+        "radio_per_wall": 0.08537609092138444,
+        "retransmission_grants": 14,
+        "scheduled_tb_Mbps": 6.384581846537192,
+        "scheduled_tb_bytes": 33273700,
+        "slots": {
+          "14": 100,
+          "16": 334,
+          "17": 25,
+          "18": 331,
+          "19": 19,
+          "4": 254,
+          "6": 100,
+          "7": 258,
+          "8": 97,
+          "9": 254
+        },
+        "symbols": {
+          "12": 42,
+          "13": 1376,
+          "3": 354
+        },
+        "tb_bytes": {
+          "max": 26122.0,
+          "min": 421.0,
+          "n": 1772,
+          "p50": 22547.0,
+          "p95": 22547.0,
+          "p99": 25101.0
+        }
+      },
+      "rlc_boundary_age_ms": [
+        1.027009,
+        30.875006
+      ],
+      "rlc_capture_bytes": {
+        "max": 7447508.0,
+        "min": 0.0,
+        "n": 4270,
+        "p50": 4309026.5,
+        "p95": 7074088.9,
+        "p99": 7284568.0
+      },
+      "rlc_close_bytes": 5089894,
+      "rlc_delta_bytes": 7425027,
+      "rlc_end_bytes": 7425027,
+      "rlc_start_bytes": 0,
+      "scheduler_avg_snr_db": {
+        "max": 28.3,
+        "min": 20.4,
+        "n": 1760,
+        "p50": 20.6,
+        "p95": 21.2,
+        "p99": 24.8
+      },
+      "selected_vs_final_mcs_changes": 0,
+      "sent": 208,
+      "source": {
+        "cell_id": "town10",
+        "ego_id": "m4-ego-0",
+        "feedback_port": 52010,
+        "imsi": "001010000000001",
+        "ip": "10.0.0.3",
+        "rnti": 8094,
+        "run_id": "M4_TWO_UE_GOOD_ALL",
+        "session_id": "0f8be03b-5ca2-4027-b2f7-acde20e4a765",
+        "stream_id": "m4-ue0",
+        "tunnel": "oaitun_ue1",
+        "ue_id": 0
+      },
+      "steady_resources": {
+        "clock_end_wall_ns": 1791940573577350000,
+        "clock_observation_wall_s": 33.672124,
+        "clock_start_wall_ns": 1791940539905226000,
+        "dci_formats": {
+          "7": 1422
+        },
+        "grants": 1422,
+        "grants_per_wall_s": 42.20515588295102,
+        "mcs": {
+          "25": 1422
+        },
+        "mcs_tables": {
+          "0": 1422
+        },
+        "median_full_width_grant_tb_bytes": 22547.0,
+        "new_grants": 1422,
+        "new_tb_Mbps": 6.403540532330207,
+        "new_tb_bytes": 26968964,
+        "prb": {
+          "max": 273.0,
+          "min": 273.0,
+          "n": 1422,
+          "p50": 273.0,
+          "p95": 273.0,
+          "p99": 273.0
+        },
+        "radio_elapsed_s": 2.845,
+        "radio_per_wall": 0.08449125454634226,
+        "retransmission_grants": 0,
+        "scheduled_tb_Mbps": 6.403540532330207,
+        "scheduled_tb_bytes": 26968964,
+        "slots": {
+          "14": 70,
+          "16": 284,
+          "18": 284,
+          "4": 214,
+          "6": 70,
+          "7": 215,
+          "8": 70,
+          "9": 215
+        },
+        "symbols": {
+          "12": 35,
+          "13": 1103,
+          "3": 284
+        },
+        "tb_bytes": {
+          "max": 22547.0,
+          "min": 4867.0,
+          "n": 1422,
+          "p50": 22547.0,
+          "p95": 22547.0,
+          "p99": 22547.0
+        }
+      },
+      "window_s": 41.692565997,
+      "window_wall_ns": [
+        1791940531915659009,
+        1791940573608225006
+      ]
+    },
+    "m4-ue1": {
+      "app_udp_outstanding_at_window_end_bytes": 11986456,
+      "completed_feature_bytes": 31246187,
+      "completed_feature_goodput_Mbps": 5.995541171967843,
+      "feature_bytes": 43479002,
+      "force_mcs": {
+        "-1": 1749
+      },
+      "last_send_to_kernel_ms": {
+        "max": 12587.151404,
+        "min": 168.116376,
+        "n": 156,
+        "p50": 7850.381117,
+        "p95": 12162.695742,
+        "p99": 12436.786828699998
+      },
+      "layer_balance_caveat": "Different layers, fragmentation/PDCP/RLC/MAC headers, in-flight data and asynchronously sampled endpoints; not an exact per-packet RLC conservation equation.",
+      "offered_by_kind": {
+        "FALLBACK": {
+          "feature_bytes": 26565,
+          "frames": 4,
+          "udp_bytes": 26597
+        },
+        "POLICY_DECISION": {
+          "feature_bytes": 21713393,
+          "frames": 102,
+          "udp_bytes": 21727705
+        },
+        "POLICY_HOLD": {
+          "feature_bytes": 21739044,
+          "frames": 102,
+          "udp_bytes": 21753396
+        }
+      },
+      "offered_feature_Mbps": 8.342782644393449,
+      "offered_udp_Mbps": 8.348288853822163,
+      "offered_udp_bytes": 43507698,
+      "outstanding_minus_rlc_delta_bytes": 23789,
+      "pdcp_events": 31283,
+      "pdcp_sdu_bytes": 44062120,
+      "ph": {
+        "max": 65.0,
+        "min": 48.0,
+        "n": 1749,
+        "p50": 65.0,
+        "p95": 65.0,
+        "p99": 65.0
+      },
+      "phr_mcs_reductions": 0,
+      "pusch_snr_db": {
+        "max": 21.0,
+        "min": 20.0,
+        "n": 1757,
+        "p50": 20.5,
+        "p95": 21.0,
+        "p99": 21.0
+      },
+      "pusch_tb_Mbps": 6.326902115331081,
+      "pusch_tb_bytes": 32973098,
+      "pusch_tpc": {
+        "0": 178,
+        "1": 1579
+      },
+      "pusch_txpower_calc": {
+        "0": 1757
+      },
+      "received_feature_chunk_bytes": 31500498,
+      "received_feature_chunks_Mbps": 6.044338552300499,
+      "received_udp_Mbps": 6.048318926164078,
+      "received_udp_bytes": 31521242,
+      "received_udp_bytes_by_close": 33797209,
+      "receiver_close_wall_ns": 1791940576320569190,
+      "resources": {
+        "clock_end_wall_ns": 1791940573606190000,
+        "clock_observation_wall_s": 41.691757,
+        "clock_start_wall_ns": 1791940531914433000,
+        "dci_formats": {
+          "7": 1759
+        },
+        "grants": 1759,
+        "grants_per_wall_s": 42.189775513614805,
+        "mcs": {
+          "25": 1660,
+          "26": 30,
+          "27": 35,
+          "28": 34
+        },
+        "mcs_tables": {
+          "0": 1759
+        },
+        "median_full_width_grant_tb_bytes": 22547.0,
+        "new_grants": 1747,
+        "new_tb_Mbps": 6.293312434137058,
+        "new_tb_bytes": 32798043,
+        "prb": {
+          "max": 273.0,
+          "min": 5.0,
+          "n": 1759,
+          "p50": 273.0,
+          "p95": 273.0,
+          "p99": 273.0
+        },
+        "radio_elapsed_s": 3.555,
+        "radio_per_wall": 0.08526865394519113,
+        "retransmission_grants": 12,
+        "scheduled_tb_Mbps": 6.3321623336639075,
+        "scheduled_tb_bytes": 33000512,
+        "slots": {
+          "14": 250,
+          "16": 20,
+          "17": 336,
+          "18": 18,
+          "19": 331,
+          "4": 97,
+          "6": 253,
+          "7": 104,
+          "8": 251,
+          "9": 99
+        },
+        "symbols": {
+          "12": 1,
+          "13": 1411,
+          "3": 347
+        },
+        "tb_bytes": {
+          "max": 26122.0,
+          "min": 453.0,
+          "n": 1759,
+          "p50": 22547.0,
+          "p95": 22547.0,
+          "p99": 25101.0
+        }
+      },
+      "rlc_boundary_age_ms": [
+        1.226009,
+        2.035006
+      ],
+      "rlc_capture_bytes": {
+        "max": 12101378.0,
+        "min": 0.0,
+        "n": 4266,
+        "p50": 6378516.0,
+        "p95": 11581446.0,
+        "p99": 11927558.750000002
+      },
+      "rlc_close_bytes": 9844521,
+      "rlc_delta_bytes": 11962667,
+      "rlc_end_bytes": 11962667,
+      "rlc_start_bytes": 0,
+      "scheduler_avg_snr_db": {
+        "max": 27.3,
+        "min": 20.4,
+        "n": 1749,
+        "p50": 20.6,
+        "p95": 21.1,
+        "p99": 24.6
+      },
+      "selected_vs_final_mcs_changes": 0,
+      "sent": 208,
+      "source": {
+        "cell_id": "town10",
+        "ego_id": "m4-ego-1",
+        "feedback_port": 52011,
+        "imsi": "001010000000002",
+        "ip": "10.0.0.2",
+        "rnti": 60647,
+        "run_id": "M4_TWO_UE_GOOD_ALL",
+        "session_id": "764077c8-4fe2-44ec-b247-04c297ff8549",
+        "stream_id": "m4-ue1",
+        "tunnel": "oaitun_ue2",
+        "ue_id": 1
+      },
+      "steady_resources": {
+        "clock_end_wall_ns": 1791940573606190000,
+        "clock_observation_wall_s": 33.691967,
+        "clock_start_wall_ns": 1791940539914223000,
+        "dci_formats": {
+          "7": 1421
+        },
+        "grants": 1421,
+        "grants_per_wall_s": 42.17547574519929,
+        "mcs": {
+          "25": 1421
+        },
+        "mcs_tables": {
+          "0": 1421
+        },
+        "median_full_width_grant_tb_bytes": 22547.0,
+        "new_grants": 1421,
+        "new_tb_Mbps": 6.3764658357908806,
+        "new_tb_bytes": 26854937,
+        "prb": {
+          "max": 273.0,
+          "min": 261.0,
+          "n": 1421,
+          "p50": 273.0,
+          "p95": 273.0,
+          "p99": 273.0
+        },
+        "radio_elapsed_s": 2.841,
+        "radio_per_wall": 0.08432277046929318,
+        "retransmission_grants": 0,
+        "scheduled_tb_Mbps": 6.3764658357908806,
+        "scheduled_tb_bytes": 26854937,
+        "slots": {
+          "14": 215,
+          "17": 284,
+          "19": 284,
+          "4": 70,
+          "6": 214,
+          "7": 70,
+          "8": 214,
+          "9": 70
+        },
+        "symbols": {
+          "13": 1136,
+          "3": 285
+        },
+        "tb_bytes": {
+          "max": 22547.0,
+          "min": 4867.0,
+          "n": 1421,
+          "p50": 22547.0,
+          "p95": 22547.0,
+          "p99": 22547.0
+        }
+      },
+      "window_s": 41.692565997,
+      "window_wall_ns": [
+        1791940531915659009,
+        1791940573608225006
+      ]
+    }
+  },
+  "recommendation": "One future controlled wall-clock byte-admission cap per UE, keeping only latest unsent frame, below measured service with headroom; do not add another deep queue. No implementation here.",
+  "scope": "One new offline audit directory; no runtime/configuration changes or live attempt",
+  "single_ue_reference": {
+    "first_matched_wall_duration": {
+      "duration_s": 41.692565997,
+      "mcs": {
+        "max": 28.0,
+        "min": 27.0,
+        "n": 5353,
+        "p50": 27.0,
+        "p95": 27.0,
+        "p99": 28.0
+      },
+      "note": "Payload keyed to recorded capture WALL, not exact send WALL; unmatched scene/session/one ego; descriptive only.",
+      "offered_feature_Mbps": 8.32780424272719,
+      "payload_bytes": {
+        "max": 267358.0,
+        "min": 6592.0,
+        "n": 347,
+        "p50": 126586.0,
+        "p95": 170450.09999999998,
+        "p99": 192194.80000000008
+      },
+      "pusch_snr_db": {
+        "max": 24.0,
+        "min": 23.0,
+        "n": 5353,
+        "p50": 23.5,
+        "p95": 24.0,
+        "p99": 24.0
+      },
+      "received_goodput_unknown": "No per-datagram edge timestamps in this reference.",
+      "resources": {
+        "clock_end_wall_ns": 1791524936518046000,
+        "clock_observation_wall_s": 41.692473,
+        "clock_start_wall_ns": 1791524894825573000,
+        "dci_formats": {
+          "7": 5353
+        },
+        "grants": 5353,
+        "grants_per_wall_s": 128.39219347605462,
+        "mcs": {
+          "27": 5216,
+          "28": 137
+        },
+        "mcs_tables": {
+          "0": 5353
+        },
+        "median_full_width_grant_tb_bytes": 25101.0,
+        "new_grants": 5353,
+        "new_tb_Mbps": 17.68354847847577,
+        "new_tb_bytes": 92159064,
+        "prb": {
+          "max": 273.0,
+          "min": 5.0,
+          "n": 5353,
+          "p50": 273.0,
+          "p95": 273.0,
+          "p99": 273.0
+        },
+        "radio_elapsed_s": 27.477,
+        "radio_per_wall": 0.6590398223679368,
+        "retransmission_grants": 0,
+        "scheduled_tb_Mbps": 17.68354847847577,
+        "scheduled_tb_bytes": 92159064,
+        "slots": {
+          "14": 525,
+          "16": 468,
+          "17": 813,
+          "18": 432,
+          "19": 411,
+          "4": 531,
+          "6": 503,
+          "7": 826,
+          "8": 439,
+          "9": 405
+        },
+        "symbols": {
+          "13": 4297,
+          "3": 1056
+        },
+        "tb_bytes": {
+          "max": 26122.0,
+          "min": 469.0,
+          "n": 5353,
+          "p50": 25101.0,
+          "p95": 25101.0,
+          "p99": 26122.0
+        }
+      },
+      "rlc_bytes": {
+        "max": 272921.0,
+        "min": 0.0,
+        "n": 32974,
+        "p50": 0.0,
+        "p95": 151617.2499999999,
+        "p99": 181639.0
+      },
+      "sent": 347,
+      "window_wall_ns": [
+        1791524894825916672,
+        1791524936518482669
+      ]
+    },
+    "full_capture": {
+      "duration_s": 444.822144,
+      "mcs": {
+        "max": 28.0,
+        "min": 27.0,
+        "n": 53229,
+        "p50": 27.0,
+        "p95": 27.0,
+        "p99": 27.0
+      },
+      "note": "Payload keyed to recorded capture WALL, not exact send WALL; unmatched scene/session/one ego; descriptive only.",
+      "offered_feature_Mbps": 7.374153729181252,
+      "payload_bytes": {
+        "max": 267358.0,
+        "min": 6553.0,
+        "n": 3588,
+        "p50": 111786.0,
+        "p95": 165371.44999999995,
+        "p99": 207516.26
+      },
+      "pusch_snr_db": {
+        "max": 24.0,
+        "min": 23.0,
+        "n": 53229,
+        "p50": 23.5,
+        "p95": 24.0,
+        "p99": 24.0
+      },
+      "received_goodput_unknown": "No per-datagram edge timestamps in this reference.",
+      "resources": {
+        "clock_end_wall_ns": 1791525339647413000,
+        "clock_observation_wall_s": 444.82184,
+        "clock_start_wall_ns": 1791524894825573000,
+        "dci_formats": {
+          "7": 53235
+        },
+        "grants": 53235,
+        "grants_per_wall_s": 119.67704557442177,
+        "mcs": {
+          "27": 53098,
+          "28": 137
+        },
+        "mcs_tables": {
+          "0": 53235
+        },
+        "median_full_width_grant_tb_bytes": 25101.0,
+        "new_grants": 53235,
+        "new_tb_Mbps": 16.20720502619582,
+        "new_tb_bytes": 901165461,
+        "prb": {
+          "max": 273.0,
+          "min": 5.0,
+          "n": 53235,
+          "p50": 273.0,
+          "p95": 273.0,
+          "p99": 273.0
+        },
+        "radio_elapsed_s": 294.882,
+        "radio_per_wall": 0.6629215867638154,
+        "retransmission_grants": 0,
+        "scheduled_tb_Mbps": 16.20720502619582,
+        "scheduled_tb_bytes": 901165461,
+        "slots": {
+          "14": 5351,
+          "16": 4598,
+          "17": 8175,
+          "18": 4207,
+          "19": 4091,
+          "4": 5481,
+          "6": 4893,
+          "7": 8197,
+          "8": 4237,
+          "9": 4005
+        },
+        "symbols": {
+          "13": 42403,
+          "3": 10832
+        },
+        "tb_bytes": {
+          "max": 26122.0,
+          "min": 101.0,
+          "n": 53235,
+          "p50": 25101.0,
+          "p95": 25101.0,
+          "p99": 25101.0
+        }
+      },
+      "rlc_bytes": {
+        "max": 272921.0,
+        "min": 0.0,
+        "n": 353860,
+        "p50": 0.0,
+        "p95": 142948.0,
+        "p99": 176868.0
+      },
+      "sent": 3588,
+      "window_wall_ns": [
+        1791524894825916672,
+        1791525339648060672
+      ]
+    },
+    "radio_materialization": {
+      "clean_noise_power_db": -50.0,
+      "cpu_reconciliation": "PHASE14A_CPU_RECONCILIATION_PASSED",
+      "effective_gnb_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/splitfusion_16_cell_live_pilot_radio_scratch/run4p6_20261009T054713Z_a71__favorable_stable/attempt_0001/00_FAVORABLE_STABLE/effective_gnb_100mhz_4d5u_clean_minus50.conf",
+      "effective_gnb_sha256": "330b23d4f4ab74c388f9f20105ef29e989f3e79f4b088d73e82376549b0a2211",
+      "effective_ue_path": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_oai_100mhz_4d5u_v1/splitfusion_16_cell_live_pilot_radio_scratch/run4p6_20261009T054713Z_a71__favorable_stable/attempt_0001/00_FAVORABLE_STABLE/effective_ue_100mhz_clean_minus50.conf",
+      "effective_ue_sha256": "ab06afcc1cfc2bb777fa35973811aaad655032f6541e1b4565541cac9cc04f97",
+      "radio_profile_id": "OAI_N78_100MHZ_273PRB_4D5U_V1",
+      "schema": "scenesense.splitfusion_phase14a_radio_materialization.v1",
+      "selected_gnb_before_channelmod_sha256": "d5f317413fbef79f69501adfce2428c1300941938def0d6e554de1c16c2b08a8",
+      "source_channel_sha256": "a47ade413b36ecf66f6df666bead124974705636cb134dd09a539b34bce7d760",
+      "source_gnb_sha256": "03fb7ac7b4df6ce88f5a2e3e7a26211b78ad89e7d313632ca088e6b364742ffb",
+      "source_ue_sha256": "b20bf2d9d8da9bd15b1f822836b7235dafa16b29f4e097e6ca3749729494c944",
+      "status": "MATERIALIZED_NOT_LAUNCHED"
+    },
+    "rnti": 50144
+  },
+  "snr": {
+    "caveat": "Source-supported and quantitatively consistent, not isolated by a controlled noise intervention; RFsim shared-library historical hash not retained.",
+    "commanded_db": 23.5,
+    "mechanism": "Source: each connected modeled UE adds independent per-sample Gaussian noise into the same gNB receive sum, including zero-signal intervals. No global noise_power_dBFS enabled.",
+    "per_channel_command": -12.0,
+    "predicted_two_independent_equal_noise_penalty_db": 3.010299956639812,
+    "predicted_two_ue_snr_db": 20.489700043360187
+  },
+  "unresolved": "Why the RFsim/PHY clock is this slow at instruction/thread level; packet-level residence within sender/radio/core; causal effect of a fix.",
+  "verdict": "OFFLINE_SERVICE_DEFICIT_EXPLAINED_NO_SMOKE_REQUIRED"
+}

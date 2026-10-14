@@ -1,0 +1,104 @@
+{
+  "checks": {
+    "pre_repair_tick_owner_reproduces_live_error": "duplicate owned pose",
+    "real_collector_chain_and_tick_owner_tests": 3,
+    "supervisor_abort": {
+      "carla": {
+        "certificate": true,
+        "members_after": [],
+        "members_before": [],
+        "pgid": 1492442,
+        "rpc_port_listening": false,
+        "stopped": true
+      },
+      "child_exit": {
+        "native_fault": true,
+        "returncode": -6,
+        "signal_name": "SIGABRT",
+        "terminating_signal": 6
+      },
+      "entered_not_closed": [
+        "teardown.processes"
+      ],
+      "first_failure": "run.world_and_routes",
+      "owned_signals": [
+        [
+          "fake_radio",
+          "SIGTERM_SENT"
+        ]
+      ],
+      "parent_rc": 134,
+      "reasons": [
+        "child exit {\"native_fault\": true, \"returncode\": -6, \"signal_name\": \"SIGABRT\", \"terminating_signal\": 6}",
+        "child run not clean or unrecorded",
+        "smoke gates not met"
+      ],
+      "seconds": 0.4,
+      "verdict": "FAIL"
+    },
+    "supervisor_clean": {
+      "carla": {
+        "certificate": true,
+        "members_after": [],
+        "members_before": [],
+        "pgid": 1492463,
+        "rpc_port_listening": false,
+        "stopped": true
+      },
+      "child_exit": {
+        "native_fault": false,
+        "returncode": 0
+      },
+      "entered_not_closed": [],
+      "first_failure": null,
+      "owned_signals": [
+        [
+          "fake_radio",
+          null
+        ]
+      ],
+      "parent_rc": 0,
+      "reasons": [],
+      "seconds": 0.4,
+      "verdict": "PASS"
+    },
+    "supervisor_ignore_term": {
+      "carla": {
+        "certificate": true,
+        "members_after": [],
+        "members_before": [
+          {
+            "cmdline": "bash -c trap \"\" TERM; sleep 300",
+            "pid": 1492470
+          },
+          {
+            "cmdline": "sleep 300",
+            "pid": 1492471
+          }
+        ],
+        "pgid": 1492470,
+        "rpc_port_listening": false,
+        "sigkill": "sent",
+        "stopped": true
+      },
+      "child_exit": {
+        "native_fault": false,
+        "returncode": 0
+      },
+      "entered_not_closed": [],
+      "first_failure": null,
+      "owned_signals": [
+        [
+          "fake_radio",
+          null
+        ]
+      ],
+      "parent_rc": 0,
+      "reasons": [],
+      "seconds": 30.5,
+      "verdict": "PASS"
+    }
+  },
+  "root": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+  "status": "PASS"
+}

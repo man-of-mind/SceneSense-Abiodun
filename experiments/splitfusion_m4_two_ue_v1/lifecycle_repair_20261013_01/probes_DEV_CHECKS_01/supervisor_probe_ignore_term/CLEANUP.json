@@ -1,0 +1,20 @@
+{
+  "carla": {
+    "delegated_to_supervisor": true,
+    "pgid": 1492470
+  },
+  "processes": [
+    {
+      "argv": [
+        "sleep",
+        "300"
+      ],
+      "birth": "851947006",
+      "group": true,
+      "name": "fake_radio",
+      "pgid": 1492469,
+      "pid": 1492469,
+      "returncode": -2
+    }
+  ]
+}

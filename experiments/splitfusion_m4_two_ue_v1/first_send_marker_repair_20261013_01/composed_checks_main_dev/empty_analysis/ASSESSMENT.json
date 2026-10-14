@@ -1,0 +1,356 @@
+{
+  "combined": {
+    "completed": 0,
+    "decisions": 0,
+    "fallbacks": 0,
+    "gt_missing_scored_decisions": 0,
+    "gt_scored": 0,
+    "holds": 0,
+    "map_installs": 0,
+    "offered": 0,
+    "sent": 0,
+    "timely_feedback_action_open_to_receipt": 0,
+    "timely_prediction_capture_to_ready": 0,
+    "timely_scored_feedback": 0
+  },
+  "denominator": "Each UE: all offered frames; policy fractions use all POLICY_DECISION frames. Quality uses only scored frames, with every eligible GT object including misses. Missing GT is not zero-eligible GT.",
+  "gates": {
+    "both_actor_replays_exact": false,
+    "both_controllers_clean": false,
+    "both_drained": false,
+    "both_have_predictions": false,
+    "both_ordered_route_coverage": false,
+    "both_pusch_measured": false,
+    "both_routes": false,
+    "both_transport_accounting": false,
+    "cleanup_present": false,
+    "exact_rescoring": false,
+    "registration": true,
+    "retained_scenario_qualification": false,
+    "retention_finalized": false,
+    "run_ended": false,
+    "shared_edge_closed": false
+  },
+  "interpretation": "Combined counts are source observations, not unique objects or cooperative-perception gains. No two-UE channel calibration or timeliness performance is assumed.",
+  "per_ue": {
+    "m4-ue0": {
+      "actor_replay": [],
+      "commanded_snr_db": 23.5,
+      "completed": 0,
+      "controller_clean": false,
+      "decision_completion_fraction": null,
+      "decision_predictions_completed": 0,
+      "decisions": 0,
+      "edge_compute": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, compute start -> CPU prediction ready"
+      },
+      "edge_queue": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, reassembly -> compute start"
+      },
+      "empty_or_incomplete": true,
+      "exact_rescoring": [],
+      "fallbacks": 0,
+      "feedback_latency": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, action-open MONOTONIC_RAW -> R4FB receipt MONOTONIC_RAW"
+      },
+      "feedback_outcomes": {},
+      "gt_missing_scored_decisions": 0,
+      "gt_outcomes": {},
+      "gt_queue_and_cpu": [],
+      "gt_scored": 0,
+      "harq_note": "Retained PUSCH event does not expose a HARQ round; no inferred count",
+      "harq_retransmissions": null,
+      "holds": 0,
+      "latency_rule": "STALE/timeout receipts never count as completed predictions; missing completions stay in decision denominator",
+      "map_freshness": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, capture -> actual installation"
+      },
+      "map_installs": 0,
+      "measured_pusch_allocated_rb": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "PRB, per transmission"
+      },
+      "measured_pusch_mcs": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "MCS index, per transmission"
+      },
+      "measured_pusch_snr": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "dB, per transmission"
+      },
+      "measured_pusch_tb_bytes": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "bytes, per transmission"
+      },
+      "modes": {},
+      "offered": 0,
+      "one_terminal_per_sent_frame": false,
+      "ordered_route_coverage": {
+        "coverage": 0.0,
+        "first_unmatched": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "matched": 0,
+        "points": 301,
+        "radius_m": 8.0
+      },
+      "payload": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "bytes, transmitted feature payload"
+      },
+      "prediction_ready_latency": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, capture WALL -> prediction-ready WALL"
+      },
+      "q_e4": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "q_e4, policy decisions"
+      },
+      "quality": {
+        "person": {
+          "conservative_fraction": null,
+          "eligible_gt_objects": 0,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.2,
+          "matched_objects": 0,
+          "misses": 0,
+          "scored_frames": 0,
+          "segmentation_intersection_pixels": 0,
+          "segmentation_iou": null,
+          "segmentation_union_pixels": 0,
+          "within_threshold": 0,
+          "zero_eligible_scored_frames": 0
+        },
+        "vehicle": {
+          "conservative_fraction": null,
+          "eligible_gt_objects": 0,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.0,
+          "matched_objects": 0,
+          "misses": 0,
+          "scored_frames": 0,
+          "segmentation_intersection_pixels": 0,
+          "segmentation_iou": null,
+          "segmentation_union_pixels": 0,
+          "within_threshold": 0,
+          "zero_eligible_scored_frames": 0
+        }
+      },
+      "scored_undefined_quality": 0,
+      "sent": 0,
+      "source": null,
+      "timely_decision_prediction_capture_to_ready": 0,
+      "timely_feedback_action_open_to_receipt": 0,
+      "timely_prediction_capture_to_ready": 0,
+      "timely_scored_feedback": 0,
+      "transport_terminal_outcomes": {},
+      "two_ue_calibration_claim": false
+    },
+    "m4-ue1": {
+      "actor_replay": [],
+      "commanded_snr_db": 23.5,
+      "completed": 0,
+      "controller_clean": false,
+      "decision_completion_fraction": null,
+      "decision_predictions_completed": 0,
+      "decisions": 0,
+      "edge_compute": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, compute start -> CPU prediction ready"
+      },
+      "edge_queue": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, reassembly -> compute start"
+      },
+      "empty_or_incomplete": true,
+      "exact_rescoring": [],
+      "fallbacks": 0,
+      "feedback_latency": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, action-open MONOTONIC_RAW -> R4FB receipt MONOTONIC_RAW"
+      },
+      "feedback_outcomes": {},
+      "gt_missing_scored_decisions": 0,
+      "gt_outcomes": {},
+      "gt_queue_and_cpu": [],
+      "gt_scored": 0,
+      "harq_note": "Retained PUSCH event does not expose a HARQ round; no inferred count",
+      "harq_retransmissions": null,
+      "holds": 0,
+      "latency_rule": "STALE/timeout receipts never count as completed predictions; missing completions stay in decision denominator",
+      "map_freshness": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, capture -> actual installation"
+      },
+      "map_installs": 0,
+      "measured_pusch_allocated_rb": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "PRB, per transmission"
+      },
+      "measured_pusch_mcs": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "MCS index, per transmission"
+      },
+      "measured_pusch_snr": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "dB, per transmission"
+      },
+      "measured_pusch_tb_bytes": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "bytes, per transmission"
+      },
+      "modes": {},
+      "offered": 0,
+      "one_terminal_per_sent_frame": false,
+      "ordered_route_coverage": {
+        "coverage": 0.0,
+        "first_unmatched": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "matched": 0,
+        "points": 301,
+        "radius_m": 8.0
+      },
+      "payload": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "bytes, transmitted feature payload"
+      },
+      "prediction_ready_latency": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "ms, capture WALL -> prediction-ready WALL"
+      },
+      "q_e4": {
+        "n": 0,
+        "p50": null,
+        "p99": null,
+        "unit": "q_e4, policy decisions"
+      },
+      "quality": {
+        "person": {
+          "conservative_fraction": null,
+          "eligible_gt_objects": 0,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.2,
+          "matched_objects": 0,
+          "misses": 0,
+          "scored_frames": 0,
+          "segmentation_intersection_pixels": 0,
+          "segmentation_iou": null,
+          "segmentation_union_pixels": 0,
+          "within_threshold": 0,
+          "zero_eligible_scored_frames": 0
+        },
+        "vehicle": {
+          "conservative_fraction": null,
+          "eligible_gt_objects": 0,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.0,
+          "matched_objects": 0,
+          "misses": 0,
+          "scored_frames": 0,
+          "segmentation_intersection_pixels": 0,
+          "segmentation_iou": null,
+          "segmentation_union_pixels": 0,
+          "within_threshold": 0,
+          "zero_eligible_scored_frames": 0
+        }
+      },
+      "scored_undefined_quality": 0,
+      "sent": 0,
+      "source": null,
+      "timely_decision_prediction_capture_to_ready": 0,
+      "timely_feedback_action_open_to_receipt": 0,
+      "timely_prediction_capture_to_ready": 0,
+      "timely_scored_feedback": 0,
+      "transport_terminal_outcomes": {},
+      "two_ue_calibration_claim": false
+    }
+  },
+  "preparation_sha256": "275a699c2be4975ff2d043adb0ea133f8907a71f55d15240a782001ea84967cf",
+  "schema": "splitfusion.m4.assessment.v1",
+  "verdict": "STOP"
+}

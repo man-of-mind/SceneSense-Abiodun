@@ -1,0 +1,317 @@
+{
+  "agent": {
+    "duration_s": 122.57177662849426,
+    "full_one_second_bins": 122,
+    "gnb_estimated_buffer_bytes_event_quantiles": {
+      "n": 16482,
+      "p50": 150000.0,
+      "p95": 300000.0,
+      "p99": 300000.0
+    },
+    "label": "Agent",
+    "rates_1s_Mbps": {
+      "application_offered": {
+        "n": 122,
+        "p50": 7.5798559999999995,
+        "p95": 9.955834399999997,
+        "p99": 10.929265839999998
+      },
+      "pdcp_ingress": {
+        "n": 122,
+        "p50": 7.607232,
+        "p95": 10.699678799999997,
+        "p99": 10.939839119999998
+      },
+      "rlc_dequeue": {
+        "n": 122,
+        "p50": 7.644196,
+        "p95": 10.209131199999998,
+        "p99": 10.971307199999998
+      },
+      "rlc_ingress": {
+        "n": 122,
+        "p50": 7.623456,
+        "p95": 10.722458399999997,
+        "p99": 10.96320384
+      }
+    },
+    "trace": {
+      "changed_lcid_same_tick": 0,
+      "direct_bsr_status": "NOT_RECORDED",
+      "duplicate_lcid_same_tick": 0,
+      "embedded_config_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+      "identities": {
+        "NRUE_MAC_RLC_BUFFER_STATUS:lcid": [
+          1,
+          2,
+          4
+        ],
+        "NRUE_MAC_RLC_BUFFER_STATUS:rnti": [
+          30987
+        ],
+        "NRUE_MAC_RLC_BUFFER_STATUS:ue_id": [
+          0
+        ],
+        "NR_PDCP_TX_SDU:rb_id": [
+          1
+        ],
+        "NR_PDCP_TX_SDU:ue_id": [
+          0
+        ],
+        "NR_RLC_TX_DEQUEUE:lcid": [
+          4
+        ],
+        "NR_RLC_TX_DEQUEUE:ue_id": [
+          0
+        ],
+        "NR_RLC_TX_SDU:rb_id": [
+          1
+        ],
+        "NR_RLC_TX_SDU:ue_id": [
+          0
+        ]
+      },
+      "last_open_tick_excluded": true,
+      "parsed_exactly_to_eof": true,
+      "raw_bytes": 44067999,
+      "raw_event_counts": {
+        "NRUE_MAC_DCI_GRANT": 20251,
+        "NRUE_MAC_RLC_BUFFER_STATUS": 470052,
+        "NR_PDCP_TX_SDU": 81483,
+        "NR_RLC_TX_DEQUEUE": 96361,
+        "NR_RLC_TX_SDU": 81483
+      },
+      "rlc_backlog_bytes_event_quantiles": {
+        "n": 101231,
+        "p50": 0.0,
+        "p95": 142320.0,
+        "p99": 160076.0
+      },
+      "rlc_completed_ticks": 101231,
+      "schema_blocks": 1,
+      "window_event_counts": {
+        "NRUE_MAC_DCI_GRANT": 19711,
+        "NRUE_MAC_RLC_BUFFER_STATUS": 303693,
+        "NR_PDCP_TX_SDU": 81401,
+        "NR_RLC_TX_DEQUEUE": 96170,
+        "NR_RLC_TX_SDU": 81401
+      }
+    },
+    "whole_window_mean_Mbps": {
+      "application_offered": 7.359706000951369,
+      "pdcp_ingress": 7.473816837758385,
+      "rlc_dequeue": 7.504417095853428,
+      "rlc_ingress": 7.489755449841338
+    }
+  },
+  "mode03": {
+    "duration_s": 123.71895933151245,
+    "full_one_second_bins": 123,
+    "gnb_estimated_buffer_bytes_event_quantiles": {
+      "n": 82284,
+      "p50": 300000.0,
+      "p95": 300000.0,
+      "p99": 300000.0
+    },
+    "label": "AE128 / 8-bit",
+    "rates_1s_Mbps": {
+      "application_offered": {
+        "n": 123,
+        "p50": 150.139744,
+        "p95": 169.2802144,
+        "p99": 170.16776208000002
+      },
+      "pdcp_ingress": {
+        "n": 123,
+        "p50": 149.701568,
+        "p95": 171.1213824,
+        "p99": 171.78837552
+      },
+      "rlc_dequeue": {
+        "n": 123,
+        "p50": 106.482896,
+        "p95": 114.747684,
+        "p99": 117.6143408
+      },
+      "rlc_ingress": {
+        "n": 123,
+        "p50": 149.862608,
+        "p95": 171.4852656,
+        "p99": 172.15372272
+      }
+    },
+    "trace": {
+      "changed_lcid_same_tick": 0,
+      "direct_bsr_status": "NOT_RECORDED",
+      "duplicate_lcid_same_tick": 0,
+      "embedded_config_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+      "identities": {
+        "NRUE_MAC_RLC_BUFFER_STATUS:lcid": [
+          1,
+          2,
+          4
+        ],
+        "NRUE_MAC_RLC_BUFFER_STATUS:rnti": [
+          28174
+        ],
+        "NRUE_MAC_RLC_BUFFER_STATUS:ue_id": [
+          0
+        ],
+        "NR_PDCP_TX_SDU:rb_id": [
+          1
+        ],
+        "NR_PDCP_TX_SDU:ue_id": [
+          0
+        ],
+        "NR_RLC_TX_DEQUEUE:lcid": [
+          4
+        ],
+        "NR_RLC_TX_DEQUEUE:ue_id": [
+          0
+        ],
+        "NR_RLC_TX_SDU:rb_id": [
+          1
+        ],
+        "NR_RLC_TX_SDU:ue_id": [
+          0
+        ]
+      },
+      "last_open_tick_excluded": true,
+      "parsed_exactly_to_eof": true,
+      "raw_bytes": 240293031,
+      "raw_event_counts": {
+        "NRUE_MAC_DCI_GRANT": 92244,
+        "NRUE_MAC_RLC_BUFFER_STATUS": 450708,
+        "NR_PDCP_TX_SDU": 1652968,
+        "NR_RLC_TX_DEQUEUE": 1244843,
+        "NR_RLC_TX_SDU": 1652968
+      },
+      "rlc_backlog_bytes_event_quantiles": {
+        "n": 100663,
+        "p50": 49172476.0,
+        "p95": 49891912.8,
+        "p99": 50000248.76
+      },
+      "rlc_completed_ticks": 100663,
+      "schema_blocks": 1,
+      "window_event_counts": {
+        "NRUE_MAC_DCI_GRANT": 88725,
+        "NRUE_MAC_RLC_BUFFER_STATUS": 301989,
+        "NR_PDCP_TX_SDU": 1651276,
+        "NR_RLC_TX_DEQUEUE": 1203638,
+        "NR_RLC_TX_SDU": 1651276
+      }
+    },
+    "whole_window_mean_Mbps": {
+      "application_offered": 150.995373618874,
+      "pdcp_ingress": 150.66122189125377,
+      "rlc_dequeue": 97.05825552431281,
+      "rlc_ingress": 150.98154970692678
+    }
+  },
+  "mode09": {
+    "duration_s": 129.85672760009766,
+    "full_one_second_bins": 129,
+    "gnb_estimated_buffer_bytes_event_quantiles": {
+      "n": 44654,
+      "p50": 300000.0,
+      "p95": 300000.0,
+      "p99": 300000.0
+    },
+    "label": "AE32 / 8-bit",
+    "rates_1s_Mbps": {
+      "application_offered": {
+        "n": 129,
+        "p50": 37.798016,
+        "p95": 38.8266176,
+        "p99": 43.6599328
+      },
+      "pdcp_ingress": {
+        "n": 129,
+        "p50": 38.425168,
+        "p95": 39.465512,
+        "p99": 44.36011136
+      },
+      "rlc_dequeue": {
+        "n": 129,
+        "p50": 37.322432,
+        "p95": 41.786312,
+        "p99": 52.39360896
+      },
+      "rlc_ingress": {
+        "n": 129,
+        "p50": 38.506912,
+        "p95": 39.5411856,
+        "p99": 44.45448992
+      }
+    },
+    "trace": {
+      "changed_lcid_same_tick": 0,
+      "direct_bsr_status": "NOT_RECORDED",
+      "duplicate_lcid_same_tick": 0,
+      "embedded_config_sha256": "2f4945814ad2f47197816756819afc0d087156c499e8c746cf0d9a81653005c5",
+      "identities": {
+        "NRUE_MAC_RLC_BUFFER_STATUS:lcid": [
+          1,
+          2,
+          4
+        ],
+        "NRUE_MAC_RLC_BUFFER_STATUS:rnti": [
+          59824
+        ],
+        "NRUE_MAC_RLC_BUFFER_STATUS:ue_id": [
+          0
+        ],
+        "NR_PDCP_TX_SDU:rb_id": [
+          1
+        ],
+        "NR_PDCP_TX_SDU:ue_id": [
+          0
+        ],
+        "NR_RLC_TX_DEQUEUE:lcid": [
+          4
+        ],
+        "NR_RLC_TX_DEQUEUE:ue_id": [
+          0
+        ],
+        "NR_RLC_TX_SDU:rb_id": [
+          1
+        ],
+        "NR_RLC_TX_SDU:ue_id": [
+          0
+        ]
+      },
+      "last_open_tick_excluded": true,
+      "parsed_exactly_to_eof": true,
+      "raw_bytes": 96030179,
+      "raw_event_counts": {
+        "NRUE_MAC_DCI_GRANT": 50296,
+        "NRUE_MAC_RLC_BUFFER_STATUS": 469134,
+        "NR_PDCP_TX_SDU": 431213,
+        "NR_RLC_TX_DEQUEUE": 497254,
+        "NR_RLC_TX_SDU": 431213
+      },
+      "rlc_backlog_bytes_event_quantiles": {
+        "n": 104640,
+        "p50": 223079.0,
+        "p95": 1352080.0,
+        "p99": 3735289.95
+      },
+      "rlc_completed_ticks": 104640,
+      "schema_blocks": 1,
+      "window_event_counts": {
+        "NRUE_MAC_DCI_GRANT": 49692,
+        "NRUE_MAC_RLC_BUFFER_STATUS": 313920,
+        "NR_PDCP_TX_SDU": 430777,
+        "NR_RLC_TX_DEQUEUE": 496223,
+        "NR_RLC_TX_SDU": 430777
+      }
+    },
+    "whole_window_mean_Mbps": {
+      "application_offered": 36.85218748725346,
+      "pdcp_ingress": 37.41992013663177,
+      "rlc_dequeue": 37.56135940080729,
+      "rlc_ingress": 37.499535942382224
+    }
+  }
+}

@@ -129,7 +129,11 @@ class Deck:
         self.q = array(self.dec, "q_e4") / 10000
         self.snr = array(self.layer, "measured_pusch_snr_db")
         self.mcs = array(self.layer, "measured_final_mcs")
+        self.commanded = array(self.dec, "snr_proxy_db")
         self.si, self.p40 = array(self.layer, "camera_si"), array(self.layer, "radar_p40")
+        switches = np.flatnonzero(self.commanded[1:] != self.commanded[:-1]) + 1
+        self.transition_switches = int(len(switches))
+        self.transition_i = int(switches[0]) if len(switches) == 1 else None
         self.highlight = None
         if args.highlight_window is not None:
             start, end = args.highlight_window
@@ -193,6 +197,13 @@ class Deck:
             route_quality={c: self.m["quality"][c] for c in ("vehicle", "person")},
             policy_modes={str(k): int((self.mode == k).sum()) for k in sorted(set(self.mode))},
             measured_snr_at_decisions=quantiles(self.snr), checks="PASS")
+        if self.transition_i is not None:
+            i = self.transition_i
+            self.summary["commanded_transition"] = dict(
+                decision_index_zero_based=i, frame_id=int(self.dec[i]["frame_id"]),
+                elapsed_s=float(self.t[i]), transmitted_frame_index=int(self.frame_x[i]),
+                from_db=float(self.commanded[i - 1]), to_db=float(self.commanded[i]),
+                ego_x=float(self.xy[i, 0]), ego_y=float(self.xy[i, 1]), switches=self.transition_switches)
         if self.highlight is not None:
             self.summary["exploratory_highlight"] = dict(
                 window_s=self.a.highlight_window, label="A", selected=self.subset_stats(self.highlight),
@@ -216,8 +227,30 @@ class Deck:
                     camera_si=quantiles(self.si[mask]), radar_p40=quantiles(self.p40[mask]),
                     first_frame=int(self.frame_x[mask][0]), last_frame=int(self.frame_x[mask][-1]))
 
+    def transition_direction(self):
+        """Name the observed commanded-target direction without hardcoding the schedule."""
+        if self.transition_i is None:
+            return "command transition"
+        before = float(self.commanded[self.transition_i - 1])
+        after = float(self.commanded[self.transition_i])
+        return "BAD→GOOD" if after > before else "GOOD→BAD"
+
+    def transition_label(self):
+        """Describe the observed commanded targets as well as their direction."""
+        if self.transition_i is None:
+            return self.transition_direction()
+        before = float(self.commanded[self.transition_i - 1])
+        after = float(self.commanded[self.transition_i])
+        return f"{self.transition_direction()} · {before:g}→{after:g} dB commanded"
+
     def context_band(self, ax, use_frames=False, label=False):
         """Presentation markers only; do not filter any metric or observation."""
+        if self.transition_i is not None:
+            pos = float(self.frame_x[self.transition_i]) if use_frames else float(self.t[self.transition_i])
+            ax.axvline(pos, color=GOLD, ls="--", lw=1.35, zorder=5)
+            if label:
+                ax.text(pos, 1.04, self.transition_label(), transform=ax.get_xaxis_transform(), ha="center",
+                        color=GOLD, weight="bold", size=11)
         if self.a.hide_context_markers:
             return
         if self.highlight is not None:
@@ -237,6 +270,9 @@ class Deck:
                         ha="right", color=RED, weight="bold", size=11)
 
     def route_highlight(self, ax):
+        if self.transition_i is not None:
+            ax.scatter(*self.xy[self.transition_i], marker="D", s=105, color=GOLD,
+                       edgecolor="white", lw=1.0, zorder=8)
         if self.a.hide_context_markers or self.highlight is None:
             return
         coords = self.xy[self.highlight]
@@ -256,6 +292,10 @@ class Deck:
                     f"SI {s['camera_si']['p50']:.1f}. Exploratory association, not causal attribution.")
         if self.gc_stop_t is not None:
             return f"Dashed red line: GC safety stop at {self.gc_stop_t:.1f} s; standard GC restored. All subsequent observations remain included."
+        if self.transition_i is not None:
+            return (f"Gold diamond/line: actual commanded {self.commanded[self.transition_i - 1]:g}→"
+                    f"{self.commanded[self.transition_i]:g} dB transition at {self.t[self.transition_i]:.1f} s; "
+                    "commanded target, not measured SNR.")
         return ""
 
     def new(self, title, subtitle=""):
@@ -396,7 +436,7 @@ class Deck:
         self.axis(ax)
 
     def route_outcomes(self):
-        fig = self.new("Where feedback met the deadline", f"Route B  ·  {self.m['route']['ordered_progress_coverage']['matched']}/301 ordered points covered  ·  50 vehicles / 50 pedestrians")
+        fig = self.new("Feedback outcomes on the full Town10 map", f"Route B  ·  {self.m['route']['ordered_progress_coverage']['matched']}/301 ordered points covered  ·  50 vehicles / 50 pedestrians")
         ax = fig.add_axes([.05, .34, .55, .49])
         self.route_base(ax)
         for mask, color, size in ((self.timely, TEAL, 15), (self.late, ORANGE, 27), (self.missing, RED, 32)):
@@ -441,11 +481,11 @@ class Deck:
         self.finish(fig, filename, note)
 
     def route_layers(self):
-        self.route_pair("Measured channel along Route B", "Recorded values at policy-decision positions  ·  Grey: planned route  ·  Star: start / return area", [
+        self.route_pair("Measured channel on the full Town10 map", f"Recorded values at policy-decision positions  ·  Grey: planned route  ·  Star: start / return area  ·  Diamond: {self.transition_direction()}", [
             (self.snr, "Measured PUSCH SNR", "PUSCH snrx10 / 10 (dB)", "viridis", (5.5, 24.5), [5.5, 10, 15, 20, 24.5]),
             (self.mcs, "Scheduler uplink MCS", "Final UL MCS index", "plasma", (0, 28), [0, 7, 14, 21, 28])],
             "07_route_snr_mcs.png", "PUSCH = per-transmission gNB measurement, joined from the latest preceding transmission at each decision. Not the MAC power-control statistic.\nMeasured SNR is diagnostic only; the actor receives the commanded proxy and prior UE MCS. Fixed colour scales support comparison across M3 conditions.")
-        self.route_pair("Scene descriptors along Route B", "Decoded from the agent's recorded states  ·  Independent units and colour scales", [
+        self.route_pair("Scene descriptors on the full Town10 map", f"Decoded from the agent's recorded states  ·  Independent units and colour scales  ·  Diamond: {self.transition_direction()}", [
             (self.si, "Camera spatial information (SI)", "SI (luma-gradient units)", "viridis", (60, max(180, float(np.ceil(self.si.max()/20)*20))), [60, 100, 140, 180]),
             (self.p40, "Radar proximity (P40)", "P40 (larger = nearer returns)", "magma", (0, 1), [0, .25, .5, .75, 1])],
             "08_route_si_p40.png", "SI: standard deviation of Sobel gradient magnitude on 768 × 448 luma. P40: mean clip(1 − range / 40 m, 0, 1) over valid radar returns.\nThey are scene descriptors, not object counts or causal explanations of individual decisions. Colours appear only at recorded decision positions.")

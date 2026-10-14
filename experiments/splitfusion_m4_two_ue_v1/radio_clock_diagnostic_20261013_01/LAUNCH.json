@@ -1,0 +1,29 @@
+{
+  "ended_wall_s": 1791945834.9956348,
+  "returncode": 0,
+  "sampler_cleanup": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "22",
+        "sudo",
+        "-n",
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "/usr/bin/python3",
+        "-B",
+        "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/sample.py",
+        "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_09",
+        "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun/experiments/splitfusion_m4_two_ue_v1/radio_clock_diagnostic_20261013_01/observer"
+      ],
+      "birth": "858330823",
+      "group": true,
+      "name": "thread_sampler",
+      "pgid": 2391344,
+      "pid": 2391344,
+      "returncode": 0
+    }
+  ],
+  "started_wall_s": 1791945724.926958
+}

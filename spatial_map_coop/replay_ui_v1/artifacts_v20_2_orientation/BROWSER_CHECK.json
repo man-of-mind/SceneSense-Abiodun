@@ -1,0 +1,135 @@
+{
+  "status": "PASS",
+  "browser": "133.0.6943.16",
+  "conditions": "1x real rAF, 45 m heading-up, compare page 2560x1000 recorded; checks 1440x1000. Offline replay of sealed V20 taps; live renderer fed recorded frames locally. No capture or live pipeline.",
+  "segments": [
+    {
+      "clip": "parked",
+      "clip_start_ms": 3000,
+      "video_s": 0.654,
+      "duration_ms": 9000,
+      "samples": {
+        "before": {
+          "veh": 1124,
+          "neutral": 0,
+          "labels": 136
+        },
+        "after": {
+          "veh": 1124,
+          "neutral": 771,
+          "labels": 0
+        },
+        "clockDiff": {
+          "n": 271,
+          "p50": 1.6370904631912708e-11,
+          "p95": 0.1000000000003638,
+          "max": 0.19999999999708962
+        }
+      }
+    },
+    {
+      "clip": "parked_avenue",
+      "clip_start_ms": 0,
+      "video_s": 10.432,
+      "duration_ms": 10000,
+      "samples": {
+        "before": {
+          "veh": 2534,
+          "neutral": 0,
+          "labels": 143
+        },
+        "after": {
+          "veh": 2534,
+          "neutral": 1080,
+          "labels": 0
+        },
+        "clockDiff": {
+          "n": 454,
+          "p50": 0.09999999999854481,
+          "p95": 0.10000000000218279,
+          "max": 0.2000000000007276
+        }
+      }
+    },
+    {
+      "clip": "turn",
+      "clip_start_ms": 3000,
+      "video_s": 21.66,
+      "duration_ms": 12000,
+      "samples": {
+        "before": {
+          "veh": 2816,
+          "neutral": 0,
+          "labels": 243
+        },
+        "after": {
+          "veh": 2816,
+          "neutral": 968,
+          "labels": 0
+        },
+        "clockDiff": {
+          "n": 566,
+          "p50": 3.637978807091713e-12,
+          "p95": 0.10000000000218279,
+          "max": 0.2000000000007276
+        }
+      }
+    },
+    {
+      "clip": "pedestrians",
+      "clip_start_ms": 0,
+      "video_s": 34.458,
+      "duration_ms": 10000,
+      "samples": {
+        "before": {
+          "veh": 1243,
+          "neutral": 0,
+          "labels": 243
+        },
+        "after": {
+          "veh": 1243,
+          "neutral": 244,
+          "labels": 0
+        },
+        "clockDiff": {
+          "n": 462,
+          "p50": 0.09999999999854481,
+          "p95": 0.10000000000582077,
+          "max": 0.20000000000436557
+        }
+      }
+    }
+  ],
+  "clutter": {
+    "default": {
+      "hypothesis_or_conflict_canvas_labels": 0,
+      "low_confidence_tile_visible": false,
+      "raw_candidate_line_visible": false,
+      "hypothesis_legend_visible": false,
+      "neutral_vehicle_legend_visible": true
+    },
+    "inspect": {
+      "canvas_labels": 24,
+      "low_confidence_tile_visible": true,
+      "raw_candidate_line_visible": true,
+      "hypothesis_legend_visible": true,
+      "detail_has_display_orientation": true
+    }
+  },
+  "pedestrians": {
+    "paused_times_compared": 98,
+    "pedestrian_rows": 302,
+    "unresolved_rows": 192,
+    "identical": true
+  },
+  "live": {
+    "injected_recorded_frames": 40,
+    "default_canvas_labels": 0,
+    "low_confidence_tile_hidden": true,
+    "inspect_shows_tile": true,
+    "vehicles_shown": 5,
+    "neutral": 3,
+    "pedestrians_shown": 1
+  },
+  "page_errors": []
+}

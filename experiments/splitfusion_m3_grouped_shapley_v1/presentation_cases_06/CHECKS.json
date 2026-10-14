@@ -1,0 +1,44 @@
+{
+  "case_data_byte_identical": true,
+  "figures": [
+    {
+      "pdf": "01_scene_led_waterfall.pdf",
+      "pixels": [
+        3840,
+        2160
+      ],
+      "png": "01_scene_led_waterfall.png",
+      "text_bounds": "PASS"
+    },
+    {
+      "pdf": "02_channel_led_waterfall.pdf",
+      "pixels": [
+        3840,
+        2160
+      ],
+      "png": "02_channel_led_waterfall.png",
+      "text_bounds": "PASS"
+    },
+    {
+      "pdf": "03_history_led_waterfall.pdf",
+      "pixels": [
+        3840,
+        2160
+      ],
+      "png": "03_history_led_waterfall.png",
+      "text_bounds": "PASS"
+    }
+  ],
+  "new_model_queries": 0,
+  "originals_unchanged": true,
+  "passed": true,
+  "reconstruction_errors": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "same_axis_limits": [
+    0,
+    1
+  ]
+}

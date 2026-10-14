@@ -1,0 +1,11 @@
+# Spatial demonstration preparation records
+
+These are preparation or reporting issues, not additional live attempts. The sole attempt is `spatial_prospective_01`; its registration, runtime sources, numeric exit status and PASS assessment were not changed after launch.
+
+- `deploy_01/REFUSAL.txt`: a deployment stale-destination check still included a retained containment package that was not a deployment target. It refused before writing deployment or registration. The check was limited to the new revision's targets; `deploy_02` deployed 28 new files and verified all sealed packages unchanged.
+- Deployment-worktree `offline_binding_01`: an isolated fixture tried a create-only writer on an already copied registration. It failed during fixture setup. The partial fixture remains. `check_binding.py` then created fresh fixtures in `offline_binding_02`; legitimate native spatial binding passed, and shifted-core, constant-channel and wrong-feature controls rejected.
+- `presentation_01`: the existing route-axis extent clipped the newly overlaid ellipse and put its label over the subtitle. All numerical analysis and assessment had passed. `render_spatial_v2.py` changes only the route axes limits and label position; `presentation_02` shows the complete approved ellipse. The first renderer and output gallery remain unchanged. The original approved proposal PNG was never edited.
+- `final_audit_01`: the report-only audit looked for `sources` in `registration.json`, although the complete source inventory belongs to `PROSPECTIVE.json`. It raised `KeyError: 'sources'` after the read-only source/host checks, before writing a result. The corrected lookup passed in `final_audit_02`; no runtime, source manifest, assessment or evidence was modified.
+- The final sealing precheck initially compared the other four regenerated PNGs byte-for-byte. Their existing PNG `Source` metadata contains absolute versus relative analysis paths from the two invocations. The corrected check compares decoded pixels and resolved source identity; the first precheck did not emit a final manifest or change any output.
+
+The mandatory fresh production CLI preflight, real slim-edge verifier, narrow spatial regression and final registered assessment are the qualification authorities. Failed setup records are not presented as live failures or as passing qualifications.

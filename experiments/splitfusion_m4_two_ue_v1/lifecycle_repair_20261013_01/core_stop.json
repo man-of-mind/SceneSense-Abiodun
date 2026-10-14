@@ -1,0 +1,15 @@
+{
+  "command": [
+    "sudo",
+    "-n",
+    "docker",
+    "compose",
+    "stop",
+    "--timeout",
+    "20"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1/OAI/oai-cn5g",
+  "end_wall_s": 1791882312.0156753,
+  "returncode": 0,
+  "start_wall_s": 1791882303.5031621
+}

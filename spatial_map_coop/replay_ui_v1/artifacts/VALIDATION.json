@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "new_javascript_scenarios": 23,
+  "existing_javascript_checks": 105,
+  "new_python_tests": 12,
+  "existing_viewer_adapter_python_tests": 99,
+  "browser_report": "BROWSER_CHECK.json",
+  "read_only_recording_hash_checks": "PASS",
+  "git_diff_whitespace_check": "PASS",
+  "source_sha256": {
+    "spatial_map_coop/replay_ui_v1/recording.py": "87ee0ebfb09eec8d329618c80df05f8a3e64a0964528fa9ad0f60c5558024671",
+    "spatial_map_coop/replay_ui_v1/__init__.py": "1b6d6940a75f281b159bbbe3ab5a463db9ce820ad733f54f5d19c78fb6624712",
+    "spatial_map_coop/replay_ui_v1/audit.py": "a30a214b146d60ce7c31db40bd88625a243d31896bba41f58fea195a6c2178e0",
+    "spatial_map_coop/replay_ui_v1/server.py": "7ebe8297b02fafad2c2a315bd8a1f2189822d8631c9ab404b558330841131a32",
+    "spatial_map_coop/replay_ui_v1/browser_check.cjs": "6053e32ccbcbd1203759dbadd428ca25d81405554f9b83a7aa22b70a9c548c20",
+    "spatial_map_coop/viewer_assets/replay_app_v1.js": "8e8dc62f67fb12f3ceb49a44653a98e10a119ec6f0b932bbf9d31bff83e33647",
+    "spatial_map_coop/viewer_assets/replay_v1.css": "a15580692218f6f2c0a49d404ebc136ba794424289c073a9dc6c1051e3810932",
+    "spatial_map_coop/viewer_assets/replay_policy_v1.js": "0b2a513d175183cb713660431f3fc0e51bb306bdc00ba5cb47c35bf1536bbb16",
+    "spatial_map_coop/viewer_assets/replay_v1.html": "2c13260387d13a06c666f40cdceecf5d7c1e8fbf369abbbacdc8d3e241f1f59d",
+    "spatial_map_coop/viewer_assets/presentation_predictor_v1.js": "7e75d891a40e1adc04cf14b252747a82cba79892f31e474c315bfc6ecdc837ce",
+    "spatial_map_coop/tests/js/replay_tests_v1.js": "35d7038b6e0ef1829b3dc57146446c79463205aab58a85a6444013e04443dece",
+    "spatial_map_coop/tests/test_replay_ui_v1.py": "24c55557208058bada87754a7f44b2a8f215ddcbca675a3b087830d1d2ba070d"
+  }
+}

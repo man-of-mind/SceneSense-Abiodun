@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "root": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "checks": {
+    "markers_unbuffered": true,
+    "first_failure_separate_from_cleanup": true,
+    "world_teardown_steps_marked": true,
+    "survives_native_abort": {
+      "returncode": -6,
+      "last_marker": "teardown.native",
+      "faulthandler_first_line": "Fatal Python error: Aborted"
+    },
+    "host_wiring": true,
+    "cli_faulthandler_stderr": true
+  }
+}

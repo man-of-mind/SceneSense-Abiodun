@@ -1,0 +1,1040 @@
+{
+  "analysis_seconds": 0.6170475743710995,
+  "clock_pair_offset_span_ns": 339949,
+  "clocks": "WALL and MONOTONIC_RAW kept separate; no MONOTONIC conversion or cross-domain subtraction",
+  "per_ue": {
+    "m4-ue0": {
+      "accepted_map_installs": 29,
+      "actor_acknowledged_snr_consistent": 103,
+      "after_reassembly_expired": 172,
+      "backlog_delay_pearson": 0.8962433497682779,
+      "capture_window_seconds": 42.582467328,
+      "capture_window_wall_ns": [
+        1791912208270396160,
+        1791912250852863488
+      ],
+      "collector_offer_note": "per_frame_metrics.csv not retained; all assigned/transmitted frames recovered, broader offer count unknown",
+      "command_ack_counts": {
+        "ACK_LATE": 6,
+        "ACK_ON_TIME": 842
+      },
+      "commanded_snr_db": 23.5,
+      "datagrams": 3143,
+      "decision_predictions": 14,
+      "decisions": 103,
+      "duration_ms": {
+        "action_to_feedback_ms": {
+          "max": 526.033499,
+          "min": 310.289742,
+          "n": 14,
+          "p50": 365.94084399999997,
+          "p95": 480.9534237,
+          "p99": 517.0174839399999
+        },
+        "action_to_gt_ready_ms": {
+          "max": 169.338871,
+          "min": 101.309282,
+          "n": 67,
+          "p50": 125.790756,
+          "p95": 160.3830609,
+          "p99": 164.95232092000003
+        },
+        "action_to_prediction_raw_ms": {
+          "max": 476.387748,
+          "min": 251.158023,
+          "n": 14,
+          "p50": 305.4440425,
+          "p95": 435.96211404999997,
+          "p99": 468.3026212099999
+        },
+        "capture_to_map_ack_ms": {
+          "max": 491.266048,
+          "min": 254.867456,
+          "n": 29,
+          "p50": 366.465024,
+          "p95": 480.6654976,
+          "p99": 490.35900928
+        },
+        "capture_to_map_install_ms": {
+          "max": 483.723008,
+          "min": 249.570816,
+          "n": 29,
+          "p50": 361.318912,
+          "p95": 469.27590399999997,
+          "p99": 480.43590656
+        },
+        "capture_to_prediction_wall_ms": {
+          "max": 527.66976,
+          "min": 237.805056,
+          "n": 33,
+          "p50": 360.932352,
+          "p95": 517.4127616,
+          "p99": 524.76299264
+        },
+        "capture_to_verified_wall_ms": {
+          "max": 4080.111417,
+          "min": 192.853097,
+          "n": 207,
+          "p50": 2537.608931,
+          "p95": 3917.8311067,
+          "p99": 4024.93126558
+        },
+        "edge_compute_ms": {
+          "max": 153.08332443237305,
+          "min": 40.32015800476074,
+          "n": 33,
+          "p50": 60.42218208312988,
+          "p95": 71.3714599609375,
+          "p99": 127.05427169799802
+        },
+        "edge_queue_ms": {
+          "max": 38.535118103027344,
+          "min": 0.34737586975097656,
+          "n": 33,
+          "p50": 0.4839897155761719,
+          "p95": 30.121564865112298,
+          "p99": 37.01740264892578
+        },
+        "encoding_only_ms": {
+          "n": 0
+        },
+        "front_end_to_send_ms": {
+          "max": 11.278489,
+          "min": 0.924771,
+          "n": 208,
+          "p50": 1.438961,
+          "p95": 7.3818862999999935,
+          "p99": 8.99087343
+        },
+        "front_ranker_ae_codec_ms": {
+          "max": 84.392112,
+          "min": 5.836354,
+          "n": 208,
+          "p50": 13.69201,
+          "p95": 46.96575395,
+          "p99": 54.68310872000001
+        },
+        "gpu_wait_ms": {
+          "n": 0
+        },
+        "input_7ch_ms": {
+          "max": 33.93802,
+          "min": 8.62241,
+          "n": 208,
+          "p50": 12.414693499999998,
+          "p95": 26.556561849999987,
+          "p99": 32.20310576
+        },
+        "packet_send_calls_ms": {
+          "max": 19.681743,
+          "min": 0.055075,
+          "n": 208,
+          "p50": 0.4416085,
+          "p95": 9.4006606,
+          "p99": 15.568687270000021
+        },
+        "prediction_to_feedback_ms": {
+          "max": 84.088701,
+          "min": 39.122048,
+          "n": 14,
+          "p50": 55.037736499999994,
+          "p95": 79.553001,
+          "p99": 83.181561
+        },
+        "rgb_to_send_ms": {
+          "max": 199.029886,
+          "min": 69.109533,
+          "n": 208,
+          "p50": 99.60973200000001,
+          "p95": 139.46615174999997,
+          "p99": 174.35464901000003
+        },
+        "rgb_to_sensor_prepared_ms": {
+          "max": 83.290574,
+          "min": 40.739149,
+          "n": 208,
+          "p50": 49.8779205,
+          "p95": 60.218367749999985,
+          "p99": 73.34991778000001
+        },
+        "rgb_to_verified_ms": {
+          "max": 4080.213955,
+          "min": 192.923392,
+          "n": 207,
+          "p50": 2537.701605,
+          "p95": 3917.926871,
+          "p99": 4025.26339272
+        },
+        "send_to_verified_ms": {
+          "max": 3996.974035,
+          "min": 94.067616,
+          "n": 207,
+          "p50": 2442.049198,
+          "p95": 3814.3877284,
+          "p99": 3929.94246122
+        },
+        "sensor_prepared_to_action_ms": {
+          "max": 18.123471,
+          "min": 2.581123,
+          "n": 105,
+          "p50": 6.352986,
+          "p95": 11.9994822,
+          "p99": 14.296261679999988
+        }
+      },
+      "edge_stages": {
+        "EDGE_AFTER_REASSEMBLY": 172,
+        "EDGE_BEFORE_TAIL": 1,
+        "EDGE_PENDING_SLOT": 1,
+        "MAP_ACCEPTED": 29,
+        "MAP_REJECTED": 4,
+        "NO_EDGE_EVENT": 1
+      },
+      "fallbacks": 2,
+      "fully_reassembled": 207,
+      "gt_outcomes": {
+        "NO_GT_PRODUCER_CAPACITY": 36,
+        "SCORED": 14,
+        "UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 13,
+        "UNSCORED_EDGE_TERMINAL_STALE_BEFORE_MAP": 1,
+        "UNSCORED_EDGE_TERMINAL_SUPERSEDED_PENDING": 1,
+        "UNSCORED_NO_RESULT_BY_HORIZON": 38
+      },
+      "gt_ready": 67,
+      "gt_ready_by_170": 67,
+      "holds": 103,
+      "late_nonterminal_rows": 177,
+      "map_observations": 33,
+      "modes_all_sent": {
+        "10": 2,
+        "11": 174,
+        "8": 32
+      },
+      "modes_policy": {
+        "10": 1,
+        "11": 86,
+        "8": 16
+      },
+      "no_edge_evidence": [
+        52
+      ],
+      "offered_all_collector_opportunities": null,
+      "offered_assigned_frames": 208,
+      "payload_admitted_sfd4_bytes": {
+        "max": 320776.0,
+        "min": 6690.0,
+        "n": 35,
+        "p50": 151690.0,
+        "p95": 306278.89999999997,
+        "p99": 319448.64
+      },
+      "payload_known_sfd4_bytes": {
+        "max": 320776.0,
+        "min": 6690.0,
+        "n": 41,
+        "p50": 165917.0,
+        "p95": 301739.0,
+        "p99": 319214.4
+      },
+      "payload_retained_sfd4_bytes": {
+        "max": 286914.0,
+        "min": 107874.0,
+        "n": 7,
+        "p50": 179300.0,
+        "p95": 284840.1,
+        "p99": 286499.22
+      },
+      "pdcp_capture_sdu_bytes": 38299449,
+      "pdcp_events": 27195,
+      "policy_reward_resolutions": {
+        "TIMEOUT": 103
+      },
+      "policy_scored_feedback": 14,
+      "predictions": 33,
+      "prior_actor_replay": true,
+      "prior_quality": {
+        "person": {
+          "conservative_fraction": 1.0,
+          "eligible_gt_objects": 2,
+          "false_positives": 5,
+          "localisation_threshold_m": 1.2,
+          "matched_objects": 2,
+          "misses": 0,
+          "scored_frames": 14,
+          "segmentation_intersection_pixels": 200,
+          "segmentation_iou": 0.18115942028985507,
+          "segmentation_union_pixels": 1104,
+          "within_threshold": 2,
+          "zero_eligible_scored_frames": 13
+        },
+        "vehicle": {
+          "conservative_fraction": 0.6538461538461539,
+          "eligible_gt_objects": 52,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.0,
+          "matched_objects": 49,
+          "misses": 3,
+          "scored_frames": 14,
+          "segmentation_intersection_pixels": 146079,
+          "segmentation_iou": 0.389429767268268,
+          "segmentation_union_pixels": 375110,
+          "within_threshold": 34,
+          "zero_eligible_scored_frames": 0
+        }
+      },
+      "prior_rescoring": true,
+      "q_e4_all": {
+        "max": 9800.0,
+        "min": 2809.0,
+        "n": 208,
+        "p50": 3391.5,
+        "p95": 5801.0,
+        "p99": 8333.0
+      },
+      "q_e4_policy": {
+        "max": 8333.0,
+        "min": 2809.0,
+        "n": 103,
+        "p50": 3384.0,
+        "p95": 5656.199999999993,
+        "p99": 6481.740000000001
+      },
+      "radio_windows": {
+        "capture_only": {
+          "event_window_wall_ns": [
+            1791912208270396160,
+            1791912250852863488
+          ],
+          "ingest_lag_ms": {
+            "max": 108.476775,
+            "min": 0.056549,
+            "n": 2209,
+            "p50": 1.004139,
+            "p95": 4.6748032,
+            "p99": 14.390635080000097
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 2209,
+            "p50": 25.0,
+            "p95": 25.0,
+            "p99": 28.0
+          },
+          "n": 2209,
+          "rb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 2209,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "scheduled_tb_Mbps_wall": 7.661976688360297,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 2209,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          },
+          "sum_tb_bytes": 40783234,
+          "tb_bytes": {
+            "max": 26122.0,
+            "min": 421.0,
+            "n": 2209,
+            "p50": 22547.0,
+            "p95": 22547.0,
+            "p99": 25101.0
+          }
+        },
+        "capture_through_edge_drain": {
+          "event_window_wall_ns": [
+            1791912208270396160,
+            1791912251223852043
+          ],
+          "ingest_lag_ms": {
+            "max": 108.476775,
+            "min": 0.056549,
+            "n": 2240,
+            "p50": 1.004213,
+            "p95": 4.716980999999989,
+            "p99": 13.980954890000168
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 2240,
+            "p50": 25.0,
+            "p95": 25.0,
+            "p99": 28.0
+          },
+          "n": 2240,
+          "rb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 2240,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "scheduled_tb_Mbps_wall": 7.694017284667387,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 2240,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          },
+          "sum_tb_bytes": 41310579,
+          "tb_bytes": {
+            "max": 26122.0,
+            "min": 421.0,
+            "n": 2240,
+            "p50": 22547.0,
+            "p95": 22547.0,
+            "p99": 25101.0
+          }
+        },
+        "whole_log": {
+          "event_window_wall_ns": null,
+          "ingest_lag_ms": {
+            "max": 108.476775,
+            "min": 0.056549,
+            "n": 2284,
+            "p50": 1.0017230000000001,
+            "p95": 4.695355899999998,
+            "p99": 14.593684170000042
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 2284,
+            "p50": 25.0,
+            "p95": 26.0,
+            "p99": 28.0
+          },
+          "n": 2284,
+          "rb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 2284,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 2284,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          },
+          "sum_tb_bytes": 41330666,
+          "tb_bytes": {
+            "max": 26122.0,
+            "min": 388.0,
+            "n": 2284,
+            "p50": 22547.0,
+            "p95": 22547.0,
+            "p99": 25101.0
+          }
+        }
+      },
+      "rlc_nonzero_fraction": 0.921578947368421,
+      "rlc_summed_tick_bytes": {
+        "max": 3816355.0,
+        "min": 0.0,
+        "n": 5700,
+        "p50": 1977581.0,
+        "p95": 3493199.3000000003,
+        "p99": 3695342.100000001
+      },
+      "scheduler_estimated_buffer_bytes": {
+        "max": 300000.0,
+        "min": 0.0,
+        "n": 2199,
+        "p50": 300000.0,
+        "p95": 300000.0,
+        "p99": 300000.0
+      },
+      "scored_gt_ready_before_prediction": 14,
+      "sender_Mbps_over_capture_span": 7.116072388805661,
+      "sent": 208,
+      "sfd4_full_population_quantiles": null,
+      "sfd4_mean_bytes": 181982.4326923077,
+      "sfd4_total_bytes": 37852346,
+      "source": {
+        "cell_id": "town10",
+        "ego_id": "m4-ego-0",
+        "feedback_port": 52010,
+        "imsi": "001010000000001",
+        "ip": "10.0.0.3",
+        "rnti": 12632,
+        "run_id": "M4_TWO_UE_GOOD_ALL",
+        "session_id": "ca3872c9-cf84-4bc7-8cc0-ba895f06a342",
+        "stream_id": "m4-ue0",
+        "tunnel": "oaitun_ue1",
+        "ue_id": 0
+      },
+      "terminal_crosswalk": [
+        {
+          "evidence": "MAP_REJECTED",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 4
+        },
+        {
+          "evidence": "NO_EDGE_EVENT",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 1
+        },
+        {
+          "evidence": "EDGE_AFTER_REASSEMBLY",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 172
+        },
+        {
+          "evidence": "MAP_ACCEPTED",
+          "ledger": "RESULT_INSTALLED",
+          "n": 29
+        },
+        {
+          "evidence": "EDGE_PENDING_SLOT",
+          "ledger": "SUPERSEDED_PENDING",
+          "n": 1
+        },
+        {
+          "evidence": "EDGE_BEFORE_TAIL",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 1
+        }
+      ],
+      "terminal_rows": 208,
+      "terminals": {
+        "FEEDBACK_TIMEOUT": 178,
+        "RESULT_INSTALLED": 29,
+        "SUPERSEDED_PENDING": 1
+      },
+      "timely_decision_prediction_action_open": 0,
+      "timely_policy_feedback": 0,
+      "udp_application_bytes": 37877490,
+      "uplink_dci_rounds": {
+        "0": 2197,
+        "1": 14
+      }
+    },
+    "m4-ue1": {
+      "accepted_map_installs": 26,
+      "actor_acknowledged_snr_consistent": 100,
+      "after_reassembly_expired": 179,
+      "backlog_delay_pearson": 0.8597840749161285,
+      "capture_window_seconds": 42.591678208,
+      "capture_window_wall_ns": [
+        1791912208302502912,
+        1791912250894181120
+      ],
+      "collector_offer_note": "per_frame_metrics.csv not retained; all assigned/transmitted frames recovered, broader offer count unknown",
+      "command_ack_counts": {
+        "ACK_LATE": 25,
+        "ACK_ON_TIME": 823
+      },
+      "commanded_snr_db": 23.5,
+      "datagrams": 3357,
+      "decision_predictions": 11,
+      "decisions": 100,
+      "duration_ms": {
+        "action_to_feedback_ms": {
+          "max": 482.668735,
+          "min": 300.268041,
+          "n": 11,
+          "p50": 359.657204,
+          "p95": 461.452195,
+          "p99": 478.425427
+        },
+        "action_to_gt_ready_ms": {
+          "max": 310.008689,
+          "min": 102.357869,
+          "n": 63,
+          "p50": 125.164609,
+          "p95": 242.25566209999997,
+          "p99": 284.09238892000013
+        },
+        "action_to_prediction_raw_ms": {
+          "max": 435.48703,
+          "min": 260.802644,
+          "n": 11,
+          "p50": 316.060621,
+          "p95": 407.200337,
+          "p99": 429.8296914
+        },
+        "capture_to_map_ack_ms": {
+          "max": 477.74208,
+          "min": 302.10944,
+          "n": 26,
+          "p50": 389.80505600000004,
+          "p95": 430.001984,
+          "p99": 466.300928
+        },
+        "capture_to_map_install_ms": {
+          "max": 474.862848,
+          "min": 299.623936,
+          "n": 26,
+          "p50": 387.803008,
+          "p95": 425.674496,
+          "p99": 462.91276799999997
+        },
+        "capture_to_prediction_wall_ms": {
+          "max": 501.550592,
+          "min": 290.271232,
+          "n": 28,
+          "p50": 381.87686399999996,
+          "p95": 487.1562112,
+          "p99": 500.53964288
+        },
+        "capture_to_verified_wall_ms": {
+          "max": 6068.268569,
+          "min": 236.491265,
+          "n": 208,
+          "p50": 4800.3054125,
+          "p95": 5717.99599065,
+          "p99": 5963.87440765
+        },
+        "edge_compute_ms": {
+          "max": 73.3945369720459,
+          "min": 49.353599548339844,
+          "n": 28,
+          "p50": 59.452176094055176,
+          "p95": 68.63272190093994,
+          "p99": 72.18297243118286
+        },
+        "edge_queue_ms": {
+          "max": 135.79678535461426,
+          "min": 0.2980232238769531,
+          "n": 28,
+          "p50": 0.7488727569580078,
+          "p95": 71.8425989151001,
+          "p99": 118.987832069397
+        },
+        "encoding_only_ms": {
+          "n": 0
+        },
+        "front_end_to_send_ms": {
+          "max": 5.700506,
+          "min": 0.799992,
+          "n": 208,
+          "p50": 1.1924865,
+          "p95": 1.8359179999999993,
+          "p99": 3.334572790000003
+        },
+        "front_ranker_ae_codec_ms": {
+          "max": 86.10738,
+          "min": 4.26634,
+          "n": 208,
+          "p50": 13.764766999999999,
+          "p95": 29.054916249999994,
+          "p99": 39.97959743000003
+        },
+        "gpu_wait_ms": {
+          "n": 0
+        },
+        "input_7ch_ms": {
+          "max": 152.740885,
+          "min": 7.894739,
+          "n": 208,
+          "p50": 12.402769,
+          "p95": 23.447261599999937,
+          "p99": 32.263857230000006
+        },
+        "packet_send_calls_ms": {
+          "max": 11.488542,
+          "min": 0.040568,
+          "n": 208,
+          "p50": 0.1998895,
+          "p95": 1.9506213499999987,
+          "p99": 5.339248320000014
+        },
+        "prediction_to_feedback_ms": {
+          "max": 101.77097,
+          "min": 29.153086,
+          "n": 11,
+          "p50": 46.934346,
+          "p95": 81.5464905,
+          "p99": 97.72607410000002
+        },
+        "rgb_to_send_ms": {
+          "max": 263.315474,
+          "min": 76.49312,
+          "n": 208,
+          "p50": 110.44672650000001,
+          "p95": 144.8436834,
+          "p99": 212.89285112000024
+        },
+        "rgb_to_sensor_prepared_ms": {
+          "max": 186.928432,
+          "min": 46.407016,
+          "n": 208,
+          "p50": 68.465908,
+          "p95": 88.17352689999998,
+          "p99": 109.69142421000004
+        },
+        "rgb_to_verified_ms": {
+          "max": 6068.672728,
+          "min": 236.563744,
+          "n": 208,
+          "p50": 4800.4168875,
+          "p95": 5718.101916549999,
+          "p99": 5963.982764970001
+        },
+        "send_to_verified_ms": {
+          "max": 5979.648448,
+          "min": 95.453394,
+          "n": 208,
+          "p50": 4697.9364669999995,
+          "p95": 5629.995920599999,
+          "p99": 5846.97851908
+        },
+        "sensor_prepared_to_action_ms": {
+          "max": 24.256152,
+          "min": 2.342184,
+          "n": 108,
+          "p50": 4.091865,
+          "p95": 13.897125099999988,
+          "p99": 20.05580751999999
+        }
+      },
+      "edge_stages": {
+        "EDGE_AFTER_REASSEMBLY": 179,
+        "EDGE_BEFORE_TAIL": 1,
+        "MAP_ACCEPTED": 26,
+        "MAP_REJECTED": 2
+      },
+      "fallbacks": 8,
+      "fully_reassembled": 208,
+      "gt_outcomes": {
+        "NO_GT_PRODUCER_CAPACITY": 37,
+        "SCORED": 11,
+        "UNSCORED_EDGE_TERMINAL_STALE_BEFORE_EDGE": 9,
+        "UNSCORED_NO_RESULT_BY_HORIZON": 43
+      },
+      "gt_ready": 63,
+      "gt_ready_by_170": 55,
+      "holds": 100,
+      "late_nonterminal_rows": 180,
+      "map_observations": 28,
+      "modes_all_sent": {
+        "11": 160,
+        "8": 48
+      },
+      "modes_policy": {
+        "11": 76,
+        "8": 24
+      },
+      "no_edge_evidence": [],
+      "offered_all_collector_opportunities": null,
+      "offered_assigned_frames": 208,
+      "payload_admitted_sfd4_bytes": {
+        "max": 329048.0,
+        "min": 6639.0,
+        "n": 29,
+        "p50": 125535.0,
+        "p95": 323549.8,
+        "p99": 328404.84
+      },
+      "payload_known_sfd4_bytes": {
+        "max": 329048.0,
+        "min": 6639.0,
+        "n": 35,
+        "p50": 146120.0,
+        "p95": 321148.89999999997,
+        "p99": 328267.02
+      },
+      "payload_retained_sfd4_bytes": {
+        "max": 297949.0,
+        "min": 106081.0,
+        "n": 7,
+        "p50": 189135.0,
+        "p95": 295795.9,
+        "p99": 297518.38
+      },
+      "pdcp_capture_sdu_bytes": 40970323,
+      "pdcp_events": 29101,
+      "policy_reward_resolutions": {
+        "TIMEOUT": 100
+      },
+      "policy_scored_feedback": 11,
+      "predictions": 28,
+      "prior_actor_replay": true,
+      "prior_quality": {
+        "person": {
+          "conservative_fraction": null,
+          "eligible_gt_objects": 0,
+          "false_positives": 0,
+          "localisation_threshold_m": 1.2,
+          "matched_objects": 0,
+          "misses": 0,
+          "scored_frames": 11,
+          "segmentation_intersection_pixels": 0,
+          "segmentation_iou": 0.0,
+          "segmentation_union_pixels": 403,
+          "within_threshold": 0,
+          "zero_eligible_scored_frames": 11
+        },
+        "vehicle": {
+          "conservative_fraction": 0.5897435897435898,
+          "eligible_gt_objects": 78,
+          "false_positives": 7,
+          "localisation_threshold_m": 1.0,
+          "matched_objects": 62,
+          "misses": 16,
+          "scored_frames": 11,
+          "segmentation_intersection_pixels": 222037,
+          "segmentation_iou": 0.8734324107437886,
+          "segmentation_union_pixels": 254212,
+          "within_threshold": 46,
+          "zero_eligible_scored_frames": 0
+        }
+      },
+      "prior_rescoring": true,
+      "q_e4_all": {
+        "max": 9800.0,
+        "min": 1821.0,
+        "n": 208,
+        "p50": 3097.5,
+        "p95": 5987.0,
+        "p99": 9800.0
+      },
+      "q_e4_policy": {
+        "max": 6436.0,
+        "min": 1821.0,
+        "n": 100,
+        "p50": 3072.5,
+        "p95": 5008.199999999999,
+        "p99": 5991.4900000000025
+      },
+      "radio_windows": {
+        "capture_only": {
+          "event_window_wall_ns": [
+            1791912208302502912,
+            1791912250894181120
+          ],
+          "ingest_lag_ms": {
+            "max": 117.508761,
+            "min": 0.042998,
+            "n": 2215,
+            "p50": 1.015134,
+            "p95": 4.904985199999992,
+            "p99": 15.210844380000292
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 2215,
+            "p50": 25.0,
+            "p95": 25.0,
+            "p99": 28.0
+          },
+          "n": 2215,
+          "rb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 2215,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "scheduled_tb_Mbps_wall": 7.5620834292343835,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 2215,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          },
+          "sum_tb_bytes": 40260228,
+          "tb_bytes": {
+            "max": 26122.0,
+            "min": 421.0,
+            "n": 2215,
+            "p50": 22547.0,
+            "p95": 22547.0,
+            "p99": 25101.0
+          }
+        },
+        "capture_through_edge_drain": {
+          "event_window_wall_ns": [
+            1791912208302502912,
+            1791912252774701061
+          ],
+          "ingest_lag_ms": {
+            "max": 117.508761,
+            "min": 0.042998,
+            "n": 2420,
+            "p50": 0.9880825,
+            "p95": 4.838777749999998,
+            "p99": 13.224648749999998
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 2420,
+            "p50": 25.0,
+            "p95": 25.0,
+            "p99": 28.0
+          },
+          "n": 2420,
+          "rb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 2420,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "scheduled_tb_Mbps_wall": 7.936447818870326,
+          "snr_db": {
+            "max": 21.0,
+            "min": 20.0,
+            "n": 2420,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          },
+          "sum_tb_bytes": 44118910,
+          "tb_bytes": {
+            "max": 26122.0,
+            "min": 421.0,
+            "n": 2420,
+            "p50": 22547.0,
+            "p95": 22547.0,
+            "p99": 25101.0
+          }
+        },
+        "whole_log": {
+          "event_window_wall_ns": null,
+          "ingest_lag_ms": {
+            "max": 117.508761,
+            "min": 0.042998,
+            "n": 2476,
+            "p50": 0.9880825,
+            "p95": 4.877714,
+            "p99": 13.21603875
+          },
+          "mcs": {
+            "max": 28.0,
+            "min": 25.0,
+            "n": 2476,
+            "p50": 25.0,
+            "p95": 26.0,
+            "p99": 28.0
+          },
+          "n": 2476,
+          "rb": {
+            "max": 273.0,
+            "min": 5.0,
+            "n": 2476,
+            "p50": 273.0,
+            "p95": 273.0,
+            "p99": 273.0
+          },
+          "snr_db": {
+            "max": 30.0,
+            "min": 20.0,
+            "n": 2476,
+            "p50": 20.5,
+            "p95": 21.0,
+            "p99": 21.0
+          },
+          "sum_tb_bytes": 44240262,
+          "tb_bytes": {
+            "max": 26122.0,
+            "min": 421.0,
+            "n": 2476,
+            "p50": 22547.0,
+            "p95": 22547.0,
+            "p99": 25101.0
+          }
+        }
+      },
+      "rlc_nonzero_fraction": 0.9231308002101208,
+      "rlc_summed_tick_bytes": {
+        "max": 6712347.0,
+        "min": 0.0,
+        "n": 5711,
+        "p50": 4111394.0,
+        "p95": 6348459.5,
+        "p99": 6582698.8999999985
+      },
+      "scheduler_estimated_buffer_bytes": {
+        "max": 300000.0,
+        "min": 0.0,
+        "n": 2207,
+        "p50": 300000.0,
+        "p95": 300000.0,
+        "p99": 300000.0
+      },
+      "scored_gt_ready_before_prediction": 11,
+      "sender_Mbps_over_capture_span": 7.6116675754538985,
+      "sent": 208,
+      "sfd4_full_population_quantiles": null,
+      "sfd4_mean_bytes": 194698.82692307694,
+      "sfd4_total_bytes": 40497356,
+      "source": {
+        "cell_id": "town10",
+        "ego_id": "m4-ego-1",
+        "feedback_port": 52011,
+        "imsi": "001010000000002",
+        "ip": "10.0.0.2",
+        "rnti": 15481,
+        "run_id": "M4_TWO_UE_GOOD_ALL",
+        "session_id": "1140613b-d648-4388-983a-46d925bf5b42",
+        "stream_id": "m4-ue1",
+        "tunnel": "oaitun_ue2",
+        "ue_id": 1
+      },
+      "terminal_crosswalk": [
+        {
+          "evidence": "EDGE_AFTER_REASSEMBLY",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 179
+        },
+        {
+          "evidence": "MAP_ACCEPTED",
+          "ledger": "RESULT_INSTALLED",
+          "n": 26
+        },
+        {
+          "evidence": "MAP_REJECTED",
+          "ledger": "STALE_BEFORE_MAP",
+          "n": 2
+        },
+        {
+          "evidence": "EDGE_BEFORE_TAIL",
+          "ledger": "FEEDBACK_TIMEOUT",
+          "n": 1
+        }
+      ],
+      "terminal_rows": 208,
+      "terminals": {
+        "FEEDBACK_TIMEOUT": 180,
+        "RESULT_INSTALLED": 26,
+        "STALE_BEFORE_MAP": 2
+      },
+      "timely_decision_prediction_action_open": 0,
+      "timely_policy_feedback": 0,
+      "udp_application_bytes": 40524212,
+      "uplink_dci_rounds": {
+        "0": 2207,
+        "1": 12
+      }
+    }
+  },
+  "preparation_sha256": "f89ef97828799c2e48e8766a199714f7e8162d1b2e91cbd0676ed0c4f5bf7952",
+  "quantiles": "NumPy linear percentile; descriptive conditional subsets; missing completion is never latency",
+  "radio_time": "Exact retained time-of-day reconstructor; UTC-7; source RNTI from ATTACHED; 0..2s ingest guard",
+  "scope": "Saved smoke only; no causal live intervention",
+  "verdict": "FUNCTIONAL_INTEGRATION_PASS__NOT_PERFORMANCE_QUALIFIED"
+}

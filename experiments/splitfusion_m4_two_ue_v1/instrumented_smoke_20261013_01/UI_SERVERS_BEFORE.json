@@ -1,0 +1,7 @@
+{
+  "ui_servers": {
+    "988344": "python3 -m spatial_map_coop.replay_ui_v1.server ",
+    "1152770": "python3 -m spatial_map_coop.replay_ui_v1.recorded_tap_v20 --port 8777 "
+  },
+  "loadavg": "1.66 1.19 1.29 1/2398 1464941\n"
+}

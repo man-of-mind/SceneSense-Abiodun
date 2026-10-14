@@ -1,0 +1,13 @@
+{
+  "user_request": "fix M4's first-send marker ownership, verify the actual first-send path, then run ONE bounded smoke",
+  "repair": "host.first_send_marker: per-source <capture>/<stream>/first_send_target_start, not pre-created, retained exclusive touch unchanged; host TARGET_STARTED.json channel record unchanged and separate",
+  "scope": "Exactly one 20-sim-s two-UE smoke in fresh smoke_live_20261013_07; actor/GT/channel/traffic/deadlines/host-baseline unchanged",
+  "preparation_sha256": "f89ef97828799c2e48e8766a199714f7e8162d1b2e91cbd0676ed0c4f5bf7952",
+  "no_retry": true,
+  "no_tuning": true,
+  "no_deletion_commit": true,
+  "ui_servers_preserved": [
+    988344,
+    1152770
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "-m",
+    "rl_agent.splitfusion_m4_two_ue_v1.cli",
+    "prepare",
+    "--output",
+    "experiments/splitfusion_m4_two_ue_v1/receiver_boundary_diagnostic_20261013_01/main_preparation"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun",
+  "end_wall_s": 1791940160.8477187,
+  "returncode": 0,
+  "start_wall_s": 1791940159.727635
+}

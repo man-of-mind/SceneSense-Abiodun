@@ -1,0 +1,19 @@
+{
+  "command": [
+    "env",
+    "-u",
+    "PYTHONPATH",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "python3",
+    "-B",
+    "-m",
+    "rl_agent.splitfusion_m4_two_ue_v1.cli",
+    "cleanup",
+    "--capture",
+    "experiments/splitfusion_m4_two_ue_v1/smoke_live_20261013_05"
+  ],
+  "cwd": "/home/shr_aisvcs/workarea/carla_0_10_env/Carla-0.10.0-Linux-Shipping/PythonAPI/neu_collab/abiodun_run4_single_gpu_profiler_v1",
+  "end_wall_s": 1791881106.055451,
+  "returncode": 0,
+  "start_wall_s": 1791881106.0278208
+}

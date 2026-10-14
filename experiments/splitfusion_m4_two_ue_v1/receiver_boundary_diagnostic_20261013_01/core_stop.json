@@ -1,0 +1,17 @@
+{
+  "command": [
+    "sudo",
+    "-n",
+    "docker",
+    "compose",
+    "stop",
+    "--timeout",
+    "20"
+  ],
+  "end_wall_s": 1791940617.8009503,
+  "ownership_checked": true,
+  "returncode": 0,
+  "start_wall_s": 1791940605.9711823,
+  "stderr": " Container oai-ext-dn Stopping \n Container ims Stopping \n Container oai-upf Stopping \n Container oai-ext-dn Stopped \n Container ims Stopped \n Container oai-upf Stopped \n Container oai-smf Stopping \n Container oai-smf Stopped \n Container oai-amf Stopping \n Container oai-amf Stopped \n Container oai-ausf Stopping \n Container oai-ausf Stopped \n Container oai-udm Stopping \n Container oai-udm Stopped \n Container oai-udr Stopping \n Container oai-udr Stopped \n Container mysql Stopping \n Container oai-nrf Stopping \n Container oai-nrf Stopped \n Container mysql Stopped \n",
+  "stdout": ""
+}
